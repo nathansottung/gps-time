@@ -113,6 +113,7 @@ Missed pulses are counted when the time between two observed events exceeds the 
 | `GNSS_NMEA` | SYNCHRONIZED | `SYNCHRONIZED · GNSS SERIAL TIME (NMEA) · STRATUM n` (no PPS refclock configured) |
 | `REFCLOCK` | SYNCHRONIZED | another reference clock |
 | `UNSYNCHRONIZED` | UNSYNCHRONIZED | leap status "Not synchronised" |
+| `ACQUIRING` | ACQUIRING | `ACQUIRING · PPS NOT YET SELECTED SINCE BOOT`. A boot-phase overlay: `underlying` keeps the banner that names the current source. It never masks `GPS_PPS` or `UNSYNCHRONIZED` |
 | `SOURCE_UNKNOWN` / `UNKNOWN` | — | chrony's source list or tracking is unavailable |
 
 **`GPS_PPS` requires chrony's `*` on the PPS refclock.** The tracking reference alone isn't enough, because chrony keeps showing the last reference (e.g. `GPS`, stratum 1) during holdover. `tests/test_timing_chain.py::test_20` checks every fixture combination.
@@ -137,8 +138,12 @@ Jamming, spoofing, interference and antenna failure are **never** named; the tes
 **Generic schema** (`gps-time.event/1`): `id`, `type`, `start_utc` and `start_epoch`, `end_utc`, `duration_s`, `open`, `severity`, `classification`, `initial_classification`, `confidence`, `boundary`, `classification_provenance: "inferred"`, `evidence`, `recovery`, `notes`. Optional fields are `restarts[]` and `start_bound`.
 
 **Opening a `PPS_OUTAGE`.** One event is opened when PPS has not been `SELECTED` for `GTP_PPS_OUTAGE_DEBOUNCE_S` (default 30 s).
-- A startup grace of `GTP_PPS_STARTUP_GRACE_S` (default 300 s) gives chrony time to select PPS after boot.
-- If PPS was already unused at service start, the event says so (`start_bound: "service_start"`): the true start may be earlier.
+- **Boot rule.** Until PPS is first selected after a boot, the station is `ACQUIRING`: no outage is opened, and the banner says so.
+  - If PPS is not selected within `GTP_PPS_ACQUIRE_WINDOW_S` (default 1800 s = 30 min) of boot, one outage opens **backdated to boot time** (`start_bound: "boot"`).
+  - Boot time comes from `/proc/uptime`. The kernel `boot_id` and a `pps_selected` flag are checkpointed once per boot, on the first selection. A web-service restart later in the same boot therefore doesn't re-enter ACQUIRING.
+  - The rule applies only when the service started observing inside the window. If it started later, or boot time is unavailable, nothing is known about the earlier part of the boot, so the debounce rule applies and the event says so (`start_bound: "service_start"`). The true start may be earlier.
+- **After PPS has been selected in this boot**, a loss opens an outage after the 30 s debounce, starting at the loss.
+- `/api/timing-chain` → `boot` reports the phase, boot time, time since boot, deadline and whether PPS was selected this boot.
 - An event is never opened or closed while chrony's state is unknown and pulses are present.
 
 **Evidence collected while open:**
@@ -170,7 +175,7 @@ Jamming, spoofing, interference and antenna failure are **never** named; the tes
 
 Both new endpoints are read-only and run no commands supplied by the browser. In demo mode, `?scenario=` selects one of the synthetic scenarios in `gps_time_pi/demo.py` (`TIMING_SCENARIOS`):
 - `pps_selected`, `pps_path_anomaly`, `pps_unused_nmea_stale`, `pps_rejected`;
-- `network_failover`, `holdover`, `recovering`, `device_missing`, `chrony_unknown`.
+- `network_failover`, `holdover`, `recovering`, `device_missing`, `chrony_unknown`, `acquiring`.
 
 Each runs the real pipeline on synthetic inputs and is marked as synthetic data.
 

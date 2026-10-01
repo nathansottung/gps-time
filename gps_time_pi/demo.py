@@ -223,6 +223,9 @@ TIMING_SCENARIOS = {
     "device_missing": dict(desc="No /dev/pps0; NMEA refclock disciplining the clock", pulses="missing",
                            gnss=True, sources=[_PPS_NOSAMPLE, _NMEA_SEL, _NET_OK], ref="NMEA", outage_s=600),
     "chrony_unknown": dict(desc="chrony status unavailable", pulses="healthy", gnss=True, sources=None, ref=None),
+    "acquiring": dict(desc="Booted 6 minutes ago; PPS not yet selected (not an outage)", pulses="healthy",
+                      gnss=True, sources=[_PPS_RECOVER, _NMEA_OK, _NET_SEL], ref="192.0.2.10", stratum=3,
+                      boot_ago_s=360),
 }
 
 
@@ -261,7 +264,8 @@ def timing_chain(scenario="pps_selected"):
 
     svc = tc.TimingChainService(
         monitor=PPSMonitor(device="/dev/pps0", clock=now, reader=reader, device_state=device_state),
-        tracker=tc.EventTracker(None, clock=now, debounce_s=0, grace_s=0),
+        tracker=tc.EventTracker(None, clock=now, debounce_s=0,
+                                boot=(end - sc.get("boot_ago_s", 7 * 86400), "demo-boot")),
         chrony_reader=chrony_reader, gnss_reader=lambda: _gnss(sc["gnss"]),
         refclock_reader=lambda: _REFCFG,
         boot_config_reader=lambda: {"gpio": 18, "assert_edge": "rising", "source": "demo"},

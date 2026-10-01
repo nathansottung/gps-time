@@ -24,7 +24,7 @@ from .labels import q
 from .pps import PPSMonitor
 
 OUTAGE_DEBOUNCE_S = float(os.environ.get("GTP_PPS_OUTAGE_DEBOUNCE_S", "30"))
-STARTUP_GRACE_S = float(os.environ.get("GTP_PPS_STARTUP_GRACE_S", "300"))
+ACQUIRE_WINDOW_S = float(os.environ.get("GTP_PPS_ACQUIRE_WINDOW_S", "1800"))   # 30 min after boot
 NMEA_STALE_MIN_S = float(os.environ.get("GTP_NMEA_STALE_MIN_S", "30"))
 CHRONY_INTERVAL_S = 5.0
 CHECKPOINT_REFRESH_S = 900.0   # while an outage is open, refresh evidence at most every 15 min
@@ -242,6 +242,22 @@ def timing_status(trk, srcs, gnss=None, pps=None, refclocks=None):
                f"Clock disciplined by {sel['name']} (stratum {stratum}). {gnss_note}.", src)
 
 
+def acquiring_status(base, boot_view):
+    """Boot-phase overlay: until PPS is first selected after boot, report
+    ACQUIRING instead of a degraded/failover state. GPS_PPS and UNSYNCHRONIZED
+    are never masked (the latter carries a client-safety warning)."""
+    if not boot_view or boot_view.get("phase") != "ACQUIRING" or base["code"] in ("GPS_PPS", "UNSYNCHRONIZED"):
+        return base
+    since = _val(boot_view.get("since_boot_s"))
+    mins = boot_view["acquire_window_s"] / 60
+    detail = (f"Booted {round(since / 60) if since is not None else '?'} min ago; PPS not yet selected. "
+              f"An outage is recorded if PPS is not selected within {mins:g} min of boot. "
+              f"Now: {base['banner']}" + (f" — {base['detail']}" if base["detail"] else ""))
+    return {"code": "ACQUIRING", "headline": "ACQUIRING", "banner": "ACQUIRING · PPS NOT YET SELECTED SINCE BOOT",
+            "detail": detail, "source": base["source"], "gnss_healthy": base["gnss_healthy"],
+            "provenance": "calculated", "underlying": base}
+
+
 # ── PPS state machine ───────────────────────────────────────────────────────
 
 PPS_STATES = ("UNKNOWN", "DEVICE_MISSING", "DEVICE_PRESENT_NO_EVENTS", "EVENTS_PRESENT",
@@ -333,7 +349,7 @@ def _stage(sid, label, status, summary, **evidence):
     return {"id": sid, "label": label, "status": status, "summary": summary, "evidence": evidence}
 
 
-def build_chain(pps_snap, pps_state, gnss, chrony_v, status, events=None, now=None):
+def build_chain(pps_snap, pps_state, gnss, chrony_v, status, events=None, now=None, boot=None):
     now = time.time() if now is None else now
     ph = pps_snap["pulse_health"]
     cv = chrony_v
@@ -382,7 +398,8 @@ def build_chain(pps_snap, pps_state, gnss, chrony_v, status, events=None, now=No
                "PPS is the source disciplining the clock" if pps_cs == "SELECTED" else "PPS not selected"),
         _stage("system_sync", "System clock synchronization",
                {"GPS_PPS": "OK", "GNSS_NMEA": "OK", "REFCLOCK": "OK", "UNKNOWN": "UNKNOWN",
-                "SOURCE_UNKNOWN": "UNKNOWN", "UNSYNCHRONIZED": "FAILED"}.get(status["code"], "DEGRADED"),
+                "SOURCE_UNKNOWN": "UNKNOWN", "UNSYNCHRONIZED": "FAILED",
+                "ACQUIRING": "INFO"}.get(status["code"], "DEGRADED"),
                status["banner"], tracking=cv.get("tracking")),
         _stage("fallback_source", "Fallback source",
                "INFO" if (status["source"] and not (cv.get("selected") or {}).get("is_pps")) else "NOT_APPLICABLE",
@@ -405,30 +422,77 @@ def build_chain(pps_snap, pps_state, gnss, chrony_v, status, events=None, now=No
         "classification": classify(ph, gnss, cv) if pps_state != "SELECTED" else None,
         "stages": stages,
         "events": events or {"open": None, "recent": []},
+        "boot": boot,
     }
 
 
 # ── events ──────────────────────────────────────────────────────────────────
 
-class EventTracker:
-    """One PPS_OUTAGE event per outage: opened after the PPS refclock has not been
-    selected for OUTAGE_DEBOUNCE_S (after a startup grace), closed when it is
-    selected again. A small checkpoint file lets an open outage survive restarts;
-    it is written only on open/close/classification change and at most every
-    CHECKPOINT_REFRESH_S while open (no 1 Hz writes)."""
+def read_boot(uptime_path="/proc/uptime", boot_id_path="/proc/sys/kernel/random/boot_id", clock=time.time):
+    """(boot_epoch, boot_id) of the running Linux boot, or (None, None) if unavailable."""
+    try:
+        with open(uptime_path) as f:
+            uptime = float(f.read().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None, None
+    try:
+        with open(boot_id_path) as f:
+            boot_id = f.read().strip() or None
+    except OSError:
+        boot_id = None
+    return clock() - uptime, boot_id
 
-    def __init__(self, path=None, clock=time.time, debounce_s=None, grace_s=None):
+
+class EventTracker:
+    """One PPS_OUTAGE event per outage, closed when chrony selects PPS again.
+
+    Boot rule: until PPS is first selected after a boot, the station is
+    ACQUIRING, not in an outage. If PPS is not selected within ACQUIRE_WINDOW_S
+    of boot, one outage opens, backdated to boot time. The rule applies only
+    when observation started inside that window (otherwise nothing is known
+    about the time before the service started). After PPS has been selected in
+    this boot, a loss opens an outage once PPS has been unselected for
+    OUTAGE_DEBOUNCE_S.
+
+    A small checkpoint file lets an open outage, and the fact that PPS was
+    selected in the current boot, survive service restarts. It is written only
+    on open/close/classification change, on the first PPS selection of a boot,
+    and at most every CHECKPOINT_REFRESH_S while open (no 1 Hz writes)."""
+
+    def __init__(self, path=None, clock=time.time, debounce_s=None, boot=None, acquire_window_s=None):
         self.path = path
         self.clock = clock
         self.debounce_s = OUTAGE_DEBOUNCE_S if debounce_s is None else debounce_s
-        self.grace_s = STARTUP_GRACE_S if grace_s is None else grace_s
+        self.acquire_window_s = ACQUIRE_WINDOW_S if acquire_window_s is None else acquire_window_s
         self.started = clock()
+        self.boot_epoch, self.boot_id = boot if boot else (None, None)
+        self.boot_rule = self.boot_epoch is not None and \
+            (self.started - self.boot_epoch) < self.acquire_window_s
+        self.selected_this_boot = False
         self.open = None
         self.recent = []
         self._bad_since = None
         self._last_checkpoint = None
         self._resumed = False
         self._load()
+
+    def phase(self, now=None):
+        """'ACQUIRING' until PPS is first selected after boot (within the window), else 'RUN'."""
+        now = self.clock() if now is None else now
+        if self.boot_rule and not self.selected_this_boot and self.open is None \
+                and now - self.boot_epoch < self.acquire_window_s:
+            return "ACQUIRING"
+        return "RUN"
+
+    def boot_view(self, now=None):
+        now = self.clock() if now is None else now
+        return {"phase": self.phase(now),
+                "boot_utc": _iso(self.boot_epoch), "boot_id_known": self.boot_id is not None,
+                "since_boot_s": q(round(now - self.boot_epoch) if self.boot_epoch else None, "s", "calculated"),
+                "acquire_window_s": self.acquire_window_s,
+                "acquire_deadline_utc": _iso(self.boot_epoch + self.acquire_window_s) if self.boot_epoch else None,
+                "boot_rule_applies": self.boot_rule,
+                "pps_selected_this_boot": self.selected_this_boot}
 
     # persistence
     def _load(self):
@@ -442,6 +506,9 @@ class EventTracker:
             return
         self.recent = data.get("recent", [])[-RECENT_EVENTS_MAX:]
         self.open = data.get("open")
+        boot = data.get("boot") or {}
+        if self.boot_id and boot.get("id") == self.boot_id and boot.get("pps_selected"):
+            self.selected_this_boot = True
         if self.open:
             self._resumed = True
             self.open.setdefault("restarts", []).append(
@@ -455,6 +522,7 @@ class EventTracker:
             self.open["last_checkpoint_utc"] = _iso(now)
             self.open["last_checkpoint_epoch"] = now
         data = {"schema": "gps-time.events-checkpoint/1", "written_utc": _iso(now),
+                "boot": {"id": self.boot_id, "pps_selected": self.selected_this_boot},
                 "open": self.open, "recent": self.recent[-RECENT_EVENTS_MAX:]}
         d = os.path.dirname(os.path.abspath(self.path))
         os.makedirs(d, exist_ok=True)
@@ -476,20 +544,27 @@ class EventTracker:
         if chain["chrony"]["pps_status"] == "UNKNOWN" and pps_state in ("UNKNOWN", "EVENTS_PRESENT"):
             return   # cannot tell whether PPS is in use: neither open nor close an outage
         if pps_state == "SELECTED":
+            first_this_boot = not self.selected_this_boot
+            self.selected_this_boot = True
             self._bad_since = None
             if self.open:
-                self._close(now, chain)
+                self._close(now, chain)          # checkpoint includes the boot flag
+            elif first_this_boot and self.boot_id:
+                self._checkpoint()               # one write per boot
             self._resumed = False
             return
         if self.open:
             self._accumulate(now, chain)
             return
+        if self.boot_rule and not self.selected_this_boot:
+            if now - self.boot_epoch < self.acquire_window_s:
+                return                           # ACQUIRING, not an outage
+            self._open(self.boot_epoch, now, chain, start_bound="boot")
+            return
         if self._bad_since is None:
             self._bad_since = now
-        if now - self.started < self.grace_s:
-            return
         if now - self._bad_since >= self.debounce_s:
-            self._open(max(self._bad_since, self.started), now, chain)
+            self._open(self._bad_since, now, chain)
 
     def _evidence_snapshot(self, chain):
         g, cv = chain["gnss"], chain["chrony"]
@@ -499,7 +574,7 @@ class EventTracker:
                 "nmea_status": cv["nmea_status"], "selected_source": (cv.get("selected") or {}).get("name"),
                 "status_code": chain["status"]["code"]}
 
-    def _open(self, start, now, chain):
+    def _open(self, start, now, chain, start_bound=None):
         c = chain.get("classification") or {}
         ev = {"schema": "gps-time.event/1", "id": f"pps-outage-{int(start)}", "type": "PPS_OUTAGE",
               "start_epoch": start, "start_utc": _iso(start), "end_utc": None, "duration_s": None,
@@ -512,7 +587,11 @@ class EventTracker:
                            "satellites_used_range": None, "fallback_sources": [],
                            "max_abs_system_time_s": None, "gnss_unhealthy_seen": False},
               "recovery": None, "notes": list(c.get("notes", []))}
-        if start <= self.started + 1:
+        if start_bound == "boot":
+            ev["start_bound"] = "boot"
+            ev["notes"].insert(0, f"PPS was not selected within {self.acquire_window_s / 60:g} min "
+                                  "of boot; the outage is backdated to boot time.")
+        elif start <= self.started + 1:
             ev["start_bound"] = "service_start"
             ev["notes"].insert(0, "PPS was already not selected when the service started; "
                                   "the true start is at or before this time.")
@@ -612,7 +691,7 @@ class TimingChainService:
                  boot_config_reader=None, clock=time.time):
         from . import gps, pps
         self.monitor = monitor or PPSMonitor()
-        self.tracker = tracker if tracker is not None else EventTracker(default_events_path())
+        self.tracker = tracker if tracker is not None else EventTracker(default_events_path(), boot=read_boot())
         self.chrony_reader = chrony_reader
         self.gnss_reader = gnss_reader or gps.snapshot
         self.refclock_reader = refclock_reader
@@ -646,13 +725,21 @@ class TimingChainService:
         status = timing_status(trk, rows, gnss=gnss, refclocks=self._refcfg)
         chain = build_chain(pps_snap, pps_state, gnss, cv, status, now=now)
         self.tracker.update(chain)
-        chain["events"] = self.tracker.view()
-        chain = build_chain(pps_snap, pps_state, gnss, cv, status, events=chain["events"], now=now)
+        boot = self.tracker.boot_view(now)
+        status = acquiring_status(status, boot)
+        chain = build_chain(pps_snap, pps_state, gnss, cv, status, events=self.tracker.view(), now=now, boot=boot)
         chain["raw"] = {k: self._chrony_inputs.get(f"{k}_text") if self._chrony_inputs.get(f"{k}_ok") else None
                         for k in ("tracking", "sources", "sourcestats")}
         with self._lock:
             self._latest = chain
         return chain
+
+    def running(self):
+        return bool(self._thread and self._thread.is_alive())
+
+    def apply_boot_phase(self, status):
+        """Apply the boot-phase overlay to a banner computed elsewhere (/api)."""
+        return acquiring_status(status, self.tracker.boot_view())
 
     def latest(self):
         with self._lock:
