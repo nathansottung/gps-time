@@ -509,6 +509,21 @@ class TestParsers(unittest.TestCase):
         self.assertEqual(chrony.refclock_config(os.path.join(d, "chrony.conf"))["pps"]["refid"], "PPS0")
         self.assertEqual(chrony.refclock_config(os.path.join(d, "missing.conf"))["source"], "unavailable")
 
+    def test_refclock_config_closes_its_files(self):
+        import gc
+        import warnings
+        d = tempfile.mkdtemp(prefix="gtp-conf-")
+        self.addCleanup(shutil.rmtree, d, True)
+        Path(d, "chrony.conf").write_text("refclock PPS /dev/pps0 lock NMEA refid GPS" + chr(10))
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", ResourceWarning)
+            chrony.refclock_config(os.path.join(d, "chrony.conf"))
+            gc.collect()
+        self.assertEqual([w for w in caught if issubclass(w.category, ResourceWarning)], [])
+
+    def test_tests_do_not_read_host_chrony_conf(self):
+        self.assertTrue(chrony.CHRONY_CONF.startswith(_env.TMP))
+
     def test_read_assert_formats(self):
         d = tempfile.mkdtemp(prefix="gtp-sys-")
         self.addCleanup(shutil.rmtree, d, True)
