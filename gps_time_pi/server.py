@@ -9,6 +9,8 @@ Routes:
   /api         core status JSON (never depends on the astronomy layer)
   /api/almanac /api/object /api/history
   /api/setting?location_display=exact|rounded|hidden
+  /api/timing-chain  GNSS -> PPS -> chrony stage-by-stage status, PPS state, events (JSON)
+  /api/diagnostics   copyable plain-text diagnostic snapshot (privacy mode applied)
   /static/*    css/js
 
 Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
@@ -25,7 +27,7 @@ from zoneinfo import ZoneInfo, available_timezones
 
 import platform
 
-from . import __version__, astro, catalog, chrony, config, dashboard, demo, gps, system, units
+from . import __version__, astro, catalog, chrony, config, dashboard, demo, gps, system, timing_chain, units
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
@@ -54,7 +56,8 @@ def core_api():
     srcs = chrony.sources()
     snap = gps.snapshot()
     q = chrony.quality(trk)
-    state = chrony.sync_state(trk, srcs, snap["mode"])
+    status = timing_chain.timing_status(trk, srcs, gnss=snap, refclocks=chrony.refclock_config())
+    state = (status["headline"], status["banner"] + (" — " + status["detail"] if status["detail"] else ""))
     cfg = config.load()
     site, provenance = (snap["live"], "live") if snap["live"] else \
         ((cfg.get("site"), "stored") if cfg.get("site") else (None, "none"))
@@ -63,6 +66,7 @@ def core_api():
         "epoch_ms": now.timestamp() * 1000,
         "utc": now.strftime("%Y-%m-%d %H:%M:%S.%f UTC"),
         "state": state,
+        "timing_status": status,
         "quality": q,
         "fmt": {
             "system_pair": units.fmt_pair(q["system_time_s"], None) if err is None
@@ -238,6 +242,22 @@ def zones_page():
             f"<tbody>{body}</tbody></table></main></body></html>")
 
 
+DEMO_SITE = {"lat": 38.9217, "lon": -77.0669, "alt_msl": 92.0, "alt_hae": 59.0}
+
+
+def timing_chain_payload(qs):
+    if DEMO_MODE:
+        return demo.timing_chain(qs.get("scenario", ["pps_selected"])[0])
+    return timing_chain.service().latest()
+
+
+def diagnostics_text(qs):
+    chain = timing_chain_payload(qs)
+    cfg = config.load()
+    live = DEMO_SITE if DEMO_MODE else gps.snapshot()["live"]
+    return timing_chain.diagnostic_snapshot(chain, config.displayed_location(cfg, live))
+
+
 def dashboard_writable(remote_ip):
     if DEMO_MODE:
         return True
@@ -313,6 +333,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(object_api(qs))
             elif p == "/api/history":
                 self._json(demo.history() if DEMO_MODE else chrony.history())
+            elif p == "/api/timing-chain":
+                self._json(timing_chain_payload(qs))
+            elif p == "/api/diagnostics":
+                self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
                 self._json(survey_api())
             elif p == "/api/setting":
@@ -384,6 +408,7 @@ def main():
         # GNSS sampling and survey ingestion run on their own schedule,
         # independent of how many pages or API clients are polling.
         gps.start_collector()
+        timing_chain.service().start()
     ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()
 
 

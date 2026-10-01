@@ -151,3 +151,127 @@ def system_diagnostics() -> dict:
         "ramlog": {"path": "/run/chrony-log/tracking.log", "in_ram": True,
                    "size_kb": 84.2, "flushed_age_s": 723},
     }
+
+
+# ── timing chain demo scenarios ────────────────────────────────────────────
+# Each scenario drives the real TimingChainService (parsers, state machine,
+# banner, event tracker) with synthetic inputs over a short scripted timeline.
+# Nothing is written to disk (event tracker has no checkpoint path).
+
+_SRC_HDR = ("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n"
+            "===============================================================================\n")
+_STATS_HDR = ("Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev\n"
+              "==============================================================================\n")
+_PPS_SEL = "#* GPS                           0   4   377    13   +184ns[ +259ns] +/-  203ns"
+_PPS_NOSAMPLE = "#? GPS                           0   4     0     -     +0ns[   +0ns] +/-    0ns"
+_PPS_REJECT = "#x GPS                           0   4   377    12  +3125us[+3125us] +/-  210ns"
+_PPS_RECOVER = "#? GPS                           0   4     7     3   +912ns[+1004ns] +/-  220ns"
+_NMEA_OK = "#- NMEA                          0   4   377    14    +35ms[  +35ms] +/-  100ms"
+_NMEA_SEL = "#* NMEA                          0   4   377    14    +35ms[  +35ms] +/-  100ms"
+_NMEA_STALE = "#? NMEA                          0   4     0    17m   +35ms[  +35ms] +/-  100ms"
+_NET_SEL = "^* 192.0.2.10                    2   6   377    41   +781us[ +822us] +/-   14ms"
+_NET_OK = "^- 192.0.2.10                    2   6   377    41   +781us[ +822us] +/-   14ms"
+_STATS = (_STATS_HDR +
+          "GPS                        25  12   384     +0.000      0.012     +0ns   164ns\n"
+          "NMEA                       32  17   496     +2.181      6.144    +35ms  1271us\n"
+          "192.0.2.10                 10   6   644     -0.033      0.106  +1035us   178us\n")
+_REFCFG = {"pps": {"driver": "PPS", "param": "/dev/pps0", "refid": "GPS", "lock": "NMEA",
+                   "noselect": False, "prefer": True, "poll": None},
+           "nmea": {"driver": "SHM", "param": "0", "refid": "NMEA", "lock": None,
+                    "noselect": True, "prefer": False, "poll": None},
+           "source": "chrony.conf"}
+
+
+def _tracking(ref, stratum=1, leap="Normal"):
+    return (f"Reference ID    : 47505300 ({ref})\nStratum         : {stratum}\n"
+            f"System time     : 0.000000045 seconds fast of NTP time\n"
+            f"Last offset     : +0.000000031 seconds\nRMS offset      : 0.000000312 seconds\n"
+            f"Frequency       : 2.140 ppm slow\nRoot delay      : 0.000000001 seconds\n"
+            f"Root dispersion : 0.000012000 seconds\nLeap status     : {leap}\n")
+
+
+def _gnss(healthy):
+    if not healthy:
+        return {"data_age_s": 45.0, "stale": True, "sky_stale": True, "sky_age_s": 45.0,
+                "fix": None, "sats": [], "tdop": None}
+    sats = [{"id": 2 + i, "gnss": "GPS" if i < 6 else "GLONASS", "snr": s, "used": i < 9}
+            for i, s in enumerate([43, 41, 38, 36, 34, 32, 31, 29, 27, 22])]
+    return {"data_age_s": 0.8, "stale": False, "sky_stale": False, "sky_age_s": 0.8,
+            "fix": "3D", "sats": sats, "tdop": 0.73}
+
+
+TIMING_SCENARIOS = {
+    "pps_selected": dict(desc="Normal: PPS selected by chrony", pulses="healthy", gnss=True,
+                         sources=[_PPS_SEL, _NMEA_OK, _NET_OK], ref="GPS"),
+    "pps_path_anomaly": dict(desc="GNSS healthy, kernel PPS events stopped 2 days ago, network failover",
+                             pulses="lost", gnss=True, sources=[_PPS_NOSAMPLE, _NMEA_OK, _NET_SEL],
+                             ref="192.0.2.10", stratum=3, outage_s=2 * 86400 + 4 * 3600),
+    "pps_unused_nmea_stale": dict(desc="PPS pulses reach Linux; NMEA lock refclock stale; chrony not using PPS",
+                                  pulses="healthy", gnss=True, sources=[_PPS_NOSAMPLE, _NMEA_STALE, _NET_SEL],
+                                  ref="192.0.2.10", stratum=3, outage_s=3 * 3600),
+    "pps_rejected": dict(desc="PPS pulses present; chrony marks the PPS refclock as a falseticker",
+                         pulses="healthy", gnss=True, sources=[_PPS_REJECT, _NMEA_OK, _NET_SEL],
+                         ref="192.0.2.10", stratum=3, outage_s=900),
+    "network_failover": dict(desc="GNSS telemetry and PPS both unavailable; network failover",
+                             pulses="lost", gnss=False, sources=[_PPS_NOSAMPLE, _NMEA_STALE, _NET_SEL],
+                             ref="192.0.2.10", stratum=3, outage_s=5400),
+    "holdover": dict(desc="No source selected; holdover", pulses="lost", gnss=False,
+                     sources=[_PPS_NOSAMPLE, _NMEA_STALE], ref="GPS", outage_s=1200),
+    "recovering": dict(desc="PPS pulses returned after a loss; chrony not yet selecting PPS",
+                       pulses="recover", gnss=True, sources=[_PPS_RECOVER, _NMEA_OK, _NET_SEL],
+                       ref="192.0.2.10", stratum=3, outage_s=2400),
+    "device_missing": dict(desc="No /dev/pps0; NMEA refclock disciplining the clock", pulses="missing",
+                           gnss=True, sources=[_PPS_NOSAMPLE, _NMEA_SEL, _NET_OK], ref="NMEA", outage_s=600),
+    "chrony_unknown": dict(desc="chrony status unavailable", pulses="healthy", gnss=True, sources=None, ref=None),
+}
+
+
+def timing_chain(scenario="pps_selected"):
+    from . import timing_chain as tc
+    from .pps import PPSMonitor
+
+    sc = TIMING_SCENARIOS.get(scenario) or TIMING_SCENARIOS["pps_selected"]
+    end = time.time()
+    outage = sc.get("outage_s")
+    clock = [end - (outage or 0) - 25]
+    now = lambda: clock[0]                                        # noqa: E731
+    lost_at = clock[0] - 5
+    seq0 = 100_000
+
+    def reader():
+        t = clock[0]
+        if sc["pulses"] == "missing":
+            return "missing", None, None
+        if sc["pulses"] == "lost" or (sc["pulses"] == "recover" and t < end - 12):
+            return "ok", lost_at, seq0
+        return "ok", float(int(t)) + 1.2e-7, seq0 + int(t - lost_at)
+
+    def device_state():
+        if scenario == "chrony_unknown":
+            return True, None
+        return (sc["pulses"] != "missing"), None
+
+    def chrony_reader():
+        if sc["sources"] is None:
+            return {"tracking_ok": False, "tracking_text": "", "sources_ok": False, "sources_text": "",
+                    "sourcestats_ok": False, "sourcestats_text": ""}
+        return {"tracking_ok": True, "tracking_text": _tracking(sc["ref"], sc.get("stratum", 1)),
+                "sources_ok": True, "sources_text": _SRC_HDR + "\n".join(sc["sources"]) + "\n",
+                "sourcestats_ok": True, "sourcestats_text": _STATS}
+
+    svc = tc.TimingChainService(
+        monitor=PPSMonitor(device="/dev/pps0", clock=now, reader=reader, device_state=device_state),
+        tracker=tc.EventTracker(None, clock=now, debounce_s=0, grace_s=0),
+        chrony_reader=chrony_reader, gnss_reader=lambda: _gnss(sc["gnss"]),
+        refclock_reader=lambda: _REFCFG,
+        boot_config_reader=lambda: {"gpio": 18, "assert_edge": "rising", "source": "demo"},
+        clock=now)
+    times = ([clock[0]] if outage else []) + [end - 20 + i for i in range(21)]
+    chain = None
+    for t in times:
+        clock[0] = t
+        chain = svc.tick(refresh_chrony=True)
+    chain["demo"] = {"scenario": scenario if scenario in TIMING_SCENARIOS else "pps_selected",
+                     "description": sc["desc"], "scenarios": sorted(TIMING_SCENARIOS),
+                     "note": "synthetic data — not a measurement"}
+    return chain
