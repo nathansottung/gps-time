@@ -1,0 +1,41 @@
+name: web-ui
+
+on:
+  push:
+    paths: ["web/**", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["web/**", ".github/workflows/web.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Enable corepack (pnpm version pinned by package.json packageManager)
+        run: corepack enable
+      - name: Install dependencies (lockfile must be current)
+        run: pnpm install --frozen-lockfile
+      - name: Type-check
+        run: pnpm run typecheck
+      - name: Build
+        run: pnpm run build
+      - name: Offline guard (no runtime CDN, web-font or analytics URLs in the bundle)
+        run: |
+          if grep -rEn "fonts\.(googleapis|gstatic)\.com|googletagmanager|google-analytics|cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com" dist; then
+            echo "::error::built UI references an external runtime resource"; exit 1
+          fi
+      - name: No 700 font weight (weights 300-600 only)
+        run: |
+          # whole-word match: Tailwind preflight "bolder" (overridden to 600 in index.css) is not 700
+          if grep -rEn "font-weight:\s*(700|bold)\b" dist/assets/*.css; then
+            echo "::error::700/bold font weight found in built CSS"; exit 1
+          fi
+          if grep -rEn "font-bold|font-extrabold|font-black|fontWeight:\s*['\"]?(700|800|900|bold)" src; then
+            echo "::error::bold weight used in source"; exit 1
+          fi

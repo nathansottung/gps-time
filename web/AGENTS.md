@@ -1,35 +1,38 @@
-# figma-make-app
+# GPS Time web UI
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+React 19 + Vite 8 + Tailwind CSS v4 + TypeScript. Originally generated in Figma Make; this copy builds standalone and is being ported to become the Raspberry Pi station UI.
 
-## Development Server
+**All UI work must follow [`guidelines/Guidelines.md`](guidelines/Guidelines.md) exactly.** Repository-wide rules live in [`../docs/README.md`](../docs/README.md).
 
-A Vite development server is **already running** on `$PORT` (default 8443). You don't need to start it manually.
+## Commands
 
-- Preview URL: The user can access the running app through the preview panel
-- Hot reload: Changes to source files are reflected immediately
+Toolchain is pinned in `.mise.toml` (Node 22) and `package.json` `packageManager` (pnpm). With corepack:
 
-## Project Structure
+```sh
+corepack pnpm install --frozen-lockfile   # install-time network only
+corepack pnpm run dev                     # http://127.0.0.1:5173 (loopback only)
+corepack pnpm run typecheck
+corepack pnpm run build                   # output: dist/
+```
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+The dev server is not started for you. It binds to 127.0.0.1 by default; set `GTP_WEB_HOST=0.0.0.0` only to deliberately expose it on a LAN. `PORT` overrides the port.
 
-- `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
-- `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/index.css` - Global CSS entrypoint and Tailwind CSS v4 import
-- `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
-- `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
-- `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
+## Offline-first
 
-## Dependencies
+The built app must make no network requests to third parties at runtime: no CDNs, web fonts, analytics or external scripts. Fonts are bundled from `@fontsource` (weights 300–600; 700 is not shipped).
 
-- Runtime: React 19 and React DOM 19
-- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin
-- Build tooling: Vite 8, TypeScript 5.7, and `@vitejs/plugin-react`
-- Formatting: oxfmt
+## Project structure
 
-## Styling
+- `src/main.tsx` — React entrypoint; imports `src/index.css` and mounts `src/App.tsx`
+- `src/App.tsx` — app shell (header, sidebar, page routing)
+- `src/pages/` — one component per page
+- `src/components/ui.tsx` — design-system components (Card, MetricRow, StatusBadge, ProvenanceTag, MaturityBadge, DemoBanner, …)
+- `src/components/charts.tsx` — Recharts/SVG chart components
+- `src/lib/units.ts` — scientific formatting helpers (e.g. `fmtSci` for Δf/f as ×10⁻ⁿ)
+- `src/data/demo.ts` — synthetic demo data (must always be shown with the demo banner)
+- `src/index.css` — font imports, Tailwind import, design tokens and utility classes
+- `vite.config.ts` — standalone Vite config (React, Tailwind, `@` alias for `src`)
 
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
+## Data and labeling
 
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
+Every value carries one of six provenance labels: observed, calculated, modeled, predicted, inferred, external. Use UNKNOWN rather than guessing when origin or state can't be established. Demo data must never look like real measurements. Demo location is the US Naval Observatory (38.9217, −77.0669); never commit a real station's coordinates.
