@@ -131,15 +131,18 @@ async function refresh(){
     if (L.alt_msl!=null) lh += `<div><span>Elevation</span><b>${Math.round(L.alt_msl)} m MSL</b>
       ${L.alt_hae!=null?`<i>ellipsoid ${Math.round(L.alt_hae)} m HAE</i>`:""}</div>`;
   }
-  lh += `<div><span>Fix</span><b>${d.gps.fix||"none"}</b>
-         <i>${d.position_provenance==="stored"?"live fix unavailable — using stored site position":"live"}</i></div>`;
+  const fixTxt = d.gps.fix || (d.gps.last_fix ? d.gps.last_fix + " (stale)" : "none");
+  const ageTxt = d.gps.data_age_s==null ? "no GNSS data received" : "data age " + d.gps.data_age_s.toFixed(1) + " s";
+  lh += `<div><span>Fix</span><b>${fixTxt}</b>
+         <i>${d.position_provenance==="stored"?"live fix unavailable — using stored site position":"live"} · ${ageTxt}</i></div>`;
   if (d.sidereal) lh += `<div><span>Local sidereal time</span><b>${d.sidereal}</b>
     <i title="Which right ascension is crossing the local meridian now.">RA on the meridian</i></div>`;
   const sv = d.survey;
   if (sv && sv.n >= 2) {
     const f = m => m==null ? "–" : m>=1 ? m.toFixed(1)+" m" : (m*100).toFixed(0)+" cm";
     lh += `<div><span>Site survey</span><b>±${f(sv.se_horiz_m)} horizontal</b>
-      <i>±${f(sv.se_alt_m)} altitude · ${sv.n.toLocaleString()} fixes averaged<br>
+      <i>±${f(sv.se_alt_m)} altitude · ${sv.n.toLocaleString()} fixes averaged
+      (${(sv.n_fresh||0).toLocaleString()} fresh-gated, ${(sv.n_legacy||0).toLocaleString()} legacy)<br>
       per-fix scatter ${f(sv.sd_lat_m)} N/S, ${f(sv.sd_lon_m)} E/W</i></div>`;
   } else if (sv) {
     lh += `<div><span>Site survey</span><b>${sv.n} fix${sv.n===1?"":"es"}</b>

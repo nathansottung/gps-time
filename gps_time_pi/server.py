@@ -74,7 +74,9 @@ def core_api():
         "sources": srcs,
         "sourcestats": chrony.sourcestats(),
         "clients": chrony.clients(),
-        "gps": {k: snap[k] for k in ("fix", "sats", "used", "visible", "tdop", "hdop")},
+        "gps": {k: snap[k] for k in ("fix", "sats", "used", "visible", "tdop", "hdop",
+                                     "last_fix", "last_fix_time", "stale", "data_age_s",
+                                     "sky_stale", "sky_age_s")},
         "location": config.displayed_location(cfg, snap["live"]),
         "survey": config.site_stats(cfg),
         "position_provenance": provenance,
@@ -202,7 +204,7 @@ def survey_api():
                           round((lo - mlon) * k_lon, 2)])
     return {"available": bool(site.get("history")),
             "history": site.get("history", []),
-            "fixes": fixes, "stats": stats,
+            "fixes": fixes, "stats": stats, "ingest": gps.ingest_status(),
             "note": None if site.get("history") else
                     "Survey history builds as 3D fixes arrive (about one per minute)."}
 
@@ -378,6 +380,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    if not DEMO_MODE:
+        # GNSS sampling and survey ingestion run on their own schedule,
+        # independent of how many pages or API clients are polling.
+        gps.start_collector()
     ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()
 
 
