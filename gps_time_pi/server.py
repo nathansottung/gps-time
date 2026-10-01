@@ -209,6 +209,7 @@ def survey_api():
     return {"available": bool(site.get("history")),
             "history": site.get("history", []),
             "fixes": fixes, "stats": stats, "ingest": gps.ingest_status(),
+            "persistence": config.persistence_status(),
             "note": None if site.get("history") else
                     "Survey history builds as 3D fixes arrive (about one per minute)."}
 
@@ -404,6 +405,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Flush survey/config state on SIGTERM (systemctl stop/restart, reboot).
+    config.install_signal_handlers()
     if not DEMO_MODE:
         # GNSS sampling and survey ingestion run on their own schedule,
         # independent of how many pages or API clients are polling.
