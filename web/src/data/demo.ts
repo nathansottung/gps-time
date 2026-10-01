@@ -4,11 +4,13 @@
 
 export const DEMO = true;
 export const STATION_NAME = 'ATLAS-01';
-export const STATION_LAT = 37.422004;
-export const STATION_LON = -122.084056;
-export const STATION_ALT_ELLIP = 28.4; // meters, ellipsoidal
-export const STATION_ALT_ORTHO = -5.1; // meters, orthometric
-export const STATION_GEOID_N = 33.5; // geoid undulation
+// Demo site: US Naval Observatory, Washington DC (public landmark; the project's
+// standard example location). Heights satisfy h = H + N.
+export const STATION_LAT = 38.9217;
+export const STATION_LON = -77.0669;
+export const STATION_ALT_ORTHO = 92.0;   // meters, orthometric height H (above geoid)
+export const STATION_GEOID_N = -33.0;    // meters, geoid undulation N (approx. EGM2008 value here; negative in this region)
+export const STATION_ALT_ELLIP = STATION_ALT_ORTHO + STATION_GEOID_N; // meters, ellipsoidal height h = 59.0
 
 // Current timing state
 export const timing = {
