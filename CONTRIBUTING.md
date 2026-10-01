@@ -19,6 +19,9 @@ Run:
 ```bash
 python -m compileall gps_time_pi tools
 python tools/generate_config.py --help
+python -m unittest discover -s tests -t . -v
 ```
+
+The tests use only the Python standard library and need no Pi, gpsd, chrony or network. Changes to GNSS/survey ingestion, systemd units, `install.sh` or `tools/build_bundles.py` must keep `tests/test_gnss_freshness.py` and `tests/test_packaging.py` passing.
 
 For timing, GPS, systemd, or Pi-hardware changes, include the relevant Pi-side validation and describe the hardware/software environment used.
