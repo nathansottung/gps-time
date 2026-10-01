@@ -1,0 +1,203 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+@import 'tailwindcss';
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces — neutral warm graphite, not blue-black */
+  --bg:          #080809;
+  --nav:         #0c0c10;
+  --card:        #101014;
+  --card-hi:     #14141a;   /* elevated: hover, inputs */
+  --float:       #1c1c26;   /* tooltips, dropdowns */
+
+  /* Borders — deliberately neutral, not blue-tinted */
+  --border-dim:  rgba(255,255,255,0.04);
+  --border:      rgba(255,255,255,0.07);
+  --border-em:   rgba(255,255,255,0.11);
+
+  /* Text hierarchy — 4 levels */
+  --t1: #e2e6ef;            /* primary: live values, headings */
+  --t2: #8892aa;            /* secondary: labels, identifiers */
+  --t3: #4c5268;            /* tertiary: metadata, footnotes */
+  --t4: #282d3c;            /* quaternary: barely-there markers */
+
+  /* Live accent — reserved for GPS-locked live readings only */
+  --live:        #4dc8e2;   /* slightly less saturated cyan */
+  --live-bright: #22d3ee;   /* the absolute brightest critical value */
+  --live-dim:    rgba(77,200,226,0.12);
+
+  /* Interactive accent — for nav active, buttons, links */
+  --accent:      #5b8cb8;   /* steel blue — instrument panel, not startup */
+  --accent-dim:  rgba(91,140,184,0.10);
+
+  /* Status — professional, desaturated */
+  --good:        #3b8c5c;
+  --good-text:   #5ab87c;
+  --good-bg:     rgba(59,140,92,0.08);
+  --good-border: rgba(59,140,92,0.20);
+
+  --warn:        #b07810;
+  --warn-text:   #d4a030;
+  --warn-bg:     rgba(176,120,16,0.08);
+  --warn-border: rgba(176,120,16,0.20);
+
+  --err:         #9e4040;
+  --err-text:    #c86060;
+  --err-bg:      rgba(158,64,64,0.08);
+  --err-border:  rgba(158,64,64,0.20);
+
+  --info-text:   #5b8cb8;
+  --info-bg:     rgba(91,140,184,0.08);
+  --info-border: rgba(91,140,184,0.20);
+
+  --muted-text:  #5a6278;
+  --muted-bg:    rgba(90,98,120,0.08);
+  --muted-border:rgba(90,98,120,0.18);
+
+  /* Demo */
+  --demo-text:   #c07840;
+  --demo-bg:     rgba(192,120,64,0.08);
+  --demo-border: rgba(192,120,64,0.20);
+
+  /* Provenance */
+  --obs-text:   #4dc8e2;   --obs-bg:   rgba(77,200,226,0.07);  --obs-border: rgba(77,200,226,0.18);
+  --calc-text:  #6092c8;   --calc-bg:  rgba(96,146,200,0.07);  --calc-border:rgba(96,146,200,0.18);
+  --mod-text:   #8870c0;   --mod-bg:   rgba(136,112,192,0.07); --mod-border: rgba(136,112,192,0.18);
+  --inf-text:   #b8963c;   --inf-bg:   rgba(184,150,60,0.07);  --inf-border: rgba(184,150,60,0.18);
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--t1);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular numerals for all measurements */
+.tabular { font-variant-numeric: tabular-nums; }
+.mono    { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ─── Scrollbars ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-em); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+
+/* ─── Card surface treatment ─────────────────────────────────────────────────── */
+/* The subtle inset top-highlight is the key "instrument panel glass" effect */
+.card-surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  /* Top-edge glass highlight — reads as premium instrument UI */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+  border-radius: 2px;
+}
+.card-surface:hover {
+  border-color: var(--border-em);
+}
+
+/* Card internal separator — thinner, more muted than card border */
+.row-sep { border-bottom: 1px solid var(--border-dim); }
+.row-sep:last-child { border-bottom: none; }
+
+/* ─── Navigation ─────────────────────────────────────────────────────────────── */
+.nav-item {
+  border-left: 2px solid transparent;
+  transition: background 0.1s, color 0.1s;
+}
+.nav-item:hover {
+  background: rgba(255,255,255,0.028);
+  color: var(--t1);
+}
+.nav-item.active {
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+  color: var(--t1);
+}
+.nav-item.active .nav-icon { color: var(--accent); }
+
+/* ─── Recharts overrides ─────────────────────────────────────────────────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line   { stroke: rgba(255,255,255,0.05) !important; }
+.recharts-xAxis .recharts-cartesian-axis-line,
+.recharts-yAxis .recharts-cartesian-axis-line { stroke: var(--border) !important; }
+.recharts-xAxis .recharts-cartesian-axis-tick-line,
+.recharts-yAxis .recharts-cartesian-axis-tick-line { stroke: transparent !important; }
+.recharts-xAxis text, .recharts-yAxis text {
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
+  fill: var(--t3) !important;
+  letter-spacing: 0.02em;
+}
+.recharts-tooltip-wrapper { outline: none !important; }
+
+/* ─── Provenance tags ────────────────────────────────────────────────────────── */
+.tag-observed   { background: var(--obs-bg);  color: var(--obs-text);  border: 1px solid var(--obs-border); }
+.tag-calculated { background: var(--calc-bg); color: var(--calc-text); border: 1px solid var(--calc-border); }
+.tag-modeled    { background: var(--mod-bg);  color: var(--mod-text);  border: 1px solid var(--mod-border); }
+.tag-inferred   { background: var(--inf-bg);  color: var(--inf-text);  border: 1px solid var(--inf-border); }
+
+/* ─── Status badge variants ──────────────────────────────────────────────────── */
+.badge-good  { background: var(--good-bg); color: var(--good-text); border: 1px solid var(--good-border); }
+.badge-warn  { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+.badge-error { background: var(--err-bg);  color: var(--err-text);  border: 1px solid var(--err-border); }
+.badge-info  { background: var(--info-bg); color: var(--info-text); border: 1px solid var(--info-border); }
+.badge-muted { background: var(--muted-bg);color: var(--muted-text);border: 1px solid var(--muted-border); }
+.badge-demo  { background: var(--demo-bg); color: var(--demo-text); border: 1px solid var(--demo-border); }
+
+/* ─── Maturity badges ────────────────────────────────────────────────────────── */
+.mat-supported    { background: var(--good-bg); color: var(--good-text); border: 1px solid var(--good-border); }
+.mat-experimental { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+.mat-research     { background: var(--mod-bg);  color: var(--mod-text);  border: 1px solid var(--mod-border); }
+.mat-planned      { background: var(--muted-bg);color: var(--muted-text);border: 1px solid var(--muted-border); }
+.mat-demo         { background: var(--demo-bg); color: var(--demo-text); border: 1px solid var(--demo-border); }
+
+/* ─── Tabs ───────────────────────────────────────────────────────────────────── */
+.tab-active {
+  color: var(--t1);
+  border-bottom: 1.5px solid var(--accent);
+  margin-bottom: -1px;
+}
+.tab-inactive {
+  color: var(--t3);
+}
+.tab-inactive:hover { color: var(--t2); }
+
+/* ─── Focus ring ─────────────────────────────────────────────────────────────── */
+:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Toggle switch ──────────────────────────────────────────────────────────── */
+.toggle-on  { background: rgba(91,140,184,0.35); }
+.toggle-off { background: var(--border-em); }
+.toggle-thumb-on  { transform: translateX(20px); background: var(--accent); }
+.toggle-thumb-off { transform: translateX(2px);  background: var(--t3); }
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
+
+@keyframes page-in { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+.page-enter { animation: page-in 0.14s ease; }
+
+/* ─── Chart tooltip ──────────────────────────────────────────────────────────── */
+.chart-tip {
+  background: var(--float);
+  border: 1px solid var(--border-em);
+  border-radius: 2px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}

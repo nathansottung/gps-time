@@ -16,3 +16,7 @@ dist/
 build/
 
 .dev/
+
+# web prototype (React/Vite) build outputs
+web/node_modules/
+web/dist/
