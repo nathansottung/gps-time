@@ -11,7 +11,7 @@ This is the canonical place for ideas raised during project scoping. A feature a
 | NTP client IP activity | Historical / improve | Station |
 | Browser RTT + browser clock estimate | Experimental scaffold | Station |
 | RAM-first bounded telemetry + periodic durable checkpoints | Planned | Station |
-| Source-loss / fallback / reacquisition timeline | Planned | Station |
+| Source-loss / fallback / reacquisition timeline | Backend implemented (feat/pps-chain): timing-chain stages, PPS state machine, PPS_OUTAGE events with recovery timing; UI and history views planned | Station |
 | Oscillator fractional-frequency history | Planned | Station |
 | Time-to-1ms/10ms/100ms/1s holdover estimates | Planned | Station |
 | Allan deviation / MDEV / TDEV / TIE / MTIE | Experimental roadmap | Station/Analysis |

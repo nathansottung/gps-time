@@ -13,6 +13,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `architecture/compute-tiers.md`
 - `architecture/observation-model.md`
 - `architecture/timing-core-boundaries.md`
+- `architecture/timing-chain.md` — GNSS → PPS → chrony stages, PPS state machine, status banner, outage events, `/api/timing-chain`
 
 ## Roadmap
 - `roadmap/current-scope.md`
