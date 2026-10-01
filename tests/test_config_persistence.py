@@ -174,6 +174,7 @@ class TestSigterm(PersistenceBase):
         """)
         env = dict(os.environ, GTP_CONFIG=self.path, PYTHONDONTWRITEBYTECODE="1")
         p = subprocess.Popen([sys.executable, "-c", child], env=env, stdout=subprocess.PIPE, text=True)
+        self.addCleanup(p.stdout.close)
         self.assertEqual(p.stdout.readline().strip(), "ready")
         self.assertEqual(self.read(self.path)["site"]["n_lat"], 1)
         p.send_signal(signal.SIGTERM)
