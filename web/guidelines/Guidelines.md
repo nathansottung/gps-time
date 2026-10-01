@@ -21,10 +21,20 @@ Do not:
 
 ### Import (CSS entrypoint — must appear before all other CSS)
 
+Fonts are **self-hosted**: the station UI must render correctly with no Internet connection, so never load fonts (or anything else) from a CDN at runtime. They are bundled from the `@fontsource` packages (SIL OFL-1.1):
+
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/jetbrains-mono/300.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
 ```
+
+Weights 300–600 only. The 700 weight is not shipped.
 
 ### Application
 
@@ -41,7 +51,7 @@ Do not:
 - All numeric measurements: `font-family: var(--font-mono); font-variant-numeric: tabular-nums`
 - Use CSS class `.mono` for monospace + tabular, `.tabular` for tabular-only
 - Section headers: `text-[9px] font-semibold uppercase tracking-[0.18em]` in `--t3` color
-- Never use Inter Bold (700) in body text; use 600 only for headings
+- Never use weight 700 (it is not shipped; the browser would synthesize a fake bold). Use 600 only for headings
 - Never mix mono and sans within a single value+unit pair — keep units in sans at `--t3` alongside mono value
 
 ---
@@ -143,7 +153,18 @@ All status colors are desaturated — they signal state without visually shoutin
 
 ### Provenance Colors
 
-Every measurement has an epistemological origin. Use these consistently.
+Every value has an epistemological origin. Use exactly these six labels, consistently:
+
+| Label | Meaning | Examples |
+|-------|---------|----------|
+| `observed` | Directly measured by station hardware | PPS offset, satellite C/N₀, GNSS fix |
+| `calculated` | Derived mathematically from observations | Light-distance equivalent, RMS, orthometric height from h − N |
+| `modeled` | Output of a physical or statistical model for a present or past quantity | Geoid undulation, error budget terms |
+| `predicted` | Forecast of a future value | Sunrise/sunset, satellite passes, holdover time-to-threshold |
+| `inferred` | Reasoned from indirect evidence | Likely sky obstruction from C/N₀ patterns |
+| `external` | Obtained from a source outside the station | Upstream NTP server values, space-weather feeds, downloaded datasets |
+
+When a value's origin cannot be established, do not pick a label to fill the gap — show the value as UNKNOWN (`<StatusBadge variant="muted" />`).
 
 ```css
 /* OBSERVED — directly measured by hardware */
@@ -155,8 +176,14 @@ Every measurement has an epistemological origin. Use these consistently.
 /* MODELED — output of a physical or statistical model */
 --mod-text:   #8870c0;   --mod-bg: rgba(136,112,192,0.07);  --mod-border: rgba(136,112,192,0.18);
 
+/* PREDICTED — forecast of a future value */
+--pred-text:  #c07898;   --pred-bg: rgba(192,120,152,0.07); --pred-border: rgba(192,120,152,0.18);
+
 /* INFERRED — derived by reasoning from indirect evidence */
 --inf-text:   #b8963c;   --inf-bg: rgba(184,150,60,0.07);   --inf-border: rgba(184,150,60,0.18);
+
+/* EXTERNAL — from a source outside the station (tag border is dashed) */
+--ext-text:   #9aa0ae;   --ext-bg: rgba(154,160,174,0.06);  --ext-border: rgba(154,160,174,0.22);
 ```
 
 ---
@@ -234,7 +261,7 @@ style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-di
   value="99.71"
   unit="%"
   uncertainty="0.02"        /* optional */
-  provenance="observed"      /* optional: observed|calculated|modeled|inferred */
+  provenance="observed"      /* optional: observed|calculated|modeled|predicted|inferred|external */
   muted                      /* optional: dims the label further to --t4 */
   large                      /* optional: uses text-base for the value */
 />
@@ -269,7 +296,9 @@ style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-di
 <ProvenanceTag type="observed" />    /* cyan */
 <ProvenanceTag type="calculated" />  /* steel blue */
 <ProvenanceTag type="modeled" />     /* purple */
+<ProvenanceTag type="predicted" />   /* rose */
 <ProvenanceTag type="inferred" />    /* amber */
+<ProvenanceTag type="external" />    /* neutral grey, dashed border */
 ```
 
 **Apply to every value whose epistemological origin matters.** Place inline with the value or in the CardHeader beside the title. Size: `8px mono uppercase`.
@@ -551,7 +580,7 @@ Always use correct scientific notation and units:
 | Daily irradiation | — | kWh/m²/day |
 | Sampling rate | — | MS/s (megasamples per second) |
 
-Use `×10⁻ⁿ` or `e-n` notation for fractional frequency offset, not ppm/ppb alone.
+Use `×10⁻ⁿ` notation for fractional frequency offset (format with `fmtSci()` from `src/lib/units.ts`, e.g. `−1.24 × 10⁻⁹`). ppm/ppb may appear only as a secondary parenthetical, never alone. Rates of change use `s⁻¹` (e.g. `8.4 × 10⁻⁹ s⁻¹`), not ppb/s.
 
 ---
 
@@ -565,7 +594,9 @@ The UI must always communicate data origin:
 | Observed (hardware) | `<ProvenanceTag type="observed" />` |
 | Calculated | `<ProvenanceTag type="calculated" />` |
 | Modeled (no hardware) | `<ProvenanceTag type="modeled" />` |
+| Predicted (future value) | `<ProvenanceTag type="predicted" />` |
 | Inferred | `<ProvenanceTag type="inferred" />` |
+| External source | `<ProvenanceTag type="external" />` |
 | Demo/synthetic | Orange demo banner + `<MaturityBadge level="demo" />` |
 | Requires network | `<StatusBadge variant="muted" label="network required" />` |
 | Feature not implemented | `<MaturityBadge level="planned" />` |
@@ -591,7 +622,7 @@ Demo data must never appear to be real measurements. Always render `<DemoBanner 
 | `.nav-item.active` | Active nav state |
 | `.toggle-on/off` | Toggle track states |
 | `.toggle-thumb-on/off` | Toggle thumb states |
-| `.tag-observed/calculated/modeled/inferred` | Provenance tag colors |
+| `.tag-observed/calculated/modeled/predicted/inferred/external` | Provenance tag colors |
 | `.badge-good/warn/error/info/muted/demo` | StatusBadge colors |
 | `.mat-supported/experimental/research/planned/demo` | MaturityBadge colors |
 

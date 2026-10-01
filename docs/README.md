@@ -9,7 +9,7 @@ GPS Time is an **open-source, timing-first, offline-capable measurement platform
 ## Non-negotiable architecture rules
 
 1. **Timing survives optional-feature failure.** gpsd/chrony/NTP must not depend on astronomy, SDR, weather, maps, dashboard widgets, or network coordinators.
-2. **Measurement meaning is explicit.** Distinguish observed, calculated, modeled, and inferred values. Do not turn statistical repeatability into absolute accuracy.
+2. **Measurement meaning is explicit.** Label every value as observed, calculated, modeled, predicted, inferred, or external (definitions in `../web/guidelines/Guidelines.md`). If a stage cannot be observed, say UNKNOWN rather than inferring its health. Do not turn statistical repeatability into absolute accuracy.
 3. **Clock accuracy is not event timestamp accuracy.** A PPS-disciplined host does not make a USB SDR sample, camera frame, ADC sample, or network packet equally precise.
 4. **Offline-first.** Normal station operation should not require the Internet. External NTP, live orbital/weather/space-weather feeds, software updates, and network science are optional.
 5. **Open protocols and project-authored code.** Core scientific capabilities must not require a proprietary cloud or closed protocol. Third-party datasets/services remain under their own licenses.
