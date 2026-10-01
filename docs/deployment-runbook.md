@@ -63,8 +63,17 @@ sudo systemctl start gps-time-pi-logsync      # → active (exited) is correct
 sudo systemctl restart chrony                 # completes the move to RAM logging
 ```
 
-This repo's units now invoke via `/bin/bash` and install.sh chmods, so fresh
-installs don't need any of that.
+**Correction (2026-09-27):** an earlier revision of this runbook said the
+repository already contained this fix. It did not — the 2026-09-18 archives
+still shipped `logsync.sh` as 0644 with units executing it directly, so a fresh
+install would fail (review finding GPS-010). The fix is now in the repository
+as CHG-002: both units invoke the script via `/bin/bash`, `install.sh` runs
+`chmod 0755 $DEST/scripts/*.sh`, the admin flush uses `/bin/bash`, and
+`tools/build_bundles.py` writes explicit 0755/0644 modes; `tests/test_packaging.py`
+guards it. Fresh installs from bundles built after CHG-002 should not need the
+manual steps above (not yet re-verified on a Pi). Re-running `install.sh` on the
+deployed Pi replaces the hand-patched units with equivalent `/bin/bash` units.
+See `provenance/CHG-001-002-foundation-correction.md`.
 
 ## 3. Everyday operation (no SSH normally needed — use /admin)
 
