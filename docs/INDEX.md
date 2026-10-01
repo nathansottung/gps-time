@@ -41,6 +41,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 ## Development
 - `development/windows-demo.md`
 - `development/raspberry-pi-deploy.md`
+- `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
 ## Hardware
