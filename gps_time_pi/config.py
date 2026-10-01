@@ -34,23 +34,116 @@ DEFAULTS = {
 }
 
 
-def load():
-    global _CACHE
-    if _CACHE is None:
+PREV_SUFFIX = ".prev"
+_STATUS = {"loaded_from": None, "corrupt_moved_to": None, "last_write_utc": None,
+           "last_write_error": None}
+
+
+def _utc_stamp():
+    import time as _time
+    return _time.strftime("%Y%m%dT%H%M%SZ", _time.gmtime())
+
+
+def _read_json(path):
+    """Parsed dict, or raise ValueError if the file exists but isn't a JSON object."""
+    with open(path, encoding="utf-8") as f:
         try:
-            with open(_PATH) as f:
-                cfg = json.load(f)
-        except Exception:
-            cfg = {}
-        out = dict(DEFAULTS)
-        out.update(cfg if isinstance(cfg, dict) else {})
-        _CACHE = out
-    return _CACHE
+            data = json.load(f)
+        except (ValueError, UnicodeDecodeError) as e:
+            raise ValueError(str(e)) from e
+    if not isinstance(data, dict):
+        raise ValueError("config is not a JSON object")
+    return data
+
+
+def _set_aside(path):
+    """Move an unreadable file out of the way, keeping its bytes for inspection."""
+    target = f"{path}.corrupt-{_utc_stamp()}"
+    n = 1
+    while os.path.exists(target):
+        target = f"{path}.corrupt-{_utc_stamp()}-{n}"
+        n += 1
+    os.replace(path, target)
+    return target
+
+
+def load():
+    """Load config.json. An unreadable file is set aside (never overwritten) and
+    the previous checkpoint (config.json.prev) is used if it is readable."""
+    global _CACHE
+    with _LOCK:
+        if _CACHE is None:
+            cfg, source = {}, "defaults"
+            try:
+                cfg, source = _read_json(_PATH), "config"
+            except FileNotFoundError:
+                pass
+            except ValueError:
+                _STATUS["corrupt_moved_to"] = _set_aside(_PATH)
+            except OSError as e:
+                _STATUS["last_write_error"] = f"read failed: {e}"
+            if source != "config":
+                try:
+                    cfg, source = _read_json(_PATH + PREV_SUFFIX), "previous_checkpoint"
+                except (OSError, ValueError):
+                    pass
+            _STATUS["loaded_from"] = source
+            out = dict(DEFAULTS)
+            out.update(cfg)
+            _CACHE = out
+        return _CACHE
+
+
+def persistence_status():
+    """Where the config came from, any corrupt file set aside, last write."""
+    with _LOCK:
+        return dict(_STATUS, path=_PATH, previous_checkpoint=_PATH + PREV_SUFFIX)
+
+
+def _fsync_dir(directory):
+    if os.name != "posix":          # directory fsync is a POSIX concept
+        return
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _atomic_write(path, text):
+    """Write text to path via temp file + fsync + rename (+ directory fsync)."""
+    directory = os.path.dirname(os.path.abspath(path))
+    fd, tmp = tempfile.mkstemp(prefix=".config-", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    _fsync_dir(directory)
+
+
+def _write(cfg):
+    os.makedirs(os.path.dirname(os.path.abspath(_PATH)), exist_ok=True)
+    text = json.dumps(cfg, indent=2)            # serialize first: a failure leaves files untouched
+    try:
+        with open(_PATH, encoding="utf-8") as f:
+            current = f.read()
+        json.loads(current)
+    except (OSError, ValueError):
+        current = None                          # nothing valid to keep as the previous checkpoint
+    if current is not None and current != text:
+        _atomic_write(_PATH + PREV_SUFFIX, current)
+    _atomic_write(_PATH, text)
 
 
 def save(cfg, force=True):
     """Update the cache; write to disk immediately when force (settings
-    changes), or at most every PERSIST_INTERVAL_S for survey updates."""
+    changes), or at most every PERSIST_INTERVAL_S for survey updates.
+    Each write keeps the previous good file as config.json.prev."""
     global _CACHE, _LAST_WRITE
     import time as _time
     with _LOCK:
@@ -58,12 +151,21 @@ def save(cfg, force=True):
         now = _time.time()
         if not force and now - _LAST_WRITE < PERSIST_INTERVAL_S:
             return
-        os.makedirs(os.path.dirname(_PATH), exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(_PATH))
-        with os.fdopen(fd, "w") as f:
-            json.dump(cfg, f, indent=2)
-        os.replace(tmp, _PATH)
+        try:
+            _write(cfg)
+        except Exception as e:
+            _STATUS["last_write_error"] = f"{_utc_stamp()}: {e}"
+            raise
+        _STATUS["last_write_utc"] = _utc_stamp()
+        _STATUS["last_write_error"] = None
         _LAST_WRITE = now
+
+
+def flush():
+    """Write any cached state now (used at shutdown)."""
+    with _LOCK:
+        if _CACHE is not None:
+            save(_CACHE, force=True)
 
 
 import atexit
@@ -71,11 +173,26 @@ import atexit
 
 @atexit.register
 def _flush_on_exit():
-    if _CACHE is not None:
-        try:
-            save(_CACHE, force=True)
-        except Exception:
-            pass
+    try:
+        flush()
+    except Exception:
+        pass
+
+
+def _handle_sigterm(signum, frame):
+    """systemd stops the service with SIGTERM; Python's default action exits
+    without running atexit, which lost up to PERSIST_INTERVAL_S of survey data."""
+    try:
+        flush()
+    finally:
+        raise SystemExit(0)
+
+
+def install_signal_handlers():
+    """Install the SIGTERM flush handler. Must be called from the main thread."""
+    import signal
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, _handle_sigterm)
 
 
 def _welford(site, key, x):

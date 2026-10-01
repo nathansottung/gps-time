@@ -90,6 +90,8 @@ Step 1 above ("accept only fresh, uniquely identified fixes") is implemented:
 - rejected polls are counted by reason;
 - `/api` reports `n`, `n_fresh` (gated samples) and `n_legacy` (samples collected before gating, preserved but unverifiable).
 
+Persistence: the survey lives in `config.json`. It is written at most every 15 minutes and on SIGTERM (clean stop or reboot), via fsync and atomic rename. The previous good file is kept as `config.json.prev`, and a corrupt file is set aside as `config.json.corrupt-<UTC>` instead of being overwritten. A sudden power loss can still lose up to 15 minutes of samples.
+
 The later steps (time blocks, correlation-aware uncertainty, ENU accumulation, explicit acceptance) remain planned. The displayed standard error still assumes independent samples. See `provenance/CHG-001-002-foundation-correction.md`.
 
 ## East-window example
