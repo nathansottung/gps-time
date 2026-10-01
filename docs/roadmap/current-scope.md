@@ -18,4 +18,10 @@ The v1.3.0 codebase already contains GPS/PPS/chrony status, NTP serving, timing/
 
 ## Before stable release
 
-Close or disposition the source-review findings in `../review/source-review-2026-09-07.md`, especially fresh-fix survey semantics, chrony history field meaning, bounded persistence and administrative security.
+Close or disposition the source-review findings in `../review/source-review-2026-09-07.md` and `../review/GPS-Time-Independent-Review-2026-09-27.md`, especially fresh-fix survey semantics, chrony history field meaning, bounded persistence and administrative security.
+
+Progress (2026-09-27, candidate — see `../provenance/CHG-001-002-foundation-correction.md`):
+
+- **Fresh-fix survey semantics:** fresh-epoch gating implemented and tested (CHG-001). Collection no longer depends on page/API traffic, but still runs inside the web process; pre-existing survey samples are preserved and reported as legacy.
+- **Fresh-install logging failure** (logsync execute bit): fixed and guarded by packaging tests (CHG-002); not yet re-verified on a Pi.
+- Still open: chrony history field meaning, bounded persistence, administrative security, and the remaining 2026-09-27 review findings.

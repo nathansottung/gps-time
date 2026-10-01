@@ -21,7 +21,7 @@ import tempfile
 import threading
 
 _PATH = os.environ.get("GTP_CONFIG", "/opt/gps-time-pi/config.json")
-_LOCK = threading.Lock()
+_LOCK = threading.RLock()  # re-entrant: survey updates hold it across save()
 _CACHE = None
 _LAST_WRITE = 0.0
 PERSIST_INTERVAL_S = 900  # survey updates hit disk at most every 15 min
@@ -99,15 +99,36 @@ def _welford(site, key, x):
     site["n_" + key] = nk
 
 
+INGEST_RULE = "fresh-epoch-v1"
+
+
 def update_site(lat, lon, alt_msl, alt_hae, when):
-    """Fold a fresh 3D fix into the running site survey."""
+    """Fold a fresh 3D fix into the running site survey.
+
+    Callers must only pass genuinely fresh, previously unseen receiver epochs
+    (see gps.poll_once). Samples accumulated before that rule existed are
+    preserved but recorded as legacy: the first update under the rule stores
+    how many samples were already in the survey."""
+    with _LOCK:
+        return _update_site(lat, lon, alt_msl, alt_hae, when)
+
+
+def _update_site(lat, lon, alt_msl, alt_hae, when):
     cfg = load()
     site = cfg.get("site") or {}
+    if site.get("ingest_rule") != INGEST_RULE:
+        legacy = site.get("n_lat", 0)
+        if legacy == 0 and site.get("lat") is not None:
+            legacy = 1  # pre-survey plain mean: _welford counts it as one sample
+        site["legacy_samples_before_fresh_gating"] = legacy
+        site["ingest_rule"] = INGEST_RULE
+        site.setdefault("n_fresh", 0)
     # a pre-survey site (plain means, no counters) migrates transparently:
     # its existing mean becomes the first sample of the survey.
     for key, val in (("lat", lat), ("lon", lon),
                      ("alt_msl", alt_msl), ("alt_hae", alt_hae)):
         _welford(site, key, val)
+    site["n_fresh"] = site.get("n_fresh", 0) + 1
     site["updated"] = when
     cfg["site"] = site
     # precision history for the convergence chart: [epoch, n, se_h_m, se_alt_m]
@@ -125,17 +146,26 @@ def update_site(lat, lon, alt_msl, alt_hae, when):
 
 
 def reset_site():
-    cfg = load()
-    cfg["site"] = None
-    save(cfg)
+    with _LOCK:
+        cfg = load()
+        cfg["site"] = None
+        save(cfg)
 
 
 def site_stats(cfg):
     """Survey diagnostics: sample count, standard error of the mean and
     per-sample scatter, in meters. Sparse until two samples exist."""
     site = cfg.get("site")
-    if not site or site.get("n_lat", 0) < 2:
-        return {"n": site.get("n_lat", 0) if site else 0}
+    if not site:
+        return {"n": 0, "n_fresh": 0, "n_legacy": 0, "ingest_rule": None}
+    n = site.get("n_lat", 0)
+    gated = site.get("ingest_rule") == INGEST_RULE
+    counts = {"n": n,
+              "n_fresh": site.get("n_fresh", 0) if gated else 0,
+              "n_legacy": site.get("legacy_samples_before_fresh_gating", 0) if gated else n,
+              "ingest_rule": site.get("ingest_rule")}
+    if n < 2:
+        return counts
 
     def se_sd(key, scale):
         n = site.get("n_" + key, 0)
@@ -154,7 +184,7 @@ def site_stats(cfg):
     horiz = None
     if se_lat is not None and se_lon is not None:
         horiz = math.hypot(se_lat, se_lon)
-    return {"n": site.get("n_lat", 0),
+    return {**counts,
             "se_lat_m": se_lat, "se_lon_m": se_lon, "se_alt_m": se_alt,
             "sd_lat_m": sd_lat, "sd_lon_m": sd_lon, "sd_alt_m": sd_alt,
             "se_horiz_m": horiz, "updated": site.get("updated")}

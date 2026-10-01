@@ -26,7 +26,7 @@ This is the canonical place for ideas raised during project scoping. A feature a
 
 | Feature | Status |
 |---|---|
-| Fresh-only independent GNSS collector | Required correction |
+| Fresh-only independent GNSS collector | Partially addressed (CHG-001): fresh-epoch gating + background collector thread in the web process; separate collector service planned |
 | Survey sessions with rejected/accepted observations | Planned |
 | Time-block averaging and covariance/error ellipse | Planned |
 | Accepted/locked station coordinate | Planned |

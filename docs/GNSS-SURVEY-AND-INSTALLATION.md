@@ -80,6 +80,18 @@ Proposed pipeline:
 
 The exact block duration and statistical estimator should be validated with recorded datasets before being frozen.
 
+### Current implementation (CHG-001, 2026-09-27)
+
+Step 1 above ("accept only fresh, uniquely identified fixes") is implemented:
+
+- a background collector polls gpsd independently of page/API traffic;
+- a survey sample must be a fresh 3D TPV with a valid, strictly newer receiver epoch, at most one per minute;
+- stale data is reported with its age, not as a live fix;
+- rejected polls are counted by reason;
+- `/api` reports `n`, `n_fresh` (gated samples) and `n_legacy` (samples collected before gating, preserved but unverifiable).
+
+The later steps (time blocks, correlation-aware uncertainty, ENU accumulation, explicit acceptance) remain planned. The displayed standard error still assumes independent samples. See `provenance/CHG-001-002-foundation-correction.md`.
+
 ## East-window example
 
 For a receiver that primarily sees due east through a window, GPS Time Pi should eventually report something conceptually like:

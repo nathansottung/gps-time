@@ -26,6 +26,7 @@ Run these safe workstation checks before deployment:
 ```bash
 python -m compileall gps_time_pi tools
 python tools/generate_config.py --help
+python -m unittest discover -s tests -t . -v
 ```
 
 Hardware-dependent functions (`gpsd`, `chronyc`, Raspberry Pi diagnostics, systemd administration, PPS, RTC) require the Pi and should be mocked or tested on the Pi rather than assumed to work on a workstation.

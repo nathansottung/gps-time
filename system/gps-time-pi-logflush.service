@@ -3,4 +3,5 @@ Description=GPS Time Pi RAM-log hourly flush
 
 [Service]
 Type=oneshot
-ExecStart=/opt/gps-time-pi/scripts/logsync.sh flush
+# Interpreter-invoked so a missing execute bit cannot break the flush (CHG-002).
+ExecStart=/bin/bash /opt/gps-time-pi/scripts/logsync.sh flush

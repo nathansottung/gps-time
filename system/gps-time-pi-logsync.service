@@ -7,8 +7,10 @@ After=local-fs.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/opt/gps-time-pi/scripts/logsync.sh restore
-ExecStop=/opt/gps-time-pi/scripts/logsync.sh flush
+# Invoke through the interpreter so the unit works even if the script lost
+# its execute bit (e.g. extracted from a ZIP) — CHG-002.
+ExecStart=/bin/bash /opt/gps-time-pi/scripts/logsync.sh restore
+ExecStop=/bin/bash /opt/gps-time-pi/scripts/logsync.sh flush
 
 [Install]
 WantedBy=multi-user.target

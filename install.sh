@@ -36,6 +36,9 @@ else
   echo "logdir /run/chrony-log" >> /etc/chrony/chrony.conf
 fi
 cp -r scripts $DEST/
+# Archives (ZIP in particular) may drop execute bits; set them explicitly.
+# Units also invoke logsync.sh via /bin/bash, so either alone is sufficient.
+chmod 0755 $DEST/scripts/*.sh
 cp system/gps-time-pi-logsync.service system/gps-time-pi-logflush.service system/gps-time-pi-logflush.timer /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now gps-time-pi-logsync.service gps-time-pi-logflush.timer
