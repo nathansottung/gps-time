@@ -147,7 +147,8 @@ def _conf_lines(path, seen=None):
         return []
     seen.add(path)
     try:
-        lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
     except OSError:
         return []
     out = []
