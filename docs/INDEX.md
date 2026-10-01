@@ -27,6 +27,10 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `dashboard/README.md`
 - professional concept image: kept outside the repository (provenance unrecorded; not distributed)
 
+## Web prototype
+- `../web/` — Figma Make React/Vite UI prototype (imported 2026-10-01; synthetic demo data; not wired to the Pi server)
+- `../web/guidelines/Guidelines.md` — UI guidelines all project UI must follow
+
 ## Development
 - `development/windows-demo.md`
 - `development/raspberry-pi-deploy.md`
