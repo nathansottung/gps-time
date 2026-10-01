@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Almanac — GPS Time Pi</title>
+<script>
+(function(){var t=new URLSearchParams(location.search).get("theme")||
+  localStorage.getItem("gtp-theme")||"light";
+  document.documentElement.dataset.theme=t;})();
+</script>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/custom.css">
+</head><body><main>
+<nav>
+  <a href="/">Time</a><a class="here" href="/almanac">Almanac</a>
+  <a href="/history">History</a><a href="/zones">Zones</a><a href="/admin">Admin</a>
+  <span class="themes">
+    <button data-t="light">Light</button><button data-t="dark">Dark</button>
+    <button data-t="night">Night</button>
+  </span>
+</nav>
+
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <button class="btn" id="prev">&#8592;</button>
+  <input type="date" id="date" style="font-variant-numeric:tabular-nums">
+  <button class="btn" id="next">&#8594;</button>
+  <span class="dim small">Sky at</span>
+  <input type="time" id="obstime" step="60">
+  <button class="btn small" id="nowbtn">Now</button>
+  <select id="tz" style="max-width:220px"></select>
+</div>
+<p class="small dim" id="range">Supported dates: 1850-01-01 to 2149-12-31 (JPL DE440s ephemeris).</p>
+<p class="note" id="err" style="display:none"></p>
+<p class="small dim" id="prov"></p>
+
+<h2>Sun</h2>
+<div class="figures" style="border-top:none;padding-top:0" id="sun"></div>
+<div style="margin-top:14px;position:relative" id="sunbarwrap">
+  <div class="bar" id="sunbar"></div>
+  <div class="barlabels" id="sunlabels"></div>
+</div>
+<p class="small dim" title="Calculated with standard horizon and atmospheric-refraction assumptions. Observed times vary with atmospheric conditions and the local horizon.">
+Times use standard refraction assumptions — hover for details.</p>
+
+<h2>Moon</h2>
+<div class="figures" style="border-top:none;padding-top:0" id="moon"></div>
+<p class="small dim" style="margin:18px 0 4px">Tonight, sunset to sunrise — twilight, moonlight, and moonless astronomical darkness</p>
+<div style="margin-top:26px;position:relative" id="nightwrap">
+  <div class="bar" id="nightbar"></div>
+  <div class="bar" id="moonbar" style="height:9px;margin-top:3px;background:transparent"></div>
+  <div class="barlabels" id="nightlabels"></div>
+</div>
+<p id="darkline" style="margin-top:10px"></p>
+
+<h2>Find an object</h2>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+  <input id="q" placeholder="M31, Vega, Jupiter, or 00h42m44s +41d16m09s" style="min-width:280px">
+  <button class="btn" id="go">Look up</button>
+  <span class="dim small" style="align-self:center">coordinates read as J2000</span>
+</div>
+<div class="figures" style="border-top:none;margin-top:14px;display:none" id="obj"></div>
+<p class="note" id="objerr" style="display:none"></p>
+
+<h2>Sky <span class="dim small" id="skywhen"></span></h2>
+<svg id="sky" viewBox="0 0 400 400" style="width:100%;max-width:520px;display:block;margin:0 auto"></svg>
+
+<p class="foot">All astronomy is computed on this device with Skyfield and the
+JPL DE440s ephemeris, from the server's GPS position and authoritative time.
+No network calls. Rise/set/twilight times use conventional refraction and
+horizon models; the local horizon is not modeled.</p>
+</main>
+<script src="/static/app.js"></script>
+<script>
+wireThemes();
+let tz = getTZ();
+const dateEl = document.getElementById("date");
+const timeEl = document.getElementById("obstime");
+let useNow = true;
+
+function todayStr(){
+  return new Date().toLocaleDateString("en-CA",{timeZone:tz});
+}
+dateEl.value = new URLSearchParams(location.search).get("date") || todayStr();
+dateEl.min = "1850-01-01"; dateEl.max = "2149-12-31";
+if (dateEl.value !== todayStr()) { useNow = false; timeEl.value = "22:00"; }
+
+wireTZ(document.getElementById("tz"), z => { tz = z; load(); });
+document.getElementById("prev").onclick = ()=>shift(-1);
+document.getElementById("next").onclick = ()=>shift(1);
+function shift(n){
+  const d = new Date(dateEl.value+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+n);
+  dateEl.value = d.toISOString().slice(0,10); onDate();
+}
+dateEl.onchange = onDate;
+function onDate(){
+  useNow = dateEl.value === todayStr();
+  if(!useNow && !timeEl.value) timeEl.value = "22:00";
+  load();
+}
+timeEl.onchange = ()=>{ useNow=false; load(); };
+document.getElementById("nowbtn").onclick = ()=>{ dateEl.value=todayStr(); useNow=true; syncTimeField(); load(); };
+
+function syncTimeField(){
+  if(!useNow) return;
+  try {
+    timeEl.value = new Date().toLocaleTimeString("en-GB",
+      {hour12:false, hour:"2-digit", minute:"2-digit", timeZone:tz});
+  } catch(e) {}
+}
+syncTimeField(); setInterval(syncTimeField, 15000);
+
+function T(iso){ return localTime(iso); }
+function TD(iso, base){
+  if(!iso) return "–";
+  const t = T(iso);
+  const d = iso.slice(0,10);
+  return d===base ? t : t + " · " + new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric",timeZone:tz});
+}
+function dur(s){
+  if(s==null) return "–";
+  s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=s%60;
+  return (h?h+" h ":"")+m+" m "+(h?"":sec+" s");
+}
+function delta(s){
+  if(s==null) return "–";
+  const sign=s>=0?"+":"\u2212"; s=Math.abs(Math.round(s));
+  return sign+Math.floor(s/60)+" m "+(s%60)+" s";
+}
+
+const STAGE = {0:"#252E3D",1:"#41537A",2:"#5B7BA6",3:"#8FA6C4",4:"#F2C14E"};
+const NIGHTSTAGE = {0:"transparent",1:"#41537A",2:"#5B7BA6",3:"#8FA6C4"};
+
+async function load(){
+  const at = useNow ? "now" : (timeEl.value||"22:00");
+  const r = await fetch(`/api/almanac?date=${dateEl.value}&tz=${encodeURIComponent(tz)}&at=${at}`);
+  const d = await r.json();
+  const err = document.getElementById("err");
+  if(!d.available){ err.style.display="block"; err.textContent="Astronomy unavailable — "+d.reason; return; }
+  err.style.display="none";
+  document.getElementById("prov").textContent =
+    d.position_provenance==="stored" ? "GPS live fix unavailable — almanac using stored site position ("+
+      (d.position_age||"age unknown")+")." : "";
+
+  const s = d.sun, ev = s.events;
+  document.getElementById("sun").innerHTML = `
+    <div><span>Sunrise</span><b>${T(ev.sunrise)}</b></div>
+    <div><span>Solar noon</span><b>${T(s.noon)}</b></div>
+    <div><span>Sunset</span><b>${T(ev.sunset)}</b></div>
+    <div><span>Daylight</span><b>${dur(s.daylight_s)}</b>
+      <i>${delta(d.delta_yesterday)} vs yesterday<br>${delta(d.delta_tomorrow)} to tomorrow</i></div>`
+    + (s.notes.length?`<div><span>Note</span><b class="note">${s.notes.join(" ")}</b></div>`:"");
+
+  const sb = document.getElementById("sunbar");
+  sb.innerHTML = s.bar.map(x=>`<div style="flex:0 0 ${x.frac*100}%;background:${STAGE[x.state]}"></div>`).join("");
+  document.getElementById("sunlabels").innerHTML =
+    `<span>midnight</span><span>${ev.astro_dawn?"astro dawn "+T(ev.astro_dawn):""}</span>
+     <span>noon</span><span>${ev.astro_dusk?"astro dusk "+T(ev.astro_dusk):""}</span><span>midnight</span>`;
+
+  const m = d.moon;
+  document.getElementById("moon").innerHTML = `
+    <div><span>Phase</span><b>${m.phase}</b><i>${m.illum}% illuminated, day ${m.age_days}</i></div>
+    <div><span>Moonrise</span><b>${TD(m.rise, dateEl.value)}</b></div>
+    <div><span>Meridian transit</span><b>${TD(m.transit, dateEl.value)}</b>
+      ${m.transit_alt!=null?`<i>reaches ${m.transit_alt}° altitude</i>`:""}</div>
+    <div><span>Moonset</span><b>${TD(m.set, dateEl.value)}</b></div>
+    <div><span>Above horizon</span><b>${dur(m.up_s)}</b></div>`;
+
+  const n = d.night, nb = document.getElementById("nightbar");
+  const wrap = document.getElementById("nightwrap");
+  wrap.querySelectorAll(".tick,.ticklabel").forEach(e=>e.remove());
+  if(!n.defined){
+    nb.innerHTML=""; document.getElementById("moonbar").innerHTML="";
+    document.getElementById("darkline").innerHTML = `<span class="note">${n.note}</span>`;
+  } else {
+    nb.innerHTML = n.sun_segments.map(x=>
+      `<div style="flex:0 0 ${(x.f1-x.f0)*100}%;background:${NIGHTSTAGE[x.stage]||"#252E3D"};${x.stage===0?"background:#0B0F16":""}"></div>`).join("");
+    n.dark.forEach(w=>{
+      const el=document.createElement("div");
+      el.style.cssText=`position:absolute;top:0;height:15px;left:${w.f0*100}%;width:${(w.f1-w.f0)*100}%;outline:2px solid var(--ok);outline-offset:-2px;border-radius:4px`;
+      nb.appendChild(el);
+    });
+    const mb = document.getElementById("moonbar");
+    mb.innerHTML = n.moon_up.map(x=>
+      `<div style="position:absolute;left:${x.f0*100}%;width:${(x.f1-x.f0)*100}%;height:9px;background:var(--dim);opacity:.6;border-radius:4px"></div>`).join("");
+    mb.style.position="relative";
+    if(n.midnight){
+      const t=document.createElement("div"); t.className="tick"; t.style.left=(n.midnight.f*100)+"%";
+      nb.appendChild(t);
+      const l=document.createElement("div"); l.className="ticklabel";
+      l.style.left=(n.midnight.f*100)+"%"; l.textContent=n.midnight.label;
+      wrap.appendChild(l);
+    }
+    document.getElementById("nightlabels").innerHTML =
+      `<span>sunset ${T(n.sunset)}</span><span>moon above horizon shown below the bar</span><span>sunrise ${TD(n.sunrise,dateEl.value)}</span>`;
+    const total = Math.round(n.dark_total_s/60);
+    document.getElementById("darkline").innerHTML = n.astro_note
+      ? `<span class="note">${n.astro_note}</span>`
+      : `<b>Moonless astronomical darkness tonight: ${total>=60?Math.floor(total/60)+" h "+(total%60)+" min":total+" min"}</b>
+         <span class="dim">${n.dark.map(w=>T(w.start)+"–"+TD(w.end,dateEl.value)).join(", ")||"none"}</span>`;
+  }
+  drawSky(d.sky, d.sky_when);
+}
+
+async function lookup(){
+  const q = document.getElementById("q").value.trim();
+  if(!q) return;
+  const at = useNow ? "now" : (timeEl.value||"22:00");
+  const r = await fetch(`/api/object?q=${encodeURIComponent(q)}&date=${dateEl.value}&tz=${encodeURIComponent(tz)}&at=${at}`);
+  const d = await r.json();
+  const box = document.getElementById("obj"), oe = document.getElementById("objerr");
+  if(d.error){
+    box.style.display="none"; oe.style.display="block";
+    oe.innerHTML = "Unable to parse object input.<br>Try: <b>M31</b> · <b>Vega</b> · <b>Jupiter</b> · <b>00:42:44 +41:16:09</b> · <b>10.684 +41.269</b>";
+    return;
+  }
+  if(!d.available){ box.style.display="none"; oe.style.display="block"; oe.textContent="Astronomy unavailable — "+d.reason; return; }
+  oe.style.display="none"; box.style.display="grid";
+  const w=(arr)=>arr.length?arr.map(x=>T(x.start)+"–"+TD(x.end,dateEl.value)).join(", "):"none on this date";
+  let rows = `<div><span>Object</span><b>${d.name}</b>
+      <i>${d.meta||""}</i></div>
+    <div><span>At ${d.at_label}</span><b>${d.now_alt}° alt, ${d.now_az}° az</b></div>`;
+  if(d.never_up) rows += `<div><span>Visibility</span><b>Never rises from this latitude</b></div>`;
+  else if(d.circumpolar) rows += `<div><span>Visibility</span><b>Circumpolar — always up</b>
+      <i>highest at meridian transit ${T(d.transit)}</i></div>`;
+  else rows += `<div><span>Rise</span><b>${TD(d.rise,dateEl.value)}</b></div>`;
+  rows += `<div><span>Meridian transit</span><b>${TD(d.transit,dateEl.value)}</b>
+      ${d.transit_alt!=null?`<i>reaches ${d.transit_alt}° altitude</i>`:""}</div>`;
+  if(!d.never_up && !d.circumpolar)
+    rows += `<div><span>Set</span><b>${TD(d.set,dateEl.value)}</b></div>`;
+  const dk = `<div><span>Dark viewing window</span><b>${w(d.dark_windows)}</b>
+      <i>object above ${d.min_alt_deg}°, sun below −18°</i></div>`;
+  const ml = `<div><span>Moonless viewing window</span><b>${w(d.moonless_windows)}</b>
+      <i>and moon below the horizon</i></div>`;
+  rows += d.emphasis==="moonless" ? ml+dk : dk+ml;
+  box.innerHTML = rows;
+  load();  /* re-draw sky with the target marked */
+}
+document.getElementById("go").onclick = lookup;
+document.getElementById("q").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
+
+function drawSky(sky, when){
+  const svg = document.getElementById("sky");
+  document.getElementById("skywhen").textContent = when ? "at "+when : "";
+  if(!sky || !sky.available){ svg.innerHTML=""; return; }
+  const R=185, cx=200, cy=200;
+  function xy(alt, az){
+    const r = R*(90-alt)/90, a=(az-180)*Math.PI/180;
+    return [cx + r*Math.sin(a), cy + r*Math.cos(a)];
+  }
+  let h = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+    <text x="${cx}" y="12" font-size="11" fill="currentColor" text-anchor="middle">N</text>
+    <text x="${cx}" y="398" font-size="11" fill="currentColor" text-anchor="middle">S</text>
+    <text x="8" y="${cy+4}" font-size="11" fill="currentColor">W</text>
+    <text x="386" y="${cy+4}" font-size="11" fill="currentColor">E</text>`;
+  for(const line of sky.lines){
+    const pts = line.filter(p=>p[0]>0).map(p=>xy(p[0],p[1]));
+    if(pts.length>1)
+      h += `<polyline points="${pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}"
+            fill="none" stroke="currentColor" stroke-opacity=".3" stroke-width="0.7"/>`;
+  }
+  for(const s of sky.stars){
+    if(s[0]<=0) continue;
+    const [x,y]=xy(s[0],s[1]);
+    h += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${Math.max(0.6,(5-s[2])*0.75)}" fill="currentColor"/>`;
+  }
+  for(const [name,p] of Object.entries(sky.bodies)){
+    if(p[0]<=0) continue;
+    const [x,y]=xy(p[0],p[1]);
+    const r = name==="Moon"||name==="Sun" ? 6 : 3.4;
+    h += `<circle cx="${x}" cy="${y}" r="${r}" fill="${name==="Sun"?"#F2C14E":"currentColor"}" fill-opacity="${name==="Moon"?".9":".8"}"/>
+          <text x="${x+8}" y="${y+3}" font-size="9.5" fill="currentColor" fill-opacity=".8">${name}</text>`;
+  }
+  if(sky.target && sky.target[0]>0){
+    const [x,y]=xy(sky.target[0],sky.target[1]);
+    h += `<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+          <line x1="${x-11}" y1="${y}" x2="${x-5}" y2="${y}" stroke="var(--ok)" stroke-width="1.6"/>
+          <line x1="${x+5}" y1="${y}" x2="${x+11}" y2="${y}" stroke="var(--ok)" stroke-width="1.6"/>`;
+  } else if(sky.target){
+    h += `<text x="${cx}" y="${cy}" font-size="11" fill="currentColor" text-anchor="middle">target below horizon</text>`;
+  }
+  svg.innerHTML = h;
+}
+load();
+</script></body></html>

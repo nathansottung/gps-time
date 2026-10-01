@@ -1,0 +1,5 @@
+# /etc/default/gpsd
+START_DAEMON="true"
+DEVICES="/dev/ttyAMA0"
+GPSD_OPTIONS="-n"
+USBAUTO="false"

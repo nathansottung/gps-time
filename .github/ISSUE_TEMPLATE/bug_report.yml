@@ -1,0 +1,27 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Pi model, GPS/PPS hardware, OS, gpsd, chrony, and app versions where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Reproduction / evidence
+      description: Commands, logs, screenshots, or a minimal reproducer. Redact private location and network details as needed.

@@ -1,0 +1,12 @@
+[Unit]
+Description=GPS Time Pi status and almanac
+After=network.target chrony.service
+
+[Service]
+WorkingDirectory=/opt/gps-time-pi
+Environment=GTP_CONFIG=/opt/gps-time-pi/config.json
+ExecStart=/usr/bin/python3 -m gps_time_pi.server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

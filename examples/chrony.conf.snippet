@@ -1,0 +1,10 @@
+# GPS/PPS refclocks + fallback (append to /etc/chrony/chrony.conf)
+refclock SHM 0 refid NMEA offset 0.1 delay 0.2 noselect
+refclock PPS /dev/pps0 lock NMEA refid GPS prefer
+server time.nist.gov iburst noselect
+server time.cloudflare.com iburst noselect
+pool us.pool.ntp.org iburst maxsources 4
+allow 192.168.0.0/16
+rtcsync
+log tracking
+logdir /var/log/chrony

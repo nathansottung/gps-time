@@ -1,0 +1,6 @@
+[Unit]
+Description=GPS Time Pi RAM-log hourly flush
+
+[Service]
+Type=oneshot
+ExecStart=/opt/gps-time-pi/scripts/logsync.sh flush

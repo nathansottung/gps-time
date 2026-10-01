@@ -1,0 +1,20 @@
+name: Feature request
+description: Propose a feature or extension
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: timing_boundary
+    attributes:
+      label: Timing-core impact
+      description: Explain whether this feature reads timing data, changes time configuration, or can run independently of the timing core.

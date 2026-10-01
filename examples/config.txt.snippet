@@ -1,0 +1,10 @@
+# /boot/firmware/config.txt additions for Uputronics GPS/RTC HAT
+enable_uart=1
+dtoverlay=disable-bt
+dtoverlay=pps-gpio,gpiopin=18
+dtparam=i2c_arm=on
+dtoverlay=i2c-rtc,rv3028,backup-switchover-mode=1
+# lock the CPU clock for lower PPS jitter (optional)
+arm_freq=600
+arm_freq_min=600
+arm_boost=0

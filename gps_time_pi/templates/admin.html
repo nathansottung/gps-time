@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — GPS Time Pi</title>
+<script>
+(function(){var t=new URLSearchParams(location.search).get("theme")||
+  localStorage.getItem("gtp-theme")||"light";
+  document.documentElement.dataset.theme=t;})();
+</script>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/custom.css">
+</head><body><main>
+<nav>
+  <a href="/">Time</a><a href="/almanac">Almanac</a>
+  <a href="/history">History</a><a href="/zones">Zones</a>
+  <a class="here" href="/admin">Admin</a>
+  <span class="themes">
+    <button data-t="light">Light</button><button data-t="dark">Dark</button>
+    <button data-t="night">Night</button>
+  </span>
+</nav>
+
+<h2 style="border:none;padding:0">System</h2>
+<div class="figures" style="border-top:none;padding-top:0" id="sys"></div>
+
+<h2>Power &amp; throttling</h2>
+<p class="small dim" id="pnote"></p>
+<div id="flags" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px"></div>
+
+<h2>Logging</h2>
+<div class="figures" style="border-top:none;padding-top:0" id="logs"></div>
+
+<h2>Actions</h2>
+<p class="small dim">These act immediately. This page trusts the local network —
+anyone who can reach it can press these buttons; keep the Pi on a trusted LAN.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+  <button class="btn" data-a="flush_logs">Flush logs to SD now</button>
+  <button class="btn" data-a="restart_gpsd" data-c="Restart gpsd?">Restart gpsd</button>
+  <button class="btn" data-a="restart_chrony" data-c="Restart chrony? Clients will see a brief gap.">Restart chrony</button>
+  <button class="btn" data-a="restart_web" data-c="Restart this web service?">Restart web service</button>
+  <button class="btn" data-a="reset_survey" data-c="Discard the position survey and start over? Only do this if the antenna moved.">Reset position survey</button>
+  <button class="btn" data-a="reboot" data-c="Reboot the Pi? Time service stops until it returns.">Reboot Pi</button>
+</div>
+<div style="margin-top:12px">
+  <span class="dim small">Location display:</span>
+  <select id="privacy">
+    <option value="exact">Exact</option><option value="rounded">Rounded (~11 km)</option>
+    <option value="hidden">Hidden</option>
+  </select>
+</div>
+<p id="result" class="small" style="min-height:1.2em"></p>
+
+<p class="foot">Diagnostics refresh every 5 seconds from <a href="/api/system">/api/system</a>.
+On a Pi 4, wattage cannot be measured by the board itself; the under-voltage
+flags above are the practical power-supply health check. RAM logging keeps
+chrony's tracking log in tmpfs and flushes hourly to protect the SD card.</p>
+</main>
+<script src="/static/app.js"></script>
+<script>
+wireThemes();
+function up(s){ if(s==null) return "–";
+  const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60);
+  return (d? d+" d ":"")+h+" h "+m+" m"; }
+async function refresh(){
+  let d; try{ d = await (await fetch("/api/system",{cache:"no-store"})).json(); }catch{ return; }
+  const sys=[
+    ["Model", d.model||"–", d.kernel||""],
+    ["Uptime", up(d.uptime_s), d.load?("load "+d.load.map(x=>x.toFixed(2)).join(" / ")):""],
+    ["Memory", d.mem?d.mem.used_pct+"% used":"–", d.mem?d.mem.available_mb+" MB free of "+d.mem.total_mb:""],
+    ["SD card", d.disk?d.disk.used_pct+"% used":"–", d.disk?d.disk.free_gb+" GB free of "+d.disk.total_gb:""],
+    ["CPU clock", d.cpu_mhz?d.cpu_mhz+" MHz":"–", "locked low = less PPS jitter"],
+    ["Core voltage", d.core_volts||"–", ""],
+  ];
+  if(d.power) sys.push(["Input power", d.power.watts+" W", d.power.volts.toFixed(2)+" V × "+d.power.amps.toFixed(2)+" A"]);
+  document.getElementById("sys").innerHTML = sys.map(r=>
+    `<div><span>${r[0]}</span><b>${r[1]}</b><i>${r[2]}</i></div>`).join("");
+  document.getElementById("pnote").textContent = d.power_note||"";
+  const t=d.throttled;
+  document.getElementById("flags").innerHTML = !t ? `<span class="dim">Throttle status unavailable (vcgencmd not present).</span>`
+    : t.flags.map(f=>`<div style="padding:8px 12px;border:1px solid var(--rule);border-radius:6px;
+        color:${f.active?"var(--warn)":"var(--dim)"};${f.active&&f.now?"font-weight:600":""}">
+        ${f.active?"⚠":"✓"} ${f.label}</div>`).join("");
+  const L=d.ramlog||{};
+  document.getElementById("logs").innerHTML = `
+    <div><span>Tracking log</span><b>${L.in_ram?"RAM (tmpfs)":"SD card"}</b><i>${L.path||""}</i></div>
+    <div><span>Log size</span><b>${L.size_kb!=null?L.size_kb+" kB":"–"}</b></div>
+    <div><span>Last SD flush</span><b>${L.flushed_age_s!=null?up(L.flushed_age_s)+" ago":"never"}</b><i>hourly + shutdown</i></div>`;
+}
+refresh(); setInterval(refresh, 5000);
+
+const res = document.getElementById("result");
+document.querySelectorAll("button[data-a]").forEach(b=>b.onclick=async()=>{
+  if(b.dataset.c && !confirm(b.dataset.c)) return;
+  res.textContent="…";
+  const a=b.dataset.a;
+  const url = a==="reset_survey" ? "/api/setting?reset_site=1" : "/api/admin?action="+a;
+  try{ const r=await (await fetch(url)).json();
+    res.textContent=(r.ok?"✓ ":"✗ ")+(r.detail||r.action||JSON.stringify(r)); }
+  catch(e){ res.textContent = a==="restart_web"||a==="reboot" ? "✓ command sent" : "✗ "+e; }
+});
+const priv=document.getElementById("privacy");
+fetch("/api").then(r=>r.json()).then(d=>{ priv.value=d.location.mode; }).catch(()=>{});
+priv.onchange=async()=>{ const r=await (await fetch("/api/setting?location_display="+priv.value)).json();
+  res.textContent=r.ok?"✓ location display: "+priv.value:"✗ failed"; };
+</script></body></html>

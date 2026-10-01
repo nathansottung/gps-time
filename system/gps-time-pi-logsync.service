@@ -1,0 +1,14 @@
+[Unit]
+Description=GPS Time Pi RAM-log restore (boot) and flush (shutdown)
+Before=chrony.service
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/gps-time-pi/scripts/logsync.sh restore
+ExecStop=/opt/gps-time-pi/scripts/logsync.sh flush
+
+[Install]
+WantedBy=multi-user.target

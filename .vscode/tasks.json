@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "GPS Time: Run Windows demo",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\run-demo.ps1"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "GPS Time: Compile check",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "-m",
+        "compileall",
+        "gps_time_pi",
+        "tools"
+      ]
+    },
+    {
+      "label": "GPS Time: Promote demo layout",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "tools/promote_dashboard.py"
+      ]
+    },
+    {
+      "label": "GPS Time: Build bundles",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "tools/build_bundles.py"
+      ]
+    }
+  ]
+}
