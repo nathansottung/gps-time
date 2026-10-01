@@ -94,3 +94,11 @@ Root cause (reported 2026-10-01, review GPS-013): survey updates are written at 
 - `UNSYNCHRONIZED` and `GPS_PPS` are never masked by ACQUIRING. `/api` applies the same overlay when the collector is running.
 - Demo scenario `acquiring` added. Tests: `tests/test_pps_boot.py`.
 
+## 2026-10-01 — onboarding: CLAUDE.md and new-machine setup
+
+- `CLAUDE.md` (repo root): the owner's project rules, repository workflow, required checks and a code map. Coding agents read it automatically, so the rules no longer live only in one machine's local agent memory.
+- `docs/development/new-machine.md`: tools, `gh` sign-in, clone with `core.autocrlf=false`, repo-local GitHub noreply identity, Python and pnpm checks, demo, backup verification. The steps were verified in a fresh clone.
+- Clone pitfalls found and documented:
+  - Git for Windows' system config enables autocrlf, so a plain clone checked out about 150 files with CRLF endings.
+  - A clone path that is too long makes `pnpm run build` fail with `ERR_PACKAGE_IMPORT_NOT_DEFINED`; the guide says to keep the repo root to about 64 characters or enable long paths.
+
