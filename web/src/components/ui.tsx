@@ -13,7 +13,11 @@ export function StatusBadge({ variant='muted', label, dot=true, pulse=false, cla
 }
 
 // ─── Provenance Tag ───────────────────────────────────────────────────────────
-type ProvenanceType = 'observed'|'calculated'|'modeled'|'inferred';
+// observed: measured by station hardware · calculated: derived mathematically from observations
+// modeled: physical/statistical model output for a present or past quantity
+// predicted: forecast of a future value · inferred: reasoned from indirect evidence
+// external: obtained from a source outside the station (NTP server, feed, dataset)
+export type ProvenanceType = 'observed'|'calculated'|'modeled'|'predicted'|'inferred'|'external';
 export function ProvenanceTag({ type }: { type: ProvenanceType }) {
   return (
     <span className={`inline-flex px-1.5 py-[2px] rounded-[2px] text-[8px] font-mono uppercase tracking-[0.12em] tag-${type}`}>

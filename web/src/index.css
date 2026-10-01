@@ -73,6 +73,8 @@
   --calc-text:  #6092c8;   --calc-bg:  rgba(96,146,200,0.07);  --calc-border:rgba(96,146,200,0.18);
   --mod-text:   #8870c0;   --mod-bg:   rgba(136,112,192,0.07); --mod-border: rgba(136,112,192,0.18);
   --inf-text:   #b8963c;   --inf-bg:   rgba(184,150,60,0.07);  --inf-border: rgba(184,150,60,0.18);
+  --pred-text:  #c07898;   --pred-bg:  rgba(192,120,152,0.07); --pred-border:rgba(192,120,152,0.18);
+  --ext-text:   #9aa0ae;   --ext-bg:   rgba(154,160,174,0.06); --ext-border: rgba(154,160,174,0.22);
 
   /* Fonts */
   --font-sans: 'Inter', system-ui, sans-serif;
@@ -156,6 +158,8 @@ body {
 .tag-calculated { background: var(--calc-bg); color: var(--calc-text); border: 1px solid var(--calc-border); }
 .tag-modeled    { background: var(--mod-bg);  color: var(--mod-text);  border: 1px solid var(--mod-border); }
 .tag-inferred   { background: var(--inf-bg);  color: var(--inf-text);  border: 1px solid var(--inf-border); }
+.tag-predicted  { background: var(--pred-bg); color: var(--pred-text); border: 1px solid var(--pred-border); }
+.tag-external   { background: var(--ext-bg);  color: var(--ext-text);  border: 1px dashed var(--ext-border); }
 
 /* ─── Status badge variants ──────────────────────────────────────────────────── */
 .badge-good  { background: var(--good-bg); color: var(--good-text); border: 1px solid var(--good-border); }
