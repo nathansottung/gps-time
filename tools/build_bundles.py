@@ -19,6 +19,23 @@ EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 PI_TOP = ["gps_time_pi", "scripts", "system", "examples", "config", "install.sh", "gps-time-pi.service", "README.md", "LICENSE", "SECURITY.md"]
 
 
+EXECUTABLE_SUFFIXES = {".sh"}
+
+
+def archive_mode(path: Path) -> int:
+    """Explicit POSIX mode for an archived file. Never inherit the builder's
+    filesystem mode: Windows has no execute bit, which previously shipped
+    logsync.sh as 0644 (CHG-002)."""
+    return 0o755 if path.suffix in EXECUTABLE_SUFFIXES else 0o644
+
+
+def _tar_member(tinfo: tarfile.TarInfo) -> tarfile.TarInfo:
+    tinfo.mode = archive_mode(Path(tinfo.name))
+    tinfo.uid = tinfo.gid = 0
+    tinfo.uname = tinfo.gname = "root"
+    return tinfo
+
+
 def wanted(path: Path) -> bool:
     rel = path.relative_to(ROOT)
     if any(part in EXCLUDE_DIRS for part in rel.parts):
@@ -40,7 +57,10 @@ def build_repo_zip(out: Path):
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for p in sorted(ROOT.rglob("*")):
             if wanted(p):
-                z.write(p, Path("gps-time") / p.relative_to(ROOT))
+                info = zipfile.ZipInfo.from_file(p, Path("gps-time") / p.relative_to(ROOT))
+                info.external_attr = (0o100000 | archive_mode(p)) << 16
+                info.compress_type = zipfile.ZIP_DEFLATED
+                z.writestr(info, p.read_bytes())
 
 
 def build_pi_tar(out: Path):
@@ -50,11 +70,11 @@ def build_pi_tar(out: Path):
             if not p.exists():
                 continue
             if p.is_file():
-                t.add(p, arcname=Path("gps-time") / name)
+                t.add(p, arcname=Path("gps-time") / name, filter=_tar_member)
             else:
                 for child in sorted(p.rglob("*")):
                     if wanted(child):
-                        t.add(child, arcname=Path("gps-time") / child.relative_to(ROOT))
+                        t.add(child, arcname=Path("gps-time") / child.relative_to(ROOT), filter=_tar_member)
 
 
 def main():

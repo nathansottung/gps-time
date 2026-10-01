@@ -134,7 +134,7 @@ def diagnostics():
 ACTIONS = {
     "restart_chrony": ["systemctl", "restart", "chrony"],
     "restart_gpsd": ["systemctl", "restart", "gpsd"],
-    "flush_logs": ["/opt/gps-time-pi/scripts/logsync.sh", "flush"],
+    "flush_logs": ["/bin/bash", "/opt/gps-time-pi/scripts/logsync.sh", "flush"],
 }
 
 
