@@ -54,7 +54,9 @@ class Rig:
     """A TimingChainService wired to a temp sysfs tree, fixture chronyc output and a manual clock."""
 
     def __init__(self, sources="sources_pps_selected", tracking="tracking_pps", gnss=gnss_ok,
-                 device=True, events_path=None, debounce=30, grace=0, sysfs_root=True, refcfg=REFCFG):
+                 device=True, events_path=None, debounce=30, sysfs_root=True, refcfg=REFCFG,
+                 boot=(T0 - 7200, "boot-test")):
+        # default: service started 2 h after boot, so the post-boot ACQUIRING rule does not apply
         self.tmp = tempfile.mkdtemp(prefix="gtp-pps-")
         self.t = [T0]
         self.seq = 0
@@ -73,7 +75,7 @@ class Rig:
             self.write_assert(0.0, 0)
         self.clock = lambda: self.t[0]
         self.monitor = pps.PPSMonitor(device=self.dev, sysfs=self.sysfs, clock=self.clock)
-        self.tracker = tc.EventTracker(events_path, clock=self.clock, debounce_s=debounce, grace_s=grace)
+        self.tracker = tc.EventTracker(events_path, clock=self.clock, debounce_s=debounce, boot=boot)
         self.svc = tc.TimingChainService(
             monitor=self.monitor, tracker=self.tracker, chrony_reader=self.read_chrony,
             gnss_reader=lambda: self.gnss(), refclock_reader=lambda: self.refcfg,
@@ -325,7 +327,7 @@ class TestOutages(RigTest):
         self.assertTrue(os.path.exists(path))
         # restart one hour later: a new tracker reads the checkpoint
         later = [r.t[0] + 3600]
-        t2 = tc.EventTracker(path, clock=lambda: later[0], debounce_s=30, grace_s=300)
+        t2 = tc.EventTracker(path, clock=lambda: later[0], debounce_s=30, boot=(T0 - 7200, "boot-test"))
         self.assertEqual(t2.open["start_epoch"], start)
         self.assertEqual(len(t2.open["restarts"]), 1)
         r2 = self.rig(sources="sources_pps_selected", tracking="tracking_pps", events_path=None)

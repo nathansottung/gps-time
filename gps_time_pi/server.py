@@ -57,6 +57,8 @@ def core_api():
     snap = gps.snapshot()
     q = chrony.quality(trk)
     status = timing_chain.timing_status(trk, srcs, gnss=snap, refclocks=chrony.refclock_config())
+    if timing_chain.SERVICE is not None and timing_chain.SERVICE.running():
+        status = timing_chain.SERVICE.apply_boot_phase(status)   # ACQUIRING after boot
     state = (status["headline"], status["banner"] + (" — " + status["detail"] if status["detail"] else ""))
     cfg = config.load()
     site, provenance = (snap["live"], "live") if snap["live"] else \
