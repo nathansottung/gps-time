@@ -2,6 +2,12 @@
 
 Start with [`README.md`](README.md). It defines the repo documentation contract and non-negotiable architecture rules.
 
+## Specifications (owner-provided, imported 2026-10-01)
+- `specs/CHG-PPS-HEALTH-DIAGNOSTICS.md` — REQUIRED change: PPS health, failure diagnostics, timing-chain observability, 20 required tests
+- `specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md` — timing-pipeline stages, PPS-loss events and graphs, holdover projections, GNSS integrity/interference/spoofing monitoring
+- `specs/ADDENDUM-SKY-SOLAR-SATELLITE.md` — roadmap addendum: Earth shadow and satellite illumination, solar time and geometry, sky obstruction, observing conditions, provenance
+- `specs/TASK-PPS-CHAIN.md` — implementation task for the PPS timing-chain backend (branch `feat/pps-chain`)
+
 ## Architecture
 - `architecture/system-overview.md`
 - `architecture/compute-tiers.md`
