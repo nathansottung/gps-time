@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, ProvenanceTag, DemoBanner, MaturityBadge } from '../components/ui';
 import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
 import { timing, holdover, satellites, offset1h, sunData, moonData, dataPacks, ppsStats } from '../data/demo';
+import { fmtSci } from '../lib/units';
 
 const irradianceData = Array.from({ length: 24 }, (_, h) => ({
   h, w: Math.round(Math.max(0, 850 * Math.sin(Math.PI*(h-6)/13)) * (h>=6&&h<=19?1:0)),
@@ -38,7 +39,7 @@ function TimingWidget() {
         <div className="grid grid-cols-3 gap-x-6" style={{ borderTop:'1px solid var(--border-dim)', paddingTop:'0.75rem' }}>
           <div>
             <MetricRow label="24 h RMS Δt" value="18.7" unit="ns" provenance="observed" />
-            <MetricRow label="Δf/f (frac. freq.)" value="−1.24×10⁻⁹" provenance="observed" />
+            <MetricRow label="Δf/f (frac. freq.)" value={fmtSci(timing.fracFreqOffset)} provenance="observed" />
           </div>
           <div>
             <MetricRow label="PPS lock duration" value="312h 24m" provenance="observed" />
@@ -66,7 +67,7 @@ function HoldoverWidget() {
             <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2" style={{ color:'var(--t4)' }}>Raw Oscillator</div>
             <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Free-running quartz, no discipline</div>
             <div className="text-[11px]" style={{ color:'var(--t2)' }}>1 s error in <span className="mono font-medium" style={{ color:'var(--warn-text)' }}>~1.4 days</span></div>
-            <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>±8.4 ppb/s drift</div>
+            <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>±{fmtSci(holdover.rawOscillatorDrift)} s⁻¹ drift</div>
           </div>
 
           {/* Trained */}
@@ -289,7 +290,7 @@ function VariantB() {
   const rows: [string, string, string?][] = [
     ['Δt current',          '+12.3 ns',    '± 4.1 ns'],
     ['Δt 24h RMS',          '18.7 ns',     undefined],
-    ['Δf/f',                '−1.24×10⁻⁹', undefined],
+    ['Δf/f',                fmtSci(timing.fracFreqOffset), undefined],
     ['Light-dist. equiv.',  '3.69 m',      undefined],
     ['PPS state',           'LOCKED',      undefined],
     ['PPS avail. (30d)',    '99.71 %',     undefined],
@@ -373,7 +374,7 @@ function VariantC() {
           ['24 h RMS',             '18.7 ns'],
           ['PPS lock streak',      '312h 24m continuous'],
           ['PPS availability',     '99.71 %'],
-          ['Fractional freq. offset','−1.24 × 10⁻⁹'],
+          ['Fractional freq. offset', fmtSci(timing.fracFreqOffset)],
           ['Satellites used / in view', `${satellites.filter(s=>s.state==='used').length} / ${satellites.length}`],
           ['NTP stratum',          '1'],
           ['NTP clients',          '7'],

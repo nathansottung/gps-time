@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, Tabs, ProvenanceTag } from '../components/ui';
 import { sdrDevices } from '../data/demo';
+import { fmtSci } from '../lib/units';
 
 const TIER_LABELS = [
   '', // 0
@@ -75,7 +76,7 @@ function SDRCard({ dev }: { dev: typeof sdrDevices[0] }) {
           </span>
         </div>
         {dev.calibPpm !== undefined && (
-          <MetricRow label="Freq. calibration" value={`${dev.calibPpm} ppm`} provenance="observed" />
+          <MetricRow label="Freq. calibration Δf/f" value={fmtSci(dev.calibPpm * 1e-6)} unit={`(${dev.calibPpm} ppm)`} provenance="observed" />
         )}
         {expanded && (
           <div className="mt-3">
@@ -172,7 +173,7 @@ export default function RadioSDR() {
             <div className="space-y-3">
               {[
                 { tier:1, label:'USB Receive-Only', desc:'Sample timestamps derived from USB host clock. ±ms uncertainty typical. No GPS relationship.', color:'text-slate-500' },
-                { tier:2, label:'Frequency-Calibrated', desc:'Oscillator calibrated against GPS-disciplined reference. Frequency accurate to ppm/ppb. Time origin not precisely known.', color:'text-cyan-400/70' },
+                { tier:2, label:'Frequency-Calibrated', desc:'Oscillator calibrated against GPS-disciplined reference. Fractional frequency error ~10⁻⁶ to 10⁻⁹. Time origin not precisely known.', color:'text-cyan-400/70' },
                 { tier:3, label:'PPS/Epoch-Aligned', desc:'Sample epoch snapped to PPS epoch at start of capture. Drift accumulates. Useful for short captures.', color:'text-cyan-400' },
                 { tier:4, label:'PPS + Reference Clock', desc:'Ongoing frequency correction plus PPS epoch alignment. Sub-µs sample timestamp accuracy for extended captures.', color:'text-blue-400' },
                 { tier:5, label:'Hardware Timestamped', desc:'Device provides per-sample hardware timestamps from a calibrated oscillator phase-characterized against PPS. Best achievable.', color:'text-purple-400' },

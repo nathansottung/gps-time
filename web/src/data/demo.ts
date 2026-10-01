@@ -18,7 +18,6 @@ export const timing = {
   offsetUncertaintyNs: 4.1,
   rms24hNs: 18.7,
   fracFreqOffset: -1.24e-9, // dimensionless
-  fracFreqOffsetPpm: -0.00124,
   lightDistM: 3.69, // meters (12.3 ns × 0.3 m/ns)
   refSource: 'GPS/PPS',
   ppsState: 'LOCKED' as 'LOCKED'|'HOLDOVER'|'NETWORK'|'UNSYNC',
@@ -32,9 +31,9 @@ export const timing = {
 
 // Holdover estimates
 export const holdover = {
-  rawOscillatorDriftPpb: 8.4,      // ppb/s
+  rawOscillatorDrift: 8.4e-9,      // Δf/f change per second (s⁻¹)
   rawErrorIn1SecAfterDays: 1.4,     // days
-  trainedDriftPpb: 0.31,
+  trainedDrift: 0.31e-9,           // Δf/f change per second (s⁻¹)
   trainedErrorIn1SecAfterDays: 37.3,
   trainedConfidenceHours: 48,
   trainedValidatedHours: 72,
