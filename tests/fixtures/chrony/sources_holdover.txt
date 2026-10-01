@@ -1,0 +1,4 @@
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+===============================================================================
+#? GPS                           0   4     0     -     +0ns[   +0ns] +/-    0ns
+#? NMEA                          0   4     0    17m   +35ms[  +35ms] +/-  100ms
