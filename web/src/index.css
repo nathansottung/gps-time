@@ -97,6 +97,10 @@ body {
 
 /* Tabular numerals for all measurements */
 .tabular { font-variant-numeric: tabular-nums; }
+/* 700 is not shipped (Guidelines: weights 300-600). Tailwind preflight sets
+   b/strong to 'bolder', which would synthesize a fake bold; map to 600. */
+b, strong { font-weight: 600; }
+
 .mono    { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* ─── Scrollbars ─────────────────────────────────────────────────────────────── */
