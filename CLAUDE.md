@@ -38,12 +38,12 @@ GPS Time is a timing-first, offline-capable measurement station: GNSS â†’ PPS â†
 python -m compileall gps_time_pi tools tests
 python tools/generate_config.py --help
 python -m unittest discover -s tests -t . -v
-cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run typecheck && corepack pnpm run build
+cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run typecheck && corepack pnpm run test && corepack pnpm run build
 ```
 
 CI (`.github/workflows/`):
 - `ci.yml` runs Python 3.11 on Ubuntu. Real-SIGTERM and POSIX-only tests run there and are skipped on Windows.
-- `web.yml` runs Node 22 and pnpm. It also fails on runtime CDN, font-host or analytics URLs, and on 700/bold weights.
+- `web.yml` runs Node 22 and pnpm: type-check, Vitest unit tests (`web/src/**/*.test.ts`), build. It also fails on runtime CDN, font-host or analytics URLs, and on 700/bold weights.
 
 ## Where things are
 

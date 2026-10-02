@@ -101,6 +101,7 @@ On Windows, expect `OK (skipped=2)`: the real-SIGTERM test and the web-UI symlin
 cd web
 corepack pnpm install --frozen-lockfile   # install-time network only
 corepack pnpm run typecheck
+corepack pnpm run test                    # Vitest unit tests (src/**/*.test.ts), no network
 corepack pnpm run build                   # output: web/dist (git-ignored)
 corepack pnpm run dev                     # http://127.0.0.1:5173 (loopback only)
 cd ..

@@ -12,6 +12,7 @@ Toolchain is pinned in `.mise.toml` (Node 22) and `package.json` `packageManager
 corepack pnpm install --frozen-lockfile   # install-time network only
 corepack pnpm run dev                     # http://127.0.0.1:5173 (loopback only)
 corepack pnpm run typecheck
+corepack pnpm run test                    # Vitest: src/**/*.test.ts (Node environment, no DOM)
 corepack pnpm run build                   # output: dist/
 ```
 
@@ -40,6 +41,8 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/components/planned.tsx` — `<Planned>` (preview under demo, "not available" live) and `ApiErrorNote`
 - `src/index.css` — font imports, Tailwind import, design tokens and utility classes
 - `vite.config.ts` — standalone Vite config (React, Tailwind, `@` alias for `src`)
+- `vitest.config.ts` — unit tests for pure logic (`src/**/*.test.ts`); keep logic that needs tests out of components (e.g. `src/lib/banner.ts`)
+- `src/lib/banner.ts` — banner guards: never a bare SYNCHRONIZED; GPS/PPS with a non-PPS selected source shows UNKNOWN (tested in `banner.test.ts`)
 
 ## Data and labeling
 
