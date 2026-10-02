@@ -5,17 +5,11 @@
 import type { ReactNode } from 'react';
 import { Card, CardHeader, CardBody, StatusBadge, ProvenanceTag } from './ui';
 import { useStation } from '../api/station';
-import type { TimingChain, TimingStatus } from '../api/types';
-import { fmtDuration, fmtSeconds, fmtUtc } from '../lib/format';
+import { fmtDuration, fmtSeconds } from '../lib/format';
 
-export type Variant = 'good' | 'warn' | 'error' | 'muted' | 'info';
-
-export function statusVariant(code: string | undefined): Variant {
-  if (!code || code === 'UNKNOWN') return 'muted';
-  if (code === 'GPS_PPS') return 'good';
-  if (code === 'UNSYNCHRONIZED') return 'error';
-  return 'warn';
-}
+import { bannerView, statusVariant, type Variant, type BannerView } from '../lib/banner';
+export { bannerView, statusVariant };
+export type { Variant, BannerView };
 
 const STYLE: Record<Variant, { bg: string; border: string; text: string }> = {
   good:  { bg: 'var(--good-bg)', border: 'var(--good-border)', text: 'var(--good-text)' },
@@ -26,46 +20,6 @@ const STYLE: Record<Variant, { bg: string; border: string; text: string }> = {
 };
 export const variantStyle = (v: Variant) => STYLE[v];
 
-export interface BannerView {
-  variant: Variant;
-  title: string;
-  detail: string | null;
-  outage: string | null;      // "PPS unavailable for 2d 07h 14m (since …)"
-}
-
-/**
- * The banner text, with two guards so the UI can never overstate timing:
- * - a GPS/PPS status while chrony reports a non-PPS selected source is shown
- *   as UNKNOWN (inconsistent), not as Stratum 1 GPS/PPS;
- * - a status without a source qualifier gets the selected source appended,
- *   so a bare "SYNCHRONIZED" is never shown.
- */
-export function bannerView(chain: TimingChain | null, unreachable: boolean): BannerView {
-  if (!chain) {
-    return { variant: unreachable ? 'error' : 'muted',
-             title: unreachable ? 'TIMING STATUS UNKNOWN · STATION UNREACHABLE' : 'TIMING STATUS UNKNOWN',
-             detail: null, outage: null };
-  }
-  const st: TimingStatus = chain.status;
-  const sel = chain.chrony.selected;
-  if (st.code === 'GPS_PPS' && sel && !sel.is_pps) {
-    return { variant: 'warn', title: 'TIMING STATUS UNKNOWN · INCONSISTENT REPORT',
-             detail: `Status says GPS/PPS but chrony's selected source is ${sel.name}.`, outage: outageText(chain) };
-  }
-  let title = st.banner || st.headline || 'UNKNOWN';
-  if (!title.includes('·') && st.code !== 'UNKNOWN') {
-    title += ` · SOURCE ${sel ? sel.name.toUpperCase() : 'UNKNOWN'}`;
-  }
-  return { variant: statusVariant(st.code), title, detail: st.detail || null, outage: outageText(chain) };
-}
-
-function outageText(chain: TimingChain): string | null {
-  const ev = chain.events.open;
-  if (!ev) return null;
-  const since = fmtUtc(ev.start_utc);
-  const bound = ev.start_bound ? ' or earlier' : '';
-  return `PPS unavailable for ${fmtDuration(ev.duration_s) ?? 'UNKNOWN'}${since ? ` (since ${since}${bound})` : ''}`;
-}
 
 /** Full-width banner shown at the top of every page. */
 export function TimingBanner() {
