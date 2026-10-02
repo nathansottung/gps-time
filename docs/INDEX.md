@@ -66,6 +66,9 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/review-evidence-2026-09-07.zip`
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
+## Releases
+- `releases/v1.4.0-rc.1.md` — first tagged version (pre-release); named rollback target
+
 ## Change records
 - `provenance/change-log.md`
 - `provenance/CHG-001-002-foundation-correction.md` — GNSS fresh-epoch gating; fresh-install logging repair
