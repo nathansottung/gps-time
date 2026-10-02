@@ -307,6 +307,29 @@ def site_stats(cfg):
             "se_horiz_m": horiz, "updated": site.get("updated")}
 
 
+def privacy_site(cfg, site):
+    """The site that position-revealing calculations may use under the privacy
+    mode. Sunrise/sunset, solar noon, day length, moon and object rise/set,
+    the sky map and local sidereal time are all functions of the position, so
+    computing them from more precision than the mode exposes would leak it.
+
+    Returns (site_or_None, mode):
+      exact   -> the site unchanged
+      rounded -> the same rounding as displayed_location() (1 decimal ≈ 11 km,
+                 MSL altitude to 10 m, no ellipsoidal height)
+      hidden  -> None: nothing may be computed from the position
+    """
+    mode = cfg.get("location_display", "exact")
+    if not site or mode == "hidden":
+        return None, mode
+    if mode == "rounded":
+        alt = site.get("alt_msl")
+        return {"lat": round(site["lat"], 1), "lon": round(site["lon"], 1),
+                "alt_msl": None if alt is None else round(alt, -1),
+                "updated": site.get("updated")}, mode
+    return site, mode
+
+
 def displayed_location(cfg, live):
     """Apply the privacy mode to whatever position we're exposing."""
     mode = cfg.get("location_display", "exact")
