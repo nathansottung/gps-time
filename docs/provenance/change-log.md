@@ -180,3 +180,9 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Tests: 6 more in `tests/test_location_privacy.py` (now 20). Correction to the previous entry: that PR added 14 tests, not 15.
 - Docs: `docs/api/endpoints.md` privacy notes. The residual (which satellites are tracked) is documented.
 - Roadmap: `ROADMAP-DESKTOP-FIELD-APP.md` accuracy table now labels the NMEA-only path `inferred`; `estimated` was not one of the six provenance labels.
+
+## 2026-10-02 — project status table (docs/status)
+
+- `docs/STATUS.md` has one table of every spec item (CHG, TASK, OBS, ADD), roadmap feature (registry A–J, current scope), web-UI port item and independent-review finding: 351 rows. Each row has a status (done / in progress / next / planned) and PR links, and the file lists the next 5 tasks in order.
+- Statuses come from an inventory checked against the code and tests on 2026-10-02. Items that are partly built are "planned" or "next" with a "partial:" note.
+- `CLAUDE.md`: new rule to update `docs/STATUS.md` in every PR. `docs/INDEX.md` links it.

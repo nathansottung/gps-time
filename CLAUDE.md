@@ -24,6 +24,7 @@ GPS Time is a timing-first, offline-capable measurement station: GNSS â†’ PPS â†
 - **Branches and PRs:**
   - Branch from `main`, open a PR, and merge with a **merge commit** (no squash) once CI passes. Then delete the branch locally and on GitHub.
   - Don't push, merge, or deploy without the owner's go-ahead for that step.
+  - **Update `docs/STATUS.md` in every PR:** change the status of affected rows (done / in progress / next / planned), add the PR link, add rows for new spec items or features, and re-order the next-5 list if it changed. If a PR changes no status, say so in the PR description.
 - **Change-log conflicts** between branches (both appending entries): keep both, in chronological order.
 - **Before committing:**
   - Scan new content for secrets, credentials, precise coordinates and personal infrastructure details.

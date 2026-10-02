@@ -2,6 +2,8 @@
 
 Start with [`README.md`](README.md). It defines the repo documentation contract and non-negotiable architecture rules.
 
+**Where things stand:** [`STATUS.md`](STATUS.md). Every spec item, roadmap feature and review finding, with its status and PR links, plus the next 5 tasks. It is updated in every PR.
+
 ## Specifications (owner-provided, imported 2026-10-01)
 - `specs/CHG-PPS-HEALTH-DIAGNOSTICS.md` — REQUIRED change: PPS health, failure diagnostics, timing-chain observability, 20 required tests
 - `specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md` — timing-pipeline stages, PPS-loss events and graphs, holdover projections, GNSS integrity/interference/spoofing monitoring
