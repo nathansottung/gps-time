@@ -19,8 +19,11 @@ Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
 """
 
 import json
+import logging
+import math
 import os
 import re
+import sys
 from datetime import date as _date
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -40,6 +43,8 @@ _TPL = {}
 for name in ("dashboard", "configure", "legacy", "almanac", "history", "admin"):
     with open(os.path.join(_HERE, "templates", name + ".html"), encoding="utf-8") as f:
         _TPL[name] = f.read()
+# Per-page CSP: each legacy page's static inline scripts allowed by hash only.
+_TPL_CSP = {name: security.csp_for_html(html) for name, html in _TPL.items()}
 
 
 # Built web UI (cd web && corepack pnpm run build). Read per request, never written.
@@ -349,10 +354,10 @@ POST_ROUTES = ("/api/admin", "/api/setting", "/api/dashboard", "/api/dashboard/r
 MAX_BODY = 256000
 
 
-def auth_payload(auth_header):
+def auth_payload(authenticated):
     return {"demo": DEMO_MODE, "auth_required": not DEMO_MODE,
             "admin_configured": security.admin_configured(),
-            "authenticated": DEMO_MODE or security.verify_authorization(auth_header)}
+            "authenticated": DEMO_MODE or authenticated}
 
 
 def dashboard_payload():
@@ -368,6 +373,40 @@ def dashboard_payload():
 
 
 class Handler(BaseHTTPRequestHandler):
+    _csp = None      # per-response CSP override (legacy pages); reset for every request
+
+    def end_headers(self):
+        # Security headers on every response, including send_error() pages.
+        self.send_header("Content-Security-Policy", self._csp or security.CSP_STRICT)
+        for k, v in security.SECURITY_HEADERS.items():
+            self.send_header(k, v)
+        super().end_headers()
+
+    def _page(self, name):
+        self._csp = _TPL_CSP[name]
+        self._send(_TPL[name], "text/html")
+
+    def _check_token(self, route):
+        """True if the Authorization header holds the admin token. Otherwise this
+        sends 429 (backoff active) or 401, logs the failure (never the token)
+        and returns False."""
+        ip = self.client_address[0]
+        wait = security.THROTTLE.retry_after(ip)
+        if wait > 0:
+            security.log.warning("admin token attempt refused (backoff): ip=%s route=%s retry_after_s=%d",
+                                 ip, route, math.ceil(wait))
+            self._json({"ok": False, "error": "too many failed attempts; try again later"}, code=429,
+                       headers={"Retry-After": str(math.ceil(wait))})
+            return False
+        header = self.headers.get("Authorization")
+        if security.verify_authorization(header):
+            security.THROTTLE.success(ip)
+            return True
+        security.note_auth_failure(ip, route, header)
+        self._json({"ok": False, "error": "admin token required"}, code=401,
+                   headers={"WWW-Authenticate": 'Bearer realm="gps-time"'})
+        return False
+
     def _send(self, body, ctype, code=200, cache=None):
         data = body if isinstance(body, bytes) else body.encode()
         self.send_response(code)
@@ -425,6 +464,7 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         p = u.path
+        self._csp = None
         if not self._host_ok():
             return
         try:
@@ -433,25 +473,33 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": "method not allowed: use POST with a JSON body"},
                            code=405, headers={"Allow": "POST"})
             elif p == "/api/auth":
-                self._json(auth_payload(self.headers.get("Authorization")))
+                # A sent token is checked with the same logging/backoff as POSTs, so
+                # this read-only route can't be used to guess tokens faster.
+                if self.headers.get("Authorization") and not DEMO_MODE and security.admin_configured():
+                    if self._check_token("/api/auth"):
+                        self._json(auth_payload(True))
+                else:
+                    self._json(auth_payload(False))
             elif p == WEB_PREFIX.rstrip("/") or p.startswith(WEB_PREFIX):
                 self._web(u)
             elif p == "/":
-                self._send(_TPL["dashboard"], "text/html")
+                self._page("dashboard")
             elif p == "/configure":
-                self._send(_TPL["configure"], "text/html")
+                self._page("configure")
             elif p == "/legacy":
-                self._send(_TPL["legacy"], "text/html")
+                self._page("legacy")
             elif p == "/almanac":
-                self._send(_TPL["almanac"], "text/html")
+                self._page("almanac")
             elif p == "/history":
-                self._send(_TPL["history"], "text/html")
+                self._page("history")
             elif p == "/admin":
-                self._send(_TPL["admin"], "text/html")
+                self._page("admin")
             elif p == "/api/system":
                 self._json(demo.system_diagnostics() if DEMO_MODE else system.diagnostics())
             elif p == "/zones":
-                self._send(zones_page(), "text/html")
+                html = zones_page()
+                self._csp = security.csp_for_html(html)
+                self._send(html, "text/html")
             elif p == "/time":
                 self._send(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f UTC\n"),
                            "text/plain")
@@ -506,6 +554,7 @@ class Handler(BaseHTTPRequestHandler):
         Host allowlist -> route -> Origin (same-origin or GTP_ALLOWED_ORIGINS) ->
         Content-Type application/json -> body size -> admin token (not in demo)."""
         p = urlparse(self.path).path
+        self._csp = None
         # Read (bounded) the body before any refusal, so an early error doesn't
         # leave unread request bytes on the socket (the client would see a reset).
         try:
@@ -542,9 +591,7 @@ class Handler(BaseHTTPRequestHandler):
             if not security.admin_configured():
                 self._json({"ok": False, "error": ADMIN_DISABLED}, code=403)
                 return
-            if not security.verify_authorization(self.headers.get("Authorization")):
-                self._json({"ok": False, "error": "admin token required"}, code=401,
-                           headers={"WWW-Authenticate": 'Bearer realm="gps-time"'})
+            if not self._check_token(p):
                 return
         try:
             if p == "/api/admin":
@@ -581,6 +628,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Warnings (failed admin-token attempts) go to stderr, i.e. the systemd journal.
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr,
+                        format="%(levelname)s %(name)s: %(message)s")
     # Flush survey/config state on SIGTERM (systemctl stop/restart, reboot).
     config.install_signal_handlers()
     if not DEMO_MODE:

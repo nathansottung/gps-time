@@ -6,7 +6,11 @@ outside demo mode, the admin token. Demo mode never runs host actions. Also
 static checks of the service unit and polkit rule. No root, network or Pi.
 """
 
+import base64
+import contextlib
+import hashlib
 import http.client
+import io
 import json
 import os
 import re
@@ -45,6 +49,7 @@ class AuthBase(unittest.TestCase):
             mock.patch.object(config, "_CACHE", None),
             mock.patch.object(system, "admin", lambda a: self.calls.append(a) or {"ok": True, "action": a, "detail": "stub"}),
             mock.patch.object(config, "reset_site", lambda: self.calls.append("reset_site")),
+            mock.patch.object(security, "THROTTLE", security.AuthThrottle()),   # fresh per test
         ]
         for p in patches:
             p.start()
@@ -284,6 +289,185 @@ class TestTokenFile(unittest.TestCase):
         if os.name == "posix":
             self.assertEqual(os.stat(path).st_mode & 0o777, 0o640)
 
+
+
+# ─── 1. token generation and comparison ─────────────────────────────────────
+
+class TestTokenStrength(unittest.TestCase):
+    def test_token_is_32_random_bytes_from_secrets(self):
+        with mock.patch.object(admin_token.secrets, "token_urlsafe", wraps=admin_token.secrets.token_urlsafe) as gen:
+            t = admin_token.new_token()
+        gen.assert_called_once_with(32)
+        raw = base64.urlsafe_b64decode(t + "=" * (-len(t) % 4))
+        self.assertGreaterEqual(len(raw), 32)
+        self.assertNotEqual(admin_token.new_token(), admin_token.new_token())
+
+    def test_verification_uses_hmac_compare_digest(self):
+        d = tempfile.mkdtemp(prefix="gps-time-token-")
+        path = os.path.join(d, "admin-token.sha256")
+        admin_token.write_token_hash(path, "abc")
+        with mock.patch.dict(os.environ, {"GTP_ADMIN_TOKEN_FILE": path}), \
+             mock.patch.object(security.hmac, "compare_digest", wraps=security.hmac.compare_digest) as cmp:
+            self.assertTrue(security.verify_authorization("Bearer abc"))
+            self.assertFalse(security.verify_authorization("Bearer abd"))
+        self.assertEqual(cmp.call_count, 2)
+
+
+# ─── 2. security headers ────────────────────────────────────────────────────
+
+class TestSecurityHeaders(AuthBase):
+    def assert_headers(self, headers, what):
+        csp = headers.get("Content-Security-Policy", "")
+        self.assertIn("default-src 'self'", csp, what)
+        self.assertIn("frame-ancestors 'none'", csp, what)
+        self.assertIn("object-src 'none'", csp, what)
+        self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff", what)
+        self.assertEqual(headers.get("Referrer-Policy"), "no-referrer", what)
+        self.assertEqual(headers.get("X-Frame-Options"), "DENY", what)
+        return csp
+
+    def test_every_kind_of_response_has_the_headers(self):
+        responses = {
+            "api": self.req("GET", "/api/auth"),
+            "app": self.req("GET", "/app/"),
+            "static": self.req("GET", "/static/app.js"),
+            "404": self.req("GET", "/nope"),
+            "405": self.req("GET", "/api/admin"),
+            "401": self.post("/api/admin", {"action": "reboot"}, token=None),
+            "200 POST": self.post("/api/admin", {"action": "flush_logs"}),
+            "host refused": self.req("GET", "/api", host="attacker.example"),
+            "time": self.req("GET", "/time"),
+        }
+        for what, (_, headers, _) in responses.items():
+            csp = self.assert_headers(headers, what)
+            self.assertIn("script-src 'self'", csp, what)
+            self.assertNotIn("unsafe-inline", csp, what)          # strict outside the legacy pages
+
+    def test_legacy_pages_allow_only_their_own_inline_scripts(self):
+        for path in ("/", "/legacy", "/almanac", "/history", "/admin", "/configure", "/zones"):
+            status, headers, body = self.req("GET", path)
+            self.assertEqual(status, 200, path)
+            csp = self.assert_headers(headers, path)
+            script_src = re.search(r"script-src ([^;]*)", csp).group(1)
+            self.assertNotIn("unsafe-inline", script_src, path)
+            self.assertNotIn("unsafe-eval", script_src, path)
+            html = body if isinstance(body, str) else body.decode()
+            for script in re.findall(r"<script>(.*?)</script>", html, re.S):
+                h = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+                self.assertIn(f"'sha256-{h}'", script_src, path)
+            self.assertIn("style-src 'self' 'unsafe-inline'", csp, path)   # documented legacy exception
+
+
+# ─── 3. failed-token logging and backoff ────────────────────────────────────
+
+class TestThrottle(unittest.TestCase):
+    def test_backoff_grows_and_resets(self):
+        now = [1000.0]
+        t = security.AuthThrottle(clock=lambda: now[0])
+        for _ in range(security.FREE_FAILURES):
+            self.assertEqual(t.failure("10.0.0.1")[1], 0.0)
+        self.assertEqual(t.retry_after("10.0.0.1"), 0.0)
+        self.assertEqual(t.failure("10.0.0.1"), (4, 2.0))
+        self.assertEqual(t.retry_after("10.0.0.1"), 2.0)
+        self.assertEqual(t.retry_after("10.0.0.2"), 0.0)           # per IP
+        self.assertEqual(t.failure("10.0.0.1")[1], 4.0)
+        now[0] += 4.0
+        self.assertEqual(t.retry_after("10.0.0.1"), 0.0)
+        t.success("10.0.0.1")
+        self.assertEqual(t.failure("10.0.0.1"), (1, 0.0))
+
+    def test_backoff_is_capped_and_memory_bounded(self):
+        t = security.AuthThrottle(clock=lambda: 0.0)
+        for _ in range(40):
+            _, backoff = t.failure("10.0.0.1")
+        self.assertEqual(backoff, security.MAX_BACKOFF_S)
+        with mock.patch.object(security, "MAX_TRACKED_IPS", 10):
+            for i in range(50):
+                t.failure(f"192.0.2.{i}")
+        self.assertLessEqual(len(t._ips), 10)
+
+
+class TestFailedAttemptLogging(AuthBase):
+    SECRET_GUESS = "guess-DO-NOT-LOG-7f3a"
+
+    def test_failures_are_logged_without_the_token(self):
+        with self.assertLogs("gps_time_pi.security", "WARNING") as cm:
+            self.post("/api/admin", {"action": "reboot"}, token=self.SECRET_GUESS)
+            self.post("/api/admin", {"action": "reboot"}, token=None)
+            self.req("POST", "/api/admin", {"action": "reboot"}, headers={"Authorization": "Basic " + self.SECRET_GUESS})
+        text = "\n".join(cm.output)
+        self.assertNotIn(self.SECRET_GUESS, text)
+        self.assertNotIn(TOKEN, text)
+        self.assertIn("ip=127.0.0.1", text)
+        self.assertIn("route=/api/admin", text)
+        for reason in ("reason=invalid", "reason=missing", "reason=malformed"):
+            self.assertIn(reason, text)
+
+    def test_backoff_returns_429_even_for_the_right_token(self):
+        for _ in range(security.FREE_FAILURES + 1):
+            self.assertEqual(self.post("/api/admin", {"action": "reboot"}, token="wrong")[0], 401)
+        status, headers, body = self.post("/api/admin", {"action": "flush_logs"})
+        self.assertEqual(status, 429)
+        self.assertGreaterEqual(int(headers["Retry-After"]), 1)
+        self.assertEqual(self.calls, [])
+        security.THROTTLE.success("127.0.0.1")                      # backoff over
+        self.assertEqual(self.post("/api/admin", {"action": "flush_logs"})[0], 200)
+
+    def test_api_auth_guesses_count_too(self):
+        for _ in range(security.FREE_FAILURES + 1):
+            status, _, _ = self.req("GET", "/api/auth", headers={"Authorization": "Bearer wrong"})
+            self.assertEqual(status, 401)
+        self.assertEqual(self.req("GET", "/api/auth", headers={"Authorization": f"Bearer {TOKEN}"})[0], 429)
+        self.assertEqual(self.req("GET", "/api/auth")[0], 200)     # without a token: no check, no penalty
+
+
+# ─── 4. installer shows the token on the terminal only ──────────────────────
+
+class TestTokenOnTerminalOnly(unittest.TestCase):
+    def run_tool(self, argv, tty_path):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = admin_token.main(argv, tty_path=tty_path)
+        return rc, out.getvalue(), err.getvalue()
+
+    def test_tty_only_writes_token_to_terminal_not_stdout(self):
+        d = tempfile.mkdtemp(prefix="gps-time-tty-")
+        tty, path = os.path.join(d, "tty"), os.path.join(d, "admin-token.sha256")
+        rc, out, err = self.run_tool(["--tty-only", "--path", path], tty)
+        self.assertEqual(rc, 0)
+        shown = Path(tty).read_text()
+        token = re.search(r"^ {4}(\S+)$", shown, re.M).group(1)
+        self.assertNotIn(token, out + err)
+        self.assertEqual(Path(path).read_text().strip(), security.hash_token(token))
+
+    def test_no_terminal_creates_nothing(self):
+        d = tempfile.mkdtemp(prefix="gps-time-tty-")
+        path = os.path.join(d, "admin-token.sha256")
+        rc, out, err = self.run_tool(["--tty-only", "--path", path], os.path.join(d, "no", "such", "tty"))
+        self.assertEqual(rc, 2)
+        self.assertFalse(os.path.exists(path))
+        self.assertIn("NOT created", err)
+
+    def test_installer_and_deploy_scripts_use_the_terminal(self):
+        self.assertIn("admin_token --tty-only", (ROOT / "install.sh").read_text())
+        self.assertIn('if [ -t 0 ] && [ -t 1 ]; then TTY_OPT="-t"; fi', (ROOT / "scripts" / "deploy-to-pi.sh").read_text())
+        self.assertIn("IsOutputRedirected", (ROOT / "scripts" / "deploy-to-pi.ps1").read_text())
+
+
+# ─── 5. rollback drop-in stays in sync with the unit ────────────────────────
+
+class TestRollbackDropIn(unittest.TestCase):
+    NOT_PRIVILEGE = {"WorkingDirectory", "Environment", "ExecStart", "Restart"}
+
+    def test_rollback_resets_every_privilege_and_hardening_setting(self):
+        unit = (ROOT / "gps-time-pi.service").read_text()
+        service = unit.split("[Service]", 1)[1].split("[Install]", 1)[0]
+        keys = set(re.findall(r"^([A-Za-z]+)=", service, re.M)) - self.NOT_PRIVILEGE
+        rollback = (ROOT / "system" / "gps-time-pi-root-rollback.conf").read_text()
+        reset = dict(re.findall(r"^([A-Za-z]+)=(.*)$", rollback, re.M))
+        self.assertEqual(keys - set(reset), set(), "settings the rollback does not reset")
+        self.assertEqual(reset["User"], "")                      # empty = root
+        self.assertIn('"$DEST/rollback/gps-time-pi-root-rollback.conf"', (ROOT / "install.sh").read_text())
 
 if __name__ == "__main__":
     unittest.main()
