@@ -216,3 +216,13 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Owner review approved. `STATUS.md` rows are now done with #15.
   - Decision recorded: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags.
   - Next-5 reordered: Vitest harness, then administrative security **before** shipping `web/dist`, so a Pi never serves an unauthenticated reboot through the new UI.
+
+## 2026-10-02 — web unit tests: Vitest harness (chore/vitest)
+
+- `vitest` 5.0.3 (dev dependency) with `pnpm run test` and `web/vitest.config.ts` (Node environment, no DOM, no network). `web.yml` runs it after type-check, and the `CLAUDE.md` checks include it.
+- The banner logic moved, unchanged, to the pure `web/src/lib/banner.ts`.
+- 26 tests:
+  - banner guards: never a bare SYNCHRONIZED; GPS/PPS with a non-PPS selected source shows UNKNOWN (CHG test 20); outage text; every demo scenario names a source;
+  - formatting conventions: chrony slow/fast sign, units, null → UNKNOWN, Δf/f superscripts.
+  - Disabling the inconsistent-report guard fails the test-20 case.
+- `STATUS.md`: next-5 now starts with administrative security. Bounded tracking log (GPS-011/012) is fifth.

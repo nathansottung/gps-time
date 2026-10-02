@@ -7,15 +7,15 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (feat/pps-ui, #15). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (chore/vitest, #16). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-1. **chore/vitest:** a Vitest harness for the web UI, with tests of the banner guards (never a bare SYNCHRONIZED; GPS/PPS with a non-PPS selected source shows UNKNOWN). Merged first, so later UI work ships with tests.
-2. **Administrative security** (GPS-014, GPS-017, GPS-019): authentication for state-changing actions, POST-only, Host/Origin check, admin actions disabled in demo, non-root service. Pre-release blocker. It comes **before** shipping `web/dist`, so a Pi never serves an unauthenticated reboot through the new UI.
-3. **Ship `web/dist` in the Pi bundle and `install.sh`**, so `/app/` works on a station without Node. `install.sh` also edits `chrony.conf`; only the copy step changes.
-4. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
-5. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
+1. **Administrative security** (GPS-014, GPS-017, GPS-019): authentication for state-changing actions, POST-only, Host/Origin check, admin actions disabled in demo, non-root service. Pre-release blocker. It comes **before** shipping `web/dist`, so a Pi never serves an unauthenticated reboot through the new UI. *Next: feat/admin-auth.*
+2. **Ship `web/dist` in the Pi bundle and `install.sh`**, so `/app/` works on a station without Node. `install.sh` also edits `chrony.conf`; only the copy step changes.
+3. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
+4. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
+5. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
 
 ## Decisions
 
@@ -48,7 +48,7 @@ Last updated: 2026-10-02 (feat/pps-ui, #15). Built from the specs, `roadmap/feat
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 352 rows: 160 done, 0 in progress, 24 next, 168 planned.
+**Totals:** 352 rows: 161 done, 0 in progress, 25 next, 166 planned.
 
 ## Status table
 
@@ -370,7 +370,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Pre-release | Bounded persistence | planned | partial: config/events atomic; tracking log unbounded | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Scope | Pre-release | Administrative security | next |  |  |
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| Web UI |  | Vitest harness + banner-guard tests | next |  |  |
+| Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | next |  |  |
 | Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
@@ -384,8 +384,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-008 | Holdover from raw frequency | planned |  |  |
 | Review | GPS-009 | Survey SE labeled repeatability | planned | partial: /app fixed; legacy not | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Review | GPS-010 | Fresh install fails (logsync mode) | done | not Pi-verified | [#1](https://github.com/nathansottung/gps-time/pull/1) |
-| Review | GPS-011 | RAM tracking log unbounded | planned |  |  |
-| Review | GPS-012 | Tracking-log path fixed at import | planned |  |  |
+| Review | GPS-011 | RAM tracking log unbounded | next |  |  |
+| Review | GPS-012 | Tracking-log path fixed at import | next |  |  |
 | Review | GPS-013 | SIGTERM skips flush; corrupt config reset | done |  | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Review | GPS-014 | Root service; unauthenticated GET admin | next |  |  |
 | Review | GPS-015 | Privacy hidden leaks via sidereal/almanac | done | plus satellite az/el. Decision 2026-10-02: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags (GNSS health stays visible); see Decisions | [#12](https://github.com/nathansottung/gps-time/pull/12) [#13](https://github.com/nathansottung/gps-time/pull/13) |
