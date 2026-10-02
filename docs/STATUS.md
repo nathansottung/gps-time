@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (chore/dependabot, #17). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (chore/pin-actions, #18). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -49,7 +49,7 @@ Last updated: 2026-10-02 (chore/dependabot, #17). Built from the specs, `roadmap
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 353 rows: 162 done, 0 in progress, 25 next, 166 planned.
+**Totals:** 354 rows: 163 done, 0 in progress, 25 next, 166 planned.
 
 ## Status table
 
@@ -408,3 +408,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-031 | No automated tests | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
 | Repo |  | Dependabot weekly: pip, pnpm, GitHub Actions | done |  | [#17](https://github.com/nathansottung/gps-time/pull/17) |
+| Repo |  | Workflow actions pinned to commit SHAs; CI guard | done |  | [#18](https://github.com/nathansottung/gps-time/pull/18) |
