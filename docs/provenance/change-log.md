@@ -227,7 +227,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - Disabling the inconsistent-report guard fails the test-20 case.
 - `STATUS.md`: next-5 now starts with administrative security. Bounded tracking log (GPS-011/012) is fifth.
 
-## 2026-10-02 — Dependabot (chore/dependabot)
+## 2026-10-02 — Dependabot (#17)
 
 - `.github/dependabot.yml`: weekly update PRs for pip (repo root), pnpm (`web/`, minor and patch updates grouped) and GitHub Actions. Dependabot only opens PRs; they go through CI and owner review like any other change.
 - New `requirements.txt` pins the station's only pip dependency, `skyfield==1.55`. `install.sh` installs from it and the Pi bundle ships it (packaging test added). Before this, `install.sh` installed whatever skyfield was latest (part of GPS-020; the trust-on-first-use ephemeris download is still open).
