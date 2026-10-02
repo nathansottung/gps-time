@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (docs/release-v1.4.0-rc.1). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (docs/release-v1.4.0-rc.1, #22). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -409,4 +409,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
 | Repo |  | Dependabot weekly: pip, pnpm, GitHub Actions | done |  | [#17](https://github.com/nathansottung/gps-time/pull/17) |
 | Repo |  | Workflow actions pinned to commit SHAs; CI guard | done |  | [#18](https://github.com/nathansottung/gps-time/pull/18) |
-| Repo |  | Tag v1.4.0-rc.1 with release notes (rollback target) | done | pre-release; tag on this PR's merge commit | PRLINK |
+| Repo |  | Tag v1.4.0-rc.1 with release notes (rollback target) | done | pre-release; tag on this PR's merge commit | [#22](https://github.com/nathansottung/gps-time/pull/22) |

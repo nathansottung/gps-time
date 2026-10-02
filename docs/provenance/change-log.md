@@ -238,7 +238,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - `ci.yml` gains a guard step that fails if any `uses:` line isn't pinned to a 40-character SHA.
 - Dependabot (GitHub Actions ecosystem) updates SHA pins and their version comments.
 
-## 2026-10-02 — first tag: v1.4.0-rc.1 (docs/release-v1.4.0-rc.1)
+## 2026-10-02 — first tag: v1.4.0-rc.1 (#22)
 
 - Release notes `docs/releases/v1.4.0-rc.1.md`, summarized from this change log (2026-09-18 to #18), with known open issues and rollback steps. Indexed in `docs/INDEX.md`; `docs/README.md` notes the tag.
 - The annotated tag `v1.4.0-rc.1` goes on this PR's merge commit, with a GitHub pre-release using the same notes. It is the first tag in the repository.
