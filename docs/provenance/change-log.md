@@ -103,6 +103,14 @@ Root cause (reported 2026-10-01, review GPS-013): survey updates are written at 
   - A clone path that is too long makes `pnpm run build` fail with `ERR_PACKAGE_IMPORT_NOT_DEFINED`; the guide says to keep the repo root to about 64 characters or enable long paths.
 
 
+## 2026-10-01 — setup check on a new machine (chore/setup-check)
+
+- Followed `docs/development/new-machine.md` on a second Windows machine. The Python checks pass (78 tests, `OK (skipped=1)`), and so do the web install, typecheck and build. The demo serves `/` and the APIs.
+- `.gitattributes`: `*.sh text eol=lf`, so shell scripts check out with LF even where `core.autocrlf` is on. Renormalizing the index changed no files.
+- Guide fixes:
+  - The guide now mentions `.gitattributes` and what it covers.
+  - It explains what to do when an older Python shadows 3.11+ on PATH (`py -0p`, `py -3.x`), and notes that `run-demo.ps1` prefers plain `python`.
+
 ## 2026-10-01 — web UI served by the station and wired to the API (feat/web-dashboard)
 
 - **Server:** `gps_time_pi/server.py` serves the built React app (`web/dist`, or `GTP_WEB_DIST`) at `/app/`.
