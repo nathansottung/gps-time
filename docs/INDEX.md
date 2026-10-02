@@ -18,6 +18,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 ## Roadmap
 - `roadmap/current-scope.md`
 - `roadmap/feature-registry.md` — canonical comprehensive feature inventory
+- `roadmap/ROADMAP-DESKTOP-FIELD-APP.md` — FUTURE, not scheduled: cross-platform desktop field / ham-radio app (laptop + GNSS receiver as an off-grid time source); starts only after the Pi station specs are complete
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
 
 ## Science
