@@ -316,7 +316,7 @@ export interface SystemDiagnostics {
 
 // ─── GET /api/almanac ────────────────────────────────────────────────────────
 
-export type Unavailable = { available: false; reason: string };
+export type Unavailable = { available: false; reason: string; location_display?: LocationMode };
 
 export interface SolarDay {
   available: true;
@@ -354,6 +354,7 @@ export interface Almanac {
   sky_when: string;
   position_provenance: string;
   position_age: string | null;
+  location_display?: LocationMode;   // the privacy mode the values were computed under
 }
 
 export interface AlmanacQuery { date?: string; tz?: string; at?: string }

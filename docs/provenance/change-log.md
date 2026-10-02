@@ -151,3 +151,23 @@ Root cause (reported 2026-10-01, review GPS-013): survey updates are written at 
 
 - Added `docs/roadmap/ROADMAP-DESKTOP-FIELD-APP.md` (owner-provided, copied verbatim) and indexed it in `docs/INDEX.md`.
 - Status FUTURE, not scheduled. Nothing is to start until the Raspberry Pi station work in `docs/specs/` is complete.
+
+## 2026-10-01 — location privacy for almanac, object lookup and sidereal time (fix/location-privacy)
+
+Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar noon, day length, moon and object rise/set, and the sky map from the exact site in every privacy mode. `/api` → `sidereal` did the same. Each is a function of the position: solar noon and LST give longitude, day length gives latitude. So `hidden` mode still revealed the station's location, and `rounded` mode revealed more than ~11 km.
+
+- `config.privacy_site()` returns the site astronomy may use, with the same rounding as `displayed_location()`:
+  - exact → unchanged;
+  - rounded → 1 decimal, MSL altitude to 10 m, no ellipsoidal height;
+  - hidden → none.
+- **hidden:** `/api/almanac` and `/api/object` return `available: false` with the privacy reason and compute nothing. Object lookup no longer sets the shared sky-map target. `/api` → `sidereal` is null.
+- **rounded:** everything is computed only from the rounded site.
+- Responses carry `location_display`.
+- Demo mode follows the same rules. `/api` → `location` in demo mode now applies the privacy mode; it used to always report exact.
+- Replaced the glibc-only `%-I`/`%-d` time formatting in both endpoints. Output on the Pi is unchanged.
+- Web UI:
+  - The demo adapter mirrors hidden mode.
+  - The sun panels note when times are computed for the rounded site.
+  - The hidden-mode reason is shown where the almanac would be.
+- Tests: `tests/test_location_privacy.py`, 15 tests. The astronomy layer is replaced by recorders, so no Skyfield is needed. 11 of the first 13 fail against the previous server.
+- Remaining, documented in `docs/api/endpoints.md`: `/api` → `gps.sats` azimuth and elevation are not filtered. With a public GNSS almanac they roughly constrain the position.

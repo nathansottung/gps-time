@@ -60,12 +60,15 @@ export function demoApi(): StationApi {
 
   return {
     source: 'demo',
-    core: () => delay(core(displayed())),
+    core: () => delay({ ...core(displayed()), ...(locationMode === 'hidden' ? { sidereal: null } : {}) }),
     timingChain: () => delay(timingChain()),
     history: () => delay(history()),
     survey: () => delay(survey()),
     system: () => delay(system()),
-    almanac: (q) => delay(almanac(q?.tz)),
+    // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
+    almanac: (q) => delay(locationMode === 'hidden'
+      ? { available: false as const, reason: "Location is hidden by the station's privacy setting. Sun, moon and sky times would reveal the station's position, so they are not computed.", location_display: 'hidden' as const }
+      : { ...almanac(q?.tz), location_display: locationMode }),
     ping: () => {
       const t = Date.now();
       return delay({ server_receive_epoch_ms: t + 1.2, server_send_epoch_ms: t + 1.3 });

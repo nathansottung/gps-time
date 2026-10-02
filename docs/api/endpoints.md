@@ -22,7 +22,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `location` | position **after the privacy mode**: `{mode, lat, lon, alt_msl?, alt_hae?}`. exact → 4 decimals, alt_msl and alt_hae; rounded → 1 decimal, alt_msl to 10 m, no alt_hae; hidden → lat/lon null. |
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
 | `position_provenance` | `live` (current fix), `stored` (saved site), `none`, or `demo` |
-| `sidereal` | local sidereal time `HH:MM:SS`, or null without astronomy or a position |
+| `sidereal` | local sidereal time `HH:MM:SS`, or null without astronomy or a position. Follows the privacy mode: computed from the rounded site in `rounded`, null in `hidden` (LST − GST is the longitude). |
 | `astro_available` | whether Skyfield/NumPy loaded |
 | `cpu_temp_c` | `/sys/class/thermal/thermal_zone0/temp`, or null |
 | `versions` | `app`, `chrony`, `gpsd`, `receiver` ({driver, firmware, path} or null), `python` |
@@ -112,6 +112,13 @@ Host diagnostics. Each field is null where the platform cannot report it (non-Pi
 
 Sun, moon, night and sky map for one date at the observing site. The site is the live fix, or the stored site when there is no live fix. Type: `Almanac | Unavailable`.
 
+**Privacy mode.** Every value here is a function of the position, so the endpoint follows `location_display`:
+- `exact`: computed from the site.
+- `rounded`: computed only from the rounded site that `/api` → `location` shows (1 decimal ≈ 11 km, MSL altitude to 10 m, no ellipsoidal height).
+- `hidden`: `{"available": false, "reason": "Location is hidden by the station's privacy setting. …", "location_display": "hidden"}`, with nothing computed. This applies in demo mode too.
+
+Available responses include `location_display`.
+
 **Query:**
 - `date=YYYY-MM-DD`: default today (UTC); supported 1850-01-01 to 2149-12-31.
 - `tz=<IANA zone>`: default `UTC`; an unknown zone falls back to `UTC`.
@@ -144,6 +151,8 @@ Look up one object for the almanac's object card. `q` accepts a Messier number, 
   - `rise`, `transit`, `transit_alt`, `set`, `circumpolar`, `never_up`
   - `dark_windows[]`, `moonless_windows[]`, `min_alt_deg`, `tz`
   - `name`, `meta`, `emphasis` (`dark` / `moonless` / `both`), `at_label`
+
+**Privacy mode:** as for `/api/almanac`. Rounded mode computes from the rounded site. Hidden mode returns `available: false` with the privacy reason, computes nothing and does not set the target. Available responses include `location_display`.
 
 **Side effect:** the target is stored in a server-global (`_LAST_TARGET`) that `/api/almanac` uses to mark the sky map. It is shared by all clients. Not exposed in the new UI client.
 
@@ -268,8 +277,13 @@ HTML from `gps_time_pi/templates/`, served with `no-store`. They stay until the 
 
 ## Privacy notes
 
-- **Applied by the server:** `/api` → `location`, `/api/diagnostics`, and the legacy location blocks.
-- **Not position-filtered:**
-  - `/api/almanac` and `/api/object` return sunrise, sunset, noon and sky geometry computed for the exact site. Solar noon and day length reveal approximate longitude and latitude even in `hidden` mode.
-  - `/api/survey` → `fixes` are relative offsets; `stats` are scatter magnitudes. Neither is a position.
+- **Applied by the server:**
+  - `/api` → `location`;
+  - `/api` → `sidereal`;
+  - `/api/almanac` and `/api/object`: rounded site in `rounded`, nothing in `hidden`;
+  - `/api/diagnostics`;
+  - the legacy location blocks.
+  - Helper: `config.privacy_site()`, the same rounding as `config.displayed_location()`. Tests: `tests/test_location_privacy.py`.
+- **Not positions:** `/api/survey` → `fixes` are relative offsets; `stats` are scatter magnitudes.
+- **Known remaining leak:** `/api` → `gps.sats` exposes each satellite's azimuth and elevation in every mode. Combined with a public GNSS almanac and the response time, those angles constrain the receiver's position (roughly, from whole-degree angles), even in `hidden` mode. Not yet filtered.
 - **File paths:** `/api/survey` → `persistence.path`/`previous_checkpoint`, and `/api/dashboard` → `_meta.path` in demo mode, expose absolute paths on the station.

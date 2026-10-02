@@ -88,9 +88,30 @@ def cpu_temp():
         return None
 
 
+PRIVACY_HIDDEN_REASON = ("Location is hidden by the station's privacy setting. Sun, moon and sky "
+                         "times would reveal the station's position, so they are not computed.")
+
+
+def sidereal_for(cfg, site):
+    """Local sidereal time under the privacy mode (LST − GST is the longitude)."""
+    s, _mode = config.privacy_site(cfg, site)
+    return astro.sidereal(s) if (s and astro.STATUS["available"]) else None
+
+
+def _clock_label(dt, with_date=False):
+    """'10:00 PM' / '10:00 PM · Oct 1, 2026 · ' without the glibc-only %-I/%-d."""
+    s = f"{dt.hour % 12 or 12}:{dt.minute:02d} {'AM' if dt.hour < 12 else 'PM'}"
+    return s + (f" · {dt.strftime('%b')} {dt.day}, {dt.year} · " if with_date else "")
+
+
 def core_api():
     if DEMO_MODE:
-        return demo.core_api()
+        d = demo.core_api()
+        cfg = config.load()
+        d["location"] = config.displayed_location(cfg, DEMO_SITE)   # demo honors the privacy mode too
+        if cfg.get("location_display") == "hidden":
+            d["sidereal"] = None
+        return d
     now = datetime.now(timezone.utc)
     trk = chrony.tracking()
     srcs = chrony.sources()
@@ -126,7 +147,7 @@ def core_api():
         "location": config.displayed_location(cfg, snap["live"]),
         "survey": config.site_stats(cfg),
         "position_provenance": provenance,
-        "sidereal": astro.sidereal(site) if (site and astro.STATUS["available"]) else None,
+        "sidereal": sidereal_for(cfg, site),
         "astro_available": astro.STATUS["available"],
         "cpu_temp_c": cpu_temp(),
         "versions": {
@@ -149,8 +170,11 @@ def _obs_datetime(d, tzname, at):
 
 
 def almanac_api(qs):
+    cfg = config.load()
+    if cfg.get("location_display") == "hidden":
+        return {"available": False, "reason": PRIVACY_HIDDEN_REASON, "location_display": "hidden"}
     if DEMO_MODE:
-        return demo.almanac_api(qs)
+        return {**demo.almanac_api(qs), "location_display": cfg.get("location_display", "exact")}
     if not astro.STATUS["available"]:
         return {"available": False, "reason": astro.STATUS["reason"]}
     try:
@@ -167,6 +191,7 @@ def almanac_api(qs):
     if site is None:
         return {"available": False,
                 "reason": "No valid location is available (no GPS fix yet and no stored site)."}
+    site, mode = config.privacy_site(cfg, site)     # rounded mode: compute from the rounded site only
     obs_dt = _obs_datetime(d, tzname, qs.get("at", ["now"])[0])
 
     sun = astro.solar_day(d, site, tzname)
@@ -188,8 +213,9 @@ def almanac_api(qs):
             "delta_yesterday": dy, "delta_tomorrow": dt_,
             "neighbors": {"yesterday": _neighbor(sun_y), "tomorrow": _neighbor(sun_t)},
             "sky": sky,
-            "sky_when": obs_dt.strftime("%-I:%M %p · %b %-d, %Y · ") + tzname,
-            "position_provenance": provenance, "position_age": age}
+            "sky_when": _clock_label(obs_dt, with_date=True) + tzname,
+            "position_provenance": provenance, "position_age": age,
+            "location_display": mode}
 
 
 _LAST_TARGET = {}
@@ -200,6 +226,9 @@ def object_api(qs):
     target = catalog.lookup(q)
     if target is None:
         return {"error": "unparsed"}
+    cfg = config.load()
+    if cfg.get("location_display") == "hidden":
+        return {"available": False, "reason": PRIVACY_HIDDEN_REASON, "location_display": "hidden"}
     if not astro.STATUS["available"]:
         return {"available": False, "reason": astro.STATUS["reason"]}
     try:
@@ -212,6 +241,7 @@ def object_api(qs):
     site, _prov = gps.observing_site()
     if site is None:
         return {"available": False, "reason": "No valid location is available."}
+    site, mode = config.privacy_site(cfg, site)
     obs_dt = _obs_datetime(d, tzname, qs.get("at", ["now"])[0])
     _LAST_TARGET["t"] = target
 
@@ -229,7 +259,8 @@ def object_api(qs):
         rep["name"] = f"RA {target['ra']:.4f}°, Dec {target['dec']:+.4f}° (J2000)"
         rep["meta"] = "coordinates"
         rep["emphasis"] = "both"
-    rep["at_label"] = obs_dt.strftime("%-I:%M %p")
+    rep["at_label"] = _clock_label(obs_dt)
+    rep["location_display"] = mode
     return rep
 
 
