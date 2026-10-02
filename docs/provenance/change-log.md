@@ -146,3 +146,8 @@ Root cause (reported 2026-10-01, review GPS-013): survey updates are written at 
   - ADR-0004;
   - `docs/dashboard/web-ui-parity.md` (21 legacy features still missing).
 - **Not done:** `install.sh` and the deploy bundle do not ship `web/dist` yet.
+
+## 2026-10-01 — roadmap: desktop field / ham-radio app (docs/roadmap-desktop-field-app)
+
+- Added `docs/roadmap/ROADMAP-DESKTOP-FIELD-APP.md` (owner-provided, copied verbatim) and indexed it in `docs/INDEX.md`.
+- Status FUTURE, not scheduled. Nothing is to start until the Raspberry Pi station work in `docs/specs/` is complete.
