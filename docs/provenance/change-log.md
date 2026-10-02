@@ -291,3 +291,10 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - a UTF-8 template test;
   - `web/src/api/auth.test.ts`, 7: POST + JSON + Bearer, never in the URL; per-tab storage; 401 reason.
 - **Not verified on a Pi:** systemd hardening, polkit rule, `_chrony` socket access, vcgencmd under `video`. ADR-0005 lists them.
+- **Hardening before the push (owner checklist):**
+  1. The token is 32 random bytes from `secrets`, compared with `hmac.compare_digest`.
+  2. Security headers on every response. Legacy pages allow only their own inline scripts, by hash. The Vite build no longer inlines fonts as `data:` URIs, which the CSP blocked; CI guards it.
+  3. Failed token attempts are logged to the journal without the token, with a per-IP exponential backoff (429). `/api/auth` guesses count.
+  4. `install.sh` shows the token on `/dev/tty` only (`--tty-only`); without a terminal, none is created. The deploy scripts open a remote terminal only when interactive.
+  5. Rollback drop-in `system/gps-time-pi-root-rollback.conf` (root service, new code), plus the full-release rollback, documented in the Pi deploy guide. A test keeps it in sync with the unit.
+  - 13 more tests in `tests/test_admin_auth.py` (37). In the browser, the new UI (all pages) and all 7 legacy pages load with zero CSP violations.

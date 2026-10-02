@@ -25,7 +25,9 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
    - **Generation and storage:** the token is 192 random bits (`python3 -m gps_time_pi.admin_token`). Only its SHA-256 is stored, 0640, readable by the service group. It is compared in constant time.
    - **Off by default:** no hash file means admin is disabled (403).
    - **Why a token, not passwords or sessions:** one secret per station is enough for a single-operator appliance, needs no login state on the server, and is easy to rotate.
-   - **Not done:** rate limiting. 192 bits makes guessing infeasible.
+   - **Strength:** 32 random bytes from `secrets`; constant-time comparison with `hmac.compare_digest`.
+   - **Failed attempts:** logged to the journal without the token, with a per-IP exponential backoff (429 after 3 failures, capped at 300 s).
+   - **Display:** `install.sh` shows the token on the terminal only (`--tty-only`), never on stdout.
 4. **Demo isolation.** Demo mode needs no token (its writes go to `.dev/`), but `/api/admin` is simulated and never runs anything. Legacy pages show a SAMPLE DATA banner.
 5. **Unprivileged service.** `gps-time-pi.service` runs as `gps-time`:
    - **Groups:** `_chrony` for the chronyc socket, `video` for vcgencmd.
@@ -33,6 +35,12 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
    - **Hardening:** `NoNewPrivileges`, `ProtectSystem=strict` with `ReadWritePaths=/opt/gps-time-pi`, and **`ProtectClock=yes`**, so the web service can never set the system clock.
    - **Admin actions:** fixed `systemctl` argv lists with no shell. A polkit rule (`system/50-gps-time-pi.rules`) allows exactly: restart chrony/gpsd/gps-time-pi, start the log-flush unit, reboot.
    - **Code vs state:** the code directories stay root-owned. `/opt/gps-time-pi` is `root:gps-time 1775`, so the service can write its state files but cannot rename or replace the code.
+
+6. **Security headers on every response.**
+   - CSP is `'self'` only, with `frame-ancestors 'none'`, plus `nosniff`, `no-referrer` and `X-Frame-Options: DENY`.
+   - Legacy pages allow their own static inline scripts by hash, and inline styles until they are retired.
+   - The built UI has no inlined assets.
+7. **Rollback.** `system/gps-time-pi-root-rollback.conf` is installed to `/opt/gps-time-pi/rollback/` but not enabled. As a drop-in it returns the service to root without hardening, keeping the current code and the token checks. A test keeps it in sync with the unit. Procedure: `docs/development/raspberry-pi-deploy.md` → "Rollback".
 
 ## Consequences
 

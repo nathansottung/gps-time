@@ -52,11 +52,29 @@ Anything else gets **403** with a plain-text explanation. This defeats DNS rebin
 **Admin token (outside demo mode).** Every POST needs `Authorization: Bearer <token>`.
 - **No token configured:** if the station has no token hash file, admin is **disabled** and POSTs get **403**.
 - **Missing or wrong token:** **401** with `WWW-Authenticate: Bearer`.
+- **Comparison:** `hmac.compare_digest` on the SHA-256, so the check takes the same time whether or not the token matches.
+- **Generation:** the token is 32 random bytes from `secrets` (URL-safe base64, 43 characters).
+- **Failed attempts:**
+  - Each is logged to the journal: `WARNING gps_time_pi.security: admin token rejected: ip=… route=… reason=missing|malformed|invalid failures=n backoff_s=…`. The token and the header are never logged.
+  - After 3 failures from one IP, further attempts get **429** with `Retry-After` for 2, 4, 8 … s (at most 300 s), even with the right token. A success resets the count.
+  - `GET /api/auth` with a token counts too.
+  - The counters are in memory. Behind a reverse proxy all clients share one IP, so a guesser can delay everyone for up to 5 minutes.
 - **Storage:** only a SHA-256 of the token is stored. The file is `admin-token.sha256` next to `config.json`, or `GTP_ADMIN_TOKEN_FILE`, mode 0640 readable by the service group.
-- **Create or rotate** with `sudo python3 -m gps_time_pi.admin_token --path /opt/gps-time-pi/admin-token.sha256 --group gps-time`. It prints the new token once. `install.sh` creates one on first install. Delete the file to disable admin.
+- **Create or rotate** with `sudo python3 -m gps_time_pi.admin_token --tty-only --path /opt/gps-time-pi/admin-token.sha256 --group gps-time`.
+  - `--tty-only` writes the token to the terminal (`/dev/tty`) only, never to stdout, so it can't end up in a log or a pipe.
+  - Without a terminal, nothing is created.
+  - `install.sh` does the same on first install. The deploy scripts open a remote terminal only when they run interactively.
+  - Delete the file to disable admin.
 - **In the web UI** the token is entered on the Administration page (new UI) or prompted by `/admin` and `/configure` (legacy). It is kept in `sessionStorage` for that tab only and never put in a URL.
 
 **Demo mode** (`GTP_DEMO=1`) needs no token, because writes go to `.dev/` only. `POST /api/admin` is **simulated** (`"simulated": true`) and never touches the host. Method, Origin, Content-Type and Host checks still apply.
+
+**Security headers (every response).**
+- `Content-Security-Policy`:
+  - `default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self'`.
+  - Legacy HTML pages differ in two ways. `script-src` adds the SHA-256 hashes of that page's own static inline scripts (never `'unsafe-inline'` for scripts). `style-src` adds `'unsafe-inline'`, because the legacy pages build `style=""` attributes at runtime. That exception ends with the legacy pages.
+  - The built UI inlines no assets (`build.assetsInlineLimit: 0`). Web CI fails on `data:` fonts or images in the bundle.
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`.
 
 **Privileges.** The service runs as the unprivileged user `gps-time` (`gps-time-pi.service`). Admin actions are fixed `systemctl` commands, and a polkit rule (`system/50-gps-time-pi.rules`) allows exactly those: restart chrony/gpsd/itself, start the log flush, reboot. `ProtectClock=yes` means the web service can never set the system clock.
 
@@ -68,6 +86,7 @@ Anything else gets **403** with a plain-text explanation. This defeats DNS rebin
 - Request-check failures use real status codes with `{"ok": false, "error": "..."}` (Host refusal is plain text):
   - 400 bad body
   - 401 token
+  - 429 too many failed token attempts (`Retry-After`)
   - 403 Host / Origin / admin disabled
   - 405 method
   - 415 content type
