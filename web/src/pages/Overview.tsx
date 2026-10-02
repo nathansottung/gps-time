@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, ProvenanceTag } from '../components/ui';
 import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
+import { TimingChainCard } from '../components/timing';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { toSkySats, plottable, cn0Stats, toOffsetSeries, fracFreq, allEvents, satCounts, ntpClientCount } from '../api/view';
 import type { Almanac, SolarDay, LunarDay } from '../api/types';
@@ -509,7 +510,7 @@ const VARIANTS = [
   { key:'C', label:'C — Minimal Precision' },
 ];
 
-export default function Overview() {
+export default function Overview({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const [variant, setVariant] = useState('A');
   return (
     <div>
@@ -531,6 +532,8 @@ export default function Overview() {
         </div>
       </div>
 
+      {/* Timing source and PPS state first, in every variant (CHG "Dashboard Requirement") */}
+      <div className="mb-3"><TimingChainCard onOpenDiagnostics={onNavigate ? () => onNavigate('pps') : undefined} /></div>
       {variant==='A' && <VariantA />}
       {variant==='B' && <VariantB />}
       {variant==='C' && <VariantC />}

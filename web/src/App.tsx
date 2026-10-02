@@ -7,28 +7,14 @@ import RadioSDR from './pages/RadioSDR';
 import Configure from './pages/Configure';
 import { SunAstronomy, Network, Aviation, Distributed, DataLogs, Admin } from './pages/Secondary';
 import { useStation } from './api/station';
-import type { TimingStatus } from './api/types';
-
-const STATUS_STYLE = {
-  good:  { bg:'var(--good-bg)', border:'var(--good-border)', text:'var(--good-text)' },
-  warn:  { bg:'var(--warn-bg)', border:'var(--warn-border)', text:'var(--warn-text)' },
-  error: { bg:'var(--err-bg)',  border:'var(--err-border)',  text:'var(--err-text)' },
-  muted: { bg:'transparent',    border:'var(--border)',      text:'var(--t3)' },
-};
-
-// Status code → badge colour. Codes come from gps_time_pi/timing_chain.py.
-function statusVariant(st: TimingStatus | undefined): 'good'|'warn'|'error'|'muted' {
-  if (!st) return 'muted';
-  if (st.code === 'GPS_PPS') return 'good';
-  if (st.code === 'UNSYNCHRONIZED') return 'error';
-  if (st.code === 'UNKNOWN') return 'muted';
-  return 'warn';
-}
+import PPS from './pages/PPS';
+import { TimingBanner, bannerView, statusVariant, variantStyle } from './components/timing';
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 const NAV = [
   { id:'overview',    label:'Overview',             icon:'○',  group:'' },
   { id:'timing',      label:'Timing & Reliability', icon:'∿',  group:'Measurement' },
+  { id:'pps',         label:'PPS Diagnostics',      icon:'⏚',  group:'Measurement' },
   { id:'gnss',        label:'GNSS & Site',          icon:'◎',  group:'Measurement' },
   { id:'sun',         label:'Sun & Astronomy',      icon:'☀',  group:'Measurement' },
   { id:'network',     label:'Network & Devices',    icon:'⊕',  group:'Station' },
@@ -44,8 +30,17 @@ const GROUPS = ['', 'Measurement', 'Station', 'Research', 'System'];
 // ─── Header ───────────────────────────────────────────────────────────────────
 function Header() {
   const { core, chain, isDemo } = useStation();
-  const status = chain.data?.status ?? core.data?.timing_status;
-  const variant = statusVariant(status);
+  // Same guarded text as the page banner; /api's copy is used only when the chain is unavailable.
+  const unreachable = !chain.data && !!(chain.error || core.error);
+  const view = chain.data || !core.data?.timing_status
+    ? bannerView(chain.data, unreachable)
+    : { variant: statusVariant(core.data.timing_status.code), title: core.data.timing_status.banner, detail: core.data.timing_status.detail };
+  const st = variantStyle(view.variant);
+  // Stratum/reference from the timing chain (the same snapshot as the banner). /api is used only
+  // when there is no chain at all, never to fill a value the chain reports as unknown.
+  const trk = chain.data ? chain.data.chrony.tracking : null;
+  const stratum = (chain.data ? trk?.stratum : core.data?.quality.stratum) || 'UNKNOWN';
+  const reference = (chain.data ? trk?.reference : core.data?.quality.reference) || 'UNKNOWN';
   const stationName = typeof window !== 'undefined' ? window.location.hostname : '';
   const [utc, setUtc]     = useState('');
   const [local, setLocal] = useState('');
@@ -89,16 +84,14 @@ function Header() {
       {/* Centre — station state chips */}
       <div className="flex items-center gap-2">
         {/* Timing status from /api/timing-chain (calculated) */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]" title={status?.detail}
-          style={{ background: STATUS_STYLE[variant].bg, border:`1px solid ${STATUS_STYLE[variant].border}` }}>
-          <span className={`w-1 h-1 rounded-full ${variant === 'good' ? 'pulse-dot' : ''}`} style={{ background: STATUS_STYLE[variant].text }}/>
-          <span className="mono text-[9px] font-medium uppercase tracking-[0.1em]" style={{ color: STATUS_STYLE[variant].text }}>
-            {status ? status.banner : (core.error || chain.error) ? 'STATION UNREACHABLE' : 'UNKNOWN'}
-          </span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]" title={view.detail ?? undefined}
+          style={{ background: st.bg, border:`1px solid ${st.border}` }}>
+          <span className={`w-1 h-1 rounded-full ${view.variant === 'good' ? 'pulse-dot' : ''}`} style={{ background: st.text }}/>
+          <span className="mono text-[9px] font-medium uppercase tracking-[0.1em]" style={{ color: st.text }}>{view.title}</span>
         </div>
 
-        <Chip label="STRATUM" value={core.data?.quality.stratum ?? 'UNKNOWN'} />
-        <Chip label="REF" value={core.data?.quality.reference ?? 'UNKNOWN'} />
+        <Chip label="STRATUM" value={stratum} />
+        <Chip label="REF" value={reference} />
 
         {isDemo && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]"
@@ -190,10 +183,11 @@ function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: stri
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
-function PageContent({ page }: { page: string }) {
+function PageContent({ page, onNavigate }: { page: string; onNavigate: (id: string) => void }) {
   switch (page) {
-    case 'overview':    return <Overview />;
-    case 'timing':      return <Timing />;
+    case 'overview':    return <Overview onNavigate={onNavigate} />;
+    case 'timing':      return <Timing onNavigate={onNavigate} />;
+    case 'pps':         return <PPS />;
     case 'gnss':        return <GNSS />;
     case 'sun':         return <SunAstronomy />;
     case 'network':     return <Network />;
@@ -203,7 +197,7 @@ function PageContent({ page }: { page: string }) {
     case 'data':        return <DataLogs />;
     case 'configure':   return <Configure />;
     case 'admin':       return <Admin />;
-    default:            return <Overview />;
+    default:            return <Overview onNavigate={onNavigate} />;
   }
 }
 
@@ -219,7 +213,8 @@ export default function App() {
         <Sidebar active={page} onNavigate={setPage} />
         <main className="flex-1 overflow-y-auto p-5 space-y-4">
           {isDemo && <DemoBanner />}
-          <PageContent page={page} />
+          <TimingBanner />
+          <PageContent page={page} onNavigate={setPage} />
         </main>
       </div>
     </div>
