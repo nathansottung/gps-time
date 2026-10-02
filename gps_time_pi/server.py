@@ -12,6 +12,8 @@ Routes:
   /api/timing-chain  GNSS -> PPS -> chrony stage-by-stage status, PPS state, events (JSON)
   /api/diagnostics   copyable plain-text diagnostic snapshot (privacy mode applied)
   /static/*    css/js
+  /app/        new web UI: the built React app from web/dist (GTP_WEB_DIST to override);
+               the legacy pages above stay until the new UI reaches parity
 
 Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
 """
@@ -22,7 +24,7 @@ import re
 from datetime import date as _date
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 from zoneinfo import ZoneInfo, available_timezones
 
 import platform
@@ -38,6 +40,44 @@ _TPL = {}
 for name in ("dashboard", "configure", "legacy", "almanac", "history", "admin"):
     with open(os.path.join(_HERE, "templates", name + ".html")) as f:
         _TPL[name] = f.read()
+
+
+# Built web UI (cd web && corepack pnpm run build). Read per request, never written.
+WEB_DIST = os.environ.get("GTP_WEB_DIST") or os.path.join(os.path.dirname(_HERE), "web", "dist")
+WEB_PREFIX = "/app/"
+_WEB_TYPES = {
+    ".html": "text/html", ".js": "application/javascript", ".mjs": "application/javascript",
+    ".css": "text/css", ".json": "application/json", ".map": "application/json",
+    ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webp": "image/webp",
+    ".woff2": "font/woff2", ".woff": "font/woff", ".txt": "text/plain",
+}
+WEB_NOT_BUILT = ("The new web UI has not been built on this machine.\n"
+                 "Build it with:  cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build\n"
+                 "or set GTP_WEB_DIST to a directory containing a built index.html.\n"
+                 "The legacy dashboard is still available at /.\n")
+
+
+def web_file(rel):
+    """Resolve rel inside WEB_DIST. Returns (path, ctype, cache_control), or None
+    if the file does not exist, is not a regular file, or resolves outside the
+    dist directory (path traversal, symlinks pointing out)."""
+    root = os.path.realpath(WEB_DIST)
+    full = os.path.realpath(os.path.join(root, rel))
+    try:
+        inside = os.path.commonpath([root, full]) == root
+    except ValueError:                    # different drives on Windows
+        inside = False
+    if not inside or not os.path.isfile(full):
+        return None
+    ext = os.path.splitext(full)[1].lower()
+    ctype = _WEB_TYPES.get(ext, "application/octet-stream")
+    if os.path.basename(full) == "index.html":
+        cache = "no-store"                # always pick up a rebuilt app
+    elif os.path.relpath(full, root).replace(os.sep, "/").startswith("assets/"):
+        cache = "public, max-age=31536000, immutable"   # Vite content-hashed names
+    else:
+        cache = "max-age=300"
+    return full, ctype, cache
 
 
 def cpu_temp():
@@ -282,14 +322,41 @@ def dashboard_payload(remote_ip):
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, body, ctype, code=200):
+    def _send(self, body, ctype, code=200, cache=None):
         data = body if isinstance(body, bytes) else body.encode()
         self.send_response(code)
-        self.send_header("Content-Type", ctype + ("; charset=utf-8" if ctype.startswith("text") or "json" in ctype else ""))
+        charset = ctype.startswith("text") or "json" in ctype or ctype == "application/javascript"
+        self.send_header("Content-Type", ctype + ("; charset=utf-8" if charset else ""))
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store" if "json" in ctype or ctype.startswith("text/html") else "max-age=300")
+        self.send_header("Cache-Control", cache or ("no-store" if "json" in ctype or ctype.startswith("text/html") else "max-age=300"))
         self.end_headers()
         self.wfile.write(data)
+
+    def _web(self, u):
+        """Serve the built web UI under /app/. Unknown extensionless paths get
+        index.html so client-side routes survive a reload."""
+        if u.path == WEB_PREFIX.rstrip("/"):
+            self.send_response(301)
+            self.send_header("Location", WEB_PREFIX + (("?" + u.query) if u.query else ""))
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if not os.path.isfile(os.path.join(WEB_DIST, "index.html")):
+            self._send(WEB_NOT_BUILT, "text/plain", code=503)
+            return
+        rel = unquote(u.path[len(WEB_PREFIX):]) or "index.html"
+        if "\x00" in rel:
+            self.send_error(404)
+            return
+        hit = web_file(rel)
+        if hit is None and "." not in rel.rsplit("/", 1)[-1]:
+            hit = web_file("index.html")
+        if hit is None:
+            self.send_error(404)
+            return
+        full, ctype, cache = hit
+        with open(full, "rb") as f:
+            self._send(f.read(), ctype, cache=cache)
 
     def _json(self, obj):
         self._send(json.dumps(obj), "application/json")
@@ -299,7 +366,9 @@ class Handler(BaseHTTPRequestHandler):
         qs = parse_qs(u.query)
         p = u.path
         try:
-            if p == "/":
+            if p == WEB_PREFIX.rstrip("/") or p.startswith(WEB_PREFIX):
+                self._web(u)
+            elif p == "/":
                 self._send(_TPL["dashboard"], "text/html")
             elif p == "/configure":
                 self._send(_TPL["configure"], "text/html")
