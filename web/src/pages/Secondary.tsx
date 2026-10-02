@@ -4,7 +4,8 @@ import { SolarCurve } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
-import type { LocationMode, LunarDay, SolarDay } from '../api/types';
+import type { AuthState, LocationMode, LunarDay, SolarDay } from '../api/types';
+import type { Polled } from '../api/station';
 import { adsbStats, dataPacks, ntpRequestRatePerMin } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { browserTimeZone, fmtClock, fmtDuration, fmtUtc } from '../lib/format';
@@ -505,12 +506,14 @@ export function Admin() {
   const v = core.data?.versions;
   const mode = core.data?.location.mode;
   const [msg, setMsg] = useState<string | null>(null);
+  const auth = usePoll(() => api.auth(), 0, [api]);
+  const canWrite = !!auth.data && (auth.data.authenticated || !auth.data.auth_required);
   const setMode = async (m: LocationMode) => {
     try {
       const r = await api.setLocationDisplay(m);
       setMsg(r.ok ? `Location display set to ${m}.` : 'The station rejected the setting.');
       core.refresh();
-    } catch (e) { setMsg((e as Error).message); }
+    } catch (e) { setMsg((e as Error).message); auth.refresh(); }
   };
   const throttledNow = s?.throttled?.flags.filter(f => f.now && f.active).map(f => f.label) ?? [];
   const throttledEver = s?.throttled?.flags.filter(f => !f.now && f.active).map(f => f.label) ?? [];
@@ -555,6 +558,8 @@ export function Admin() {
         </Card>
       </div>
 
+      <AdminAccess auth={auth} />
+
       <Card>
         <CardHeader title="Location privacy" />
         <CardBody>
@@ -563,7 +568,7 @@ export function Admin() {
           </div>
           <div className="flex gap-1">
             {(['exact', 'rounded', 'hidden'] as LocationMode[]).map(m => (
-              <button key={m} onClick={() => setMode(m)} disabled={!core.data}
+              <button key={m} onClick={() => setMode(m)} disabled={!core.data || !canWrite}
                 className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
                 style={mode === m
                   ? { border:'1px solid var(--accent)', color:'var(--accent)', background:'var(--accent-dim)' }
@@ -572,6 +577,9 @@ export function Admin() {
               </button>
             ))}
           </div>
+          {!canWrite && auth.data && (
+            <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>Changing this needs the admin token (Admin access, above).</div>
+          )}
           {msg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{msg}</div>}
         </CardBody>
       </Card>
@@ -606,9 +614,49 @@ export function Admin() {
       </Card>
       </Planned>
 
-      <div className="text-[10px]" style={{ color:'var(--t4)' }}>
-        Service actions (flush logs, restart gpsd/chrony/web, reboot) and survey reset remain on the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page.
-      </div>
     </div>
+  );
+}
+
+// ─── Admin access (admin token; review GPS-014) ──────────────────────────────
+function AdminAccess({ auth }: { auth: Polled<AuthState> }) {
+  const { api } = useStation();
+  const [input, setInput] = useState('');
+  const a = auth.data;
+  const stored = !!api.token.get();
+  const state = !a ? (auth.error ? 'UNKNOWN' : '…')
+    : a.demo ? 'DEMO: no token needed; host actions are simulated'
+    : !a.admin_configured ? 'DISABLED on this station'
+    : a.authenticated ? 'TOKEN ACCEPTED (this tab)'
+    : stored ? 'TOKEN NOT ACCEPTED' : 'NO TOKEN ENTERED';
+  const variant = !a ? 'muted' : a.demo || a.authenticated ? 'good' : !a.admin_configured ? 'muted' : 'warn';
+  const use = () => { api.token.set(input); setInput(''); auth.refresh(); };
+  const forget = () => { api.token.set(null); auth.refresh(); };
+  const btn = { border:'1px solid var(--border)', color:'var(--t2)' };
+  return (
+    <Card>
+      <CardHeader title="Admin access" badge={<StatusBadge variant={variant as 'good' | 'warn' | 'muted'} label={state} dot={false} />} />
+      <CardBody>
+        <ApiErrorNote error={auth.error} />
+        <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+          Settings changes and service actions need the station's admin token, sent only to this station over POST.
+          It is kept for this browser tab only. {a && !a.demo && !a.admin_configured &&
+            <>Admin is off until a token exists: run <span className="mono">sudo python3 -m gps_time_pi.admin_token</span> on the station.</>}
+        </div>
+        {a && !a.demo && a.admin_configured && (
+          <div className="flex gap-1.5 items-center">
+            <input type="password" value={input} onChange={e => setInput(e.target.value)} placeholder="admin token"
+              autoComplete="off" spellCheck={false} aria-label="Admin token"
+              onKeyDown={e => { if (e.key === 'Enter' && input.trim()) use(); }}
+              className="mono text-[11px] px-2 py-1 rounded-[2px] w-72" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t1)' }} />
+            <button onClick={use} disabled={!input.trim()} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Use token</button>
+            {stored && <button onClick={forget} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Forget</button>}
+          </div>
+        )}
+        <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+          Service actions (flush logs, restart gpsd/chrony/web, reboot) and survey reset are on the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page, which uses the same token.
+        </div>
+      </CardBody>
+    </Card>
   );
 }

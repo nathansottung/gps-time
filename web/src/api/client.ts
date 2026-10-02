@@ -7,8 +7,9 @@
 // The UI never falls back from http to demo on error: a failed request is shown
 // as an error/UNKNOWN, never replaced by synthetic numbers.
 
+import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
-  AdminAction, AdminResult, Almanac, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
+  AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
   DashboardWriteResult, History, LocationMode, Ping, SettingResult, Survey, SystemDiagnostics,
   TimingChain, Unavailable,
 } from './types';
@@ -31,6 +32,10 @@ export interface StationApi {
   setLocationDisplay(mode: LocationMode): Promise<SettingResult>;
   resetSite(): Promise<SettingResult>;
   admin(action: AdminAction): Promise<AdminResult>;
+  /** Whether admin is enabled on the station and whether the stored token is accepted. */
+  auth(): Promise<AuthState>;
+  /** Admin token for state-changing requests (POST + Bearer); kept per tab. */
+  readonly token: TokenStore;
 }
 
 export class ApiError extends Error {
@@ -58,13 +63,18 @@ function query(params: Record<string, string | undefined>): string {
  * @param base URL prefix of the station, '' for same origin. The built app is
  *             served from /app/ and the API from /api, both on the station.
  */
-export function httpApi(base = '', timeoutMs = 8000): StationApi {
+export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenStore()): StationApi {
   async function request(path: string, init?: RequestInit): Promise<Response> {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
     try {
       const r = await fetch(base + path, { cache: 'no-store', ...init, signal: ctl.signal });
-      if (!r.ok) throw new ApiError(path, r.status, `${path}: HTTP ${r.status}`);
+      if (!r.ok) {
+        // Auth/method errors carry {"ok": false, "error": "..."}; surface the station's reason.
+        let reason = `HTTP ${r.status}`;
+        try { const b = await r.json(); if (b && typeof b.error === 'string') reason = `${b.error} (HTTP ${r.status})`; } catch { /* not JSON */ }
+        throw new ApiError(path, r.status, `${path}: ${reason}`);
+      }
       return r;
     } catch (e) {
       if (e instanceof ApiError) throw e;
@@ -79,9 +89,11 @@ export function httpApi(base = '', timeoutMs = 8000): StationApi {
     rejectServerError(path, body);
     return body as T;
   }
+  // State changes: POST, JSON body, admin token (the station refuses GET, other
+  // content types, cross-origin requests and missing/wrong tokens).
   const post = (body?: unknown): RequestInit => ({
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader(token.get()) },
     body: body === undefined ? '{}' : JSON.stringify(body),
   });
 
@@ -98,9 +110,11 @@ export function httpApi(base = '', timeoutMs = 8000): StationApi {
     dashboard: () => json('/api/dashboard'),
     saveDashboard: (layout) => json('/api/dashboard', post(layout)),
     resetDashboard: () => json('/api/dashboard/reset', post()),
-    setLocationDisplay: (mode) => json('/api/setting' + query({ location_display: mode })),
-    resetSite: () => json('/api/setting' + query({ reset_site: '1' })),
-    admin: (action) => json('/api/admin' + query({ action })),
+    setLocationDisplay: (mode) => json('/api/setting', post({ location_display: mode })),
+    resetSite: () => json('/api/setting', post({ reset_site: true })),
+    admin: (action) => json('/api/admin', post({ action })),
+    auth: () => json('/api/auth', { headers: authHeader(token.get()) }),
+    token,
   };
 }
 

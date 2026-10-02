@@ -12,6 +12,7 @@
 
 import { UI_VERSION } from '../lib/version';
 import type { StationApi } from './client';
+import { tokenStore } from './auth';
 import type {
   Almanac, CoreStatus, DashboardConfig, DashboardLayout, History, LocationMode, Measured, Satellite,
   Survey, SystemDiagnostics, TimingChain, TimingEvent, TimingStage,
@@ -86,12 +87,14 @@ export function demoApi(): StationApi {
         `Generated: ${c.generated_utc}\n\nSTATUS: ${c.status.banner}\n  ${c.status.detail}\n` +
         `PPS state: ${c.pps_state.value}\nSelected source: ${c.chrony.selected?.name ?? 'none'}\n`);
     },
-    dashboard: () => delay({ ...layout, _meta: { writable: true, demo: true, path: null, known_widgets: KNOWN_WIDGETS } } as DashboardConfig),
+    dashboard: () => delay({ ...layout, _meta: { writable: true, auth_required: false, demo: true, path: null, known_widgets: KNOWN_WIDGETS } } as DashboardConfig),
     saveDashboard: (l) => { layout = l; return delay({ ok: true as const, dashboard: l }); },
     resetDashboard: () => { layout = defaultLayout(); return delay({ ok: true as const, dashboard: layout }); },
     setLocationDisplay: (mode) => { locationMode = mode; return delay({ ok: true as const, location_display: mode }); },
     resetSite: () => delay({ ok: true as const, reset_site: true as const }),
-    admin: (action) => delay({ ok: false, action, detail: 'demo adapter: no action performed' }),
+    admin: (action) => delay({ ok: true, action, simulated: true as const, detail: `demo adapter: ${action} was not executed` }),
+    auth: () => delay({ demo: true, auth_required: false, admin_configured: false, authenticated: true }),
+    token: tokenStore(null),
   };
 }
 
