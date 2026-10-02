@@ -7,6 +7,8 @@ provided.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
+import io
 import os
 import tarfile
 import zipfile
@@ -20,6 +22,16 @@ PI_TOP = ["gps_time_pi", "scripts", "system", "examples", "config", "install.sh"
 
 
 EXECUTABLE_SUFFIXES = {".sh"}
+# Generated per build (an installed station has no .git); a stray copy on disk is never archived.
+VERSION_ARC = Path("gps_time_pi") / "VERSION"
+
+
+def source_version() -> str | None:
+    """``git describe`` of this checkout, via gps_time_pi/version.py; None without a reachable tag."""
+    spec = importlib.util.spec_from_file_location("_gtp_version", ROOT / "gps_time_pi" / "version.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.describe(ROOT)
 
 
 def archive_mode(path: Path) -> int:
@@ -38,6 +50,8 @@ def _tar_member(tinfo: tarfile.TarInfo) -> tarfile.TarInfo:
 
 def wanted(path: Path) -> bool:
     rel = path.relative_to(ROOT)
+    if rel == VERSION_ARC:
+        return False
     if any(part in EXCLUDE_DIRS for part in rel.parts):
         return False
     if path.suffix in EXCLUDE_SUFFIXES:
@@ -53,7 +67,8 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def build_repo_zip(out: Path):
+def build_repo_zip(out: Path, version: str | None = None):
+    version = version or source_version()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for p in sorted(ROOT.rglob("*")):
             if wanted(p):
@@ -61,10 +76,21 @@ def build_repo_zip(out: Path):
                 info.external_attr = (0o100000 | archive_mode(p)) << 16
                 info.compress_type = zipfile.ZIP_DEFLATED
                 z.writestr(info, p.read_bytes())
+        if version:
+            info = zipfile.ZipInfo(f"gps-time/{VERSION_ARC.as_posix()}", (1980, 1, 1, 0, 0, 0))
+            info.external_attr = (0o100000 | 0o644) << 16
+            info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, version + "\n")
 
 
-def build_pi_tar(out: Path):
+def build_pi_tar(out: Path, version: str | None = None):
+    version = version or source_version()
     with tarfile.open(out, "w:gz") as t:
+        if version:
+            data = (version + "\n").encode("utf-8")
+            tinfo = _tar_member(tarfile.TarInfo(f"gps-time/{VERSION_ARC.as_posix()}"))
+            tinfo.size = len(data)
+            t.addfile(tinfo, io.BytesIO(data))
         for name in PI_TOP:
             p = ROOT / name
             if not p.exists():
@@ -83,6 +109,7 @@ def main():
     pi = DIST / "gps-time-pi-deploy.tar.gz"
     build_repo_zip(repo)
     build_pi_tar(pi)
+    print("version:", source_version() or "unknown (no reachable v* tag)")
     manifest = DIST / "SHA256SUMS.txt"
     manifest.write_text(f"{sha256(repo)}  {repo.name}\n{sha256(pi)}  {pi.name}\n", encoding="utf-8")
     print(repo)

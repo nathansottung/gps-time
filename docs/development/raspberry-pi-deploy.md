@@ -14,6 +14,8 @@ Outputs:
 - `dist/gps-time-pi-deploy.tar.gz` — deployment-oriented archive
 - `dist/SHA256SUMS.txt`
 
+Both archives contain `gps_time_pi/VERSION`, the `git describe` of the checkout you built from (for example `1.4.0-rc.1`, or `1.4.0-rc.1-3-gabc1234-dirty`). The station has no `.git`, so `/api` and the UI footer read their version from this file. To deploy a release, check out its tag first (`git checkout v1.4.0-rc.1`). Without a reachable `v*` tag, the file is left out and the station reports `unknown`.
+
 ## One-command-ish deployment
 
 ```powershell

@@ -11,6 +11,8 @@ import math
 import time
 from datetime import datetime, timedelta, timezone
 
+from . import __version__
+
 
 def _satellite(i: int, now: float) -> dict:
     az = int((i * 43 + now / 12) % 360)
@@ -87,7 +89,7 @@ def core_api() -> dict:
         "sidereal": "18:42:13",
         "astro_available": True,
         "cpu_temp_c": 44.2,
-        "versions": {"app": "demo", "chrony": "chrony 4.x (sample)", "gpsd": "3.x (sample)",
+        "versions": {"app": __version__, "chrony": "chrony 4.x (sample)", "gpsd": "3.x (sample)",
                      "receiver": {"driver": "u-blox", "firmware": "MAX-M8Q sample", "path": "/dev/ttyAMA0"},
                      "python": "desktop demo"},
     }
