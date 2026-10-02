@@ -204,7 +204,9 @@ function SunWidget() {
         {unavailable
           ? <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>
           : <SunDays almanac={alm.data && alm.data.available ? alm.data : null} />}
-        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>Times in {TZ}.</div>
+        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+          Times in {TZ}.{alm.data?.available && alm.data.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting.'}
+        </div>
       </CardBody>
     </Card>
   );

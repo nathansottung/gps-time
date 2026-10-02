@@ -135,6 +135,11 @@ class TestRounded(PrivacyBase):
         self.assertEqual(self.sidereal(), "12:34:56")
         self.assert_only_rounded()
 
+    def test_demo_mode_reports_rounded(self):
+        with mock.patch.object(server, "DEMO_MODE", True):
+            self.assertEqual(self.almanac()["location_display"], "rounded")
+            self.assertEqual(server.core_api()["location"]["lat"], ROUNDED["lat"])
+
     def test_rounding_matches_displayed_location(self):
         cfg = config.load()
         site, mode = config.privacy_site(cfg, dict(SITE))
@@ -172,7 +177,9 @@ class TestHidden(PrivacyBase):
     def test_demo_mode_also_hides(self):
         with mock.patch.object(server, "DEMO_MODE", True):
             self.assertFalse(self.almanac()["available"])
-            self.assertIsNone(server.core_api()["sidereal"])
+            core = server.core_api()
+            self.assertIsNone(core["sidereal"])
+            self.assertEqual(core["location"], {"mode": "hidden", "lat": None, "lon": None})
 
     def test_http_responses_contain_no_times_or_coordinates(self):
         httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)

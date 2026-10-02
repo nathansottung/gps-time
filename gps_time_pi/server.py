@@ -107,7 +107,9 @@ def _clock_label(dt, with_date=False):
 def core_api():
     if DEMO_MODE:
         d = demo.core_api()
-        if config.load().get("location_display") == "hidden":
+        cfg = config.load()
+        d["location"] = config.displayed_location(cfg, DEMO_SITE)   # demo honors the privacy mode too
+        if cfg.get("location_display") == "hidden":
             d["sidereal"] = None
         return d
     now = datetime.now(timezone.utc)
@@ -172,7 +174,7 @@ def almanac_api(qs):
     if cfg.get("location_display") == "hidden":
         return {"available": False, "reason": PRIVACY_HIDDEN_REASON, "location_display": "hidden"}
     if DEMO_MODE:
-        return demo.almanac_api(qs)
+        return {**demo.almanac_api(qs), "location_display": cfg.get("location_display", "exact")}
     if not astro.STATUS["available"]:
         return {"available": False, "reason": astro.STATUS["reason"]}
     try:

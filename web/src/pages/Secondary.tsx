@@ -36,7 +36,9 @@ export function SunAstronomy() {
           <CardHeader title="Sun / Daylight — Yesterday / Today / Tomorrow" badge={<ProvenanceTag type="predicted" />} />
           <CardBody>
             <SunDays almanac={a} />
-            <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>Times in {TZ}.</div>
+            <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+              Times in {TZ}.{a?.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting.'}
+            </div>
           </CardBody>
         </Card>
 
