@@ -244,7 +244,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - The annotated tag `v1.4.0-rc.1` goes on this PR's merge commit, with a GitHub pre-release using the same notes. It is the first tag in the repository.
 - Version choice (owner, 2026-10-02): continue the existing 1.x numbering. The code identified as `1.4.0-dev` and the historical deployment was v1.3.0, so `v0.5.0` would have gone backwards. Release candidate because the pre-release blockers, including administrative security, are still open.
 
-## 2026-10-02 — version read from the git tag (feat/version-from-tag)
+## 2026-10-02 — version read from the git tag (#23)
 
 - `gps_time_pi/version.py` replaces the hard-coded `__version__ = "1.4.0-dev"`. It is resolved once, at import, in this order:
   - `gps_time_pi/VERSION`;
