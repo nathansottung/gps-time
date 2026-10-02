@@ -18,7 +18,7 @@ import type {
 
 const SITE = { lat: 38.9217, lon: -77.0669, alt_msl: 92.0, alt_hae: 59.0 };
 
-const m = <T,>(value: T, unit: string | null, provenance: Measured['provenance'], note?: string): Measured<T> =>
+const m = <T,>(value: T | null, unit: string | null, provenance: Measured['provenance'], note?: string): Measured<T> =>
   note ? { value, unit, provenance, note } : { value, unit, provenance };
 
 const SATS: Satellite[] = [
@@ -66,7 +66,7 @@ export function demoApi(): StationApi {
       if (locationMode !== 'hidden') return delay(c);
       return delay({ ...c, sidereal: null, gps: { ...c.gps, sats: c.gps.sats.map(s => ({ ...s, az: null, el: null })) } });
     },
-    timingChain: () => delay(timingChain()),
+    timingChain: (o) => delay(timingChain(o?.scenario)),
     history: () => delay(history()),
     survey: () => delay(survey()),
     system: () => delay(system()),
@@ -78,9 +78,13 @@ export function demoApi(): StationApi {
       const t = Date.now();
       return delay({ server_receive_epoch_ms: t + 1.2, server_send_epoch_ms: t + 1.3 });
     },
-    diagnostics: () => delay(
-      'GPS TIME PI DIAGNOSTIC SNAPSHOT (DEMO — synthetic data, not a measurement)\n' +
-      `Generated: ${iso(Date.now())}\n\nSTATUS: SYNCHRONIZED · GPS/PPS · STRATUM 1\nPPS state: SELECTED\n`),
+    diagnostics: (o) => {
+      const c = timingChain(o?.scenario);
+      return delay(
+        'GPS TIME PI DIAGNOSTIC SNAPSHOT (DEMO — synthetic data, not a measurement)\n' +
+        `Generated: ${c.generated_utc}\n\nSTATUS: ${c.status.banner}\n  ${c.status.detail}\n` +
+        `PPS state: ${c.pps_state.value}\nSelected source: ${c.chrony.selected?.name ?? 'none'}\n`);
+    },
     dashboard: () => delay({ ...layout, _meta: { writable: true, demo: true, path: null, known_widgets: KNOWN_WIDGETS } } as DashboardConfig),
     saveDashboard: (l) => { layout = l; return delay({ ok: true as const, dashboard: l }); },
     resetDashboard: () => { layout = defaultLayout(); return delay({ ok: true as const, dashboard: layout }); },
@@ -145,7 +149,13 @@ function siderealDemo(now: number) {
   return [h, mi, s].map(x => String(x).padStart(2, '0')).join(':');
 }
 
-const STAGES: [string, string, TimingStage['status'], string][] = [
+type StageRow = [string, string, TimingStage['status'], string];
+
+// Two scenarios mirroring gps_time_pi/demo.py (same codes, banners and
+// classifications; never invent causes). pps_selected is the default.
+export const DEMO_SCENARIOS = ['pps_selected', 'network_failover'] as const;
+
+const STAGES_OK: StageRow[] = [
   ['receiver_comms', 'GNSS receiver communication', 'OK', 'gpsd reports from the receiver'],
   ['satellite_reception', 'Satellite reception', 'OK', '9 used, best C/N0 47 dB-Hz'],
   ['nav_time_solution', 'Navigation/time solution', 'OK', '3D fix'],
@@ -161,34 +171,101 @@ const STAGES: [string, string, TimingStage['status'], string][] = [
   ['failover_duration', 'Failover duration', 'INFO', 'no failover in progress'],
 ];
 
+const STAGES_FAILOVER: StageRow[] = STAGES_OK.map(([id, label, st, sum]): StageRow => {
+  switch (id) {
+    case 'kernel_events': return [id, label, 'FAILED', 'no PPS events for > 3 s'];
+    case 'chrony_pps_visible': return [id, label, 'OK', 'refclock GPS present, reach 0'];
+    case 'chrony_pps_accepted': return [id, label, 'FAILED', 'no samples'];
+    case 'chrony_pps_selected': return [id, label, 'FAILED', 'not selected (?)'];
+    case 'system_sync': return [id, label, 'OK', 'synchronized to a network source, stratum 3'];
+    case 'fallback_source': return [id, label, 'OK', '192.0.2.10 (network) selected'];
+    case 'failover_duration': return [id, label, 'INFO', 'failover in progress'];
+    default: return [id, label, st, sum];
+  }
+});
+
 // Classifications/boundaries/confidence are copied from timing_chain.classify(); never invent causes.
-function closedOutage(startMs: number, durationS: number, cls: string, boundary: string, confidence: string | null): TimingEvent {
+function closedOutage(startMs: number, durationS: number, cls: string, boundary: string, confidence: string | null,
+                      maxAbs: number, toAccept: number, toSelect: number): TimingEvent {
   return {
     schema: 'gps-time.event/1', id: `pps-outage-${Math.floor(startMs / 1000)}`, type: 'PPS_OUTAGE',
     start_epoch: startMs / 1000, start_utc: iso(startMs), end_utc: iso(startMs + durationS * 1000),
     duration_s: durationS, open: false, severity: 'critical', classification: cls, initial_classification: cls,
     confidence, boundary, classification_provenance: 'inferred',
-    evidence: {}, recovery: { pps_reselected: true }, notes: ['Demo event — synthetic.'],
+    evidence: { fallback_sources: ['192.0.2.10'], max_abs_system_time_s: maxAbs, satellites_used_range: [8, 11] },
+    recovery: {
+      recovered_utc: iso(startMs + durationS * 1000),
+      duration_s: m(durationS, 's', 'calculated'),
+      time_to_accept_s: m(toAccept, 's', 'calculated'),
+      time_to_select_s: m(toSelect, 's', 'calculated'),
+      fallback_sources: ['192.0.2.10'],
+      max_abs_system_time_s: m(maxAbs, 's', 'observed', "largest chrony remaining-correction seen; chrony estimate, not an independent error measurement"),
+    },
+    notes: ['Demo event — synthetic.'],
   };
 }
 
-function timingChain(): TimingChain {
+function timingChain(scenario: string = 'pps_selected'): TimingChain {
   const now = Date.now();
   const day = 86400000;
+  const failover = scenario === 'network_failover';
+  const openStart = now - (2 * day + 7 * 3600000 + 14 * 60000);
+  const ppsRef = (sym: string, meaning: string, reach: string, ok: boolean) => ({
+    name: 'GPS', mode: 'local reference clock',
+    state_symbol: m(sym, null, 'observed'), state_meaning: meaning,
+    reach: m(reach, 'octal', 'observed'), reach_successes_of_8: m(ok ? 8 : 0, 'count', 'calculated'),
+    last_rx_s: m(ok ? 13 : null, 's', 'observed'), poll_log2_s: 4,
+    offset_s: m(ok ? 1.84e-7 : null, 's', 'observed', "chrony's adjusted offset of the last sample"),
+    error_bound_s: m(ok ? 2.03e-7 : null, 's', 'observed'),
+    frequency_ppm: m(ok ? 0.0 : null, 'ppm', 'calculated'), skew_ppm: m(ok ? 0.012 : null, 'ppm', 'calculated'),
+    std_dev_s: m(ok ? 1.64e-7 : null, 's', 'calculated'),
+  });
+  const recent = [
+    closedOutage(now - 9.0 * day, 1387, 'PPS AND GNSS TELEMETRY UNAVAILABLE', 'unknown', 'low', 2.1e-4, 21.0, 63.0),
+    closedOutage(now - 5.4 * day, 72, 'GNSS RECEPTION ANOMALY', 'GNSS reception / receiver solution', 'low', 3.4e-6, 8.0, 34.0),
+    closedOutage(now - 2.1 * day - (failover ? 3 * day : 0), 34, 'PPS PATH ANOMALY', 'receiver PPS output / GPIO / kernel PPS interface', 'moderate', 1.1e-6, 6.0, 31.0),
+  ].reverse();
+  const openEvent: TimingEvent | null = failover ? {
+    schema: 'gps-time.event/1', id: `pps-outage-${Math.floor(openStart / 1000)}`, type: 'PPS_OUTAGE',
+    start_epoch: openStart / 1000, start_utc: iso(openStart), end_utc: null,
+    duration_s: Math.round((now - openStart) / 1000), open: true, severity: 'critical',
+    classification: 'PPS PATH ANOMALY', initial_classification: 'PPS PATH ANOMALY', confidence: 'moderate',
+    boundary: 'receiver PPS output / GPIO / kernel PPS interface', classification_provenance: 'inferred',
+    evidence: { fallback_sources: ['192.0.2.10'], max_abs_system_time_s: 4.2e-4, satellites_used_range: [8, 13], gnss_unhealthy_seen: false },
+    recovery: null,
+    notes: ['GNSS reception and navigation remained healthy while kernel PPS events stopped.',
+            'Evidence does not establish which component in that path failed.', 'Demo event — synthetic.'],
+  } : null;
+
   return {
     schema: 'gps-time.timing-chain/1',
     generated_utc: iso(now),
-    status: { code: 'GPS_PPS', headline: 'SYNCHRONIZED', banner: 'SYNCHRONIZED · GPS/PPS · STRATUM 1',
-              detail: 'PPS refclock GPS selected by chrony.', source: { name: 'GPS', kind: 'refclock', stratum: '1' },
-              gnss_healthy: true, provenance: 'calculated' },
-    pps_state: m('SELECTED', null, 'calculated'),
+    status: failover
+      ? { code: 'NETWORK_FAILOVER', headline: 'SYNCHRONIZED', banner: 'SYNCHRONIZED · NETWORK FAILOVER · GPS/PPS UNAVAILABLE',
+          detail: 'chrony is using network source 192.0.2.10; PPS refclock GPS is not selected.',
+          source: { name: '192.0.2.10', kind: 'network', stratum: '3' }, gnss_healthy: true, provenance: 'calculated' }
+      : { code: 'GPS_PPS', headline: 'SYNCHRONIZED', banner: 'SYNCHRONIZED · GPS/PPS · STRATUM 1',
+          detail: 'PPS refclock GPS selected by chrony.', source: { name: 'GPS', kind: 'refclock', stratum: '1' },
+          gnss_healthy: true, provenance: 'calculated' },
+    pps_state: m(failover ? 'LOST' : 'SELECTED', null, 'calculated'),
     pps: {
       device: m('/dev/pps0', null, 'observed'), device_present: m(true, null, 'observed'),
-      pulse_health: 'HEALTHY', pulse_health_provenance: 'calculated',
-      measurement_layer: 'Linux kernel PPS timestamps (CLOCK_REALTIME)', note: null,
-      last_event_utc: m(iso(now - (now % 1000)), null, 'observed'),
-      age_s: m((now % 1000) / 1000, 's', 'calculated'), rate_hz: m(1.0, 'Hz', 'calculated'),
-      missed_pulses: m(0, 'count', 'calculated'), consecutive_pulses: m(21, 'count', 'calculated'),
+      metadata: { name: 'pps@12.-1', path: '/sys/class/pps/pps0' },
+      thresholds_s: { degraded_after: 1.5, lost_after: 3.0 },
+      pulse_health: failover ? 'LOST' : 'HEALTHY', pulse_health_provenance: 'calculated',
+      measurement_layer: 'Linux kernel PPS timestamps (CLOCK_REALTIME); not the receiver or electrical PPS edge',
+      note: null,
+      last_event_utc: m(failover ? iso(openStart) : iso(now - (now % 1000)), null, 'observed'),
+      last_sequence: m(failover ? 4021 : 100030, null, 'observed'),
+      age_s: m(failover ? (now - openStart) / 1000 : (now % 1000) / 1000, 's', 'calculated'),
+      last_interval_s: m(failover ? null : 1.0, 's', 'calculated'),
+      rate_hz: m(failover ? null : 1.0, 'Hz', 'calculated'),
+      consecutive_pulses: m(failover ? 0 : 21, 'count', 'calculated'),
+      missed_pulses: m(failover ? null : 0, 'count', 'calculated'),
+      sequence_resets: 0,
+      interval_stats: failover ? null
+        : m({ count: 20, mean: 1.0000002, min: 0.9999981, max: 1.0000019, stdev: 9.4e-7 }, 's', 'calculated',
+            'Linux kernel PPS timestamps (CLOCK_REALTIME); not receiver or electrical jitter'),
       boot_config: { gpio: 18, assert_edge: 'rising', source: 'demo' },
     },
     gnss: {
@@ -201,29 +278,43 @@ function timingChain(): TimingChain {
     chrony: {
       available: { tracking: true, sources: true, sourcestats: true },
       refclocks: { pps: 'GPS', nmea: 'NMEA', identified_from: 'chrony.conf', pps_lock: 'NMEA' },
-      pps_status: 'SELECTED', nmea_status: 'OK', pps: null, nmea: null,
-      selected: { name: 'GPS', kind: 'refclock', stratum: 0, is_pps: true, is_nmea: false },
+      pps_status: failover ? 'VISIBLE_NO_SAMPLES' : 'SELECTED', nmea_status: 'OK',
+      pps: failover
+        ? ppsRef('?', "connectivity lost or samples fail chrony's tests (also shown until enough samples exist)", '0', false)
+        : ppsRef('*', 'current best source, used to discipline the clock', '377', true),
+      nmea: null,
+      selected: failover
+        ? { name: '192.0.2.10', kind: 'network', stratum: 2, is_pps: false, is_nmea: false }
+        : { name: 'GPS', kind: 'refclock', stratum: 0, is_pps: true, is_nmea: false },
       any_selected: true,
-      tracking: { leap: 'Normal', stratum: '1', reference: 'GPS',
-                  system_time_s: m(12.3e-9, 's', 'observed', "chrony's remaining correction, not an independent measurement"),
-                  root_delay_s: m(1e-9, 's', 'observed'), root_dispersion_s: m(4.1e-9, 's', 'observed'),
+      tracking: { leap: 'Normal', stratum: failover ? '3' : '1', reference: failover ? '192.0.2.10' : 'GPS',
+                  system_time_s: m(failover ? 3.1e-4 : 12.3e-9, 's', 'observed', "chrony's remaining correction, not an independent measurement"),
+                  root_delay_s: m(failover ? 0.024 : 1e-9, 's', 'observed'),
+                  root_dispersion_s: m(failover ? 0.0013 : 4.1e-9, 's', 'observed'),
                   frequency: '1.240 ppm slow' },
     },
-    classification: null,
-    stages: STAGES.map(([id, label, status, summary]) => ({ id, label, status, summary, evidence: {} })),
-    events: {
-      open: null,
-      recent: [
-        closedOutage(now - 2.1 * day, 34, 'PPS PATH ANOMALY', 'receiver PPS output / GPIO / kernel PPS interface', 'moderate'),
-        closedOutage(now - 5.4 * day, 72, 'GNSS RECEPTION ANOMALY', 'GNSS reception / receiver solution', 'low'),
-        closedOutage(now - 9.0 * day, 1387, 'PPS AND GNSS TELEMETRY UNAVAILABLE', 'unknown', 'low'),
-      ],
-    },
+    classification: failover
+      ? { classification: 'PPS PATH ANOMALY', confidence: 'moderate', boundary: 'receiver PPS output / GPIO / kernel PPS interface',
+          notes: ['GNSS reception and navigation remained healthy while kernel PPS events stopped.',
+                  'Evidence does not establish which component in that path failed.'] }
+      : null,
+    stages: (failover ? STAGES_FAILOVER : STAGES_OK).map(([id, label, status, summary]) => ({ id, label, status, summary, evidence: {} })),
+    events: { open: openEvent, recent },
     boot: { phase: 'RUN', boot_utc: iso(now - 7 * day), since_boot_s: m(7 * 86400, 's', 'calculated'),
             pps_selected_this_boot: true },
-    raw: { tracking: 'Reference ID    : 47505300 (GPS)\nStratum         : 1\n(demo)', sources: '(demo)', sourcestats: '(demo)' },
-    demo: { scenario: 'pps_selected', description: 'Normal: PPS selected by chrony (client-side demo adapter)',
-            scenarios: ['pps_selected'], note: 'synthetic data — not a measurement' },
+    raw: {
+      tracking: failover
+        ? 'Reference ID    : C000020A (192.0.2.10)\nStratum         : 3\nSystem time     : 0.000310000 seconds fast of NTP time\n(demo)'
+        : 'Reference ID    : 47505300 (GPS)\nStratum         : 1\nSystem time     : 0.000000012 seconds fast of NTP time\n(demo)',
+      sources: failover
+        ? 'MS Name/IP address         Stratum Poll Reach LastRx Last sample\n#? GPS                           0   4     0     -     +0ns[   +0ns] +/-    0ns\n^* 192.0.2.10                    2   6   377    40   -310us[ -308us] +/-   12ms\n(demo)'
+        : 'MS Name/IP address         Stratum Poll Reach LastRx Last sample\n#* GPS                           0   4   377    13   +184ns[ +190ns] +/-  203ns\n^- 192.0.2.10                    2   6   377    40   -210us[ -208us] +/-   12ms\n(demo)',
+      sourcestats: '(demo)',
+    },
+    demo: { scenario: failover ? 'network_failover' : 'pps_selected',
+            description: failover ? 'PPS lost; chrony fell back to a network source (client-side demo adapter)'
+                                  : 'Normal: PPS selected by chrony (client-side demo adapter)',
+            scenarios: [...DEMO_SCENARIOS], note: 'synthetic data — not a measurement' },
   };
 }
 

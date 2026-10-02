@@ -175,10 +175,29 @@ export interface TimingEvent {
   confidence: string | null;
   boundary: string | null;
   classification_provenance: Provenance;
-  evidence: { at_start?: EventSnapshot; latest?: EventSnapshot; [k: string]: unknown };
-  recovery: Record<string, unknown> | null;
+  evidence: {
+    at_start?: EventSnapshot;
+    latest?: EventSnapshot;
+    satellites_used_range?: [number, number] | null;
+    fallback_sources?: string[];
+    max_abs_system_time_s?: number | null;
+    gnss_unhealthy_seen?: boolean;
+    [k: string]: unknown;
+  };
+  recovery: EventRecovery | null;
   notes: string[];
   start_bound?: string;
+}
+
+export interface EventRecovery {
+  recovered_utc: string;
+  duration_s: Measured;
+  time_to_accept_s: Measured;
+  time_to_select_s: Measured;
+  fallback_sources: string[];
+  max_abs_system_time_s: Measured;
+  end_bounds_utc?: [string | null, string];
+  note?: string;
 }
 
 export interface ChronyRefclock {
@@ -209,11 +228,17 @@ export interface TimingChain {
     pulse_health_provenance: Provenance;
     measurement_layer: string;
     note: string | null;
+    metadata?: { name: string | null; path: string | null };
+    thresholds_s?: { degraded_after: number; lost_after: number };
     last_event_utc?: Measured<string>;
+    last_sequence?: Measured;
     age_s?: Measured;
+    last_interval_s?: Measured;
     rate_hz?: Measured;
     missed_pulses?: Measured;
     consecutive_pulses?: Measured;
+    sequence_resets?: number;
+    interval_stats?: Measured<{ count: number; mean: number; min: number; max: number; stdev: number | null }> | null;
     boot_config?: { gpio: number | null; assert_edge: string | null; source: string };
     [k: string]: unknown;
   };

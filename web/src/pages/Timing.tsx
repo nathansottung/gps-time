@@ -100,20 +100,9 @@ function ErrorBudget() {
 }
 
 // ─── Timing chain (GNSS → PPS → chrony), /api/timing-chain ──────────────────
-function TimingChainPanel() {
-  const { api, chain } = useStation();
-  const [diag, setDiag] = useState<string | null>(null);
-  const [diagErr, setDiagErr] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+function TimingChainPanel({ onNavigate }: { onNavigate?: (id: string) => void }) {
+  const { chain } = useStation();
   const c = chain.data;
-  const loadDiag = async () => {
-    try {
-      const text = await api.diagnostics();
-      setDiag(text); setDiagErr(null); setCopied(false);
-      try { await navigator.clipboard.writeText(text); setCopied(true); }
-      catch { /* clipboard needs a secure context; the text is shown for manual copy */ }
-    } catch (e) { setDiagErr((e as Error).message); }
-  };
   return (
     <div className="space-y-4">
       <ApiErrorNote error={chain.error} />
@@ -145,25 +134,16 @@ function TimingChainPanel() {
           </table>
         </CardBody>
       </Card>
-      <Card>
-        <CardHeader title="Diagnostic snapshot" action={
-          <button onClick={loadDiag} className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
-            style={{ border:'1px solid var(--border)', color:'var(--t2)' }}>Generate &amp; copy</button>} />
-        <CardBody>
-          <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
-            Plain-text snapshot for support. The station applies location privacy mode. {copied && 'Copied to clipboard.'}
-          </div>
-          <ApiErrorNote error={diagErr} />
-          {diag && <pre className="mono text-[10px] whitespace-pre-wrap p-2 rounded-[2px] max-h-80 overflow-auto"
-            style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t2)' }}>{diag}</pre>}
-        </CardBody>
-      </Card>
+      <div className="text-[10px]" style={{ color:'var(--t3)' }}>
+        Per-stage values, outage history and the COPY/DOWNLOAD diagnostic snapshot are on the{' '}
+        <button onClick={() => onNavigate?.('pps')} className="underline" style={{ color:'var(--t2)' }}>PPS Diagnostics</button> page.
+      </div>
     </div>
   );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function Timing() {
+export default function Timing({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const [range, setRange] = useState('1h');
   const [tab, setTab] = useState('Overview');
   const { api, core, chain } = useStation();
@@ -299,7 +279,7 @@ export default function Timing() {
         </div>
       )}
 
-      {tab === 'Timing Chain' && <TimingChainPanel />}
+      {tab === 'Timing Chain' && <TimingChainPanel onNavigate={onNavigate} />}
 
       {tab === 'PPS Events' && (
         <div className="space-y-4">

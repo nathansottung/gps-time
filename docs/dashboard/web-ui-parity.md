@@ -31,6 +31,7 @@ The legacy pages stay until every row below is either done or explicitly dropped
 ## New UI features the legacy pages lack
 
 - Timing-chain stages, inferred classification, PPS event log with boundary and confidence (`/api/timing-chain`); diagnostic snapshot with copy (`/api/diagnostics`). Neither endpoint had a UI before.
+- Source-aware banner on every page; timing-chain card on the Overview page; PPS Diagnostics page with the 12 acceptance questions, device, live PPS, chrony refclock, outage history, raw output and COPY/DOWNLOAD snapshot (feat/pps-ui).
 - Browser connection statistics: RTT current/min/median/p95, jitter.
 - chrony sources table with selection state on the Network page.
 - Explicit UNKNOWN for every value the station cannot establish, and stale sky data hidden instead of shown as current counts.

@@ -7,15 +7,20 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (docs/status). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (feat/pps-ui, #15). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-1. **feat/pps-ui:** timing-chain card on the main page, source-aware banner, PPS diagnostics page with COPY/DOWNLOAD snapshot. Closes the CHG "PPS card", "Live PPS", "Dashboard" and AC4/AC12 gaps. *In progress, local, not pushed.*
-2. **Ship `web/dist` in the Pi bundle and `install.sh`**, so `/app/` works on a station without Node. `install.sh` also edits `chrony.conf`; only the copy step changes.
-3. **Administrative security** (GPS-014, GPS-017, GPS-019): POST-only state changes, Host/Origin check, admin actions disabled in demo, non-root service. Pre-release blocker.
+1. **chore/vitest:** a Vitest harness for the web UI, with tests of the banner guards (never a bare SYNCHRONIZED; GPS/PPS with a non-PPS selected source shows UNKNOWN). Merged first, so later UI work ships with tests.
+2. **Administrative security** (GPS-014, GPS-017, GPS-019): authentication for state-changing actions, POST-only, Host/Origin check, admin actions disabled in demo, non-root service. Pre-release blocker. It comes **before** shipping `web/dist`, so a Pi never serves an unauthenticated reboot through the new UI.
+3. **Ship `web/dist` in the Pi bundle and `install.sh`**, so `/app/` works on a station without Node. `install.sh` also edits `chrony.conf`; only the copy step changes.
 4. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
 5. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
+
+## Decisions
+
+- **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
+- **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi.
 
 ## Legend
 
@@ -24,7 +29,7 @@ Last updated: 2026-10-02 (docs/status). Built from the specs, `roadmap/feature-r
 | Status | Meaning |
 |---|---|
 | done | Implemented and tested, or verified in the UI. A note may give a caveat. |
-| in progress | Being built on an open or local branch (currently `feat/pps-ui`). |
+| in progress | Being built on an open or local branch. |
 | next | Covered by one of the next-5 tasks. |
 | planned | Not scheduled. "partial:" in Notes means part of it exists. |
 
@@ -43,7 +48,7 @@ Last updated: 2026-10-02 (docs/status). Built from the specs, `roadmap/feature-r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 351 rows: 135 done, 26 in progress, 23 next, 167 planned.
+**Totals:** 352 rows: 160 done, 0 in progress, 24 next, 168 planned.
 
 ## Status table
 
@@ -54,8 +59,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | CHG | Model 3 | Navigation/time solution stage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Model 4 | PPS device exists stage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Model 5 | Kernel PPS events stage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Model 6 | PPS event frequency shown | in progress | in API; UI only in snapshot text | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Model 7 | Age of last PPS event shown | in progress | in API; UI only in snapshot text | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| CHG | Model 6 | PPS event frequency shown | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | Model 7 | Age of last PPS event shown | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | Model 8 | chrony sees PPS stage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Model 9 | chrony PPS reach | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Model 10 | chrony accepts PPS stage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -65,13 +70,13 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | CHG | Model 14 | Failover duration | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Model | UNKNOWN / NOT OBSERVABLE, never inferred healthy | done | receiver PPS output = NOT_OBSERVABLE | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Model | Seven critical states kept distinct | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Dashboard | TIMING STATUS hierarchy on the main page | in progress | partial: banner + stage table on Timing tab | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| CHG | Banner | Banner names the sync source; no bare SYNCHRONIZED | in progress | server banner done; UI banner hardening in feat/pps-ui | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| CHG | PPS card | Dedicated PPS diagnostic card/page | in progress |  |  |
-| CHG | PPS card | Device: path, exists, metadata, GPIO, edge | in progress | backend done; UI shows stage only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | PPS card | Live: last ts, age, rate, consecutive, missed, interval stats | in progress | backend done | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | PPS card | Label the measurement layer (Linux, not electrical) | in progress | backend done | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | PPS card | chrony: mode, reach, selected, offset, freq/skew, symbol, last sample | in progress | backend done; partial in Network page | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| CHG | Dashboard | TIMING STATUS hierarchy on the main page | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | Banner | Banner names the sync source; no bare SYNCHRONIZED | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | PPS card | Dedicated PPS diagnostic card/page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | PPS card | Device: path, exists, metadata, GPIO, edge | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | PPS card | Live: last ts, age, rate, consecutive, missed, interval stats | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | PPS card | Label the measurement layer (Linux, not electrical) | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | PPS card | chrony: mode, reach, selected, offset, freq/skew, symbol, last sample | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | PPS card | No invented causal explanation | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | State machine | Ten PPS states | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Watchdog | Last event, age, interval, frequency | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -82,7 +87,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | CHG | Outage | Outage evidence fields | planned | partial: median C/N₀ not accumulated | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Outage | Event stays open until recovery | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Recovery | Auto-close outage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Recovery | Recovery fields (source, max offset, time to accept/select) | in progress | backend done; UI in feat/pps-ui | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| CHG | Recovery | Recovery fields (source, max offset, time to accept/select) | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | Recovery | Preserve for history | next | partial: last 50 kept, API shows 10 | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | History | Current PPS uptime | next |  |  |
 | CHG | History | Longest PPS outage | next |  |  |
@@ -92,15 +97,15 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | CHG | History | Total PPS unavailable time | next |  |  |
 | CHG | History | Timeline of PPS state | next |  |  |
 | CHG | History | Timeline distinguishes the 6 GNSS/PPS/failover/holdover categories | next |  |  |
-| CHG | History | Last PPS outage | in progress | partial: PPS Events list | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| CHG | History | Last PPS outage | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | History | PPS loss vs GNSS availability view | next | partial: classification column | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | Snapshot | Diagnostic snapshot content | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Snapshot | COPY DIAGNOSTICS control | done | secure-context fallback in feat/pps-ui | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| CHG | Snapshot | DOWNLOAD DIAGNOSTICS (optional) | in progress |  |  |
+| CHG | Snapshot | COPY DIAGNOSTICS control | done | on the PPS page; http-LAN fallback | [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | Snapshot | DOWNLOAD DIAGNOSTICS (optional) | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | Snapshot | No precise location in privacy mode | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Advanced | ls -l /dev/pps* equivalent | in progress | partial: device + sysfs metadata in API | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Advanced | ppstest equivalent | in progress | partial: last/age/rate/missed; no per-event list | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| CHG | Advanced | chronyc sources/sourcestats/tracking | in progress | raw chronyc -n text in API (not -v) | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| CHG | Advanced | ls -l /dev/pps* equivalent | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | Advanced | ppstest equivalent | planned | partial: last event/sequence/age/rate on PPS page; no per-event listing | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| CHG | Advanced | chronyc sources/sourcestats/tracking | done | raw chronyc -n, not -v | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | Advanced | PPS kernel/dmesg information | planned |  |  |
 | CHG | Advanced | No browser shell execution; read-only | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Incident | HW indicator NOT_OBSERVABLE; kernel unknown until tested | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -133,7 +138,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | CHG | AC1 | GNSS still received | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | AC2 | /dev/pps0 exists | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | AC3 | PPS events reach Linux | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| CHG | AC4 | Time of last PPS event | in progress | snapshot text only | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| CHG | AC4 | Time of last PPS event | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | AC5 | chrony sees PPS | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | AC6 | chrony accepts PPS | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | AC7 | chrony selects PPS | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
@@ -141,7 +146,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | CHG | AC9 | How long in failover | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | AC10 | When the failure began | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | CHG | AC11 | Previous similar failures | next | partial: last 10 events | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| CHG | AC12 | Clock accuracy during the outage | in progress | backend max correction; UI in feat/pps-ui | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| CHG | AC12 | Clock accuracy during the outage | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | CHG | AC | Never imply PPS healthy from GNSS or NTP sync | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | CHG | Operator | Capture-before-reboot procedure documented | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | TASK | Rule | Lightweight offline station | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -174,14 +179,14 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | §1.8 | chrony lock/selection | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §1.9 | System clock sync | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §1.10 | NTP service state | planned | partial: Network page; no chain stage | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| OBS | §2 | Timing health panel with per-stage values | in progress | partial: stage table | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| OBS | §2 | Timing health panel with per-stage values | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | OBS | §3 | Present / available / locked / selected | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §4a | Last PPS timestamp in UI | in progress | API only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §4b | Seconds since last PPS in UI | in progress | API only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §4c | Current PPS frequency in UI | in progress | API only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §4d | Consecutive PPS events in UI | in progress | API only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| OBS | §4a | Last PPS timestamp in UI | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| OBS | §4b | Seconds since last PPS in UI | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| OBS | §4c | Current PPS frequency in UI | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
+| OBS | §4d | Consecutive PPS events in UI | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | OBS | §4e | Interruption duration | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| OBS | §4f | Last PPS recovery time in UI | in progress | API only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| OBS | §4f | Last PPS recovery time in UI | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | OBS | §4g | HEALTHY / DEGRADED / LOST | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §4h | Configurable thresholds | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §4i | No hardware-failure claim | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -209,7 +214,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | AC6 | What disciplines the clock? | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | OBS | AC7 | When did the failure begin? | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | OBS | AC8 | Has it happened before? | next | partial: last 10 events | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| OBS | AC9 | Drift during the outage? | in progress | backend max correction | [#4](https://github.com/nathansottung/gps-time/pull/4) |
+| OBS | AC9 | Drift during the outage? | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | OBS | AC10 | RF anomaly vs PPS/software path? | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | ADD | §1 | Earth-shadow umbra/penumbra model | planned |  |  |
 | ADD | §2 | Zenith satellite-shadow metric | planned |  |  |
@@ -301,7 +306,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature D |  | Provenance tags | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature D |  | Freshness / calibration / uncertainty | planned | partial: freshness only | [#1](https://github.com/nathansottung/gps-time/pull/1) [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature D |  | Config export/import | done | legacy /configure |  |
-| Feature D |  | Redacted diagnostic export | in progress | copy done; download in feat/pps-ui | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| Feature D |  | Redacted diagnostic export | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Feature D |  | Themes incl. night vision | done | legacy only; /app dark only |  |
 | Feature D |  | Solar-transit safety acknowledgement | planned | partial: in a Planned card | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature E (SDR) |  | SDR inventory by serial | planned |  |  |
@@ -365,9 +370,10 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Pre-release | Bounded persistence | planned | partial: config/events atomic; tracking log unbounded | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Scope | Pre-release | Administrative security | next |  |  |
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| Web UI |  | Vitest harness + banner-guard tests | next |  |  |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | next |  |  |
 | Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | in progress |  |  |
+| Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-003 | History uncertainty mixes chrony columns | next |  |  |
@@ -382,7 +388,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-012 | Tracking-log path fixed at import | planned |  |  |
 | Review | GPS-013 | SIGTERM skips flush; corrupt config reset | done |  | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Review | GPS-014 | Root service; unauthenticated GET admin | next |  |  |
-| Review | GPS-015 | Privacy hidden leaks via sidereal/almanac | done | plus satellite az/el | [#12](https://github.com/nathansottung/gps-time/pull/12) [#13](https://github.com/nathansottung/gps-time/pull/13) |
+| Review | GPS-015 | Privacy hidden leaks via sidereal/almanac | done | plus satellite az/el. Decision 2026-10-02: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags (GNSS health stays visible); see Decisions | [#12](https://github.com/nathansottung/gps-time/pull/12) [#13](https://github.com/nathansottung/gps-time/pull/13) |
 | Review | GPS-016 | Unescaped innerHTML in legacy view | planned |  |  |
 | Review | GPS-017 | No Host/Origin check | next |  |  |
 | Review | GPS-018 | Per-request fan-out; no limits | planned | partial |  |

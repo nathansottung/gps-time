@@ -62,17 +62,25 @@ interface StationContext {
   api: StationApi;
   core: Polled<CoreStatus>;
   chain: Polled<TimingChain>;
+  /** Demo timing-chain scenario (server GTP_DEMO or client demo adapter); ignored by a live station. */
+  scenario: string | undefined;
+  setScenario: (s: string | undefined) => void;
   /** True when anything on screen may be synthetic: client demo adapter, or a server in GTP_DEMO mode. */
   isDemo: boolean;
 }
 
 const Ctx = createContext<StationContext | null>(null);
 
+function initialScenario(): string | undefined {
+  try { return new URLSearchParams(window.location.search).get('scenario') || undefined; } catch { return undefined; }
+}
+
 export function StationProvider({ api, children }: { api: StationApi; children: ReactNode }) {
+  const [scenario, setScenario] = useState<string | undefined>(initialScenario);
   const core = usePoll(() => api.core(), 4000, [api]);
-  const chain = usePoll(() => api.timingChain(), 5000, [api]);
+  const chain = usePoll(() => api.timingChain({ scenario }), 5000, [api, scenario]);
   const isDemo = api.source === 'demo' || core.data?.demo === true || !!chain.data?.demo;
-  return <Ctx.Provider value={{ api, core, chain, isDemo }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ api, core, chain, isDemo, scenario, setScenario }}>{children}</Ctx.Provider>;
 }
 
 export function useStation(): StationContext {
