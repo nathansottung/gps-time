@@ -56,4 +56,4 @@ Add `-UseDemoLayout` if you intentionally want to promote `.dev/dashboard.json` 
 
 Read [`docs/README.md`](docs/README.md), then [`docs/roadmap/feature-registry.md`](docs/roadmap/feature-registry.md).
 
-The current development identifier is **1.4.0-dev**. The deployed historical baseline was v1.3.0. The 2026-09-07 source review still contains unresolved blockers; this bundle is a development starting point, not a claim of stable/hardened timing appliance status.
+The current version is **v1.4.0-rc.1**, a pre-release. It's the first git tag. `/api` and the web UI footer report the version read from the tag. The deployed historical baseline was v1.3.0. The 2026-09-07 source review still contains unresolved blockers; this bundle is a development starting point, not a claim of stable/hardened timing appliance status.

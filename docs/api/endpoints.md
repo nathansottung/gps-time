@@ -25,7 +25,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `sidereal` | local sidereal time `HH:MM:SS`, or null without astronomy or a position. Follows the privacy mode: computed from the rounded site in `rounded`, null in `hidden` (LST − GST is the longitude). |
 | `astro_available` | whether Skyfield/NumPy loaded |
 | `cpu_temp_c` | `/sys/class/thermal/thermal_zone0/temp`, or null |
-| `versions` | `app`, `chrony`, `gpsd`, `receiver` ({driver, firmware, path} or null), `python` |
+| `versions` | `app`, `chrony`, `gpsd`, `receiver` ({driver, firmware, path} or null), `python`. `app` is read from the git tag (`gps_time_pi/version.py`): `gps_time_pi/VERSION` in a deploy bundle, else `git describe` in a checkout (e.g. `1.4.0-rc.1`, `1.4.0-rc.1-3-gabc1234`, `-dirty`), else `unknown`. Demo mode reports the real app version. |
 | `demo` | `true` only in demo mode |
 
 ## GET /api/timing-chain

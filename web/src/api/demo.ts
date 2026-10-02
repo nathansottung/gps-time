@@ -10,6 +10,7 @@
 // Demo site: US Naval Observatory (public landmark; the project's standard
 // example location). H = 92 m MSL, N ≈ −33 m, so h ≈ 59 m.
 
+import { UI_VERSION } from '../lib/version';
 import type { StationApi } from './client';
 import type {
   Almanac, CoreStatus, DashboardConfig, DashboardLayout, History, LocationMode, Measured, Satellite,
@@ -135,7 +136,7 @@ function core(location: CoreStatus['location']): CoreStatus {
     sidereal: siderealDemo(now),
     astro_available: true,
     cpu_temp_c: 44.2,
-    versions: { app: 'demo', chrony: 'chrony 4.x (sample)', gpsd: '3.x (sample)',
+    versions: { app: UI_VERSION, chrony: 'chrony 4.x (sample)', gpsd: '3.x (sample)',
                 receiver: { driver: 'u-blox', firmware: 'sample', path: '/dev/ttyAMA0' }, python: 'demo adapter' },
   };
 }

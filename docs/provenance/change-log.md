@@ -243,3 +243,21 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Release notes `docs/releases/v1.4.0-rc.1.md`, summarized from this change log (2026-09-18 to #18), with known open issues and rollback steps. Indexed in `docs/INDEX.md`; `docs/README.md` notes the tag.
 - The annotated tag `v1.4.0-rc.1` goes on this PR's merge commit, with a GitHub pre-release using the same notes. It is the first tag in the repository.
 - Version choice (owner, 2026-10-02): continue the existing 1.x numbering. The code identified as `1.4.0-dev` and the historical deployment was v1.3.0, so `v0.5.0` would have gone backwards. Release candidate because the pre-release blockers, including administrative security, are still open.
+
+## 2026-10-02 — version read from the git tag (#23)
+
+- `gps_time_pi/version.py` replaces the hard-coded `__version__ = "1.4.0-dev"`. It is resolved once, at import, in this order:
+  - `gps_time_pi/VERSION`;
+  - `git describe --tags --match "v[0-9]*" --dirty` in a checkout;
+  - otherwise `unknown`.
+  - The leading `v` is dropped. Examples: `1.4.0-rc.1`, `1.4.0-rc.1-3-gabc1234`, `-dirty`. This adds the commit ID the independent review found missing from version reporting.
+- `/api` → `versions.app` uses it. Demo mode reports the real app version instead of `"demo"` (both the server and the client-side adapter).
+- `tools/build_bundles.py` writes `gps_time_pi/VERSION` into the Pi tar and the development zip, because an installed station has no `.git`. A stray copy on disk is never archived, and `.gitignore` excludes it.
+- Web UI: `vite.config.ts` injects `__GTP_UI_VERSION__` at build time from `git describe` (`GTP_VERSION` overrides it).
+  - The footer shows one version when the UI and station versions match.
+  - It shows both when they differ, e.g. a `web/dist` built from another commit.
+  - It says "unknown" rather than guessing.
+  - Pure helper: `web/src/lib/version.ts`.
+- Tests: `tests/test_version.py` (resolution order, a temporary git repo with a tag, the demo version, `VERSION` in both archives) and `web/src/lib/version.test.ts` (5 tests). Checked in the demo: `/api` and the footer show `1.4.0-rc.1-dirty` on the working tree.
+- CI checks out shallow clones without tags, so builds there report `unknown`. That's expected.
+- README, START-HERE, `docs/README.md`, `docs/api/endpoints.md` and the Pi deploy guide are updated.

@@ -21,7 +21,7 @@ GPS Time is an **open-source, timing-first, offline-capable measurement platform
 
 - `v1.3.0` is the deployed historical baseline described in `deployment-runbook.md`.
 - `v1.4.0-rc.1` (2026-10-02) is the first git tag and the named rollback target; release notes in `releases/`.
-- This development bundle identifies itself as `1.4.0-dev` because it adds a configurable dashboard, Windows demo mode, build/deploy tooling and expanded repository documentation.
+- The app reports the version read from the git tag (`gps_time_pi/version.py`; the web UI reads it at build time). Before the first tag it identified itself as `1.4.0-dev`.
 - CHG-001/CHG-002 (2026-09-27, see `provenance/CHG-001-002-foundation-correction.md`) addressed GNSS survey freshness and the fresh-install logging failure; automated tests live in `tests/`.
 - The source-review blockers in `review/source-review-2026-09-07.md` and `review/GPS-Time-Independent-Review-2026-09-27.md` are **not all resolved**. Do not tag a stable public release until the measurement-freshness, chrony-history semantics, persistence, and administrative-security items are closed or explicitly dispositioned.
 
