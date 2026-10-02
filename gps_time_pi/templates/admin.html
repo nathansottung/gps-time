@@ -57,6 +57,7 @@ flags above are the practical power-supply health check. RAM logging keeps
 chrony's tracking log in tmpfs and flushes hourly to protect the SD card.</p>
 </main>
 <script src="/static/app.js"></script>
+<script src="/static/admin-auth.js"></script>
 <script>
 wireThemes();
 function up(s){ if(s==null) return "–";
@@ -94,13 +95,13 @@ document.querySelectorAll("button[data-a]").forEach(b=>b.onclick=async()=>{
   if(b.dataset.c && !confirm(b.dataset.c)) return;
   res.textContent="…";
   const a=b.dataset.a;
-  const url = a==="reset_survey" ? "/api/setting?reset_site=1" : "/api/admin?action="+a;
-  try{ const r=await (await fetch(url)).json();
-    res.textContent=(r.ok?"✓ ":"✗ ")+(r.detail||r.action||JSON.stringify(r)); }
+  const [path, body] = a==="reset_survey" ? ["/api/setting", {reset_site:true}] : ["/api/admin", {action:a}];
+  try{ const {body:r}=await gtpAdminPost(path, body);
+    res.textContent=(r.ok?"✓ ":"✗ ")+(r.detail||r.error||r.action||JSON.stringify(r)); }
   catch(e){ res.textContent = a==="restart_web"||a==="reboot" ? "✓ command sent" : "✗ "+e; }
 });
 const priv=document.getElementById("privacy");
 fetch("/api").then(r=>r.json()).then(d=>{ priv.value=d.location.mode; }).catch(()=>{});
-priv.onchange=async()=>{ const r=await (await fetch("/api/setting?location_display="+priv.value)).json();
-  res.textContent=r.ok?"✓ location display: "+priv.value:"✗ failed"; };
+priv.onchange=async()=>{ const {body:r}=await gtpAdminPost("/api/setting", {location_display:priv.value});
+  res.textContent=r.ok?"✓ location display: "+priv.value:"✗ "+(r.error||"failed"); };
 </script></body></html>
