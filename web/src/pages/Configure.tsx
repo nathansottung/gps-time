@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useStation } from '../api/station';
 import { Card, CardHeader, CardBody, StatusBadge, MaturityBadge, MetricRow, Toggle } from '../components/ui';
 
 type Widget = { id: string; title: string; enabled: boolean; size: 'normal'|'wide'; page: string; };
@@ -57,7 +58,10 @@ export default function Configure() {
   const toggleWidget = (id: string) => setWidgets(ws => ws.map(w => w.id===id ? {...w,enabled:!w.enabled} : w));
   const setWidgetSize = (id: string, size: 'normal'|'wide') => setWidgets(ws => ws.map(w => w.id===id ? {...w,size} : w));
 
+  // Preview only: the station's saved layout (GET/POST /api/dashboard) uses the
+  // legacy widget model and is still edited on the legacy /configure page.
   const handleSave = () => { setSaved(true); setTimeout(()=>setSaved(false), 2000); };
+  const { api, isDemo, core } = useStation();
 
   const handlePreset = (p: string) => {
     setActivePreset(p);
@@ -80,8 +84,8 @@ export default function Configure() {
         </div>
         <div className="flex gap-2">
           {[['Import JSON',''], ['Export JSON','']].map(([label]) => (
-            <button key={label} className={btnBase}
-              style={{ border:'1px solid var(--border)', color:'var(--t3)' }}>
+            <button key={label} className={btnBase} disabled title="Not implemented yet"
+              style={{ border:'1px solid var(--border)', color:'var(--t4)' }}>
               {label}
             </button>
           ))}
@@ -89,9 +93,15 @@ export default function Configure() {
             style={saved
               ? { border:'1px solid var(--good-border)', color:'var(--good-text)', background:'var(--good-bg)' }
               : { border:'1px solid var(--accent)', color:'var(--accent)', background:'var(--accent-dim)' }}>
-            {saved ? '✓ Saved' : 'Save Layout'}
+            {saved ? 'Applied (not saved)' : 'Apply preview'}
           </button>
         </div>
+      </div>
+
+      <div className="text-[10px] px-3 py-2 rounded-[2px]"
+        style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
+        Design preview: changes here are not saved to the station and do not change the other pages yet.
+        The station&apos;s saved layout is edited on the legacy <a href="../configure" style={{ color:'inherit', textDecoration:'underline' }}>/configure</a> page.
       </div>
 
       {/* Presets */}
@@ -270,15 +280,18 @@ export default function Configure() {
           </Card>
 
           <Card>
-            <CardHeader title="Demo Mode" badge={<MaturityBadge level="demo" />} />
+            <CardHeader title="Data Source" badge={isDemo ? <MaturityBadge level="demo" /> : undefined} />
             <CardBody>
               <div className="text-[11px] mb-3" style={{ color:'var(--t3)' }}>
-                This instance is running in Demo Mode using synthetic fixture data. All displayed values are illustrative only.
+                {api.source === 'demo'
+                  ? 'Client-side demo adapter: synthetic data, no station contacted. Remove ?source=demo to use the station.'
+                  : isDemo
+                    ? 'Station API in server demo mode (GTP_DEMO): synthetic data.'
+                    : 'Station API (same origin). Values are what the station reports.'}
               </div>
-              <MetricRow label="Mode" value="DEMO" />
-              <MetricRow label="Data source" value="Synthetic fixtures" />
-              <MetricRow label="Live GNSS" value="Not connected" muted />
-              <MetricRow label="Live PPS" value="Not connected" muted />
+              <MetricRow label="Mode" value={isDemo ? 'DEMO' : 'LIVE'} />
+              <MetricRow label="Client adapter" value={api.source === 'demo' ? 'demo (src/api/demo.ts)' : 'http (src/api/client.ts)'} />
+              <MetricRow label="Station reachable" value={api.source === 'demo' ? 'n/a' : core.data ? 'yes' : core.error ? 'no' : null} />
             </CardBody>
           </Card>
 

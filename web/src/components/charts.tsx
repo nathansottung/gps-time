@@ -25,7 +25,7 @@ function ChartTip({ active, payload, label, unit='ns' }: any) {
 }
 
 // ─── Time-offset area chart ───────────────────────────────────────────────────
-export function OffsetChart({ data, range }: { data: any[]; range: string }) {
+export function OffsetChart({ data, range, unit='ns' }: { data: any[]; range: string; unit?: string }) {
   const fmtX = (ts: number) => {
     const d = new Date(ts);
     if (range === '1h' || range === '24h')
@@ -45,7 +45,7 @@ export function OffsetChart({ data, range }: { data: any[]; range: string }) {
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
         <XAxis dataKey="ts" tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} interval="preserveStartEnd"/>
         <YAxis tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={34} tickFormatter={(v:number)=>`${v.toFixed(0)}`}/>
-        <Tooltip content={<ChartTip unit="ns"/>}/>
+        <Tooltip content={<ChartTip unit={unit}/>}/>
         <ReferenceLine y={0} stroke={AXIS} strokeDasharray="2 4" strokeOpacity={0.6}/>
         <Area type="monotone" dataKey="dt" stroke="var(--live)" strokeWidth={1.5} fill="url(#dtFill)" dot={false} activeDot={{ r:3, fill:'var(--live)', strokeWidth:0 }}/>
       </AreaChart>
@@ -151,7 +151,7 @@ export function SkyPlot({ sats }: { sats: { sys:string; svid:string; az:number; 
         const col = SYSCOLOR[s.sys] || 'var(--t2)';
         const used = s.state === 'used';
         return (
-          <g key={s.svid} opacity={used ? 1 : 0.35}>
+          <g key={s.sys + s.svid} opacity={used ? 1 : 0.35}>
             <circle cx={x} cy={y} r={used?5:4} fill={col} fillOpacity={0.2} stroke={col} strokeWidth={used?1:0.75}/>
             <text x={x} y={y-7} textAnchor="middle" fontSize="6.5" fill={col} fontFamily="JetBrains Mono">{s.svid}</text>
           </g>

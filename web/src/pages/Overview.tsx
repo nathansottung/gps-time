@@ -1,53 +1,111 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, ProvenanceTag, DemoBanner, MaturityBadge } from '../components/ui';
+import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, ProvenanceTag } from '../components/ui';
 import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
-import { timing, holdover, satellites, offset1h, sunData, moonData, dataPacks, ppsStats } from '../data/demo';
+import { Planned, ApiErrorNote } from '../components/planned';
+import { useStation, usePoll, useBrowserClock } from '../api/station';
+import { toSkySats, plottable, cn0Stats, toOffsetSeries, fracFreq, allEvents, satCounts, ntpClientCount } from '../api/view';
+import type { Almanac, SolarDay, LunarDay } from '../api/types';
+import { holdover, dataPacks } from '../api/previews';
 import { fmtSci } from '../lib/units';
+import { fmtOffset, fmtSeconds, lightDistance, fmtClock, fmtDuration, fmtDelta, browserTimeZone } from '../lib/format';
 
+// Clear-sky model curve for the irradiance preview (planned feature; demo only).
 const irradianceData = Array.from({ length: 24 }, (_, h) => ({
   h, w: Math.round(Math.max(0, 850 * Math.sin(Math.PI*(h-6)/13)) * (h>=6&&h<=19?1:0)),
 }));
 
+const TZ = browserTimeZone();
+
+function useAlmanac() {
+  const { api } = useStation();
+  return usePoll(() => api.almanac({ tz: TZ }), 10 * 60_000, [api]);
+}
+const sunOf  = (a: Almanac | { available: false } | null) => (a && a.available && a.sun.available ? a.sun as SolarDay : null);
+const moonOf = (a: Almanac | { available: false } | null) => (a && a.available && a.moon.available ? a.moon as LunarDay : null);
+
+function useHistory() {
+  const { api } = useStation();
+  return usePoll(() => api.history(), 30_000, [api]);
+}
+
+/** Live timing numbers shared by the variants. */
+function useTiming() {
+  const { core, chain } = useStation();
+  const q = core.data?.quality;
+  const dt = fmtOffset(q?.system_time_s);
+  return {
+    core, chain,
+    dt,
+    err: fmtSeconds(q?.root_dispersion_s),
+    light: lightDistance(q?.system_time_s),
+    rms: fmtSeconds(q?.rms_offset_s),
+    frac: fracFreq(core.data),
+    ref: q?.reference ?? null,
+    stratum: q?.stratum ?? null,
+    ppsState: chain.data?.pps_state.value ?? null,
+    status: chain.data?.status ?? null,
+  };
+}
+
+function statusBadge(code: string | undefined, label: string | undefined) {
+  if (!code || !label) return <StatusBadge variant="muted" label="UNKNOWN" />;
+  const v = code === 'GPS_PPS' ? 'good' : code === 'UNSYNCHRONIZED' ? 'error' : code === 'UNKNOWN' ? 'muted' : 'warn';
+  return <StatusBadge variant={v} label={label} pulse={v === 'good'} />;
+}
+
 // ─── Timing Quality ───────────────────────────────────────────────────────────
 function TimingWidget() {
+  const t = useTiming();
+  const hist = useHistory();
+  const s1h = toOffsetSeries(hist.data?.points, 3600);
   return (
     <Card>
-      <CardHeader title="Timing Quality" badge={<StatusBadge variant="good" label="GPS PPS LOCKED" pulse />} />
+      <CardHeader title="Timing Quality" badge={statusBadge(t.status?.code, t.status?.banner)} />
       <CardBody>
+        <ApiErrorNote error={t.core.error} />
         <div className="flex items-start gap-8 mb-3">
           {/* Primary reading — the one place we use the brightest live color */}
           <div className="flex-shrink-0">
-            <div className="text-[9px] mono uppercase tracking-[0.15em] mb-1.5" style={{ color:'var(--t3)' }}>Current Δt</div>
-            <div className="flex items-baseline gap-2">
-              <span className="mono tabular font-semibold" style={{ fontSize:36, lineHeight:1, color:'var(--live-bright)', letterSpacing:'-0.01em' }}>+12.3</span>
-              <div className="flex flex-col">
-                <span className="mono text-base" style={{ color:'var(--t2)' }}>ns</span>
-                <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>± 4.1</span>
-              </div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[9px] mono uppercase tracking-[0.15em]" style={{ color:'var(--t3)' }}>System clock Δt (chrony)</span>
+              <ProvenanceTag type="observed" />
             </div>
-            <div className="text-[10px] mono mt-1" style={{ color:'var(--t4)' }}>≡ 3.69 m light-equivalent</div>
-            <ELI5 text="This is how far ahead or behind the station clock is from GPS truth, in nanoseconds. 12 ns is the time light takes to travel 3.7 metres." />
+            {t.dt ? (
+              <div className="flex items-baseline gap-2">
+                <span className="mono tabular font-semibold" style={{ fontSize:36, lineHeight:1, color:'var(--live-bright)', letterSpacing:'-0.01em' }}>{t.dt.value}</span>
+                <div className="flex flex-col">
+                  <span className="mono text-base" style={{ color:'var(--t2)' }}>{t.dt.unit}</span>
+                  {t.err && <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>± {t.err}</span>}
+                </div>
+              </div>
+            ) : <StatusBadge variant="muted" label="UNKNOWN" dot={false} />}
+            {t.light && <div className="text-[10px] mono mt-1" style={{ color:'var(--t4)' }}>≡ {t.light} light-equivalent</div>}
+            <ELI5 text="chrony's estimate of how far the system clock is from its reference right now (positive = fast). The ± is chrony's root dispersion. It is not an independent measurement against GPS." />
           </div>
 
           {/* Offset history chart */}
           <div className="flex-1 min-w-0" style={{ borderLeft:'1px solid var(--border-dim)', paddingLeft:'1.5rem' }}>
-            <div className="text-[9px] mono uppercase tracking-[0.15em] mb-1" style={{ color:'var(--t3)' }}>Δt — last 1 hour</div>
-            <OffsetChart data={offset1h} range="1h" />
+            <div className="text-[9px] mono uppercase tracking-[0.15em] mb-1" style={{ color:'var(--t3)' }}>Δt — last 1 hour ({s1h.unit})</div>
+            {s1h.data.length
+              ? <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
+              : <div className="text-[10px] py-8 text-center" style={{ color:'var(--t4)' }}>
+                  {hist.data && !hist.data.available ? 'chrony tracking log not available' : 'No samples in the last hour'}
+                </div>}
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-x-6" style={{ borderTop:'1px solid var(--border-dim)', paddingTop:'0.75rem' }}>
           <div>
-            <MetricRow label="24 h RMS Δt" value="18.7" unit="ns" provenance="observed" />
-            <MetricRow label="Δf/f (frac. freq.)" value={fmtSci(timing.fracFreqOffset)} provenance="observed" />
+            <MetricRow label="RMS offset (chrony)" value={t.rms} provenance="calculated" />
+            <MetricRow label="Δf/f (uncorrected clock)" value={t.frac === null ? null : fmtSci(t.frac)} provenance="calculated" />
           </div>
           <div>
-            <MetricRow label="PPS lock duration" value="312h 24m" provenance="observed" />
-            <MetricRow label="PPS availability (30d)" value="99.71 %" provenance="observed" />
+            <MetricRow label="PPS state" value={t.ppsState} provenance="calculated" />
+            <MetricRow label="Time since boot" value={fmtDuration(t.chain.data?.boot.since_boot_s.value)} provenance="calculated" />
           </div>
           <div>
-            <MetricRow label="Reference source" value="GPS/PPS" />
-            <MetricRow label="NTP stratum" value="1" />
+            <MetricRow label="Reference" value={t.ref} />
+            <MetricRow label="NTP stratum" value={t.stratum} />
           </div>
         </div>
       </CardBody>
@@ -55,34 +113,29 @@ function TimingWidget() {
   );
 }
 
-// ─── Holdover ─────────────────────────────────────────────────────────────────
+// ─── Holdover (planned) ───────────────────────────────────────────────────────
 function HoldoverWidget() {
   return (
+    <Planned title="Holdover Characterization" needs="an oscillator model trained on validated holdover runs">
     <Card>
       <CardHeader title="Holdover Characterization" />
       <CardBody>
         <div className="grid grid-cols-3 gap-3">
-          {/* Raw */}
           <div className="rounded-[2px] p-3" style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-dim)' }}>
             <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2" style={{ color:'var(--t4)' }}>Raw Oscillator</div>
             <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Free-running quartz, no discipline</div>
-            <div className="text-[11px]" style={{ color:'var(--t2)' }}>1 s error in <span className="mono font-medium" style={{ color:'var(--warn-text)' }}>~1.4 days</span></div>
+            <div className="text-[11px]" style={{ color:'var(--t2)' }}>1 s error in <span className="mono font-medium" style={{ color:'var(--warn-text)' }}>~{holdover.rawErrorIn1SecAfterDays} days</span></div>
             <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>±{fmtSci(holdover.rawOscillatorDrift)} s⁻¹ drift</div>
           </div>
-
-          {/* Trained */}
           <div className="rounded-[2px] p-3" style={{ background:'rgba(91,140,184,0.04)', border:'1px solid rgba(91,140,184,0.14)' }}>
             <div className="flex items-center gap-1.5 mb-2">
               <span className="text-[9px] mono uppercase tracking-[0.12em]" style={{ color:'var(--accent)' }}>Trained Holdover</span>
-              <ProvenanceTag type="modeled" />
+              <ProvenanceTag type="predicted" />
             </div>
-            <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>72 h characterization window</div>
-            <div className="text-[11px]" style={{ color:'var(--t2)' }}>1 s error in <span className="mono font-medium" style={{ color:'var(--live)' }}>~37 days</span></div>
-            <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>48 h validated confidence window</div>
-            <ELI5 text="After learning GPS corrections for 72 hours, the system models oscillator drift. Projections beyond the validated window grow increasingly uncertain." />
+            <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>{holdover.trainedValidatedHours} h characterization window</div>
+            <div className="text-[11px]" style={{ color:'var(--t2)' }}>1 s error in <span className="mono font-medium" style={{ color:'var(--live)' }}>~{Math.round(holdover.trainedErrorIn1SecAfterDays)} days</span></div>
+            <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>{holdover.trainedConfidenceHours} h validated confidence window</div>
           </div>
-
-          {/* GPS-disciplined */}
           <div className="rounded-[2px] p-3" style={{ background:'var(--good-bg)', border:'1px solid var(--good-border)' }}>
             <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2" style={{ color:'var(--good-text)' }}>GPS/PPS Disciplined</div>
             <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Continuously corrected by PPS tick</div>
@@ -92,45 +145,66 @@ function HoldoverWidget() {
         </div>
       </CardBody>
     </Card>
+    </Planned>
   );
 }
 
 // ─── Sun ──────────────────────────────────────────────────────────────────────
-function SunWidget() {
+export function SunDays({ almanac }: { almanac: Almanac | null }) {
+  const sun = sunOf(almanac);
+  const nb = almanac?.available ? almanac.neighbors : null;
   const cols = [
-    { label:'Yesterday', rise:'06:47:12', noon:'12:48:31', set:'18:49:43', dur:'12h 02m 31s', chg:'+3m 02.8s', plus:true },
-    { label:'Today',     rise:'06:48:04', noon:'12:48:19', set:'18:48:24', dur:'12h 00m 20s', chg:'−2m 11.3s', plus:false },
-    { label:'Tomorrow',  rise:'06:48:57', noon:'12:48:07', set:'18:47:05', dur:'11h 58m 08s', chg:'−2m 12.1s', plus:false },
+    { label:'Yesterday', rise: nb?.yesterday.sunrise, noon: undefined, set: nb?.yesterday.sunset, dur: nb?.yesterday.daylight_s, chg: null },
+    { label:'Today',     rise: sun?.events.sunrise,   noon: sun?.noon,  set: sun?.events.sunset,   dur: sun?.daylight_s,          chg: almanac?.available ? almanac.delta_yesterday : null },
+    { label:'Tomorrow',  rise: nb?.tomorrow.sunrise,  noon: undefined, set: nb?.tomorrow.sunset,  dur: nb?.tomorrow.daylight_s,  chg: almanac?.available ? almanac.delta_tomorrow : null },
   ];
   return (
-    <Card>
-      <CardHeader title="Sun & Daylight" badge={<ProvenanceTag type="calculated" />} />
-      <CardBody>
-        <div className="grid grid-cols-3 gap-2 text-[11px]">
-          {cols.map(c => (
-            <div key={c.label} className="rounded-[2px] p-2.5"
-              style={c.label==='Today'
-                ? { background:'rgba(176,120,16,0.05)', border:'1px solid rgba(176,120,16,0.14)' }
-                : { background:'rgba(255,255,255,0.015)', border:'1px solid var(--border-dim)' }}>
-              <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2"
-                style={{ color: c.label==='Today' ? 'var(--warn-text)' : 'var(--t4)' }}>{c.label}</div>
-              {[['Sunrise',c.rise],['Solar noon',c.noon],['Sunset',c.set]].map(([k,v])=>(
-                <div key={k as string} className="flex justify-between py-[3px]">
-                  <span style={{ color:'var(--t3)' }}>{k}</span>
-                  <span className="mono" style={{ color:'var(--t1)' }}>{v}</span>
-                </div>
-              ))}
-              <div className="flex justify-between py-[3px] mt-1" style={{ borderTop:'1px solid var(--border-dim)' }}>
-                <span style={{ color:'var(--t3)' }}>Daylight</span>
-                <span className="mono font-medium" style={{ color:'var(--t1)' }}>{c.dur}</span>
+    <div className="grid grid-cols-3 gap-2 text-[11px]">
+      {cols.map(c => {
+        const chg = fmtDelta(c.chg);   // daylight change vs the prior day (astro.daylight_deltas)
+        return (
+          <div key={c.label} className="rounded-[2px] p-2.5"
+            style={c.label==='Today'
+              ? { background:'rgba(176,120,16,0.05)', border:'1px solid rgba(176,120,16,0.14)' }
+              : { background:'rgba(255,255,255,0.015)', border:'1px solid var(--border-dim)' }}>
+            <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2"
+              style={{ color: c.label==='Today' ? 'var(--warn-text)' : 'var(--t4)' }}>{c.label}</div>
+            {([['Sunrise', c.rise], ['Solar noon', c.noon], ['Sunset', c.set]] as const).map(([k, v]) => (
+              c.label !== 'Today' && k === 'Solar noon' ? null :
+              <div key={k} className="flex justify-between py-[3px]">
+                <span style={{ color:'var(--t3)' }}>{k}</span>
+                <span className="mono" style={{ color:'var(--t1)' }}>{fmtClock(v, TZ) ?? '—'}</span>
               </div>
-              <div className="flex justify-between py-[2px]">
-                <span style={{ color:'var(--t3)' }}>Change</span>
-                <span className="mono text-[9px]" style={{ color: c.plus ? 'var(--good-text)' : 'var(--t3)' }}>{c.chg}</span>
-              </div>
+            ))}
+            <div className="flex justify-between py-[3px] mt-1" style={{ borderTop:'1px solid var(--border-dim)' }}>
+              <span style={{ color:'var(--t3)' }}>Daylight</span>
+              <span className="mono font-medium" style={{ color:'var(--t1)' }}>{fmtDuration(c.dur) ?? '—'}</span>
             </div>
-          ))}
-        </div>
+            {chg && (
+              <div className="flex justify-between py-[2px]">
+                <span style={{ color:'var(--t3)' }}>vs prior day</span>
+                <span className="mono text-[9px]" style={{ color: chg.startsWith('+') ? 'var(--good-text)' : 'var(--t3)' }}>{chg}</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SunWidget() {
+  const alm = useAlmanac();
+  const unavailable = alm.data && !alm.data.available ? alm.data.reason : null;
+  return (
+    <Card>
+      <CardHeader title="Sun & Daylight" badge={<ProvenanceTag type="predicted" />} />
+      <CardBody>
+        <ApiErrorNote error={alm.error} />
+        {unavailable
+          ? <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>
+          : <SunDays almanac={alm.data && alm.data.available ? alm.data : null} />}
+        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>Times in {TZ}.</div>
       </CardBody>
     </Card>
   );
@@ -138,34 +212,34 @@ function SunWidget() {
 
 // ─── GNSS Summary ─────────────────────────────────────────────────────────────
 function GNSSWidget() {
-  const used   = satellites.filter(s=>s.state==='used').length;
-  const total  = satellites.length;
-  const bestCn0 = Math.max(...satellites.map(s=>s.cn0));
-  const cn0s   = [...satellites.map(s=>s.cn0)].sort((a,b)=>a-b);
-  const medCn0 = cn0s[Math.floor(cn0s.length/2)];
+  const { core } = useStation();
+  const gps = core.data?.gps;
+  const counts = satCounts(gps);
+  const sats = gps?.sky_stale ? [] : toSkySats(gps?.sats ?? []);
+  const c = cn0Stats(sats);
+  const fixLabel = !gps ? 'UNKNOWN' : gps.stale ? 'STALE' : (gps.fix ?? 'NO FIX');
   return (
     <Card>
-      <CardHeader title="GNSS" badge={<StatusBadge variant="good" label="3D FIX" />} />
+      <CardHeader title="GNSS" badge={<StatusBadge variant={!gps ? 'muted' : gps.stale || gps.fix !== '3D' ? 'warn' : 'good'} label={fixLabel === '3D' ? '3D FIX' : fixLabel} />} />
       <CardBody>
-        {/* Count row */}
         <div className="flex gap-0 mb-3" style={{ borderBottom:'1px solid var(--border-dim)', paddingBottom:'0.75rem' }}>
           {[
-            { v:total,  l:'In view' },
-            { v:total,  l:'Tracked' },
-            { v:used,   l:'Used', accent:true },
+            { v: counts.visible, l:'Visible' },
+            { v: counts.used,    l:'Used', accent:true },
           ].map(({v,l,accent}) => (
             <div key={l} className="flex-1 text-center">
-              <div className="mono text-xl font-medium tabular" style={{ color: accent ? 'var(--live)' : 'var(--t1)' }}>{v}</div>
+              <div className="mono text-xl font-medium tabular" style={{ color: accent ? 'var(--live)' : 'var(--t1)' }}>{v ?? '—'}</div>
               <div className="text-[9px]" style={{ color:'var(--t4)' }}>{l}</div>
             </div>
           ))}
         </div>
-        <MetricRow label="Best C/N₀" value={`${bestCn0}`} unit="dB-Hz" provenance="observed" />
-        <MetricRow label="Median C/N₀" value={`${medCn0}`} unit="dB-Hz" provenance="observed" />
-        <MetricRow label="PDOP" value="1.4" provenance="observed" />
+        <MetricRow label="Best C/N₀" value={c.best} unit="dB-Hz" provenance="observed" />
+        <MetricRow label="Median C/N₀" value={c.median} unit="dB-Hz" provenance="calculated" />
+        <MetricRow label="TDOP" value={gps?.tdop ?? null} provenance="observed" />
+        <MetricRow label="Data age" value={gps?.data_age_s == null ? null : gps.data_age_s.toFixed(1)} unit="s" provenance="calculated" />
         <ELI5 text="C/N₀ (carrier-to-noise-density) measures how clearly each satellite is heard above background noise. Higher is better." />
         <div className="mt-3 flex justify-center">
-          <SkyPlot sats={satellites} />
+          <SkyPlot sats={plottable(sats)} />
         </div>
       </CardBody>
     </Card>
@@ -174,27 +248,28 @@ function GNSSWidget() {
 
 // ─── Network ──────────────────────────────────────────────────────────────────
 function NetworkWidget() {
+  const { core, chain } = useStation();
+  const clk = useBrowserClock();
   return (
     <Card>
       <CardHeader title="Network & NTP" />
       <CardBody>
-        <MetricRow label="NTP clients" value="7" />
-        <MetricRow label="Request rate" value="23" unit="req/min" />
-        <MetricRow label="Browser RTT" value="2.3" unit="ms" provenance="observed" />
-        <MetricRow label="Est. browser Δt" value="−1.2" unit="ms" provenance="inferred" />
-        <MetricRow label="Offline status" value="OFFLINE READY" />
+        <MetricRow label="NTP clients (chrony)" value={ntpClientCount(core.data, chain.data)} provenance="observed" />
+        <MetricRow label="Browser RTT (median)" value={clk.medianRttMs === null ? null : clk.medianRttMs.toFixed(1)} unit="ms" provenance="observed" />
+        <MetricRow label="Est. browser Δt" value={clk.offsetMs === null ? null : (-clk.offsetMs).toFixed(1)} unit="ms" provenance="inferred" />
         <div className="mt-3 text-[10px] px-2 py-1.5 rounded-[2px]"
           style={{ background:'rgba(255,255,255,0.02)', border:'1px solid var(--border-dim)', color:'var(--t4)' }}>
-          Polling this server does not confirm client clock accuracy.
+          Browser Δt is this browser's clock minus the station's, from a four-timestamp exchange; positive = browser ahead. Polling this server does not confirm client clock accuracy.
         </div>
       </CardBody>
     </Card>
   );
 }
 
-// ─── Solar ────────────────────────────────────────────────────────────────────
+// ─── Solar (planned) ──────────────────────────────────────────────────────────
 function SolarWidget() {
   return (
+    <Planned title="Solar Irradiance" needs="a clear-sky irradiance model in the almanac">
     <Card>
       <CardHeader title="Solar Irradiance" badge={<ProvenanceTag type="modeled" />} />
       <CardBody>
@@ -212,13 +287,15 @@ function SolarWidget() {
         <div className="text-[9px] mt-1.5" style={{ color:'var(--t4)' }}>Clear-sky model — actual varies with cloud cover.</div>
       </CardBody>
     </Card>
+    </Planned>
   );
 }
 
-// ─── Data Packs ───────────────────────────────────────────────────────────────
+// ─── Data Packs (planned) ─────────────────────────────────────────────────────
 function DataPackWidget() {
   const allOk = dataPacks.filter(p=>p.state!=='unavail').every(p=>p.state==='current');
   return (
+    <Planned title="Offline Readiness" needs="a data-pack manifest endpoint">
     <Card>
       <CardHeader title="Offline Readiness" badge={allOk ? <StatusBadge variant="good" label="OFFLINE READY" /> : <StatusBadge variant="warn" label="INCOMPLETE" />} />
       <CardBody>
@@ -234,28 +311,39 @@ function DataPackWidget() {
         ))}
       </CardBody>
     </Card>
+    </Planned>
   );
 }
 
 // ─── Moon ─────────────────────────────────────────────────────────────────────
+export function MoonPhaseIcon({ illumPct, waxing }: { illumPct: number; waxing: boolean }) {
+  // Terminator ellipse from illuminated fraction k: rx = r·|1 − 2k|.
+  const k = illumPct / 100;
+  const rx = Math.abs(19 * (1 - 2 * k));
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" className="flex-shrink-0">
+      <circle cx="22" cy="22" r="19" fill="var(--border)" stroke="var(--border-em)" strokeWidth="0.75"/>
+      <path d={`M22 3 A19 19 0 0 ${waxing ? 1 : 0} 22 41 A${rx} 19 0 0 ${(k > 0.5) === waxing ? 1 : 0} 22 3`} fill="var(--t2)" fillOpacity={0.85}/>
+      <circle cx="22" cy="22" r="19" fill="none" stroke="var(--t2)" strokeWidth="0.5" strokeOpacity={0.2}/>
+    </svg>
+  );
+}
+
 function MoonWidget() {
-  const illum = moonData.illumination;
+  const alm = useAlmanac();
+  const moon = moonOf(alm.data);
   return (
     <Card>
-      <CardHeader title="Moon & Night Sky" />
+      <CardHeader title="Moon" badge={<ProvenanceTag type="predicted" />} />
       <CardBody>
+        <ApiErrorNote error={alm.error} />
         <div className="flex items-start gap-4">
-          {/* Phase graphic */}
-          <svg width="44" height="44" viewBox="0 0 44 44" className="flex-shrink-0">
-            <circle cx="22" cy="22" r="19" fill="var(--border)" stroke="var(--border-em)" strokeWidth="0.75"/>
-            <ellipse cx="22" cy="22" rx={Math.abs(19*Math.cos(moonData.age/29.5*Math.PI))} ry="19"
-              fill={moonData.age > 14.75 ? 'var(--t2)' : 'var(--bg)'}/>
-            <circle cx="22" cy="22" r="19" fill="none" stroke="var(--t2)" strokeWidth="0.5" strokeOpacity={0.2}/>
-          </svg>
+          {moon && <MoonPhaseIcon illumPct={moon.illum} waxing={/wax/i.test(moon.phase)} />}
           <div className="flex-1">
-            <MetricRow label="Phase" value={moonData.phase} />
-            <MetricRow label="Illumination" value={`${(illum*100).toFixed(0)}%`} />
-            <MetricRow label="Rise / Transit / Set" value={`${moonData.rise} / ${moonData.transit} / ${moonData.set}`} />
+            <MetricRow label="Phase" value={moon?.phase ?? null} />
+            <MetricRow label="Illumination" value={moon ? `${moon.illum.toFixed(0)}%` : null} />
+            <MetricRow label="Rise / Transit / Set"
+              value={moon ? [moon.rise, moon.transit, moon.set].map(x => fmtClock(x, TZ, false) ?? '—').join(' / ') : null} />
           </div>
         </div>
       </CardBody>
@@ -287,60 +375,71 @@ function VariantA() {
 
 // ─── Variant B: Dense Engineering Console ────────────────────────────────────
 function VariantB() {
-  const rows: [string, string, string?][] = [
-    ['Δt current',          '+12.3 ns',    '± 4.1 ns'],
-    ['Δt 24h RMS',          '18.7 ns',     undefined],
-    ['Δf/f',                fmtSci(timing.fracFreqOffset), undefined],
-    ['Light-dist. equiv.',  '3.69 m',      undefined],
-    ['PPS state',           'LOCKED',      undefined],
-    ['PPS avail. (30d)',    '99.71 %',     undefined],
-    ['Lock streak',         '312h 24m',    undefined],
-    ['Stratum',             '1',           undefined],
-    ['Reference',           'GPS/PPS',     undefined],
-    ['SVs used / in view',  `${satellites.filter(s=>s.state==='used').length} / ${satellites.length}`, undefined],
-    ['Best C/N₀',           `${Math.max(...satellites.map(s=>s.cn0))} dB-Hz`, undefined],
-    ['PDOP',                '1.4',         undefined],
-    ['NTP clients',         '7',           undefined],
-    ['Solar irrad.',        '612 W/m²',    'modeled'],
-    ['Sunrise',             sunData.today.rise, undefined],
-    ['Sunset',              sunData.today.set,  undefined],
-    ['Daylight',            sunData.today.duration, undefined],
-    ['Moon phase',          moonData.phase, undefined],
+  const t = useTiming();
+  const hist = useHistory();
+  const alm = useAlmanac();
+  const sun = sunOf(alm.data);
+  const moon = moonOf(alm.data);
+  const gps = t.core.data?.gps;
+  const counts = satCounts(gps);
+  const sats = gps?.sky_stale ? [] : toSkySats(gps?.sats ?? []);
+  const s1h = toOffsetSeries(hist.data?.points, 3600);
+  const events = allEvents(t.chain.data?.events.open, t.chain.data?.events.recent).slice(0, 5);
+  const rows: [string, string | null, string?][] = [
+    ['Δt (chrony)',         t.dt ? `${t.dt.value} ${t.dt.unit}` : null, t.err ? `± ${t.err}` : undefined],
+    ['RMS offset',          t.rms],
+    ['Δf/f',                t.frac === null ? null : fmtSci(t.frac)],
+    ['Light-dist. equiv.',  t.light],
+    ['PPS state',           t.ppsState],
+    ['Timing status',       t.status?.code ?? null],
+    ['Stratum',             t.stratum],
+    ['Reference',           t.ref],
+    ['SVs used / visible',  counts.used === null ? null : `${counts.used} / ${counts.visible}`],
+    ['Best C/N₀',           cn0Stats(sats).best === null ? null : `${cn0Stats(sats).best} dB-Hz`],
+    ['TDOP',                gps?.tdop == null ? null : String(gps.tdop)],
+    ['NTP clients',         ntpClientCount(t.core.data, t.chain.data)?.toString() ?? null],
+    ['Sunrise',             fmtClock(sun?.events.sunrise, TZ)],
+    ['Sunset',              fmtClock(sun?.events.sunset, TZ)],
+    ['Daylight',            fmtDuration(sun?.daylight_s)],
+    ['Moon phase',          moon?.phase ?? null],
   ];
   return (
     <div className="page-enter">
       <div className="rounded-[2px] p-4" style={{ background:'var(--card)', border:'1px solid var(--border)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
         <div className="mono text-[9px] mb-3 uppercase tracking-[0.15em]" style={{ color:'var(--t4)' }}>
-          ATLAS-01 — Engineering Console — {new Date().toISOString().replace('T',' ').slice(0,-5)} UTC
+          {window.location.hostname} — Engineering Console — {new Date().toISOString().replace('T',' ').slice(0,-5)} UTC
         </div>
         <div className="grid grid-cols-2 gap-x-10">
           {rows.map(([k,v,s]) => (
             <div key={k} className="flex items-baseline justify-between py-[5px] row-sep">
               <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>{k}</span>
               <div className="flex items-baseline gap-2">
-                <span className="mono tabular text-[11px] font-medium" style={{ color:'var(--t1)' }}>{v}</span>
+                {v === null
+                  ? <StatusBadge variant="muted" label="UNKNOWN" dot={false} />
+                  : <span className="mono tabular text-[11px] font-medium" style={{ color:'var(--t1)' }}>{v}</span>}
                 {s && <span className="text-[9px]" style={{ color:'var(--t4)' }}>{s}</span>}
               </div>
             </div>
           ))}
         </div>
         <div className="mt-4">
-          <div className="mono text-[9px] mb-1.5 uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Δt — last 1 hour</div>
-          <OffsetChart data={offset1h} range="1h" />
+          <div className="mono text-[9px] mb-1.5 uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Δt — last 1 hour ({s1h.unit})</div>
+          <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-6">
           <div>
-            <div className="mono text-[9px] mb-1 uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>PPS Loss Events (30d)</div>
-            {[{d:'Sep 10',s:1387},{d:'Sep 13',s:161},{d:'Sep 15',s:58},{d:'Sep 19',s:72},{d:'Sep 22',s:34}].map(e=>(
-              <div key={e.d} className="flex justify-between py-[4px] row-sep">
-                <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>{e.d}</span>
-                <span className="mono tabular text-[10px]" style={{ color:'var(--warn-text)' }}>{e.s}s</span>
+            <div className="mono text-[9px] mb-1 uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>Recent PPS events</div>
+            {events.length === 0 && <div className="mono text-[10px]" style={{ color:'var(--t4)' }}>none recorded</div>}
+            {events.map(e => (
+              <div key={e.id} className="flex justify-between py-[4px] row-sep">
+                <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>{e.start_utc.slice(0, 16).replace('T', ' ')}</span>
+                <span className="mono tabular text-[10px]" style={{ color:'var(--warn-text)' }}>{e.open ? 'OPEN · ' : ''}{fmtDuration(e.duration_s) ?? '—'}</span>
               </div>
             ))}
           </div>
           <div>
             <div className="mono text-[9px] mb-1 uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>Sky Plot</div>
-            <SkyPlot sats={satellites} />
+            <SkyPlot sats={plottable(sats)} />
           </div>
         </div>
       </div>
@@ -350,40 +449,50 @@ function VariantB() {
 
 // ─── Variant C: Minimal Precision ─────────────────────────────────────────────
 function VariantC() {
+  const t = useTiming();
+  const hist = useHistory();
+  const alm = useAlmanac();
+  const sun = sunOf(alm.data);
+  const moon = moonOf(alm.data);
+  const gps = t.core.data?.gps;
+  const s1h = toOffsetSeries(hist.data?.points, 3600);
   return (
     <div className="page-enter" style={{ maxWidth:640, margin:'0 auto', paddingTop:'2rem' }}>
       <div className="text-center mb-10">
-        <div className="mono text-[9px] uppercase tracking-[0.22em] mb-3" style={{ color:'var(--t4)' }}>Current time offset</div>
+        <div className="mono text-[9px] uppercase tracking-[0.22em] mb-3" style={{ color:'var(--t4)' }}>System clock offset (chrony)</div>
         <div className="flex items-baseline justify-center gap-3">
-          <span className="mono tabular font-light" style={{ fontSize:72, lineHeight:1, color:'var(--live-bright)', letterSpacing:'-0.02em' }}>+12.3</span>
+          <span className="mono tabular font-light" style={{ fontSize:72, lineHeight:1, color:'var(--live-bright)', letterSpacing:'-0.02em' }}>{t.dt?.value ?? '—'}</span>
           <div className="flex flex-col items-start gap-1">
-            <span className="mono text-2xl font-light" style={{ color:'var(--t2)' }}>ns</span>
-            <span className="mono text-sm" style={{ color:'var(--t4)' }}>± 4.1</span>
+            <span className="mono text-2xl font-light" style={{ color:'var(--t2)' }}>{t.dt?.unit ?? ''}</span>
+            {t.err && <span className="mono text-sm" style={{ color:'var(--t4)' }}>± {t.err}</span>}
           </div>
         </div>
-        <div className="mono text-[10px] mt-2" style={{ color:'var(--t4)' }}>≡ 3.69 m · GPS/PPS LOCKED · Stratum 1</div>
+        <div className="mono text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+          {[t.light && `≡ ${t.light}`, t.status?.banner].filter(Boolean).join(' · ') || 'UNKNOWN'}
+        </div>
       </div>
 
       <div className="mb-8">
-        <OffsetChart data={offset1h} range="1h" />
-        <div className="text-center mono text-[9px] mt-1" style={{ color:'var(--t4)' }}>Δt — last 60 minutes</div>
+        <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
+        <div className="text-center mono text-[9px] mt-1" style={{ color:'var(--t4)' }}>Δt — last 60 minutes ({s1h.unit})</div>
       </div>
 
       <div style={{ borderTop:'1px solid var(--border-dim)' }}>
-        {[
-          ['24 h RMS',             '18.7 ns'],
-          ['PPS lock streak',      '312h 24m continuous'],
-          ['PPS availability',     '99.71 %'],
-          ['Fractional freq. offset', fmtSci(timing.fracFreqOffset)],
-          ['Satellites used / in view', `${satellites.filter(s=>s.state==='used').length} / ${satellites.length}`],
-          ['NTP stratum',          '1'],
-          ['NTP clients',          '7'],
-          ['Sunrise / Sunset',     `${sunData.today.rise} / ${sunData.today.set}`],
-          ['Moon',                 `${moonData.phase} · ${(moonData.illumination*100).toFixed(0)}% illuminated`],
-        ].map(([k,v]) => (
+        {([
+          ['RMS offset (chrony)', t.rms],
+          ['PPS state', t.ppsState],
+          ['Fractional freq. offset', t.frac === null ? null : fmtSci(t.frac)],
+          ['Satellites used / visible', satCounts(gps).used === null ? null : `${satCounts(gps).used} / ${satCounts(gps).visible}`],
+          ['NTP stratum', t.stratum],
+          ['NTP clients', ntpClientCount(t.core.data, t.chain.data)?.toString() ?? null],
+          ['Sunrise / Sunset', sun ? `${fmtClock(sun.events.sunrise, TZ) ?? '—'} / ${fmtClock(sun.events.sunset, TZ) ?? '—'}` : null],
+          ['Moon', moon ? `${moon.phase} · ${moon.illum.toFixed(0)}% illuminated` : null],
+        ] as [string, string | null][]).map(([k,v]) => (
           <div key={k} className="flex justify-between py-2.5 row-sep">
             <span className="text-[12px]" style={{ color:'var(--t3)' }}>{k}</span>
-            <span className="mono tabular text-[12px]" style={{ color:'var(--t1)' }}>{v}</span>
+            {v === null
+              ? <StatusBadge variant="muted" label="UNKNOWN" dot={false} />
+              : <span className="mono tabular text-[12px]" style={{ color:'var(--t1)' }}>{v}</span>}
           </div>
         ))}
       </div>

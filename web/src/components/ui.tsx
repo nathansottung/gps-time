@@ -54,9 +54,18 @@ export function SectionHeader({ title, sub, action, provenance }: {
 
 // ─── Metric Row ───────────────────────────────────────────────────────────────
 export function MetricRow({ label, value, unit, uncertainty, provenance, muted, large }: {
-  label: string; value: string|number; unit?: string; uncertainty?: string;
+  label: string; value: string|number|null|undefined; unit?: string; uncertainty?: string|null;
   provenance?: ProvenanceType; muted?: boolean; large?: boolean;
 }) {
+  // null/undefined = the station can't establish this value: show UNKNOWN, never a guess.
+  if (value === null || value === undefined) {
+    return (
+      <div className="flex items-baseline justify-between py-[5px] row-sep">
+        <span className="text-[11px]" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
+        <StatusBadge variant="muted" label="UNKNOWN" dot={false} />
+      </div>
+    );
+  }
   return (
     <div className="flex items-baseline justify-between py-[5px] row-sep">
       <span className="text-[11px]" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>

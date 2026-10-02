@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, Tabs, ProvenanceTag } from '../components/ui';
-import { sdrDevices } from '../data/demo';
+import { sdrDevices } from '../api/previews';
+import { Planned } from '../components/planned';
+import { useStation } from '../api/station';
 import { fmtSci } from '../lib/units';
 
 const TIER_LABELS = [
@@ -110,17 +112,19 @@ const maturityOrder: Record<string, number> = { supported:0, experimental:1, res
 export default function RadioSDR() {
   const [tab, setTab] = useState('Devices');
   const sorted = [...modules].sort((a,b) => maturityOrder[a.maturity] - maturityOrder[b.maturity]);
+  const { isDemo } = useStation();
 
   return (
     <div className="space-y-4 page-enter">
       <div className="flex items-baseline justify-between">
         <h1 className="text-sm font-semibold text-[#dde3ef]">Radio & SDR</h1>
-        <StatusBadge variant="info" label={`${sdrDevices.length} DEVICES ACTIVE`} />
+        {isDemo ? <StatusBadge variant="info" label={`${sdrDevices.length} DEVICES ACTIVE`} /> : <MaturityBadge level="planned" />}
       </div>
 
       <Tabs tabs={['Devices','RF Modules','Timing Tiers']} active={tab} onChange={setTab} />
 
       {tab === 'Devices' && (
+        <Planned title="SDR Devices" needs="the SDR layer (device discovery and capture services)">
         <div className="grid grid-cols-1 gap-4">
           {sdrDevices.map(dev => <SDRCard key={dev.id} dev={dev}/>)}
 
@@ -134,6 +138,7 @@ export default function RadioSDR() {
             </CardBody>
           </Card>
         </div>
+        </Planned>
       )}
 
       {tab === 'RF Modules' && (
@@ -183,9 +188,9 @@ export default function RadioSDR() {
                   <div className="flex-1">
                     <div className={`text-[12px] font-medium ${t.color}`}>{t.label}</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">{t.desc}</div>
-                    <div className="mt-1 text-[10px] text-slate-600">
+                    {isDemo && <div className="mt-1 text-[10px] text-slate-600">
                       Currently installed: {sdrDevices.filter(d=>d.tier===t.tier).map(d=>d.id).join(', ') || 'none'}
-                    </div>
+                    </div>}
                   </div>
                 </div>
               ))}

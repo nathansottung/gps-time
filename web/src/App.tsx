@@ -6,7 +6,24 @@ import GNSS from './pages/GNSS';
 import RadioSDR from './pages/RadioSDR';
 import Configure from './pages/Configure';
 import { SunAstronomy, Network, Aviation, Distributed, DataLogs, Admin } from './pages/Secondary';
-import { STATION_NAME, DEMO } from './data/demo';
+import { useStation } from './api/station';
+import type { TimingStatus } from './api/types';
+
+const STATUS_STYLE = {
+  good:  { bg:'var(--good-bg)', border:'var(--good-border)', text:'var(--good-text)' },
+  warn:  { bg:'var(--warn-bg)', border:'var(--warn-border)', text:'var(--warn-text)' },
+  error: { bg:'var(--err-bg)',  border:'var(--err-border)',  text:'var(--err-text)' },
+  muted: { bg:'transparent',    border:'var(--border)',      text:'var(--t3)' },
+};
+
+// Status code → badge colour. Codes come from gps_time_pi/timing_chain.py.
+function statusVariant(st: TimingStatus | undefined): 'good'|'warn'|'error'|'muted' {
+  if (!st) return 'muted';
+  if (st.code === 'GPS_PPS') return 'good';
+  if (st.code === 'UNSYNCHRONIZED') return 'error';
+  if (st.code === 'UNKNOWN') return 'muted';
+  return 'warn';
+}
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 const NAV = [
@@ -26,6 +43,10 @@ const GROUPS = ['', 'Measurement', 'Station', 'Research', 'System'];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 function Header() {
+  const { core, chain, isDemo } = useStation();
+  const status = chain.data?.status ?? core.data?.timing_status;
+  const variant = statusVariant(status);
+  const stationName = typeof window !== 'undefined' ? window.location.hostname : '';
   const [utc, setUtc]     = useState('');
   const [local, setLocal] = useState('');
 
@@ -62,23 +83,24 @@ function Header() {
         </svg>
         <span className="mono text-[12px] font-semibold tracking-tight" style={{ color:'var(--t1)' }}>GPS Time</span>
         <span className="text-[9px] mono" style={{ color:'var(--t4)' }}>|</span>
-        <span className="text-[11px]" style={{ color:'var(--t3)' }}>{STATION_NAME}</span>
+        <span className="text-[11px]" style={{ color:'var(--t3)' }}>{stationName}</span>
       </div>
 
       {/* Centre — station state chips */}
       <div className="flex items-center gap-2">
-        {/* Primary GPS state — this gets the live color */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]"
-          style={{ background:'var(--good-bg)', border:'1px solid var(--good-border)' }}>
-          <span className="w-1 h-1 rounded-full pulse-dot" style={{ background:'var(--good-text)' }}/>
-          <span className="mono text-[9px] font-medium uppercase tracking-[0.1em]" style={{ color:'var(--good-text)' }}>GPS PPS LOCKED</span>
+        {/* Timing status from /api/timing-chain (calculated) */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]" title={status?.detail}
+          style={{ background: STATUS_STYLE[variant].bg, border:`1px solid ${STATUS_STYLE[variant].border}` }}>
+          <span className={`w-1 h-1 rounded-full ${variant === 'good' ? 'pulse-dot' : ''}`} style={{ background: STATUS_STYLE[variant].text }}/>
+          <span className="mono text-[9px] font-medium uppercase tracking-[0.1em]" style={{ color: STATUS_STYLE[variant].text }}>
+            {status ? status.banner : (core.error || chain.error) ? 'STATION UNREACHABLE' : 'UNKNOWN'}
+          </span>
         </div>
 
-        <Chip label="STRATUM" value="1" />
-        <Chip label="REF" value="GPS/PPS" />
-        <Chip label="OFFLINE READY" />
+        <Chip label="STRATUM" value={core.data?.quality.stratum ?? 'UNKNOWN'} />
+        <Chip label="REF" value={core.data?.quality.reference ?? 'UNKNOWN'} />
 
-        {DEMO && (
+        {isDemo && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]"
             style={{ background:'var(--demo-bg)', border:'1px solid var(--demo-border)' }}>
             <span className="mono text-[9px] font-medium uppercase tracking-[0.1em]" style={{ color:'var(--demo-text)' }}>
@@ -116,6 +138,7 @@ function Chip({ label, value }: { label: string; value?: string }) {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: string) => void }) {
+  const { core } = useStation();
   return (
     <nav
       className="w-[188px] flex-shrink-0 flex flex-col overflow-y-auto"
@@ -158,7 +181,8 @@ function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: stri
       {/* Build info */}
       <div className="px-4 py-3" style={{ borderTop:'1px solid var(--border-dim)' }}>
         <div className="text-[8px] mono leading-relaxed" style={{ color:'var(--t4)' }}>
-          v0.4.2-beta · MIT License
+          {core.data ? `v${core.data.versions.app}` : 'version unknown'} · MIT License<br/>
+          <a href="../" style={{ color:'var(--t3)' }}>Legacy dashboard</a>
         </div>
       </div>
     </nav>
@@ -186,6 +210,7 @@ function PageContent({ page }: { page: string }) {
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState('overview');
+  const { isDemo } = useStation();
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background:'var(--bg)' }}>
@@ -193,7 +218,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar active={page} onNavigate={setPage} />
         <main className="flex-1 overflow-y-auto p-5 space-y-4">
-          {DEMO && <DemoBanner />}
+          {isDemo && <DemoBanner />}
           <PageContent page={page} />
         </main>
       </div>

@@ -15,7 +15,9 @@ corepack pnpm run typecheck
 corepack pnpm run build                   # output: dist/
 ```
 
-The dev server is not started for you. It binds to 127.0.0.1 by default; set `GTP_WEB_HOST=0.0.0.0` only to deliberately expose it on a LAN. `PORT` overrides the port.
+The dev server is not started for you. It binds to 127.0.0.1 by default; set `GTP_WEB_HOST=0.0.0.0` only to deliberately expose it on a LAN. `PORT` overrides the port. It proxies `/api` to `GTP_API_TARGET` (default `http://127.0.0.1:8080`, the desktop demo from `scripts/run-demo.ps1`). Open `http://127.0.0.1:5173/?source=demo` to use the client-side demo adapter with no backend.
+
+The built app is served by the station at `/app/` (`gps_time_pi/server.py`, ADR-0004).
 
 ## Offline-first
 
@@ -29,10 +31,16 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/components/ui.tsx` — design-system components (Card, MetricRow, StatusBadge, ProvenanceTag, MaturityBadge, DemoBanner, …)
 - `src/components/charts.tsx` — Recharts/SVG chart components
 - `src/lib/units.ts` — scientific formatting helpers (e.g. `fmtSci` for Δf/f as ×10⁻ⁿ)
-- `src/data/demo.ts` — synthetic demo data (must always be shown with the demo banner)
+- `src/api/types.ts` — types for the station HTTP API (reference: `../docs/api/`)
+- `src/api/client.ts` — `StationApi` interface, `httpApi()` client, `/api/ping` clock estimate
+- `src/api/demo.ts` — demo adapter: synthetic payloads in the API's shapes (always shown with the demo banner)
+- `src/api/previews.ts` — synthetic previews for features with no endpoint yet; rendered only through `<Planned>` with demo data
+- `src/api/station.tsx` — data-source selection (`?source=demo|live`, `VITE_GTP_SOURCE`), `StationProvider`, polling hooks
+- `src/api/view.ts` — maps API payloads onto component shapes (no invented values)
+- `src/components/planned.tsx` — `<Planned>` (preview under demo, "not available" live) and `ApiErrorNote`
 - `src/index.css` — font imports, Tailwind import, design tokens and utility classes
 - `vite.config.ts` — standalone Vite config (React, Tailwind, `@` alias for `src`)
 
 ## Data and labeling
 
-Every value carries one of six provenance labels: observed, calculated, modeled, predicted, inferred, external. Use UNKNOWN rather than guessing when origin or state can't be established. Demo data must never look like real measurements. Demo location is the US Naval Observatory (38.9217, −77.0669); never commit a real station's coordinates.
+Every value carries one of six provenance labels: observed, calculated, modeled, predicted, inferred, external. Use UNKNOWN rather than guessing when origin or state can't be established. Demo data must never look like real measurements: no fallback from a failed live request to demo data, and preview content only inside `<Planned>` or behind an explicit `isDemo` check. `null` from the API means UNKNOWN (`MetricRow` renders it). Demo location is the US Naval Observatory (38.9217, −77.0669); never commit a real station's coordinates.
