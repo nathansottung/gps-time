@@ -186,3 +186,30 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - `docs/STATUS.md` has one table of every spec item (CHG, TASK, OBS, ADD), roadmap feature (registry A–J, current scope), web-UI port item and independent-review finding: 351 rows. Each row has a status (done / in progress / next / planned) and PR links, and the file lists the next 5 tasks in order.
 - Statuses come from an inventory checked against the code and tests on 2026-10-02. Items that are partly built are "planned" or "next" with a "partial:" note.
 - `CLAUDE.md`: new rule to update `docs/STATUS.md` in every PR. `docs/INDEX.md` links it.
+
+## 2026-10-02 — PPS UI: source-aware banner, timing-chain card, PPS diagnostics page (feat/pps-ui)
+
+- **Banner** (`web/src/components/timing.tsx`, every page and the header chip). Built only from `/api/timing-chain`:
+  - always names the sync source;
+  - shows PPS outage duration and start;
+  - shows `INCONSISTENT REPORT` instead of GPS/PPS if chrony's selected source isn't PPS;
+  - never shows a bare `SYNCHRONIZED`.
+- **Header** stratum/reference now come from the timing chain. They no longer mix in `/api`'s separate snapshot (which showed STRATUM 1 while chrony was unknown).
+- **Timing-chain card** first on the Overview: GNSS → PPS device → PPS signal → chrony PPS → system clock, per the CHG "Dashboard Requirement" hierarchy.
+- **PPS Diagnostics page:**
+  - answers to the 12 CHG acceptance questions;
+  - device, live PPS (measurement layer labeled), chrony refclock;
+  - outage events with recovery details;
+  - stages, raw `chronyc -n` output;
+  - COPY DIAGNOSTICS (with a fallback for plain-http LAN stations) and DOWNLOAD (local .txt).
+  - The Timing page's Timing Chain tab now points there.
+- **Demo:**
+  - demo scenarios are selectable app-wide (`?scenario=`);
+  - the client-side demo adapter gained a `network_failover` scenario and full PPS/chrony/recovery fields in the server's shapes;
+  - chrony's `+0ns` sample at reach 0 is shown as "no samples".
+- **Verified in the browser:**
+  - all 10 server demo scenarios: the banner names a source in each; the header shows UNKNOWN stratum when chrony is unknown;
+  - the client-side failover scenario;
+  - COPY (fallback path) and DOWNLOAD (file intercepted and checked, not saved).
+- Docs: `docs/architecture/timing-chain.md` "Web UI" section; parity list; `STATUS.md` rows marked "implemented on feat/pps-ui; awaiting review".
+- **Not done:** PPS state timeline and history views (next-5 task 5); per-event `ppstest` listing; kernel/dmesg info. The web app has no unit-test harness, so the banner guards are verified in the browser only.

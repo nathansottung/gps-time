@@ -189,6 +189,42 @@ Each runs the real pipeline on synthetic inputs and is marked as synthetic data.
 
 It doesn't depend on browser traffic. A tick failure never stops the server. It does **not** change chrony, gpsd or PPS configuration.
 
+## Web UI (`/app/`)
+
+The new UI shows the chain from `/api/timing-chain` in three places.
+
+**Banner.** One banner at the top of every page, plus the header chip, both built by `bannerView()` in `web/src/components/timing.tsx`. It shows `status.banner`, the detail and, during an open outage, "PPS unavailable for <duration> (since <UTC>[ or earlier])". Two guards keep it from overstating timing:
+- **Inconsistent report:** a `GPS_PPS` status while chrony's selected source is not the PPS refclock is shown as `TIMING STATUS UNKNOWN · INCONSISTENT REPORT`, never as Stratum 1 GPS/PPS.
+- **Missing source:** a status with no source qualifier gets the selected source appended, so a bare `SYNCHRONIZED` is never shown.
+- No chain, or an unreachable station, gives `TIMING STATUS UNKNOWN`.
+
+The header's stratum and reference come from the same timing-chain snapshot. `/api` is used only when there is no chain at all.
+
+**Timing-chain card.** First on the Overview page, and repeated on the PPS page. Five columns in the spec's order:
+- **GNSS:** health, satellites used/visible, TDOP, best C/N₀.
+- **PPS device:** present/missing, path, GPIO.
+- **PPS signal (kernel):** pulse health, age of the last pulse, rate.
+- **chrony PPS:** status, refclock, reach, last sample, chrony's symbol and meaning. With reach 0, chrony's `+0ns` sample is shown as "no samples".
+- **System clock:** mode, current source, stratum, how long PPS has been unavailable or unused.
+
+**PPS Diagnostics page.** Read-only, with these sections:
+- answers to the 12 acceptance questions of CHG-PPS-HEALTH-DIAGNOSTICS;
+- classification (inferred);
+- Device (path, presence, sysfs name and path, GPIO, edge);
+- Live PPS, with the measurement layer labeled. Includes age, rate, consecutive and missed pulses, sequence resets, interval mean/min/max/std dev (kernel timestamp spacing, not electrical jitter) and the thresholds;
+- chrony PPS refclock (symbol and meaning, reach, last sample, poll, offset ± error bound, frequency/skew, std dev, NMEA lock, selected source);
+- outage events with recovery details (fallback sources, largest chrony correction, time to accept and select);
+- stages;
+- verbatim raw `chronyc -n` output and sysfs values;
+- the diagnostic snapshot.
+
+**COPY DIAGNOSTICS / DOWNLOAD.** Both fetch `/api/diagnostics` fresh on each click.
+- COPY uses the Clipboard API when the page is a secure context. A station on plain http over the LAN isn't one, so the fallback is a hidden textarea with `execCommand('copy')`.
+- DOWNLOAD saves `gps-time-diagnostics-<UTC>.txt` from a Blob.
+- Nothing is sent anywhere, and the station applies the privacy mode to the text.
+
+**Demo scenarios.** In demo mode (server `GTP_DEMO` or `?source=demo`) the PPS page offers a scenario selector, and `?scenario=<name>` sets it from the URL. Banner, header, card and page all follow the selected scenario.
+
 ## Troubleshooting procedure
 
 1. **Is `kernel_events` OK?**
@@ -201,8 +237,8 @@ It doesn't depend on browser traffic. A tick failure never stops the server. It 
 
 ## Not yet implemented
 
-- **Dashboard UI** (PPS card, timeline, COPY DIAGNOSTICS control). The task covered the backend only.
-- **History views** (availability %, outages per day or week).
+- **PPS state timeline** and **history views** (uptime, availability %, outages per day or week, longest outage). The UI shows the open and recent events only.
+- A per-event `ppstest`-style listing, and kernel/dmesg PPS information.
 - Holdover projections (time to 1 µs … 1 s).
 - GNSS integrity monitoring and the forensic telemetry window.
 - Multi-station correlation.
