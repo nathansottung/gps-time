@@ -113,7 +113,7 @@ export function HoldoverScatter({ data }: { data: { durationS: number; errorNsOn
 const SYSCOLOR: Record<string,string> = {
   GPS:'var(--live)', GLONASS:'var(--warn-text)', GALILEO:'var(--mod-text)', BEIDOU:'var(--good-text)',
 };
-export function SkyPlot({ sats }: { sats: { sys:string; svid:string; az:number; el:number; cn0:number; state:string }[] }) {
+export function SkyPlot({ sats, hiddenNote }: { sats: { sys:string; svid:string; az:number; el:number; cn0:number; state:string }[]; hiddenNote?: string }) {
   const sz = 214, cx = sz/2, cy = sz/2, r = sz/2 - 18;
   const toXY = (az: number, el: number) => {
     const p = (1 - el/90) * r;
@@ -145,6 +145,7 @@ export function SkyPlot({ sats }: { sats: { sys:string; svid:string; az:number; 
       {/* Elevation labels */}
       <text x={cx+2} y={cy-r/3+2} fontSize="7" fill="var(--t4)" fontFamily="JetBrains Mono">60°</text>
       <text x={cx+2} y={cy-r*2/3+2} fontSize="7" fill="var(--t4)" fontFamily="JetBrains Mono">30°</text>
+      {hiddenNote && <text x={cx} y={cy+3} textAnchor="middle" fontSize="7" fill="var(--t3)" fontFamily="JetBrains Mono">{hiddenNote}</text>}
       {/* Satellites */}
       {sats.map(s => {
         const { x, y } = toXY(s.az, s.el);

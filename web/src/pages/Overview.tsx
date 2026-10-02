@@ -241,7 +241,7 @@ function GNSSWidget() {
         <MetricRow label="Data age" value={gps?.data_age_s == null ? null : gps.data_age_s.toFixed(1)} unit="s" provenance="calculated" />
         <ELI5 text="C/N₀ (carrier-to-noise-density) measures how clearly each satellite is heard above background noise. Higher is better." />
         <div className="mt-3 flex justify-center">
-          <SkyPlot sats={plottable(sats)} />
+          <SkyPlot sats={plottable(sats)} hiddenNote={core.data?.location.mode === 'hidden' ? 'positions hidden (privacy)' : undefined} />
         </div>
       </CardBody>
     </Card>
@@ -441,7 +441,7 @@ function VariantB() {
           </div>
           <div>
             <div className="mono text-[9px] mb-1 uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>Sky Plot</div>
-            <SkyPlot sats={plottable(sats)} />
+            <SkyPlot sats={plottable(sats)} hiddenNote={t.core.data?.location.mode === 'hidden' ? 'positions hidden (privacy)' : undefined} />
           </div>
         </div>
       </div>

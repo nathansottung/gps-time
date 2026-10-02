@@ -109,6 +109,7 @@ def core_api():
         d = demo.core_api()
         cfg = config.load()
         d["location"] = config.displayed_location(cfg, DEMO_SITE)   # demo honors the privacy mode too
+        d["gps"] = {**d["gps"], "sats": config.privacy_sats(cfg, d["gps"].get("sats", []))}
         if cfg.get("location_display") == "hidden":
             d["sidereal"] = None
         return d
@@ -141,9 +142,10 @@ def core_api():
         "sources": srcs,
         "sourcestats": chrony.sourcestats(),
         "clients": chrony.clients(),
-        "gps": {k: snap[k] for k in ("fix", "sats", "used", "visible", "tdop", "hdop",
-                                     "last_fix", "last_fix_time", "stale", "data_age_s",
-                                     "sky_stale", "sky_age_s")},
+        "gps": {**{k: snap[k] for k in ("fix", "used", "visible", "tdop", "hdop",
+                                        "last_fix", "last_fix_time", "stale", "data_age_s",
+                                        "sky_stale", "sky_age_s")},
+                "sats": config.privacy_sats(cfg, snap["sats"])},
         "location": config.displayed_location(cfg, snap["live"]),
         "survey": config.site_stats(cfg),
         "position_provenance": provenance,

@@ -330,6 +330,16 @@ def privacy_site(cfg, site):
     return site, mode
 
 
+def privacy_sats(cfg, sats):
+    """Satellite list under the privacy mode. Azimuth/elevation of several
+    satellites at a known time, with a public GNSS almanac, constrain the
+    receiver position, so hidden mode drops them (null); exact and rounded keep
+    them. IDs, constellation, C/N0 and used flags are kept in every mode."""
+    if cfg.get("location_display") != "hidden":
+        return sats
+    return [{**s, "el": None, "az": None} for s in sats]
+
+
 def displayed_location(cfg, live):
     """Apply the privacy mode to whatever position we're exposing."""
     mode = cfg.get("location_display", "exact")

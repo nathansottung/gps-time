@@ -18,7 +18,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample` |
 | `sourcestats` | raw `chronyc sourcestats` text |
 | `clients` | `chronyc clients` rows: `host`, `ntp_packets`, `dropped`, `last`. **`[]` is ambiguous**: it means no clients *or* chronyc failed *or* the command was refused (it needs privileges). The UI reports UNKNOWN when `/api/timing-chain` says chronyc is unavailable. |
-| `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
+| `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`; in `hidden` privacy mode `el` and `az` are null), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
 | `location` | position **after the privacy mode**: `{mode, lat, lon, alt_msl?, alt_hae?}`. exact → 4 decimals, alt_msl and alt_hae; rounded → 1 decimal, alt_msl to 10 m, no alt_hae; hidden → lat/lon null. |
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
 | `position_provenance` | `live` (current fix), `stored` (saved site), `none`, or `demo` |
@@ -280,10 +280,11 @@ HTML from `gps_time_pi/templates/`, served with `no-store`. They stay until the 
 - **Applied by the server:**
   - `/api` → `location`;
   - `/api` → `sidereal`;
+  - `/api` → `gps.sats`: azimuth and elevation are null in `hidden` (`config.privacy_sats()`); kept in `exact` and `rounded`;
   - `/api/almanac` and `/api/object`: rounded site in `rounded`, nothing in `hidden`;
   - `/api/diagnostics`;
   - the legacy location blocks.
   - Helper: `config.privacy_site()`, the same rounding as `config.displayed_location()`. Tests: `tests/test_location_privacy.py`.
 - **Not positions:** `/api/survey` → `fixes` are relative offsets; `stats` are scatter magnitudes.
-- **Known remaining leak:** `/api` → `gps.sats` exposes each satellite's azimuth and elevation in every mode. Combined with a public GNSS almanac and the response time, those angles constrain the receiver's position (roughly, from whole-degree angles), even in `hidden` mode. Not yet filtered.
+- **Residual, by design:** in `hidden` mode `/api` still lists which satellites are tracked and their C/N₀. The set of satellites above the horizon at a given time still narrows the position, but only coarsely: far more than the ~11 km of `rounded` mode. The precision has not been quantified. The list is kept so that GNSS health stays visible; drop it too if that residual is unacceptable.
 - **File paths:** `/api/survey` → `persistence.path`/`previous_checkpoint`, and `/api/dashboard` → `_meta.path` in demo mode, expose absolute paths on the station.
