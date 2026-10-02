@@ -51,4 +51,9 @@ CI (`.github/workflows/`):
 - **GNSS collection and survey:** `gps_time_pi/gps.py` (background collector, fresh-epoch gating), `gps_time_pi/config.py` (persistence: SIGTERM flush, fsync, `config.json.prev`, corrupt files set aside).
 - **Specifications** (requirements, not implemented behavior): `docs/specs/`.
 - **Independent review and remaining findings:** `docs/review/GPS-Time-Independent-Review-2026-09-27.md`.
+- **HTTP API and new web UI:**
+  - Reference for every route: `docs/api/`.
+  - Typed client and demo adapter: `web/src/api/`.
+  - The built UI is served at `/app/` (ADR-0004).
+  - Legacy feature gaps: `docs/dashboard/web-ui-parity.md`.
 - **Desktop demo** (no Pi, gpsd, chrony or Internet needed): `scripts/run-demo.ps1` → http://127.0.0.1:8080/. Timing-chain demo: `/api/timing-chain?scenario=<name>`.

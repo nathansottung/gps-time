@@ -35,8 +35,13 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - professional concept image: kept outside the repository (provenance unrecorded; not distributed)
 
 ## Web prototype
-- `../web/` — Figma Make React/Vite UI prototype (imported 2026-10-01; synthetic demo data; not wired to the Pi server)
+- `../web/` — React/Vite UI being ported to become the Pi UI; served by the station at `/app/` and wired to the API through a typed client (`web/src/api/`). Legacy pages stay until parity.
+- `dashboard/web-ui-parity.md` — legacy features the new UI still lacks
 - `../web/guidelines/Guidelines.md` — UI guidelines all project UI must follow
+
+## API
+- `api/README.md` — station HTTP API conventions and index
+- `api/endpoints.md` — every route: parameters, responses, side effects, privacy notes
 
 ## Development
 - `development/windows-demo.md`
@@ -50,7 +55,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Licensing / decisions / provenance
 - `licensing/open-source-policy.md`
-- `decisions/`
+- `decisions/` (ADR-0004: web UI served at `/app/` beside the legacy pages)
 - `provenance/change-log.md`
 
 ## Source review

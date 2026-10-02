@@ -17,6 +17,8 @@ Or run VS Code task **GPS Time: Run Windows demo**.
 
 The script opens `http://127.0.0.1:8080/` and stores development-only configuration under `.dev/`.
 
+The new web UI is at `http://127.0.0.1:8080/app/` once it has been built (`cd web && corepack pnpm run build`); until then `/app/` answers 503 with the build command. It shows the demo banner because the server reports demo mode. See `docs/api/` for the endpoints.
+
 ## Demo properties
 
 - same dashboard HTML/CSS/JS as the Pi

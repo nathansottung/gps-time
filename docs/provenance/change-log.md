@@ -110,3 +110,39 @@ Root cause (reported 2026-10-01, review GPS-013): survey updates are written at 
 - Guide fixes:
   - The guide now mentions `.gitattributes` and what it covers.
   - It explains what to do when an older Python shadows 3.11+ on PATH (`py -0p`, `py -3.x`), and notes that `run-demo.ps1` prefers plain `python`.
+
+## 2026-10-01 — web UI served by the station and wired to the API (feat/web-dashboard)
+
+- **Server:** `gps_time_pi/server.py` serves the built React app (`web/dist`, or `GTP_WEB_DIST`) at `/app/`.
+  - `index.html` is `no-store`; hashed assets are cached immutably.
+  - Traversal and NUL paths are refused.
+  - Without a build, `/app/` returns 503 with the build command.
+  - Legacy pages and every `/api` route are unchanged. Tests: `tests/test_web_ui.py`.
+- **Web UI:** `web/src/data/demo.ts` is replaced by `web/src/api/`:
+  - typed API (`types.ts`) and `StationApi` client (`client.ts`);
+  - client-side demo adapter in the server's shapes (`demo.ts`);
+  - previews for features with no endpoint (`previews.ts`), shown only through `<Planned>` with demo data;
+  - data-source selection and polling (`station.tsx`).
+  - A failed live request never falls back to demo data.
+  - `MetricRow` shows `null` as UNKNOWN.
+  - Vite's dev server proxies `/api` to `GTP_API_TARGET`.
+- **Pages now read the station:**
+  - header status, stratum and reference;
+  - Δt (chrony), RMS, Δf/f, PPS state, offset history (1 h / 24 h / 7 d);
+  - new Timing Chain tab: stages, inferred classification, diagnostic snapshot;
+  - PPS event log, GNSS table, sky plot, position and geodesy (privacy-filtered values only);
+  - sun and moon (predicted), sidereal time;
+  - NTP clients and chrony sources, browser RTT and offset estimate (`/api/ping`);
+  - storage, system, power, location privacy setting.
+- **Honesty fixes found while wiring:**
+  - Sunrise and sunset are labeled predicted.
+  - With chronyc unavailable, the NTP client count is UNKNOWN instead of 0; satellite counts from a stale sky report are not shown.
+  - The obstruction preview no longer names a cause.
+  - The light-distance comparisons are corrected (1 s ≈ 0.78 × Earth–Moon distance).
+  - Configure says it is a non-saving preview.
+  - The demo outage classifications are the classifier's real strings.
+- **Docs:**
+  - `docs/api/README.md` and `docs/api/endpoints.md` cover every route, including side effects, the LAN-trust gaps, the ambiguous `clients: []` and the almanac privacy note;
+  - ADR-0004;
+  - `docs/dashboard/web-ui-parity.md` (21 legacy features still missing).
+- **Not done:** `install.sh` and the deploy bundle do not ship `web/dist` yet.

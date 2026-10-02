@@ -93,7 +93,7 @@ python -m unittest discover -s tests -t . -v
 
 **If `python --version` prints something older than 3.11,** an older install comes first on PATH (winget installs side by side and does not reorder PATH). List the installs with `py -0p`, then either use the launcher (`py -3.11 -m unittest …`, or whichever 3.11+ version is listed) or move the newer install ahead in your user PATH. `scripts/run-demo.ps1` runs plain `python` when it exists, so it uses whatever PATH resolves first.
 
-On Windows, expect `OK (skipped=1)`. The real-SIGTERM test needs POSIX and runs in CI (Ubuntu). The tests need no GNSS, chrony, Internet or root. They never read the host's chrony or boot configuration.
+On Windows, expect `OK (skipped=2)`: the real-SIGTERM test and the web-UI symlink test need POSIX and run in CI (Ubuntu). The tests need no GNSS, chrony, Internet or root. They never read the host's chrony or boot configuration.
 
 ## 6. Web UI (pnpm)
 

@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, RangeSelector, Tabs, SectionHeader, ProvenanceTag } from '../components/ui';
+import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, RangeSelector, Tabs, ProvenanceTag } from '../components/ui';
 import { OffsetChart, PPSTimeline, HoldoverScatter, OutageBarChart } from '../components/charts';
-import { offset1h, offset24h, offset7d, ppsOutages, ppsStats, errorBudget } from '../data/demo';
+import { Planned, ApiErrorNote } from '../components/planned';
+import { useStation, usePoll } from '../api/station';
+import { toOffsetSeries, allEvents } from '../api/view';
+import type { StageStatus } from '../api/types';
+import { ppsOutages, ppsStats, errorBudget } from '../api/previews';
+import { fmtOffset, lightDistance, fmtDuration, fmtUtc } from '../lib/format';
 
 const RANGES = ['1h','24h','7d'];
+const RANGE_S: Record<string, number> = { '1h': 3600, '24h': 86400, '7d': 7 * 86400 };
 
-// ─── Time-to-error thresholds ─────────────────────────────────────────────────
+// ─── Time-to-error thresholds (preview of a planned model) ────────────────────
 const thresholds = [
   { label:'±1 µs',   tRaw: 0.007,  tTrained: 0.3,   region:'observed'  },
   { label:'±10 µs',  tRaw: 0.07,   tTrained: 3.1,   region:'observed'  },
@@ -31,19 +37,27 @@ const regionLabel: Record<string,string> = {
 };
 
 // ─── Light distance table ─────────────────────────────────────────────────────
-const lightDistRows = [
-  { dt:'1 s',    dist:'299,792 km', note:'~1.28 × Moon distance' },
-  { dt:'1 ms',   dist:'299.8 km',   note:'New York to Philadelphia' },
+const lightDistRows: { dt: string; dist: string; note: string; highlight?: boolean }[] = [
+  { dt:'1 s',    dist:'299,792 km', note:'~0.78 × Earth–Moon distance' },
+  { dt:'1 ms',   dist:'299.8 km',   note:'Roughly Boston to New York' },
   { dt:'1 µs',   dist:'299.8 m',    note:'3 football fields' },
   { dt:'100 ns', dist:'30.0 m',     note:'10-story building' },
   { dt:'10 ns',  dist:'3.0 m',      note:'One step' },
   { dt:'1 ns',   dist:'0.30 m',     note:'Palm of hand' },
-  { dt:'12.3 ns (current)', dist:'3.69 m', note:'Station current Δt', highlight:true },
 ];
 
-// ─── Error Budget ─────────────────────────────────────────────────────────────
+const STAGE_VARIANT: Record<StageStatus, 'good'|'warn'|'error'|'muted'|'info'> = {
+  OK:'good', DEGRADED:'warn', FAILED:'error', UNKNOWN:'muted', NOT_OBSERVABLE:'muted', NOT_APPLICABLE:'muted', INFO:'info',
+};
+
+function statusVariant(code: string | undefined) {
+  return !code || code === 'UNKNOWN' ? 'muted' : code === 'GPS_PPS' ? 'good' : code === 'UNSYNCHRONIZED' ? 'error' : 'warn';
+}
+
+// ─── Error Budget (planned) ───────────────────────────────────────────────────
 function ErrorBudget() {
   return (
+    <Planned title="Timing Error Budget" needs="calibration records for each stage of the signal chain">
     <Card>
       <CardHeader title="Timing Error Budget" badge={<ProvenanceTag type="modeled" />} />
       <CardBody>
@@ -81,6 +95,70 @@ function ErrorBudget() {
         </div>
       </CardBody>
     </Card>
+    </Planned>
+  );
+}
+
+// ─── Timing chain (GNSS → PPS → chrony), /api/timing-chain ──────────────────
+function TimingChainPanel() {
+  const { api, chain } = useStation();
+  const [diag, setDiag] = useState<string | null>(null);
+  const [diagErr, setDiagErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const c = chain.data;
+  const loadDiag = async () => {
+    try {
+      const text = await api.diagnostics();
+      setDiag(text); setDiagErr(null); setCopied(false);
+      try { await navigator.clipboard.writeText(text); setCopied(true); }
+      catch { /* clipboard needs a secure context; the text is shown for manual copy */ }
+    } catch (e) { setDiagErr((e as Error).message); }
+  };
+  return (
+    <div className="space-y-4">
+      <ApiErrorNote error={chain.error} />
+      {c?.classification && (
+        <Card>
+          <CardHeader title="Classification" badge={<ProvenanceTag type="inferred" />} />
+          <CardBody>
+            <MetricRow label="Classification" value={c.classification.classification} provenance="inferred" />
+            <MetricRow label="Confidence" value={c.classification.confidence} />
+            <MetricRow label="Boundary" value={c.classification.boundary} />
+            {c.classification.notes.map(n => <div key={n} className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>{n}</div>)}
+          </CardBody>
+        </Card>
+      )}
+      <Card>
+        <CardHeader title="Stages — GNSS → PPS → chrony" badge={<ProvenanceTag type="calculated" />} />
+        <CardBody className="p-0">
+          <table className="w-full text-[11px]">
+            <tbody>
+              {(c?.stages ?? []).map(st => (
+                <tr key={st.id} style={{ borderBottom:'1px solid var(--border-dim)' }}>
+                  <td className="px-4 py-2" style={{ color:'var(--t2)' }}>{st.label}</td>
+                  <td className="px-4 py-2"><StatusBadge variant={STAGE_VARIANT[st.status] ?? 'muted'} label={st.status.replace(/_/g, ' ')} dot={false} className="text-[9px]" /></td>
+                  <td className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>{st.summary}</td>
+                </tr>
+              ))}
+              {!c && <tr><td className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Timing chain not loaded.</td></tr>}
+            </tbody>
+          </table>
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title="Diagnostic snapshot" action={
+          <button onClick={loadDiag} className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
+            style={{ border:'1px solid var(--border)', color:'var(--t2)' }}>Generate &amp; copy</button>} />
+        <CardBody>
+          <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+            Plain-text snapshot for support. The station applies location privacy mode. {copied && 'Copied to clipboard.'}
+          </div>
+          <ApiErrorNote error={diagErr} />
+          {diag && <pre className="mono text-[10px] whitespace-pre-wrap p-2 rounded-[2px] max-h-80 overflow-auto"
+            style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t2)' }}>{diag}</pre>}
+        </CardBody>
+      </Card>
+    </div>
   );
 }
 
@@ -88,40 +166,57 @@ function ErrorBudget() {
 export default function Timing() {
   const [range, setRange] = useState('1h');
   const [tab, setTab] = useState('Overview');
-
-  const dataMap: Record<string, typeof offset1h> = { '1h': offset1h, '24h': offset24h, '7d': offset7d };
+  const { api, core, chain } = useStation();
+  const hist = usePoll(() => api.history(), 30_000, [api]);
+  const series = toOffsetSeries(hist.data?.points, RANGE_S[range]);
+  const status = chain.data?.status;
+  const events = allEvents(chain.data?.events.open, chain.data?.events.recent);
+  const sys = core.data?.quality.system_time_s;
+  const cur = fmtOffset(sys);
+  const lightRows = cur
+    ? [...lightDistRows, { dt:`${cur.value} ${cur.unit} (current)`, dist: lightDistance(sys) ?? '—', note:'Station system clock Δt (chrony)', highlight:true }]
+    : lightDistRows;
 
   return (
     <div className="space-y-4 page-enter">
       <div className="flex items-baseline justify-between">
         <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Timing & Reliability</h1>
-        <StatusBadge variant="good" label="GPS PPS LOCKED" pulse />
+        <StatusBadge variant={statusVariant(status?.code)} label={status?.banner ?? 'UNKNOWN'} pulse={status?.code === 'GPS_PPS'} />
       </div>
 
-      <Tabs tabs={['Overview','PPS Stats','Error Budget','Light Distance']} active={tab} onChange={setTab} />
+      <Tabs tabs={['Overview','Timing Chain','PPS Events','Error Budget','Light Distance']} active={tab} onChange={setTab} />
 
       {tab === 'Overview' && (
         <div className="space-y-4">
           {/* Offset history */}
           <Card>
             <CardHeader
-              title="Time Offset History — Δt"
+              title={`Time Offset History — Δt (${series.unit})`}
               badge={<ProvenanceTag type="observed" />}
               action={<RangeSelector ranges={RANGES} active={range} onChange={setRange} />}
             />
             <CardBody>
-              <OffsetChart data={dataMap[range]} range={range} />
-              <div className="mt-4">
-                <div className="text-[9px] font-semibold uppercase tracking-[0.18em] mb-1" style={{ color:'var(--t3)' }}>PPS State Availability (today)</div>
-                <PPSTimeline events={[
-                  { date:'Sep 28', durationS: 58 },
-                  { date:'Sep 28', durationS: 34 },
-                ]} />
-              </div>
+              <ApiErrorNote error={hist.error} />
+              {series.data.length
+                ? <OffsetChart data={series.data} range={range} unit={series.unit} />
+                : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
+                    {hist.data && !hist.data.available ? 'chrony tracking log not available (needs "log tracking" in chrony.conf)' : 'No samples in this range'}
+                  </div>}
+              <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>Source: chrony tracking log (system clock offset as chrony recorded it).</div>
             </CardBody>
           </Card>
 
-          {/* PPS Stats summary */}
+          <Planned title="PPS State Availability (today)" needs="a per-day PPS state timeline from the event history">
+            <Card>
+              <CardHeader title="PPS State Availability (today)" />
+              <CardBody>
+                <PPSTimeline events={[{ date:'today', durationS: 58 }, { date:'today', durationS: 34 }]} />
+              </CardBody>
+            </Card>
+          </Planned>
+
+          {/* PPS Stats summary (planned) */}
+          <Planned title="PPS Availability & Outage Statistics" needs="30-day event history rollups (the station keeps recent events only)">
           <div className="grid grid-cols-3 gap-4">
             <Card>
               <CardHeader title="PPS Availability" />
@@ -156,19 +251,21 @@ export default function Timing() {
               </CardBody>
             </Card>
           </div>
+          </Planned>
 
-          {/* Holdover performance */}
+          {/* Holdover performance (planned) */}
+          <Planned title="Holdover Performance & Time-to-Error" needs="offset measured at PPS reacquisition, and a validated oscillator model">
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardHeader title="Holdover Performance" badge={<ProvenanceTag type="observed" />} />
               <CardBody>
-                <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Observed clock error upon PPS reacquisition vs. outage duration. Each point is a real event.</div>
+                <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Observed clock error upon PPS reacquisition vs. outage duration.</div>
                 <HoldoverScatter data={ppsOutages} />
                 <ELI5 text="After a GPS outage, when PPS returns we can see how far off the clock drifted. Longer outages should mean larger errors — this plot confirms or surprises that expectation." />
               </CardBody>
             </Card>
             <Card>
-              <CardHeader title="Estimated Time-to-Error Thresholds" />
+              <CardHeader title="Estimated Time-to-Error Thresholds" badge={<ProvenanceTag type="predicted" />} />
               <CardBody>
                 <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>How long before the free-running or trained oscillator crosses each error threshold.</div>
                 <div className="overflow-x-auto">
@@ -198,33 +295,43 @@ export default function Timing() {
               </CardBody>
             </Card>
           </div>
+          </Planned>
         </div>
       )}
 
-      {tab === 'PPS Stats' && (
+      {tab === 'Timing Chain' && <TimingChainPanel />}
+
+      {tab === 'PPS Events' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardHeader title="PPS Loss Event Log" />
-              <CardBody>
-                <table className="w-full text-[11px]">
-                  <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
-                    <th className="text-left py-1.5 font-normal" style={{ color:'var(--t3)' }}>Date</th>
-                    <th className="text-right py-1.5 font-normal" style={{ color:'var(--t3)' }}>Duration</th>
-                    <th className="text-right py-1.5 font-normal" style={{ color:'var(--t3)' }}>Recovery error</th>
-                  </tr></thead>
-                  <tbody>
-                    {ppsOutages.map((o,i) => (
-                      <tr key={i} style={{ borderBottom:'1px solid var(--border-dim)' }}>
-                        <td className="py-1.5" style={{ color:'var(--t2)' }}>{o.date}</td>
-                        <td className="py-1.5 text-right mono" style={{ color:'var(--warn-text)' }}>{o.duration}</td>
-                        <td className="py-1.5 text-right mono" style={{ color:'var(--t2)' }}>{o.errorNsOnRecovery} ns</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardBody>
-            </Card>
+          <Card>
+            <CardHeader title="PPS Events (recent)" badge={<ProvenanceTag type="observed" />} />
+            <CardBody className="p-0">
+              <table className="w-full text-[11px]">
+                <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
+                  {['Start','Duration','Classification','Confidence','Boundary'].map(h => (
+                    <th key={h} className="text-left px-4 py-1.5 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {events.map(e => (
+                    <tr key={e.id} style={{ borderBottom:'1px solid var(--border-dim)' }}>
+                      <td className="px-4 py-1.5 mono" style={{ color:'var(--t2)' }}>{fmtUtc(e.start_utc)}{e.start_bound ? ' (or earlier)' : ''}</td>
+                      <td className="px-4 py-1.5 mono" style={{ color:'var(--warn-text)' }}>{e.open ? 'OPEN · ' : ''}{fmtDuration(e.duration_s) ?? '—'}</td>
+                      <td className="px-4 py-1.5"><span style={{ color:'var(--t2)' }}>{e.classification ?? 'UNKNOWN'}</span> <ProvenanceTag type={e.classification_provenance} /></td>
+                      <td className="px-4 py-1.5 mono" style={{ color:'var(--t3)' }}>{e.confidence ?? '—'}</td>
+                      <td className="px-4 py-1.5 text-[10px]" style={{ color:'var(--t3)' }}>{e.boundary ?? '—'}</td>
+                    </tr>
+                  ))}
+                  {!events.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
+                    {chain.data ? 'No PPS events recorded.' : 'Timing chain not loaded.'}</td></tr>}
+                </tbody>
+              </table>
+              <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
+                Classifications are inferred from the evidence at the time. They name a boundary in the signal path, not a cause.
+              </div>
+            </CardBody>
+          </Card>
+          <Planned title="Outage Duration & Recovery Statistics" needs="event history rollups and offset at reacquisition">
             <Card>
               <CardHeader title="Outage Duration Bar Chart" />
               <CardBody>
@@ -236,7 +343,7 @@ export default function Timing() {
                 </div>
               </CardBody>
             </Card>
-          </div>
+          </Planned>
         </div>
       )}
 
@@ -257,7 +364,7 @@ export default function Timing() {
                 <th className="text-right py-2 font-normal" style={{ color:'var(--t3)' }}>Reference</th>
               </tr></thead>
               <tbody>
-                {lightDistRows.map((r) => (
+                {lightRows.map((r) => (
                   <tr key={r.dt} className={r.highlight ? 'bg-cyan-400/5' : ''} style={{ borderBottom:'1px solid var(--border-dim)' }}>
                     <td className="py-2 mono" style={{ color: r.highlight ? 'var(--live)' : 'var(--t2)' }}>{r.dt}</td>
                     <td className="py-2 text-right mono" style={{ color: r.highlight ? 'var(--live-bright)' : 'var(--t2)' }}>{r.dist}</td>
@@ -266,7 +373,7 @@ export default function Timing() {
                 ))}
               </tbody>
             </table>
-            <ELI5 text="Light travels at ~299,792 km per second in vacuum. If your clock is 12.3 nanoseconds off, that's equivalent to the time it takes light to travel 3.69 metres — useful for understanding just how precise GPS timing is." />
+            <ELI5 text="Light travels about 299,792 km per second in vacuum. A clock 10 nanoseconds off matches the time light takes to travel 3 metres — a way to picture how precise GPS timing is." />
           </CardBody>
         </Card>
       )}
