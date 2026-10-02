@@ -213,3 +213,6 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - COPY (fallback path) and DOWNLOAD (file intercepted and checked, not saved).
 - Docs: `docs/architecture/timing-chain.md` "Web UI" section; parity list; `STATUS.md` rows marked "implemented on feat/pps-ui; awaiting review".
 - **Not done:** PPS state timeline and history views (next-5 task 5); per-event `ppstest` listing; kernel/dmesg info. The web app has no unit-test harness, so the banner guards are verified in the browser only.
+- Owner review approved. `STATUS.md` rows are now done with #15.
+  - Decision recorded: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags.
+  - Next-5 reordered: Vitest harness, then administrative security **before** shipping `web/dist`, so a Pi never serves an unauthenticated reboot through the new UI.
