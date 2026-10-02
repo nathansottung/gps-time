@@ -196,5 +196,70 @@ class TestHidden(PrivacyBase):
                 self.assertNotIn(leak, body, path)
 
 
+SATS = [{"id": 3, "gnss": "GPS", "el": 42, "az": 296, "snr": 32, "used": True},
+        {"id": 11, "gnss": "Galileo", "el": 18, "az": 101, "snr": 27, "used": False}]
+
+
+def _snapshot():
+    return {"live": dict(SITE), "fix": "3D", "mode": 3, "sats": [dict(s) for s in SATS], "used": 1, "visible": 2,
+            "tdop": 0.8, "hdop": 0.9, "last_fix": "3D", "last_fix_time": "2026-10-01T00:00:00Z", "stale": False,
+            "data_age_s": 1.0, "sky_stale": False, "sky_age_s": 1.0, "gpsd_version": None, "receiver": None}
+
+
+class SatAnglesBase(PrivacyBase):
+    """Satellite azimuth/elevation: dropped in hidden, kept in exact/rounded."""
+
+    def live_core(self):
+        from gps_time_pi import chrony
+        stubs = {"tracking": lambda: {}, "sources": lambda: [], "sourcestats": lambda: "",
+                 "clients": lambda: [], "version": lambda: None, "refclock_config": lambda: {}}
+        with mock.patch.multiple(chrony, **stubs), mock.patch.object(gps, "snapshot", _snapshot):
+            return server.core_api()
+
+    def demo_core(self):
+        with mock.patch.object(server, "DEMO_MODE", True):
+            return server.core_api()
+
+
+class TestSatAnglesHidden(SatAnglesBase):
+    mode = "hidden"
+
+    def test_live_api_drops_az_el_keeps_the_rest(self):
+        sats = self.live_core()["gps"]["sats"]
+        self.assertEqual(len(sats), len(SATS))
+        for got, want in zip(sats, SATS):
+            self.assertIsNone(got["az"])
+            self.assertIsNone(got["el"])
+            self.assertEqual({k: got[k] for k in ("id", "gnss", "snr", "used")},
+                             {k: want[k] for k in ("id", "gnss", "snr", "used")})
+
+    def test_demo_api_drops_az_el(self):
+        sats = self.demo_core()["gps"]["sats"]
+        self.assertTrue(sats)
+        self.assertTrue(all(s["az"] is None and s["el"] is None for s in sats))
+
+    def test_helper_does_not_mutate_input(self):
+        src = [dict(s) for s in SATS]
+        config.privacy_sats({"location_display": "hidden"}, src)
+        self.assertEqual(src, SATS)
+
+
+class TestSatAnglesRounded(SatAnglesBase):
+    mode = "rounded"
+
+    def test_live_api_keeps_az_el(self):
+        self.assertEqual(self.live_core()["gps"]["sats"], SATS)
+
+    def test_demo_api_keeps_az_el(self):
+        self.assertTrue(any(s["az"] is not None for s in self.demo_core()["gps"]["sats"]))
+
+
+class TestSatAnglesExact(SatAnglesBase):
+    mode = "exact"
+
+    def test_live_api_keeps_az_el(self):
+        self.assertEqual(self.live_core()["gps"]["sats"], SATS)
+
+
 if __name__ == "__main__":
     unittest.main()

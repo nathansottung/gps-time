@@ -16,7 +16,7 @@ The app must state the accuracy it can actually achieve and never imply Pi-class
 
 | Receiver path | Typical accuracy | Label |
 |---|---|---|
-| USB GNSS, NMEA only | ~10–100 ms; ~10–20 ms after offset calibration | estimated |
+| USB GNSS, NMEA only | ~10–100 ms; ~10–20 ms after offset calibration | inferred |
 | USB GNSS with PPS on DCD (Linux) | ~10 µs – 1 ms | observed (USB-limited) |
 | LAN NTP from a GPS Time Pi | ~0.1–1 ms | external |
 

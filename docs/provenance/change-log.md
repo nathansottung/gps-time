@@ -171,3 +171,12 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - The hidden-mode reason is shown where the almanac would be.
 - Tests: `tests/test_location_privacy.py`, 15 tests. The astronomy layer is replaced by recorders, so no Skyfield is needed. 11 of the first 13 fail against the previous server.
 - Remaining, documented in `docs/api/endpoints.md`: `/api` → `gps.sats` azimuth and elevation are not filtered. With a public GNSS almanac they roughly constrain the position.
+
+## 2026-10-02 — hidden mode drops satellite azimuth/elevation (fix/hidden-sat-angles)
+
+- `/api` → `gps.sats`: in `hidden` privacy mode, `el` and `az` are null. With a public GNSS almanac and the response time, they constrain the receiver's position. `exact` and `rounded` keep them. IDs, constellation, C/N₀ and used flags are kept in every mode. Helper: `config.privacy_sats()`. It applies to the live and demo paths.
+- Legacy `dashboard.js` satellite widget shows "–" for a null angle instead of "null°". Display change only.
+- Web UI: in hidden mode the sky plots say why they are empty; the demo adapter mirrors the rule.
+- Tests: 6 more in `tests/test_location_privacy.py` (now 20). Correction to the previous entry: that PR added 14 tests, not 15.
+- Docs: `docs/api/endpoints.md` privacy notes. The residual (which satellites are tracked) is documented.
+- Roadmap: `ROADMAP-DESKTOP-FIELD-APP.md` accuracy table now labels the NMEA-only path `inferred`; `estimated` was not one of the six provenance labels.

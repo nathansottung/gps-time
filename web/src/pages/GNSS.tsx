@@ -174,7 +174,7 @@ export default function GNSS() {
           <Card>
             <CardHeader title="GNSS Sky Plot (Current)" badge={<ProvenanceTag type="observed" />} />
             <CardBody className="flex flex-col items-center py-4">
-              <SkyPlot sats={plottable(sats)} />
+              <SkyPlot sats={plottable(sats)} hiddenNote={loc?.mode === 'hidden' ? 'positions hidden (privacy)' : undefined} />
               <div className="flex gap-4 mt-3 text-[10px]">
                 {Object.entries(SYSCOLORS).map(([sys, colorVar]) => (
                   <span key={sys} className="flex items-center gap-1">
@@ -183,7 +183,10 @@ export default function GNSS() {
                   </span>
                 ))}
               </div>
-              <div className="mt-2 text-[10px]" style={{ color:'var(--t3)' }}>Filled = used in solution · Dim = tracked only</div>
+              <div className="mt-2 text-[10px]" style={{ color:'var(--t3)' }}>
+                {loc?.mode === 'hidden' ? "Sky positions hidden by the station's privacy setting. Azimuth and elevation would reveal the station's position."
+                  : 'Filled = used in solution · Dim = tracked only'}
+              </div>
             </CardBody>
           </Card>
           <Card>

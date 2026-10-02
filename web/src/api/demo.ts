@@ -60,7 +60,12 @@ export function demoApi(): StationApi {
 
   return {
     source: 'demo',
-    core: () => delay({ ...core(displayed()), ...(locationMode === 'hidden' ? { sidereal: null } : {}) }),
+    core: () => {
+      // Mirrors the server's privacy rules: hidden drops sidereal time and satellite az/el.
+      const c = core(displayed());
+      if (locationMode !== 'hidden') return delay(c);
+      return delay({ ...c, sidereal: null, gps: { ...c.gps, sats: c.gps.sats.map(s => ({ ...s, az: null, el: null })) } });
+    },
     timingChain: () => delay(timingChain()),
     history: () => delay(history()),
     survey: () => delay(survey()),
