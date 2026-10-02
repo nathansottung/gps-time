@@ -10,6 +10,7 @@ real voltage/current, and we compute watts from it when available.
 import os
 import re
 import subprocess
+import threading
 import time
 
 from . import chrony
@@ -131,24 +132,40 @@ def diagnostics():
     return d
 
 
+# Management actions. The web service runs unprivileged (User=gps-time); each
+# command is a fixed argv authorized by the polkit rule system/50-gps-time-pi.rules,
+# which allows exactly these units/verbs and reboot. No shell, no arguments
+# from the request. The caller (server.py) has already checked the admin token.
 ACTIONS = {
-    "restart_chrony": ["systemctl", "restart", "chrony"],
-    "restart_gpsd": ["systemctl", "restart", "gpsd"],
-    "flush_logs": ["/bin/bash", "/opt/gps-time-pi/scripts/logsync.sh", "flush"],
+    "restart_chrony": ["systemctl", "restart", "chrony.service"],
+    "restart_gpsd": ["systemctl", "restart", "gpsd.service"],
+    # The root oneshot unit does the copy; the service user may only start it.
+    "flush_logs": ["systemctl", "start", "gps-time-pi-logflush.service"],
 }
+DELAYED = {   # detach so the HTTP response gets out before the process/host goes down
+    "restart_web": (1.0, ["systemctl", "restart", "gps-time-pi.service"], "restarting in 1 s"),
+    "reboot": (2.0, ["systemctl", "reboot"], "rebooting in 2 s"),
+}
+ADMIN_ACTIONS = frozenset(ACTIONS) | frozenset(DELAYED)
+
+
+def _spawn(argv):
+    subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
 
 
 def admin(action):
-    """LAN-trust management actions. restart_web and reboot detach so the
-    HTTP response gets out before the process dies."""
     if action in ACTIONS:
-        r = subprocess.run(ACTIONS[action], capture_output=True, text=True, timeout=15)
+        try:
+            r = subprocess.run(ACTIONS[action], capture_output=True, text=True, timeout=15)
+        except (OSError, subprocess.SubprocessError) as e:
+            return {"ok": False, "action": action, "detail": str(e)[:300]}
         return {"ok": r.returncode == 0, "action": action,
                 "detail": (r.stderr or r.stdout).strip()[:300]}
-    if action == "restart_web":
-        subprocess.Popen("sleep 1 && systemctl restart gps-time-pi", shell=True)
-        return {"ok": True, "action": action, "detail": "restarting in 1 s"}
-    if action == "reboot":
-        subprocess.Popen("sleep 2 && systemctl reboot", shell=True)
-        return {"ok": True, "action": action, "detail": "rebooting in 2 s"}
+    if action in DELAYED:
+        delay, argv, detail = DELAYED[action]
+        t = threading.Timer(delay, _spawn, args=(argv,))
+        t.daemon = True
+        t.start()
+        return {"ok": True, "action": action, "detail": detail}
     return {"ok": False, "action": action, "detail": "unknown action"}

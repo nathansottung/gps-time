@@ -109,6 +109,13 @@ class TestWebUi(WebUiBase):
         self.assertIn("text/plain", headers["Content-Type"])
         self.assertIn(b"pnpm run build", body)
 
+    def test_legacy_templates_are_decoded_as_utf8(self):
+        # Templates contain non-ASCII (em dash, ✓); a locale-dependent read garbled them on Windows.
+        status, _, body = self.get("/admin")
+        self.assertEqual(status, 200)
+        self.assertIn("Admin — GPS Time Pi".encode("utf-8"), body)
+        self.assertNotIn("â€”".encode("utf-8"), body)
+
     def test_legacy_pages_are_unchanged(self):
         for path in ("/", "/legacy", "/almanac", "/history", "/admin", "/configure"):
             status, headers, _ = self.get(path)
