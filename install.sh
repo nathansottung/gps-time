@@ -58,12 +58,20 @@ done
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
 install -d -m 0755 /etc/polkit-1/rules.d
 install -m 0644 system/50-gps-time-pi.rules /etc/polkit-1/rules.d/50-gps-time-pi.rules
+# Emergency rollback drop-in (root service), kept on the station; not enabled.
+install -D -m 0644 system/gps-time-pi-root-rollback.conf "$DEST/rollback/gps-time-pi-root-rollback.conf"
 
 echo "== Admin token =="
 if [ ! -f "$DEST/admin-token.sha256" ]; then
-  (cd "$DEST" && python3 -m gps_time_pi.admin_token --path "$DEST/admin-token.sha256" --group gps-time)
-  echo "Keep this token: admin actions and settings changes in the web UI need it."
-  echo "Rotate it any time with: sudo python3 -m gps_time_pi.admin_token --path $DEST/admin-token.sha256 --group gps-time"
+  # --tty-only: the token goes to the terminal (/dev/tty) only, never to stdout,
+  # so `install.sh | tee install.log` or a captured deploy log never holds it.
+  if (cd "$DEST" && python3 -m gps_time_pi.admin_token --tty-only --path "$DEST/admin-token.sha256" --group gps-time); then
+    echo "Keep the token shown above: admin actions and settings changes in the web UI need it."
+  else
+    echo "Admin token not created (no terminal). Admin actions stay disabled until you run, on the station:"
+    echo "  cd $DEST && sudo python3 -m gps_time_pi.admin_token --tty-only --path $DEST/admin-token.sha256 --group gps-time"
+  fi
+  echo "Rotate it any time with the same command."
 else
   echo "Existing admin token kept ($DEST/admin-token.sha256)."
 fi
