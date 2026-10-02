@@ -1,0 +1,31 @@
+// polkit rule for the GPS Time web service (review GPS-014).
+// Installed to /etc/polkit-1/rules.d/ by install.sh.
+//
+// The service runs as the unprivileged user "gps-time". After the admin token
+// check (gps_time_pi/server.py), it may ask systemd/logind for exactly these
+// actions and nothing else:
+//   restart chrony.service, gpsd.service, gps-time-pi.service
+//   start   gps-time-pi-logflush.service (root oneshot: copy the RAM log to SD)
+//   reboot
+polkit.addRule(function (action, subject) {
+  if (subject.user !== "gps-time") {
+    return polkit.Result.NOT_HANDLED;
+  }
+  if (action.id === "org.freedesktop.systemd1.manage-units") {
+    var unit = action.lookup("unit");
+    var verb = action.lookup("verb");
+    if (verb === "restart" &&
+        (unit === "chrony.service" || unit === "gpsd.service" || unit === "gps-time-pi.service")) {
+      return polkit.Result.YES;
+    }
+    if (verb === "start" && unit === "gps-time-pi-logflush.service") {
+      return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+  }
+  if (action.id === "org.freedesktop.login1.reboot" ||
+      action.id === "org.freedesktop.login1.reboot-multiple-sessions") {
+    return polkit.Result.YES;
+  }
+  return polkit.Result.NOT_HANDLED;
+});

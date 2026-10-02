@@ -44,8 +44,33 @@ systemctl daemon-reload
 systemctl enable --now gps-time-pi-logsync.service gps-time-pi-logflush.timer
 systemctl restart chrony
 
+echo "== Service user and permissions (unprivileged web service) =="
+# The web service runs as gps-time (review GPS-014). Code stays root-owned and
+# read-only to it; only the state files in $DEST are writable. The sticky bit
+# stops the service from renaming or deleting root-owned entries (the code).
+id gps-time >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin gps-time
+chown root:gps-time "$DEST"
+chmod 1775 "$DEST"
+for f in config.json config.json.prev dashboard.json timing-events.json custom.css; do
+  if [ -f "$DEST/$f" ]; then chown gps-time:gps-time "$DEST/$f"; fi
+done
+
+echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
+install -d -m 0755 /etc/polkit-1/rules.d
+install -m 0644 system/50-gps-time-pi.rules /etc/polkit-1/rules.d/50-gps-time-pi.rules
+
+echo "== Admin token =="
+if [ ! -f "$DEST/admin-token.sha256" ]; then
+  (cd "$DEST" && python3 -m gps_time_pi.admin_token --path "$DEST/admin-token.sha256" --group gps-time)
+  echo "Keep this token: admin actions and settings changes in the web UI need it."
+  echo "Rotate it any time with: sudo python3 -m gps_time_pi.admin_token --path $DEST/admin-token.sha256 --group gps-time"
+else
+  echo "Existing admin token kept ($DEST/admin-token.sha256)."
+fi
+
 echo "== Installing service =="
 cp gps-time-pi.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now gps-time-pi
+systemctl enable gps-time-pi
+systemctl restart gps-time-pi
 echo "Done. Open http://$(hostname -I | awk '{print $1}')/"
