@@ -100,6 +100,13 @@ class TestBuiltBundles(unittest.TestCase):
             self.assertIn("chmod 0755 $DEST/scripts/*.sh",
                           t.extractfile(members["gps-time/install.sh"]).read().decode("utf-8"))
 
+    def test_pi_tar_ships_the_requirements_install_sh_uses(self):
+        with tarfile.open(self.tar_path) as t:
+            names = t.getnames()
+            self.assertIn("gps-time/requirements.txt", names)
+            self.assertIn("-r requirements.txt",
+                          t.extractfile("gps-time/install.sh").read().decode("utf-8"))
+
     def test_dev_zip_preserves_script_execute_bits(self):
         with zipfile.ZipFile(self.zip_path) as z:
             info = z.getinfo("gps-time/scripts/logsync.sh")

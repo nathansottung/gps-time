@@ -1,0 +1,2 @@
+# Station runtime dependencies (installed by install.sh). Dependabot proposes weekly updates.
+skyfield==1.55
