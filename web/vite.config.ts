@@ -34,6 +34,9 @@ export default defineConfig(({ mode }) => ({
   define: { __GTP_UI_VERSION__: JSON.stringify(uiVersion()) },
   build: {
     sourcemap: mode === 'development' ? 'inline' : false,
+    // Never inline assets as data: URIs. The station's CSP allows fonts and
+    // images from 'self' only (gps_time_pi/security.py).
+    assetsInlineLimit: 0,
   },
   plugins: [react(), tailwindcss()],
   resolve: {

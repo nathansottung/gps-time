@@ -32,6 +32,11 @@ jobs:
           if grep -rEn "fonts\.(googleapis|gstatic)\.com|googletagmanager|google-analytics|cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com" dist; then
             echo "::error::built UI references an external runtime resource"; exit 1
           fi
+      - name: CSP guard (no inlined data: fonts or images; the station allows 'self' only)
+        run: |
+          if grep -rEln "url\(\"?data:(font|image|application/(font|x-font))" dist; then
+            echo "::error::data: URI asset in the bundle; keep build.assetsInlineLimit at 0"; exit 1
+          fi
       - name: No 700 font weight (weights 300-600 only)
         run: |
           # whole-word match: Tailwind preflight "bolder" (overridden to 600 in index.css) is not 700
