@@ -49,7 +49,7 @@ Last updated: 2026-10-02 (chore/pin-actions, #18). Built from the specs, `roadma
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 353 rows: 162 done, 0 in progress, 25 next, 166 planned.
+**Totals:** 354 rows: 163 done, 0 in progress, 25 next, 166 planned.
 
 ## Status table
 
@@ -394,7 +394,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-017 | No Host/Origin check | next |  |  |
 | Review | GPS-018 | Per-request fan-out; no limits | planned | partial |  |
 | Review | GPS-019 | Demo not isolated from admin | next | partial: demo privacy done | [#12](https://github.com/nathansottung/gps-time/pull/12) |
-| Review | GPS-020 | Installer unpinned pip / TOFU ephemeris | planned |  |  |
+| Review | GPS-020 | Installer unpinned pip / TOFU ephemeris | planned | partial: skyfield pinned in requirements.txt; ephemeris still trust-on-first-use | [#17](https://github.com/nathansottung/gps-time/pull/17) |
 | Review | GPS-021 | Deploy scripts ignore failures | planned |  |  |
 | Review | GPS-022 | Bundle builder sweeps secrets | planned | partial: file modes |  |
 | Review | GPS-023 | Third-party provenance/licenses | planned |  |  |
@@ -407,4 +407,5 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-030 | Global object target; non-portable strftime | planned | partial: server.py fixed; astro.py %-d remains | [#12](https://github.com/nathansottung/gps-time/pull/12) |
 | Review | GPS-031 | No automated tests | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
+| Repo |  | Dependabot weekly: pip, pnpm, GitHub Actions | done |  | [#17](https://github.com/nathansottung/gps-time/pull/17) |
 | Repo |  | Workflow actions pinned to commit SHAs; CI guard | done |  | [#18](https://github.com/nathansottung/gps-time/pull/18) |

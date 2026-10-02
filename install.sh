@@ -7,7 +7,7 @@ EPH=$DEST/gps_time_pi/data/de440s.bsp
 
 echo "== Installing Python dependencies =="
 apt-get install -y python3-pip >/dev/null
-pip3 install --break-system-packages --quiet skyfield
+pip3 install --break-system-packages --quiet -r requirements.txt
 
 echo "== Copying application to $DEST =="
 mkdir -p $DEST
