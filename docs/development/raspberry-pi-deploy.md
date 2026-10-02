@@ -30,6 +30,16 @@ Bash equivalent:
 ./scripts/deploy-to-pi.sh 192.168.1.50 pi
 ```
 
+## Admin token and service user
+
+`install.sh` creates the unprivileged service user `gps-time` and installs the polkit rule `/etc/polkit-1/rules.d/50-gps-time-pi.rules`. On a first install it also creates an admin token and **prints it once**; keep it. Settings changes and service actions in the web UI need it.
+
+- Rotate: `sudo python3 -m gps_time_pi.admin_token --path /opt/gps-time-pi/admin-token.sha256 --group gps-time` (run in `/opt/gps-time-pi`).
+- Disable admin: delete `/opt/gps-time-pi/admin-token.sha256`.
+- If you reach the station by a DNS name other than its hostname, add it to `GTP_ALLOWED_HOSTS` in the service (`sudo systemctl edit gps-time-pi`). Otherwise requests get 403.
+
+After upgrading an existing station, check `systemctl status gps-time-pi`, `/api/system` (vcgencmd values) and the NTP client list. ADR-0005 lists what has not yet been verified on a Pi.
+
 ## Important
 
 The current installer is still based on the historical v1.3 deployment model and may use Internet access at install time for Python dependencies/JPL ephemeris. Runtime offline operation is a design goal; a future offline dependency/data bundle remains planned.

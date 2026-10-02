@@ -25,7 +25,8 @@ The new web UI is at `http://127.0.0.1:8080/app/` once it has been built (`cd we
 - sample chrony/GNSS/NTP-client data
 - sample solar data
 - live browser-to-demo-server RTT/clock-estimate probe
-- `/configure` saves widget visibility/size flags into `.dev/dashboard.json`
+- `/configure` saves widget visibility/size flags into `.dev/dashboard.json` (no admin token needed in demo mode)
+- admin actions are simulated: nothing runs on your machine
 
 ## No-dependency goal
 

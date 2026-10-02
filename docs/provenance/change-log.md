@@ -261,3 +261,33 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Tests: `tests/test_version.py` (resolution order, a temporary git repo with a tag, the demo version, `VERSION` in both archives) and `web/src/lib/version.test.ts` (5 tests). Checked in the demo: `/api` and the footer show `1.4.0-rc.1-dirty` on the working tree.
 - CI checks out shallow clones without tags, so builds there report `unknown`. That's expected.
 - README, START-HERE, `docs/README.md`, `docs/api/endpoints.md` and the Pi deploy guide are updated.
+
+## 2026-10-02 — administrative security: GPS-014, GPS-017, GPS-019 (feat/admin-auth)
+
+- **Request checks** (`gps_time_pi/security.py`, `server.Handler`):
+  - **Every request:** `Host` must be on the allowlist (IP literal, localhost, this hostname(.local), or `GTP_ALLOWED_HOSTS`), else 403. This blocks DNS rebinding.
+  - **State changes** (`/api/admin`, `/api/setting`, `/api/dashboard`, `/api/dashboard/reset`) are POST-only (GET → 405) and `application/json`-only (→ 415).
+  - **Origin** must be same-origin or listed in `GTP_ALLOWED_ORIGINS` (→ 403).
+  - The body is read, within a 256 kB bound, before any refusal. Previously an early refusal could reset the client's connection.
+- **Admin token:**
+  - Required as `Authorization: Bearer` for state changes outside demo mode.
+  - Only its SHA-256 is stored (`admin-token.sha256` next to `config.json`, 0640). No file means admin is disabled.
+  - `python3 -m gps_time_pi.admin_token` creates or rotates it; `install.sh` creates one on first install.
+  - `GET /api/auth` reports the state without secrets.
+  - `GTP_ALLOW_CONFIG_WRITE` and the loopback exception are removed.
+- **Demo isolation:** `POST /api/admin` is simulated and never runs anything. Legacy pages show a SAMPLE DATA banner in demo mode (`app.js`).
+- **Unprivileged service:**
+  - `gps-time-pi.service` runs as `gps-time` with `CAP_NET_BIND_SERVICE` only, `NoNewPrivileges`, `ProtectSystem=strict` and `ProtectClock=yes`, so it can never set the clock.
+  - Admin actions are fixed `systemctl` argv lists with no shell. Log flush now starts the root oneshot unit.
+  - The polkit rule `system/50-gps-time-pi.rules` allows exactly those actions.
+  - `install.sh` creates the user, installs the rule, and makes `/opt/gps-time-pi` `root:gps-time 1775`.
+- **`/api` → `clients`** is `null` when `chronyc clients` fails or is refused, no longer an ambiguous `[]`. The UIs show UNKNOWN or "unavailable".
+- **Clients:**
+  - Legacy `/admin` and `/configure` send POST + JSON + token (prompt; `static/admin-auth.js`).
+  - New UI: the client uses POST + Bearer; Admin access card; token kept per tab in `sessionStorage`.
+- **Also fixed:** legacy templates and `custom.css` are read as UTF-8. On Windows they were decoded as cp1252, so "—" showed as "â€”".
+- **Tests:**
+  - `tests/test_admin_auth.py`, 24, over HTTP: methods, content types, token states, Origin, Host, demo isolation, fixed argv, service/polkit/installer static checks;
+  - a UTF-8 template test;
+  - `web/src/api/auth.test.ts`, 7: POST + JSON + Bearer, never in the URL; per-tab storage; 401 reason.
+- **Not verified on a Pi:** systemd hardening, polkit rule, `_chrony` socket access, vcgencmd under `video`. ADR-0005 lists them.

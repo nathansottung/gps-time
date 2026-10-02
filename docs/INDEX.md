@@ -58,7 +58,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Licensing / decisions / provenance
 - `licensing/open-source-policy.md`
-- `decisions/` (ADR-0004: web UI served at `/app/` beside the legacy pages)
+- `decisions/` (ADR-0004: web UI served at `/app/` beside the legacy pages; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service)
 - `provenance/change-log.md`
 
 ## Source review
