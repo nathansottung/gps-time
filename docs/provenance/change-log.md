@@ -226,3 +226,9 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - formatting conventions: chrony slow/fast sign, units, null → UNKNOWN, Δf/f superscripts.
   - Disabling the inconsistent-report guard fails the test-20 case.
 - `STATUS.md`: next-5 now starts with administrative security. Bounded tracking log (GPS-011/012) is fifth.
+
+## 2026-10-02 — workflow actions pinned to commit SHAs (chore/pin-actions)
+
+- `ci.yml` and `web.yml` reference `actions/checkout`, `actions/setup-python` and `actions/setup-node` by full commit SHA, with the release as a trailing comment: checkout v4.4.0, setup-python v5.6.0, setup-node v4.4.0. These are the newest releases of the majors already in use; no major upgrade in this change. A moved or re-pointed tag can no longer change what CI runs.
+- `ci.yml` gains a guard step that fails if any `uses:` line isn't pinned to a 40-character SHA.
+- Dependabot (GitHub Actions ecosystem) updates SHA pins and their version comments.

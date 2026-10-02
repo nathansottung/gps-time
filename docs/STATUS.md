@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (chore/vitest, #16). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (chore/pin-actions). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -45,10 +45,11 @@ Last updated: 2026-10-02 (chore/vitest, #16). Built from the specs, `roadmap/fea
 | Scope | `roadmap/current-scope.md` |
 | Web UI | the React port (`web/`, ADR-0004) |
 | Review | `review/GPS-Time-Independent-Review-2026-09-27.md` |
+| Repo | repository tooling, CI and releases (owner requests) |
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 352 rows: 161 done, 0 in progress, 25 next, 166 planned.
+**Totals:** 353 rows: 162 done, 0 in progress, 25 next, 166 planned.
 
 ## Status table
 
@@ -406,3 +407,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-030 | Global object target; non-portable strftime | planned | partial: server.py fixed; astro.py %-d remains | [#12](https://github.com/nathansottung/gps-time/pull/12) |
 | Review | GPS-031 | No automated tests | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
+| Repo |  | Workflow actions pinned to commit SHAs; CI guard | done |  | PRLINK |
