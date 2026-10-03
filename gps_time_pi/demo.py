@@ -124,9 +124,11 @@ def almanac_api(_qs=None) -> dict:
         "neighbors": {
             "yesterday": {"sunrise": (start - timedelta(days=1, seconds=56.7)).isoformat(),
                           "sunset": (end - timedelta(days=1, seconds=-126.1)).isoformat(),
+                          "noon": (noon - timedelta(days=1, seconds=-34.7)).isoformat(),
                           "daylight_s": daylight + 182.8},
             "tomorrow": {"sunrise": (start + timedelta(days=1, seconds=56.9)).isoformat(),
                          "sunset": (end + timedelta(days=1, seconds=-124.8)).isoformat(),
+                         "noon": (noon + timedelta(days=1, seconds=-34.0)).isoformat(),
                          "daylight_s": daylight - 181.7},
         },
     }

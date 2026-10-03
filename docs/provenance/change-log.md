@@ -353,3 +353,22 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - the PowerShell script on Windows: success with the right checksum, failed build, failed upload.
   - All 7 tests that run on Windows fail against the previous scripts.
 - `STATUS.md`: GPS-021 is next-5 item 5 (owner: must land before any Pi deploy) and done. Not yet run against a real Pi.
+
+## 2026-10-02 — sun shifts per day (#31)
+
+- **`/app/` Sun & Daylight card** (also on the Sun & Astronomy page): a "Shift per day" table, labeled `predicted`.
+  - Rows: sunrise, solar noon, sunset and daylight length. Columns: the change vs yesterday and to tomorrow.
+  - Values are signed whole seconds with a real minus (e.g. `+57 s`, `−126 s`).
+  - An event's shift is (later instant − earlier instant − 86 400 s), so a DST switch isn't counted as a solar shift. If the UTC offset differs between the days, a note says the hour is excluded.
+  - A missing event (polar day or night) shows "—", never 0.
+  - Daylight uses the server's `delta_yesterday` / `delta_tomorrow`.
+  - Logic in `web/src/lib/sun.ts`.
+- **`/api/almanac`:** `neighbors.{yesterday,tomorrow}` gains `noon`. Both demos (server and client-side adapter) carry yesterday's and tomorrow's noon, consistent with their daylight deltas.
+- **Legacy dashboard (`static/dashboard.js`) Sun & daylight widget:**
+  - "change vs yesterday" used `Math.abs(...)`, which dropped the minus sign: a shortening day read "182.8 s" instead of "−182.8 s".
+  - A missing value showed as 0.
+  - Both changes now use `signedSeconds()`, which gives `+`/`−` (U+2212) and "–" when unknown. Fix only; no restyle.
+- **Tests:**
+  - `web/src/lib/sun.test.ts` (10): shift sign and value, null handling, DST exclusion, the clock-change flag, demo consistency, formatting.
+  - `web/src/lib/legacy-dashboard.test.ts` (3): it evaluates the legacy helper from the file and fails to load against the previous `dashboard.js`.
+- **Checked in the demo:** the `/app/` table reads sunrise +57/+57 s, solar noon −35/−34 s, sunset −126/−125 s, daylight −183/−182 s. The legacy widget reads "−182.8 s change vs yesterday". No console errors.

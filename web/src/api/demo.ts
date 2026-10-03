@@ -379,8 +379,8 @@ function almanac(tz = 'UTC'): Almanac {
     night: { available: true, defined: false },
     delta_yesterday: -131.3, delta_tomorrow: -132.1,
     neighbors: {
-      yesterday: { sunrise: at(-1, '06:47:12'), sunset: at(-1, '18:49:43'), daylight_s: 43351 },
-      tomorrow:  { sunrise: at(1, '06:48:57'), sunset: at(1, '18:47:05'), daylight_s: 43088 },
+      yesterday: { sunrise: at(-1, '06:47:12'), sunset: at(-1, '18:49:43'), noon: at(-1, '12:48:33'), daylight_s: 43351 },
+      tomorrow:  { sunrise: at(1, '06:48:57'), sunset: at(1, '18:47:05'), noon: at(1, '12:48:05'), daylight_s: 43088 },
     },
     sky: {}, sky_when: `${ymd(0)} 22:00 ${tz}`, position_provenance: 'demo', position_age: null,
   };

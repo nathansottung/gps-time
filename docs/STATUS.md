@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (fix/deploy-failures, #30). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (feat/sun-deltas, #31). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -284,7 +284,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature B |  | Receiver capability tiers | planned | partial | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Feature B |  | ZED-F9T precision-timing tier | planned | future hardware |  |
 | Feature B |  | ZED-F9P/RTK tier | planned | future hardware |  |
-| Feature C |  | Sunrise/noon/sunset + y/t/t deltas | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) [#12](https://github.com/nathansottung/gps-time/pull/12) |
+| Feature C |  | Sunrise/noon/sunset + y/t/t deltas | done | /app/: per-event shifts vs yesterday / to tomorrow in signed seconds (predicted); legacy sign fix | [#10](https://github.com/nathansottung/gps-time/pull/10) [#12](https://github.com/nathansottung/gps-time/pull/12) [#31](https://github.com/nathansottung/gps-time/pull/31) |
 | Feature C |  | Daylight duration + seasonal rate | planned | partial: daily delta | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature C |  | Twilight + moonless darkness | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature C |  | Sun az/el, AST, MST, EoT | planned | partial |  |

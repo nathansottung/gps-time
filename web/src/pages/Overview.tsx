@@ -8,6 +8,7 @@ import { toSkySats, plottable, cn0Stats, toOffsetSeries, fracFreq, allEvents, sa
 import type { Almanac, SolarDay, LunarDay } from '../api/types';
 import { holdover, dataPacks } from '../api/previews';
 import { fmtSci } from '../lib/units';
+import { sunShifts, fmtShift, type SunEvent } from '../lib/sun';
 import { fmtOffset, fmtSeconds, lightDistance, fmtClock, fmtDuration, fmtDelta, browserTimeZone } from '../lib/format';
 
 // Clear-sky model curve for the irradiance preview (planned feature; demo only).
@@ -160,7 +161,8 @@ export function SunDays({ almanac }: { almanac: Almanac | null }) {
     { label:'Tomorrow',  rise: nb?.tomorrow.sunrise,  noon: undefined, set: nb?.tomorrow.sunset,  dur: nb?.tomorrow.daylight_s,  chg: almanac?.available ? almanac.delta_tomorrow : null },
   ];
   return (
-    <div className="grid grid-cols-3 gap-2 text-[11px]">
+    <div>
+      <div className="grid grid-cols-3 gap-2 text-[11px]">
       {cols.map(c => {
         const chg = fmtDelta(c.chg);   // daylight change vs the prior day (astro.daylight_deltas)
         return (
@@ -190,6 +192,49 @@ export function SunDays({ almanac }: { almanac: Almanac | null }) {
           </div>
         );
       })}
+      </div>
+      <SunShiftTable almanac={almanac} />
+    </div>
+  );
+}
+
+const SHIFT_ROWS: [SunEvent, string][] = [['sunrise', 'Sunrise'], ['noon', 'Solar noon'], ['sunset', 'Sunset'], ['daylight', 'Daylight']];
+const TH = { color:'var(--t3)', fontWeight:400, fontFamily:'JetBrains Mono', fontSize:10, letterSpacing:'0.05em',
+             padding:'6px 8px', borderBottom:'1px solid var(--border)' } as const;
+
+/** Day-to-day shifts in signed seconds (lib/sun.ts), predicted like the times they come from. */
+function SunShiftTable({ almanac }: { almanac: Almanac | null }) {
+  const shifts = almanac ? sunShifts(almanac) : null;
+  if (!shifts) return null;
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[9px] mono uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>Shift per day</span>
+        <ProvenanceTag type="predicted" />
+      </div>
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr>
+            <th style={{ ...TH, textAlign:'left' }}>Event</th>
+            <th style={{ ...TH, textAlign:'right' }}>vs yesterday</th>
+            <th style={{ ...TH, textAlign:'right' }}>to tomorrow</th>
+          </tr>
+        </thead>
+        <tbody>
+          {SHIFT_ROWS.map(([k, label]) => (
+            <tr key={k} className="row-sep">
+              <td className="px-2 py-1.5" style={{ color:'var(--t1)' }}>{label}</td>
+              <td className="px-2 py-1.5 mono tabular text-right" style={{ color:'var(--t2)' }}>{fmtShift(shifts.rows[k].vsYesterday) ?? '—'}</td>
+              <td className="px-2 py-1.5 mono tabular text-right" style={{ color:'var(--t2)' }}>{fmtShift(shifts.rows[k].toTomorrow) ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {shifts.clockChange && (
+        <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
+          The clock changes (DST) within these days; shifts exclude the hour.
+        </div>
+      )}
     </div>
   );
 }
