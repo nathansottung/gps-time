@@ -374,7 +374,7 @@ export interface Almanac {
   night: { available: boolean; defined?: boolean; [k: string]: unknown };
   delta_yesterday: number | null;
   delta_tomorrow: number | null;
-  neighbors: Record<'yesterday' | 'tomorrow', { sunrise?: string | null; sunset?: string | null; daylight_s?: number | null }>;
+  neighbors: Record<'yesterday' | 'tomorrow', { sunrise?: string | null; sunset?: string | null; noon?: string | null; daylight_s?: number | null }>;
   sky: Record<string, unknown>;
   sky_when: string;
   position_provenance: string;

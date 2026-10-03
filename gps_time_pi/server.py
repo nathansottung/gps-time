@@ -215,6 +215,7 @@ def almanac_api(qs):
     def _neighbor(x):
         return {"sunrise": x.get("events", {}).get("sunrise"),
                 "sunset": x.get("events", {}).get("sunset"),
+                "noon": x.get("noon"),
                 "daylight_s": x.get("daylight_s")} if x.get("available") else {}
     return {"available": True, "sun": sun, "moon": moon, "night": nite,
             "delta_yesterday": dy, "delta_tomorrow": dt_,

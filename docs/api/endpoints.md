@@ -132,7 +132,7 @@ Available responses include `location_display`.
 - `night`: `{defined, sunset, sunrise, span_s, sun_segments, moon_up[], dark[]}`, or `{defined: false, note}`.
 - `delta_yesterday`: today − yesterday daylight, in s.
 - `delta_tomorrow`: tomorrow − today daylight, in s.
-- `neighbors.{yesterday,tomorrow}.{sunrise, sunset, daylight_s}`.
+- `neighbors.{yesterday,tomorrow}.{sunrise, sunset, noon, daylight_s}` (predicted, like `sun`). The web UI shows the day-to-day shifts from these.
 - `sky`: `{stars, lines, bodies, target}`.
 - `sky_when`, `position_provenance`, `position_age`.
 - `demo: true` in demo mode.
