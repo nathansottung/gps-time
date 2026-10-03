@@ -18,7 +18,7 @@ The development configuration editor is at `/configure`.
 
 ### Write safety
 
-Dashboard configuration writes are allowed in demo mode, from loopback by default, or when `GTP_ALLOW_CONFIG_WRITE=1` is explicitly set for a trusted environment. This is **not** the final authentication model for a stable appliance.
+Dashboard configuration writes (`POST /api/dashboard`, `/api/dashboard/reset`) need the station admin token, except in demo mode, where writes go to `.dev/`. The `/configure` page prompts for the token. `GTP_ALLOW_CONFIG_WRITE` and the loopback exception were removed (ADR-0005).
 
 ## Planned editor improvements
 

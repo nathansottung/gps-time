@@ -70,7 +70,7 @@ export function satCounts(gps: CoreStatus['gps'] | undefined): { visible: number
  * privileges while tracking works; see docs/api/README.md.)
  */
 export function ntpClientCount(core: CoreStatus | null, chain: TimingChain | null): number | null {
-  if (!core) return null;
+  if (!core || core.clients === null) return null;
   if (!chain || !chain.chrony.available.tracking) return null;
   return core.clients.length;
 }

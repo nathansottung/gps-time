@@ -52,6 +52,7 @@ CI (`.github/workflows/`):
 - **GNSS collection and survey:** `gps_time_pi/gps.py` (background collector, fresh-epoch gating), `gps_time_pi/config.py` (persistence: SIGTERM flush, fsync, `config.json.prev`, corrupt files set aside).
 - **Specifications** (requirements, not implemented behavior): `docs/specs/`.
 - **Independent review and remaining findings:** `docs/review/GPS-Time-Independent-Review-2026-09-27.md`.
+- **Admin security:** `gps_time_pi/security.py` (Host/Origin checks, token), `gps_time_pi/admin_token.py`, `gps-time-pi.service` (unprivileged), `system/50-gps-time-pi.rules` (polkit). Decision: ADR-0005.
 - **HTTP API and new web UI:**
   - Reference for every route: `docs/api/`.
   - Typed client and demo adapter: `web/src/api/`.

@@ -17,7 +17,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `fmt` | the server's human-readable strings for the legacy pages |
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample` |
 | `sourcestats` | raw `chronyc sourcestats` text |
-| `clients` | `chronyc clients` rows: `host`, `ntp_packets`, `dropped`, `last`. **`[]` is ambiguous**: it means no clients *or* chronyc failed *or* the command was refused (it needs privileges). The UI reports UNKNOWN when `/api/timing-chain` says chronyc is unavailable. |
+| `clients` | `chronyc clients` rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = chronyc failed or refused the command (it needs chrony's local socket: root or the `_chrony` group). Shown as UNKNOWN. |
 | `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`; in `hidden` privacy mode `el` and `az` are null), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
 | `location` | position **after the privacy mode**: `{mode, lat, lon, alt_msl?, alt_hae?}`. exact → 4 decimals, alt_msl and alt_hae; rounded → 1 decimal, alt_msl to 10 m, no alt_hae; hidden → lat/lon null. |
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
@@ -168,6 +168,17 @@ The server side of an NTP-like four-timestamp exchange. The client records t1 be
 
 Add a cache-busting query (`?n=<random>`); the server ignores it. The estimate assumes a symmetric path and is limited by browser timer resolution, so the UI labels the offset **inferred** and the RTT **observed**. Implementation: `pingOnce()` in `web/src/api/client.ts`.
 
+## GET /api/auth
+
+Whether admin is enabled and whether the request's `Authorization` header is valid. It never returns the token or its hash. Type: `AuthState`.
+
+```json
+{"demo": false, "auth_required": true, "admin_configured": true, "authenticated": false}
+```
+
+- `auth_required` is false only in demo mode.
+- `authenticated` is always true in demo mode.
+
 ## GET /api/dashboard
 
 The legacy dashboard layout (the widget model of `/` and `/configure`) plus metadata. Type: `DashboardConfig`.
@@ -175,57 +186,55 @@ The legacy dashboard layout (the widget model of `/` and `/configure`) plus meta
 ```json
 {"schema_version": 1, "title": "GPS Time",
  "pages": [{"id": "overview", "title": "Overview", "widgets": [{"id": "time", "visible": true, "size": "wide"}]}],
- "_meta": {"writable": true, "demo": true, "path": "…/.dev/dashboard.json", "known_widgets": ["adsb", "…"]}}
+ "_meta": {"writable": true, "auth_required": true, "demo": false, "path": null, "known_widgets": ["adsb", "…"]}}
 ```
 
-`_meta.writable` reports whether this client may write (see below). `_meta.path` is set only in demo mode.
+- `_meta.writable` is true in demo mode, or when an admin token is configured. Writes still need the token.
+- `_meta.path` is set only in demo mode.
 
 ## POST /api/dashboard
 
-Body: a layout (`DashboardLayout`) as JSON, 1 B–256 kB. It is validated by `dashboard.validate()`:
+Body: a layout (`DashboardLayout`). It goes through the request checks in [README → Authentication](README.md#authentication-and-request-checks), so it needs the admin token outside demo mode.
+
+It is validated by `dashboard.validate()`:
 - at least 1 page and at most 20;
 - unique slug ids;
 - every page has a title and a widget list.
 
-On success it is saved to `dashboard.json` (`GTP_DASHBOARD_CONFIG`, or next to `GTP_CONFIG`). Response: `{"ok": true, "dashboard": <normalized>}` or `{"ok": false, "error": "..."}`.
+On success it is saved to `dashboard.json` (`GTP_DASHBOARD_CONFIG`, or next to `GTP_CONFIG`). Response: `{"ok": true, "dashboard": <normalized>}`, or HTTP 200 `{"ok": false, "error": "..."}` on a validation error.
 
-**Write gate.** Writes are allowed:
-- in demo mode;
-- when `GTP_ALLOW_CONFIG_WRITE` is `1/true/yes/on/lan`;
-- from loopback (`127.0.0.1`, `::1`).
-
-Otherwise the response is `{"ok": false, "error": "dashboard configuration writes are disabled"}`.
+`GTP_ALLOW_CONFIG_WRITE` and the loopback exception were removed. Behind a reverse proxy every client looked like loopback, so the token is now the only gate.
 
 ## POST /api/dashboard/reset
 
-No body. Restores the default layout and saves it, with the same gate and response as above.
+Body `{}`. Restores and saves the default layout. Same checks and response as above.
 
-## GET /api/setting
+## POST /api/setting
 
-Changes a station setting through query parameters. It is a GET with side effects and has **no write gate**.
+Changes a station setting. JSON body; admin token (outside demo). `GET /api/setting` returns 405.
 
-| Query | Effect | Response |
+| Body | Effect | Response |
 |---|---|---|
-| `location_display=exact\|rounded\|hidden` | sets the location privacy mode in `config.json` | `{"ok": true, "location_display": "<mode>"}` |
-| `reset_site=1` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
-| anything else | nothing | `{"ok": false}` |
+| `{"location_display": "exact" \| "rounded" \| "hidden"}` | sets the location privacy mode in `config.json` | `{"ok": true, "location_display": "<mode>"}` |
+| `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
+| anything else | nothing | **400** `{"ok": false, "error": "expected location_display or reset_site"}` |
 
 The new UI uses `location_display` (Administration → Location privacy). Survey reset remains on the legacy `/admin` page.
 
-## GET /api/admin
+## POST /api/admin
 
-Runs a management action. It is a GET with side effects and **no authentication or write gate** (LAN trust).
+Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside demo). `GET /api/admin` returns 405. Actions are fixed argv lists (`system.ACTIONS`, `system.DELAYED`), with no shell and no arguments taken from the request. Each is authorized by the polkit rule `system/50-gps-time-pi.rules`.
 
-| `action=` | Runs | Response `detail` |
+| `action` | Runs | Response `detail` |
 |---|---|---|
-| `flush_logs` | `/bin/bash /opt/gps-time-pi/scripts/logsync.sh flush` | stderr/stdout (≤ 300 chars) |
-| `restart_gpsd` | `systemctl restart gpsd` | stderr/stdout |
-| `restart_chrony` | `systemctl restart chrony` | stderr/stdout |
-| `restart_web` | `systemctl restart gps-time-pi`, detached, after 1 s | `restarting in 1 s` |
+| `flush_logs` | `systemctl start gps-time-pi-logflush.service` (root oneshot that copies the RAM log to SD) | stderr/stdout (≤ 300 chars) |
+| `restart_gpsd` | `systemctl restart gpsd.service` | stderr/stdout |
+| `restart_chrony` | `systemctl restart chrony.service` | stderr/stdout |
+| `restart_web` | `systemctl restart gps-time-pi.service`, detached, after 1 s | `restarting in 1 s` |
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
 | other | nothing | `unknown action` (`ok: false`) |
 
-Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. The typed client has `admin()` for completeness. The new UI does not call it yet; the buttons stay on the legacy `/admin` page.
+Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The new UI's client has `admin()`; its buttons are still only on the legacy `/admin` page.
 
 ---
 
@@ -255,11 +264,11 @@ HTML from `gps_time_pi/templates/`, served with `no-store`. They stay until the 
 | Path | Page | APIs used |
 |---|---|---|
 | `/` | configurable dashboard | `/api`, `/api/dashboard`, `/api/almanac`, `/api/ping` |
-| `/configure` | layout editor | `/api/dashboard` (GET/POST), `/api/dashboard/reset` |
+| `/configure` | layout editor (admin token prompt) | `/api/dashboard` (GET/POST), `/api/dashboard/reset`, `/api/auth` |
 | `/legacy` | instrument view | `/api` |
 | `/almanac` | sun, moon, night, sky map, object lookup | `/api/almanac`, `/api/object` |
 | `/history` | offset chart, survey convergence | `/api/history`, `/api/survey` |
-| `/admin` | system diagnostics, actions, privacy, survey reset | `/api/system`, `/api/admin`, `/api/setting`, `/api` |
+| `/admin` | system diagnostics, actions, privacy, survey reset (admin token prompt) | `/api/system`, `/api/admin`, `/api/setting`, `/api/auth`, `/api` |
 | `/zones` | server-rendered IANA time-zone table (current offsets) | none |
 
 `templates/index.html` is not served; it is an older copy of `legacy.html`.

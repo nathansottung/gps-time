@@ -11,8 +11,8 @@ The legacy pages stay until every row below is either done or explicitly dropped
 | 3 | **Station-corrected clock:** the big clock ticks on the server time estimated from `/api` `epoch_ms` + RTT (`/legacy`) | The new header shows the browser clock. The browser-offset estimate exists (Network page) but does not drive the clock yet. |
 | 4 | **Layout editor that saves** to the station: pages, per-widget visible/size, add/rename/remove page, save, restore defaults, export/import JSON (`/configure`, `POST /api/dashboard`) | The new Configure page is a non-saving preview with a different widget model. The client already has `dashboard()`, `saveDashboard()` and `resetDashboard()`. |
 | 5 | **Layout-driven pages:** `/` renders whatever `/api/dashboard` says | New pages have a fixed layout. |
-| 6 | **Admin actions:** flush logs, restart gpsd/chrony/web, reboot (`/admin`, `/api/admin`) | Deferred until the API has authentication (independent review, admin security). |
-| 7 | **Survey reset** (`/admin`, `/api/setting?reset_site=1`) | Destructive; same reason as #6. |
+| 6 | **Admin actions:** flush logs, restart gpsd/chrony/web, reboot (`/admin`, `/api/admin`) | Unblocked: the API now has authentication (ADR-0005), and the client has `admin()` and the token. Buttons not added yet. |
+| 7 | **Survey reset** (`/admin`, `POST /api/setting {"reset_site": true}`) | Unblocked as #6; destructive, needs a confirmation step. |
 | 8 | **Almanac date navigation:** date picker with ←/→, "Sky at" time, Now (`/almanac`) | The new UI shows today only. |
 | 9 | **Twilight bar** (24 h) and **night bar:** twilight stages, moon-up strip, moonless-dark windows, total moonless astronomical darkness (`/almanac`) | Data is already in `/api/almanac` → `sun.bar`, `night`. |
 | 10 | **Moon details:** time above horizon, transit altitude (`/almanac`) | Data in `moon.up_s`, `moon.transit_alt`. |

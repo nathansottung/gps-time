@@ -65,3 +65,17 @@ function localTime(iso) {
   return new Date(iso).toLocaleTimeString(undefined,
     { hour: "numeric", minute: "2-digit", timeZone: getTZ() });
 }
+
+// Demo-mode label on every page that loads this file (review GPS-019): in demo
+// mode all values are fixtures, so say so above the page content.
+(function demoBanner() {
+  fetch("/api/auth", { cache: "no-store" }).then(r => r.json()).then(a => {
+    if (!a || !a.demo || document.getElementById("gtp-demo-banner")) return;
+    const d = document.createElement("div");
+    d.id = "gtp-demo-banner";
+    d.textContent = "SAMPLE DATA — demo mode. All values are synthetic, not measurements.";
+    d.style.cssText = "margin:0 0 12px;padding:6px 10px;border:1px solid #b07810;color:#b07810;font:12px monospace;border-radius:2px";
+    const main = document.querySelector("main") || document.body;
+    main.insertBefore(d, main.firstChild);
+  }).catch(() => {});
+})();

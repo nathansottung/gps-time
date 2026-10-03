@@ -238,9 +238,14 @@ def sourcestats():
 
 
 def clients():
+    """`chronyc -n clients` rows, or None when chronyc failed or refused (the
+    command needs chrony's local socket, i.e. root or the _chrony group). None
+    is UNKNOWN, not "no clients"."""
     rows, started = [], False
     ok, out = run_chronyc("clients")
-    for line in (out if ok else "").splitlines():
+    if not ok:
+        return None
+    for line in out.splitlines():
         if line.startswith("==="):
             started = True
             continue

@@ -119,7 +119,7 @@ export interface CoreStatus {
   fmt: { system_pair: string; rms: string; root_dispersion: string; root_delay: string };
   sources: ChronySource[];
   sourcestats: string;
-  clients: NtpClient[];
+  clients: NtpClient[] | null;          // null: chronyc clients failed or was refused (UNKNOWN)
   gps: GpsSummary;
   location: DisplayedLocation;
   survey: SurveyStats;
@@ -397,7 +397,7 @@ export interface DashboardLayout {
   pages: { id: string; title: string; widgets: DashboardWidget[] }[];
 }
 export interface DashboardConfig extends DashboardLayout {
-  _meta: { writable: boolean; demo: boolean; path: string | null; known_widgets: string[] };
+  _meta: { writable: boolean; auth_required: boolean; demo: boolean; path: string | null; known_widgets: string[] };
 }
 export type DashboardWriteResult = { ok: true; dashboard: DashboardLayout } | { ok: false; error: string };
 
@@ -411,4 +411,13 @@ export type SettingResult =
 // ─── GET /api/admin ──────────────────────────────────────────────────────────
 
 export type AdminAction = 'flush_logs' | 'restart_gpsd' | 'restart_chrony' | 'restart_web' | 'reboot';
-export interface AdminResult { ok: boolean; action: string; detail: string }
+export interface AdminResult { ok: boolean; action: string; detail: string; simulated?: true }
+
+// ─── GET /api/auth ───────────────────────────────────────────────────────────
+
+export interface AuthState {
+  demo: boolean;
+  auth_required: boolean;     // false only in demo mode
+  admin_configured: boolean;  // a token hash exists on the station
+  authenticated: boolean;     // the Authorization header sent was valid (always true in demo)
+}

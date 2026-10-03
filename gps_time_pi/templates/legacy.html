@@ -175,7 +175,9 @@ async function refresh(){
     <td><span class="bar" style="display:inline-block;width:${Math.min((s.snr||0)*2.2,110)}px;height:9px;background:${s.used?"var(--ok)":"var(--rule)"}"></span></td></tr>`).join("")
     : `<tr><td colspan="6" class="dim">No satellite data — receiver searching or gpsd unreachable.</td></tr>`;
 
-  document.getElementById("clients").innerHTML = d.clients.length ? d.clients.map(c=>`
+  document.getElementById("clients").innerHTML = d.clients == null
+    ? `<tr><td colspan="4" class="dim">Client list unavailable (chronyc clients not readable).</td></tr>`
+    : d.clients.length ? d.clients.map(c=>`
     <tr><td class="name">${c.host}</td><td>${c.ntp_packets}</td>
     <td>${c.dropped}</td><td>${c.last}</td></tr>`).join("")
     : `<tr><td colspan="4" class="dim">No clients recorded yet.</td></tr>`;

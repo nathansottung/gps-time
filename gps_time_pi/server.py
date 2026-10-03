@@ -19,8 +19,11 @@ Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
 """
 
 import json
+import logging
+import math
 import os
 import re
+import sys
 from datetime import date as _date
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,7 +32,7 @@ from zoneinfo import ZoneInfo, available_timezones
 
 import platform
 
-from . import __version__, astro, catalog, chrony, config, dashboard, demo, gps, system, timing_chain, units
+from . import __version__, astro, catalog, chrony, config, dashboard, demo, gps, security, system, timing_chain, units
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
@@ -38,8 +41,10 @@ BIND = os.environ.get("GTP_BIND", "127.0.0.1" if DEMO_MODE else "0.0.0.0")
 
 _TPL = {}
 for name in ("dashboard", "configure", "legacy", "almanac", "history", "admin"):
-    with open(os.path.join(_HERE, "templates", name + ".html")) as f:
+    with open(os.path.join(_HERE, "templates", name + ".html"), encoding="utf-8") as f:
         _TPL[name] = f.read()
+# Per-page CSP: each legacy page's static inline scripts allowed by hash only.
+_TPL_CSP = {name: security.csp_for_html(html) for name, html in _TPL.items()}
 
 
 # Built web UI (cd web && corepack pnpm run build). Read per request, never written.
@@ -334,19 +339,32 @@ def diagnostics_text(qs):
     return timing_chain.diagnostic_snapshot(chain, config.displayed_location(cfg, live))
 
 
-def dashboard_writable(remote_ip):
-    if DEMO_MODE:
-        return True
-    mode = os.environ.get("GTP_ALLOW_CONFIG_WRITE", "").lower()
-    if mode in ("1", "true", "yes", "on", "lan"):
-        return True
-    return remote_ip in ("127.0.0.1", "::1")
+def writes_enabled():
+    """Demo mode writes only under .dev/ and never runs host actions, so it needs
+    no token. Otherwise every state-changing request needs the admin token, and
+    admin is disabled until a token exists (security.admin_configured())."""
+    return DEMO_MODE or security.admin_configured()
 
 
-def dashboard_payload(remote_ip):
+HOST_REFUSED = ("Host not allowed. Use the station's IP address or hostname, or add this "
+                "name to GTP_ALLOWED_HOSTS (comma-separated) in the service environment.\n")
+ADMIN_DISABLED = ("admin is disabled: no admin token is configured on the station "
+                  "(create one with: sudo python3 -m gps_time_pi.admin_token)")
+POST_ROUTES = ("/api/admin", "/api/setting", "/api/dashboard", "/api/dashboard/reset")
+MAX_BODY = 256000
+
+
+def auth_payload(authenticated):
+    return {"demo": DEMO_MODE, "auth_required": not DEMO_MODE,
+            "admin_configured": security.admin_configured(),
+            "authenticated": DEMO_MODE or authenticated}
+
+
+def dashboard_payload():
     cfg = dashboard.load()
     cfg["_meta"] = {
-        "writable": dashboard_writable(remote_ip),
+        "writable": writes_enabled(),
+        "auth_required": not DEMO_MODE,
         "demo": DEMO_MODE,
         "path": str(dashboard.path()) if DEMO_MODE else None,
         "known_widgets": sorted(dashboard.KNOWN_WIDGETS),
@@ -355,6 +373,40 @@ def dashboard_payload(remote_ip):
 
 
 class Handler(BaseHTTPRequestHandler):
+    _csp = None      # per-response CSP override (legacy pages); reset for every request
+
+    def end_headers(self):
+        # Security headers on every response, including send_error() pages.
+        self.send_header("Content-Security-Policy", self._csp or security.CSP_STRICT)
+        for k, v in security.SECURITY_HEADERS.items():
+            self.send_header(k, v)
+        super().end_headers()
+
+    def _page(self, name):
+        self._csp = _TPL_CSP[name]
+        self._send(_TPL[name], "text/html")
+
+    def _check_token(self, route):
+        """True if the Authorization header holds the admin token. Otherwise this
+        sends 429 (backoff active) or 401, logs the failure (never the token)
+        and returns False."""
+        ip = self.client_address[0]
+        wait = security.THROTTLE.retry_after(ip)
+        if wait > 0:
+            security.log.warning("admin token attempt refused (backoff): ip=%s route=%s retry_after_s=%d",
+                                 ip, route, math.ceil(wait))
+            self._json({"ok": False, "error": "too many failed attempts; try again later"}, code=429,
+                       headers={"Retry-After": str(math.ceil(wait))})
+            return False
+        header = self.headers.get("Authorization")
+        if security.verify_authorization(header):
+            security.THROTTLE.success(ip)
+            return True
+        security.note_auth_failure(ip, route, header)
+        self._json({"ok": False, "error": "admin token required"}, code=401,
+                   headers={"WWW-Authenticate": 'Bearer realm="gps-time"'})
+        return False
+
     def _send(self, body, ctype, code=200, cache=None):
         data = body if isinstance(body, bytes) else body.encode()
         self.send_response(code)
@@ -391,41 +443,70 @@ class Handler(BaseHTTPRequestHandler):
         with open(full, "rb") as f:
             self._send(f.read(), ctype, cache=cache)
 
-    def _json(self, obj):
-        self._send(json.dumps(obj), "application/json")
+    def _json(self, obj, code=200, headers=None):
+        data = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _host_ok(self):
+        if security.host_allowed(self.headers.get("Host")):
+            return True
+        self._send(HOST_REFUSED, "text/plain", code=403)
+        return False
 
     def do_GET(self):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         p = u.path
+        self._csp = None
+        if not self._host_ok():
+            return
         try:
-            if p == WEB_PREFIX.rstrip("/") or p.startswith(WEB_PREFIX):
+            if p in ("/api/admin", "/api/setting"):
+                # State changes are POST-only (GPS-014): a GET can be triggered by any page.
+                self._json({"ok": False, "error": "method not allowed: use POST with a JSON body"},
+                           code=405, headers={"Allow": "POST"})
+            elif p == "/api/auth":
+                # A sent token is checked with the same logging/backoff as POSTs, so
+                # this read-only route can't be used to guess tokens faster.
+                if self.headers.get("Authorization") and not DEMO_MODE and security.admin_configured():
+                    if self._check_token("/api/auth"):
+                        self._json(auth_payload(True))
+                else:
+                    self._json(auth_payload(False))
+            elif p == WEB_PREFIX.rstrip("/") or p.startswith(WEB_PREFIX):
                 self._web(u)
             elif p == "/":
-                self._send(_TPL["dashboard"], "text/html")
+                self._page("dashboard")
             elif p == "/configure":
-                self._send(_TPL["configure"], "text/html")
+                self._page("configure")
             elif p == "/legacy":
-                self._send(_TPL["legacy"], "text/html")
+                self._page("legacy")
             elif p == "/almanac":
-                self._send(_TPL["almanac"], "text/html")
+                self._page("almanac")
             elif p == "/history":
-                self._send(_TPL["history"], "text/html")
+                self._page("history")
             elif p == "/admin":
-                self._send(_TPL["admin"], "text/html")
+                self._page("admin")
             elif p == "/api/system":
                 self._json(demo.system_diagnostics() if DEMO_MODE else system.diagnostics())
-            elif p == "/api/admin":
-                self._json(system.admin(qs.get("action", [""])[0]))
             elif p == "/zones":
-                self._send(zones_page(), "text/html")
+                html = zones_page()
+                self._csp = security.csp_for_html(html)
+                self._send(html, "text/html")
             elif p == "/time":
                 self._send(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f UTC\n"),
                            "text/plain")
             elif p == "/api":
                 self._json(core_api())
             elif p == "/api/dashboard":
-                self._json(dashboard_payload(self.client_address[0]))
+                self._json(dashboard_payload())
             elif p == "/api/ping":
                 t2 = datetime.now(timezone.utc).timestamp() * 1000
                 # Keep the endpoint tiny: the browser uses t2/t3 as the server side
@@ -444,22 +525,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
                 self._json(survey_api())
-            elif p == "/api/setting":
-                mode = qs.get("location_display", [None])[0]
-                if mode in ("exact", "rounded", "hidden"):
-                    cfg = config.load()
-                    cfg["location_display"] = mode
-                    config.save(cfg)
-                    self._json({"ok": True, "location_display": mode})
-                elif qs.get("reset_site", [None])[0] == "1":
-                    config.reset_site()
-                    self._json({"ok": True, "reset_site": True})
-                else:
-                    self._json({"ok": False})
             elif p == "/static/custom.css":
                 custom = os.path.join(os.path.dirname(
                     os.environ.get("GTP_CONFIG", "/opt/gps-time-pi/config.json")), "custom.css")
-                body = open(custom).read() if os.path.exists(custom) else "/* create custom.css next to config.json to override styles */"
+                body = open(custom, encoding="utf-8").read() if os.path.exists(custom) else "/* create custom.css next to config.json to override styles */"
                 self._send(body, "text/css")
             elif p.startswith("/static/"):
                 fn = os.path.basename(p)
@@ -481,26 +550,76 @@ class Handler(BaseHTTPRequestHandler):
                 pass
 
     def do_POST(self):
-        u = urlparse(self.path)
-        p = u.path
-        if p not in ("/api/dashboard", "/api/dashboard/reset"):
+        """State-changing requests (GPS-014, GPS-017, GPS-019). Checks, in order:
+        Host allowlist -> route -> Origin (same-origin or GTP_ALLOWED_ORIGINS) ->
+        Content-Type application/json -> body size -> admin token (not in demo)."""
+        p = urlparse(self.path).path
+        self._csp = None
+        # Read (bounded) the body before any refusal, so an early error doesn't
+        # leave unread request bytes on the socket (the client would see a reset).
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = -1
+        raw = self.rfile.read(length) if 0 < length <= MAX_BODY else None
+        if raw is None:
+            self.close_connection = True
+        if not self._host_ok():
+            return
+        if p not in POST_ROUTES:
             self.send_error(404)
             return
-        if not dashboard_writable(self.client_address[0]):
-            self._json({"ok": False, "error": "dashboard configuration writes are disabled"})
+        if not security.origin_allowed(self.headers.get("Origin"), self.headers.get("Host")):
+            self._json({"ok": False, "error": "cross-origin request refused"}, code=403)
+            return
+        ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if ctype != "application/json":
+            self._json({"ok": False, "error": "Content-Type must be application/json"}, code=415)
+            return
+        if raw is None:
+            self._json({"ok": False, "error": f"request body must be 1..{MAX_BODY} bytes of JSON"}, code=400)
             return
         try:
-            if p == "/api/dashboard/reset":
-                cfg = dashboard.default_layout()
-                cfg = dashboard.save(cfg)
-                self._json({"ok": True, "dashboard": cfg})
+            body = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            self._json({"ok": False, "error": "invalid JSON"}, code=400)
+            return
+        if not isinstance(body, dict):
+            self._json({"ok": False, "error": "JSON body must be an object"}, code=400)
+            return
+        if not DEMO_MODE:
+            if not security.admin_configured():
+                self._json({"ok": False, "error": ADMIN_DISABLED}, code=403)
                 return
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 256000:
-                raise ValueError("invalid dashboard payload size")
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            cfg = dashboard.save(data)
-            self._json({"ok": True, "dashboard": cfg})
+            if not self._check_token(p):
+                return
+        try:
+            if p == "/api/admin":
+                action = body.get("action")
+                if DEMO_MODE:
+                    # Never touch the host from demo mode (GPS-019).
+                    known = action in system.ADMIN_ACTIONS
+                    self._json({"ok": known, "action": action, "simulated": True,
+                                "detail": f"demo mode: {action} was not executed" if known else "unknown action"})
+                else:
+                    self._json(system.admin(action))
+            elif p == "/api/setting":
+                mode = body.get("location_display")
+                if mode in ("exact", "rounded", "hidden"):
+                    cfg = config.load()
+                    cfg["location_display"] = mode
+                    config.save(cfg)
+                    self._json({"ok": True, "location_display": mode})
+                elif body.get("reset_site") is True:
+                    config.reset_site()
+                    self._json({"ok": True, "reset_site": True})
+                else:
+                    self._json({"ok": False, "error": "expected location_display or reset_site"}, code=400)
+            elif p == "/api/dashboard/reset":
+                cfg = dashboard.save(dashboard.default_layout())
+                self._json({"ok": True, "dashboard": cfg})
+            else:
+                self._json({"ok": True, "dashboard": dashboard.save(body)})
         except Exception as e:  # noqa: BLE001
             self._json({"ok": False, "error": str(e)})
 
@@ -509,6 +628,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Warnings (failed admin-token attempts) go to stderr, i.e. the systemd journal.
+    logging.basicConfig(level=logging.INFO, stream=sys.stderr,
+                        format="%(levelname)s %(name)s: %(message)s")
     # Flush survey/config state on SIGTERM (systemctl stop/restart, reboot).
     config.install_signal_handlers()
     if not DEMO_MODE:

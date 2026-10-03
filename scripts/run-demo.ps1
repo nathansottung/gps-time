@@ -12,7 +12,6 @@ $env:GTP_PORT = "$Port"
 $env:GTP_BIND = '127.0.0.1'
 $env:GTP_CONFIG = (Join-Path $Repo '.dev\config.json')
 $env:GTP_DASHBOARD_CONFIG = (Join-Path $Repo '.dev\dashboard.json')
-$env:GTP_ALLOW_CONFIG_WRITE = '1'
 
 $Python = $null
 if (Get-Command python -ErrorAction SilentlyContinue) { $Python = @('python') }
