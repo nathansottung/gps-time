@@ -69,7 +69,7 @@ sudo rm /etc/systemd/system/gps-time-pi.service.d/zz-root-rollback.conf
 sudo systemctl daemon-reload && sudo systemctl restart gps-time-pi
 ```
 
-**Level 2: previous release.** Redeploy the previous `gps-time-pi-deploy.tar.gz`. Keep the last good one from `dist/` before upgrading. Then remove the parts the old version doesn't use:
+**Level 2: previous release.** Redeploy the previous `gps-time-pi-deploy.tar.gz`. Keep the last good one from `dist/` before upgrading, or rebuild it from the tag: `git checkout v1.4.0-rc.1 && python tools/build_bundles.py`. Then remove the parts the old version doesn't use:
 
 ```sh
 sudo rm -f /etc/polkit-1/rules.d/50-gps-time-pi.rules /etc/systemd/system/gps-time-pi.service.d/zz-root-rollback.conf
