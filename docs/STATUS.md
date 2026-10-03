@@ -7,20 +7,19 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (feat/admin-auth, local). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (feat/admin-auth, #24). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-1. **Administrative security** (GPS-014, GPS-017, GPS-019): authentication for state-changing actions, POST-only, Host/Origin check, admin actions disabled in demo, non-root service. Pre-release blocker. It comes **before** shipping `web/dist`, so a Pi never serves an unauthenticated reboot through the new UI. *Implemented on feat/admin-auth (local), awaiting owner review.*
-2. **Ship `web/dist` in the Pi bundle and `install.sh`**, so `/app/` works on a station without Node. `install.sh` also edits `chrony.conf`; only the copy step changes.
-3. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
-4. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
-5. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
+1. **Ship `web/dist` in the Pi bundle and `install.sh`**, so `/app/` works on a station without Node. `install.sh` also edits `chrony.conf`; only the copy step changes.
+2. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
+3. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
+4. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
 
 ## Decisions
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
-- **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi.
+- **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24, so the next-5 list has 4 items until the owner picks a fifth.
 
 ## Legend
 
@@ -49,7 +48,7 @@ Last updated: 2026-10-02 (feat/admin-auth, local). Built from the specs, `roadma
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 356 rows: 165 done, 4 in progress, 21 next, 166 planned.
+**Totals:** 356 rows: 169 done, 0 in progress, 21 next, 166 planned.
 
 ## Status table
 
@@ -369,7 +368,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Pre-release | logsync exec-bit failure | done | not yet verified on a Pi | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Scope | Pre-release | chrony history field meaning | next |  |  |
 | Scope | Pre-release | Bounded persistence | planned | partial: config/events atomic; tracking log unbounded | [#5](https://github.com/nathansottung/gps-time/pull/5) |
-| Scope | Pre-release | Administrative security | in progress | implemented on feat/admin-auth; awaiting review |  |
+| Scope | Pre-release | Administrative security | done | not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | next |  |  |
@@ -388,12 +387,12 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-011 | RAM tracking log unbounded | next |  |  |
 | Review | GPS-012 | Tracking-log path fixed at import | next |  |  |
 | Review | GPS-013 | SIGTERM skips flush; corrupt config reset | done |  | [#5](https://github.com/nathansottung/gps-time/pull/5) |
-| Review | GPS-014 | Root service; unauthenticated GET admin | in progress | implemented on feat/admin-auth; awaiting review (POST-only, admin token, unprivileged service + polkit; not yet verified on a Pi) |  |
+| Review | GPS-014 | Root service; unauthenticated GET admin | done | POST-only, admin token, unprivileged service + polkit; not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-015 | Privacy hidden leaks via sidereal/almanac | done | plus satellite az/el. Decision 2026-10-02: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags (GNSS health stays visible); see Decisions | [#12](https://github.com/nathansottung/gps-time/pull/12) [#13](https://github.com/nathansottung/gps-time/pull/13) |
 | Review | GPS-016 | Unescaped innerHTML in legacy view | planned |  |  |
-| Review | GPS-017 | No Host/Origin check | in progress | implemented on feat/admin-auth; awaiting review (Host allowlist, Origin check, JSON-only) |  |
+| Review | GPS-017 | No Host/Origin check | done | Host allowlist, Origin check, JSON-only; not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-018 | Per-request fan-out; no limits | planned | partial |  |
-| Review | GPS-019 | Demo not isolated from admin | in progress | implemented on feat/admin-auth; awaiting review (demo admin simulated; SAMPLE DATA banner on legacy pages) | [#12](https://github.com/nathansottung/gps-time/pull/12) |
+| Review | GPS-019 | Demo not isolated from admin | done | demo admin simulated; SAMPLE DATA banner on legacy pages; not yet verified on a Pi | [#12](https://github.com/nathansottung/gps-time/pull/12) [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-020 | Installer unpinned pip / TOFU ephemeris | planned | partial: skyfield pinned in requirements.txt; ephemeris still trust-on-first-use | [#17](https://github.com/nathansottung/gps-time/pull/17) |
 | Review | GPS-021 | Deploy scripts ignore failures | planned |  |  |
 | Review | GPS-022 | Bundle builder sweeps secrets | planned | partial: file modes |  |

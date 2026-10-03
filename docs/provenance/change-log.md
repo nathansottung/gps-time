@@ -262,7 +262,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - CI checks out shallow clones without tags, so builds there report `unknown`. That's expected.
 - README, START-HERE, `docs/README.md`, `docs/api/endpoints.md` and the Pi deploy guide are updated.
 
-## 2026-10-02 — administrative security: GPS-014, GPS-017, GPS-019 (feat/admin-auth)
+## 2026-10-02 — administrative security: GPS-014, GPS-017, GPS-019 (#24)
 
 - **Request checks** (`gps_time_pi/security.py`, `server.Handler`):
   - **Every request:** `Host` must be on the allowlist (IP literal, localhost, this hostname(.local), or `GTP_ALLOWED_HOSTS`), else 403. This blocks DNS rebinding.
@@ -298,3 +298,4 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   4. `install.sh` shows the token on `/dev/tty` only (`--tty-only`); without a terminal, none is created. The deploy scripts open a remote terminal only when interactive.
   5. Rollback drop-in `system/gps-time-pi-root-rollback.conf` (root service, new code), plus the full-release rollback, documented in the Pi deploy guide. A test keeps it in sync with the unit.
   - 13 more tests in `tests/test_admin_auth.py` (37). In the browser, the new UI (all pages) and all 7 legacy pages load with zero CSP violations.
+- Rebased on main after #17, #18, #22 and #23. Merged as #24. STATUS: GPS-014, GPS-017, GPS-019 and "Administrative security" are done (not yet verified on a Pi). The next-5 list moves up and has 4 items until the owner picks a fifth.
