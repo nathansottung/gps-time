@@ -320,6 +320,6 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - New steps print the version and fail if no `v*` tag is reachable: `gps_time_pi.__version__` in `ci.yml`, and `git describe` before the web build. A shallow checkout can't silently bring back `unknown`.
 - No STATUS row changes except the note on the version row.
 
-## 2026-10-02 — web/AGENTS.md lists version.ts and auth.ts (docs/agents-version)
+## 2026-10-02 — web/AGENTS.md lists version.ts and auth.ts (#27)
 
 - `web/AGENTS.md` project structure now lists `src/lib/version.ts` (from #23) and `src/api/auth.ts` (from #24), plus the `__GTP_UI_VERSION__` define in `vite.config.ts`. Docs only; no status change.
