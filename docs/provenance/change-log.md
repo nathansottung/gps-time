@@ -339,7 +339,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - An invalid `ci.yml` can't lint itself. GitHub shows that as a failed run with no jobs.
   - Dependabot doesn't update the actionlint pin; the version and checksum are bumped by hand, together.
 
-## 2026-10-02 — deploy scripts stop on failure (fix/deploy-failures), GPS-021
+## 2026-10-02 — deploy scripts stop on failure (#30), GPS-021
 
 - Root cause: Windows PowerShell 5.1's `$ErrorActionPreference = 'Stop'` doesn't stop on a native command's non-zero exit. `deploy-to-pi.ps1` carried on after a failed `python tools/build_bundles.py` and uploaded whatever old archive was in `dist/`. Neither script checked the archive on the Pi before running `sudo bash install.sh`, and both uploaded to a fixed `/tmp` name.
 - `deploy-to-pi.ps1` runs every python/scp/ssh call through `Invoke-Native`, which throws when `$LASTEXITCODE` is non-zero. `deploy-to-pi.sh` already used `set -euo pipefail`.
