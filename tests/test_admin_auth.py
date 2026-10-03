@@ -450,7 +450,9 @@ class TestTokenOnTerminalOnly(unittest.TestCase):
 
     def test_installer_and_deploy_scripts_use_the_terminal(self):
         self.assertIn("admin_token --tty-only", (ROOT / "install.sh").read_text())
-        self.assertIn('if [ -t 0 ] && [ -t 1 ]; then TTY_OPT="-t"; fi', (ROOT / "scripts" / "deploy-to-pi.sh").read_text())
+        sh = (ROOT / "scripts" / "deploy-to-pi.sh").read_text(encoding="utf-8")
+        self.assertIn("if [ -t 0 ] && [ -t 1 ]; then TTY_OPT=(-t); fi", sh)
+        self.assertIn('ssh ${TTY_OPT[@]+"${TTY_OPT[@]}"} "$REMOTE"', sh)
         self.assertIn("IsOutputRedirected", (ROOT / "scripts" / "deploy-to-pi.ps1").read_text())
 
 
