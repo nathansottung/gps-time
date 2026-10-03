@@ -9,9 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0   # full history and tags, so builds report the version (git describe)
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
+      - name: Version from the git tag (not "unknown")
+        run: |
+          v=$(python -c "import gps_time_pi; print(gps_time_pi.__version__)")
+          echo "version: $v"
+          if [ "$v" = "unknown" ]; then echo "::error::no reachable v* tag; checkout needs fetch-depth: 0"; exit 1; fi
       - name: Compile Python
         run: python -m compileall gps_time_pi tools
       - name: Hardware config generator smoke test
