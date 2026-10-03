@@ -299,3 +299,4 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   5. Rollback drop-in `system/gps-time-pi-root-rollback.conf` (root service, new code), plus the full-release rollback, documented in the Pi deploy guide. A test keeps it in sync with the unit.
   - 13 more tests in `tests/test_admin_auth.py` (37). In the browser, the new UI (all pages) and all 7 legacy pages load with zero CSP violations.
 - Rebased on main after #17, #18, #22 and #23. Merged as #24. STATUS: GPS-014, GPS-017, GPS-019 and "Administrative security" are done (not yet verified on a Pi). The next-5 list moves up and has 4 items until the owner picks a fifth.
+- Fix found on the first push: the new `web.yml` step name `CSP guard (no inlined data: fonts …)` contained `: ` in an unquoted YAML value. GitHub rejected the whole workflow ("workflow file issue", 0 jobs), so the web checks didn't run. The name is now quoted. PyYAML parses `web.yml`, `ci.yml` and `dependabot.yml`.
