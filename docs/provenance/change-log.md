@@ -324,7 +324,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 
 - `web/AGENTS.md` project structure now lists `src/lib/version.ts` (from #23) and `src/api/auth.ts` (from #24), plus the `__GTP_UI_VERSION__` define in `vite.config.ts`. Docs only; no status change.
 
-## 2026-10-02 — v1.4.0-rc.2 (docs/release-v1.4.0-rc.2)
+## 2026-10-02 — v1.4.0-rc.2 (#28)
 
 - Release notes in `docs/releases/v1.4.0-rc.2.md`, covering #19–#21 and #23–#28, with upgrade notes (admin token on the first interactive deploy, `GTP_ALLOWED_HOSTS`), known open issues and two-level rollback. v1.4.0-rc.1 is the Level 2 target.
 - The annotated tag `v1.4.0-rc.2` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
