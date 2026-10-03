@@ -301,7 +301,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Rebased on main after #17, #18, #22 and #23. Merged as #24. STATUS: GPS-014, GPS-017, GPS-019 and "Administrative security" are done (not yet verified on a Pi). The next-5 list moves up and has 4 items until the owner picks a fifth.
 - Fix found on the first push: the new `web.yml` step name `CSP guard (no inlined data: fonts …)` contained `: ` in an unquoted YAML value. GitHub rejected the whole workflow ("workflow file issue", 0 jobs), so the web checks didn't run. The name is now quoted. PyYAML parses `web.yml`, `ci.yml` and `dependabot.yml`.
 
-## 2026-10-02 — installer uses a venv (fix/install-venv)
+## 2026-10-02 — installer uses a venv (#25)
 
 - Root cause: `install.sh` ran `pip3 install --break-system-packages`. That overrides Debian Bookworm's PEP 668 block on system pip, and it can conflict with apt-managed Python packages (review GPS-020).
 - Now:
