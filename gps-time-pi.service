@@ -10,7 +10,8 @@ Environment=GTP_CONFIG=/opt/gps-time-pi/config.json
 # localhost and this machine's hostname(.local) are always accepted.
 #Environment=GTP_ALLOWED_HOSTS=gpstime.example.lan
 #Environment=GTP_ALLOWED_ORIGINS=https://gpstime.example.lan
-ExecStart=/usr/bin/python3 -m gps_time_pi.server
+# Dependencies (skyfield) live in the venv that install.sh creates.
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.server
 Restart=always
 
 # Unprivileged (review GPS-014). Management actions go through polkit

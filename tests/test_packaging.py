@@ -67,6 +67,22 @@ class TestStaticInvocation(unittest.TestCase):
         enable = text.index("systemctl enable --now gps-time-pi-logsync.service")
         self.assertLess(chmod.start(), enable, "permissions must be set before units start")
 
+    def test_installer_uses_a_venv_not_system_pip(self):
+        # Bookworm's system Python is externally managed (PEP 668); GPS-020.
+        text = (ROOT / "install.sh").read_text(encoding="utf-8")
+        code = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
+        self.assertNotIn("--break-system-packages", code)
+        self.assertNotRegex(code, r"(?m)^\s*pip3? install")
+        self.assertIn('python3 -m venv "$VENV"', code)
+        self.assertIn('"$VENV/bin/python" -m pip install', code)
+        self.assertIn("-r requirements.txt", code)
+        self.assertIn("VENV=$DEST/venv", code)
+
+    def test_service_runs_the_venv_interpreter(self):
+        unit = (ROOT / "gps-time-pi.service").read_text(encoding="utf-8")
+        execs = re.findall(r"(?m)^ExecStart=(.*)$", unit)
+        self.assertEqual(execs, ["/opt/gps-time-pi/venv/bin/python -m gps_time_pi.server"])
+
 
 class TestBuiltBundles(unittest.TestCase):
     @classmethod

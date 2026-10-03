@@ -300,3 +300,16 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - 13 more tests in `tests/test_admin_auth.py` (37). In the browser, the new UI (all pages) and all 7 legacy pages load with zero CSP violations.
 - Rebased on main after #17, #18, #22 and #23. Merged as #24. STATUS: GPS-014, GPS-017, GPS-019 and "Administrative security" are done (not yet verified on a Pi). The next-5 list moves up and has 4 items until the owner picks a fifth.
 - Fix found on the first push: the new `web.yml` step name `CSP guard (no inlined data: fonts …)` contained `: ` in an unquoted YAML value. GitHub rejected the whole workflow ("workflow file issue", 0 jobs), so the web checks didn't run. The name is now quoted. PyYAML parses `web.yml`, `ci.yml` and `dependabot.yml`.
+
+## 2026-10-02 — installer uses a venv (#25)
+
+- Root cause: `install.sh` ran `pip3 install --break-system-packages`. That overrides Debian Bookworm's PEP 668 block on system pip, and it can conflict with apt-managed Python packages (review GPS-020).
+- Now:
+  - `install.sh` runs `apt-get update` and installs `python3-venv`;
+  - it creates `/opt/gps-time-pi/venv`, and recreates it if its interpreter no longer runs;
+  - it installs `requirements.txt` with the venv's pip.
+- `gps-time-pi.service` runs `/opt/gps-time-pi/venv/bin/python`. Hardening and the root-rollback drop-in are unchanged.
+- No timing change: chrony, gpsd and PPS configuration are untouched.
+- Tests: 2 more in `tests/test_packaging.py`. They check there's no system pip or `--break-system-packages`, that the venv is created and used, and the service ExecStart.
+- Not verified on a Pi. Existing stations pick it up on the next `install.sh` run. The old system-wide skyfield is left in place (removal is in the Pi deploy guide).
+- Still open for GPS-020: hash-pinned requirements, which need hashes for piwheels' ARM wheels too; the pinned DE440s checksum; and a staged install.

@@ -39,7 +39,7 @@ sudo systemctl restart gps-time-pi
 sleep 3 && curl -s localhost/api | grep -o '"app": "[^"]*"'   # → "app": "1.3.0"
 ```
 
-`install.sh` does: pip install skyfield; copy app to `/opt/gps-time-pi`;
+`install.sh` does: create the venv `/opt/gps-time-pi/venv` and install `requirements.txt` into it (never the system Python); copy app to `/opt/gps-time-pi`;
 one-time DE440s download with recorded SHA-256 (verified on reruns); chrony
 `log tracking` with `logdir /run/chrony-log` (RAM); install/enable the
 logsync + logflush units; restart chrony; install/enable the web service.
