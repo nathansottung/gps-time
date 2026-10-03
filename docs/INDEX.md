@@ -67,7 +67,8 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
-- `releases/v1.4.0-rc.1.md` — first tagged version (pre-release); named rollback target
+- `releases/v1.4.0-rc.2.md` — admin security, venv installer, version reporting (pre-release)
+- `releases/v1.4.0-rc.1.md` — first tagged version (pre-release); rollback target for rc.2
 
 ## Change records
 - `provenance/change-log.md`

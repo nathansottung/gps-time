@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (docs/agents-version, #27; no status change). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (docs/release-v1.4.0-rc.2). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -48,7 +48,7 @@ Last updated: 2026-10-02 (docs/agents-version, #27; no status change). Built fro
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`.
 
-**Totals:** 356 rows: 169 done, 0 in progress, 21 next, 166 planned.
+**Totals:** 357 rows: 170 done, 0 in progress, 21 next, 166 planned.
 
 ## Status table
 
@@ -410,3 +410,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Workflow actions pinned to commit SHAs; CI guard | done |  | [#18](https://github.com/nathansottung/gps-time/pull/18) |
 | Repo |  | Tag v1.4.0-rc.1 with release notes (rollback target) | done | pre-release; tag on this PR's merge commit | [#22](https://github.com/nathansottung/gps-time/pull/22) |
 | Repo |  | Version from the git tag in /api and the UI footer | done | bundles carry gps_time_pi/VERSION; demo reports the real version; CI checks out tags and fails on `unknown` | [#23](https://github.com/nathansottung/gps-time/pull/23) [#26](https://github.com/nathansottung/gps-time/pull/26) |
+| Repo |  | Tag v1.4.0-rc.2 with release notes | done | pre-release; tag on this PR's merge commit; rollback target v1.4.0-rc.1 | PRLINK |
