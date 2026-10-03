@@ -354,7 +354,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - All 7 tests that run on Windows fail against the previous scripts.
 - `STATUS.md`: GPS-021 is next-5 item 5 (owner: must land before any Pi deploy) and done. Not yet run against a real Pi.
 
-## 2026-10-02 — sun shifts per day (feat/sun-deltas)
+## 2026-10-02 — sun shifts per day (#31)
 
 - **`/app/` Sun & Daylight card** (also on the Sun & Astronomy page): a "Shift per day" table, labeled `predicted`.
   - Rows: sunrise, solar noon, sunset and daylight length. Columns: the change vs yesterday and to tomorrow.
@@ -369,6 +369,6 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - A missing value showed as 0.
   - Both changes now use `signedSeconds()`, which gives `+`/`−` (U+2212) and "–" when unknown. Fix only; no restyle.
 - **Tests:**
-  - `web/src/lib/sun.test.ts` (12): shift sign and value, null handling, DST exclusion, the clock-change flag, demo consistency, formatting.
+  - `web/src/lib/sun.test.ts` (10): shift sign and value, null handling, DST exclusion, the clock-change flag, demo consistency, formatting.
   - `web/src/lib/legacy-dashboard.test.ts` (3): it evaluates the legacy helper from the file and fails to load against the previous `dashboard.js`.
 - **Checked in the demo:** the `/app/` table reads sunrise +57/+57 s, solar noon −35/−34 s, sunset −126/−125 s, daylight −183/−182 s. The legacy widget reads "−182.8 s change vs yesterday". No console errors.
