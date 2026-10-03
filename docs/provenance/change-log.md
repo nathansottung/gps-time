@@ -329,3 +329,12 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Release notes in `docs/releases/v1.4.0-rc.2.md`, covering #19–#21 and #23–#28, with upgrade notes (admin token on the first interactive deploy, `GTP_ALLOWED_HOSTS`), known open issues and two-level rollback. v1.4.0-rc.1 is the Level 2 target.
 - The annotated tag `v1.4.0-rc.2` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - Indexed in `docs/INDEX.md`. README, START-HERE, `docs/README.md` and the Pi deploy guide's Level 2 rollback name the tags.
+
+## 2026-10-02 — actionlint in CI (ci/actionlint)
+
+- Why: in #24, an invalid `web.yml` made GitHub skip every web check (a "workflow file issue" run with 0 jobs), while the PR page still looked green from the Python checks.
+- `ci.yml` has a new `workflows` job. It downloads actionlint 1.7.12 for linux_amd64, checks it against a SHA-256 pinned in the workflow (taken from the release's checksums file), and lints every file in `.github/workflows/`. On the runner, actionlint also runs shellcheck on `run:` scripts.
+- Checked locally: the current workflows pass. The `web.yml` from #24's first push fails with `could not parse as YAML`.
+- Limits:
+  - An invalid `ci.yml` can't lint itself. GitHub shows that as a failed run with no jobs.
+  - Dependabot doesn't update the actionlint pin; the version and checksum are bumped by hand, together.

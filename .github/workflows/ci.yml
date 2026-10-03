@@ -30,3 +30,22 @@ jobs:
           if grep -rEn "^\s*-?\s*uses:" .github/workflows | grep -Ev "uses:\s*[^@[:space:]]+@[0-9a-f]{40}(\s|$)"; then
             echo "::error::pin every action to a 40-character commit SHA (keep the version as a trailing comment)"; exit 1
           fi
+
+  workflows:
+    # Lints every workflow file. If web.yml is invalid, GitHub runs none of it,
+    # so the error only shows up here. An invalid ci.yml shows as a failed run
+    # with no jobs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: actionlint (invalid workflow files fail here)
+        env:
+          # Pinned binary, checked against the release's checksums file. Dependabot doesn't track it; bump both together.
+          ACTIONLINT_VERSION: "1.7.12"
+          ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+        run: |
+          f="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLo "$RUNNER_TEMP/$f" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$f"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$f" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
