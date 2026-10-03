@@ -338,3 +338,18 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Limits:
   - An invalid `ci.yml` can't lint itself. GitHub shows that as a failed run with no jobs.
   - Dependabot doesn't update the actionlint pin; the version and checksum are bumped by hand, together.
+
+## 2026-10-02 — deploy scripts stop on failure (#30), GPS-021
+
+- Root cause: Windows PowerShell 5.1's `$ErrorActionPreference = 'Stop'` doesn't stop on a native command's non-zero exit. `deploy-to-pi.ps1` carried on after a failed `python tools/build_bundles.py` and uploaded whatever old archive was in `dist/`. Neither script checked the archive on the Pi before running `sudo bash install.sh`, and both uploaded to a fixed `/tmp` name.
+- `deploy-to-pi.ps1` runs every python/scp/ssh call through `Invoke-Native`, which throws when `$LASTEXITCODE` is non-zero. `deploy-to-pi.sh` already used `set -euo pipefail`.
+- Both scripts now:
+  - delete any old archive before building and fail if the build produced none;
+  - upload into a fresh `~/gps-time-deploy` (mode 0700) instead of `/tmp`;
+  - check the archive's SHA-256 on the Pi (`sha256sum -c`) before extracting and running `install.sh`.
+- The bash script also uses `shasum` on macOS and is safe with an empty array under bash 3.2.
+- Tests: `tests/test_deploy_scripts.py` (static checks, plus fake python3/ssh/scp/sudo on PATH):
+  - the bash script on POSIX/CI: success, failed build, build without an archive, corrupted upload, failed upload;
+  - the PowerShell script on Windows: success with the right checksum, failed build, failed upload.
+  - All 7 tests that run on Windows fail against the previous scripts.
+- `STATUS.md`: GPS-021 is next-5 item 5 (owner: must land before any Pi deploy) and done. Not yet run against a real Pi.

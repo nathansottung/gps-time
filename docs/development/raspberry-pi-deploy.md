@@ -22,7 +22,14 @@ Both archives contain `gps_time_pi/VERSION`, the `git describe` of the checkout 
 powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost 192.168.1.50 -PiUser pi
 ```
 
-This builds, uploads with `scp`, extracts over SSH and runs `sudo bash install.sh`.
+The script:
+
+1. builds the bundle, after deleting any old one, so a failed build can't upload a stale archive;
+2. uploads it with `scp` into a fresh `~/gps-time-deploy` on the Pi;
+3. checks its SHA-256 there;
+4. extracts it and runs `sudo bash install.sh`.
+
+It stops at the first failed step, so `install.sh` never runs on an archive that doesn't match. Run it from an interactive terminal: `ssh -t` then lets sudo prompt and shows the admin token. Without a terminal, sudo on the Pi must not need a password.
 
 Bash equivalent:
 
