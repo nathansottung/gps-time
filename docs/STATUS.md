@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-02 (feat/admin-auth, #24). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-02 (fix/install-venv). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -393,7 +393,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-017 | No Host/Origin check | done | Host allowlist, Origin check, JSON-only; not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-018 | Per-request fan-out; no limits | planned | partial |  |
 | Review | GPS-019 | Demo not isolated from admin | done | demo admin simulated; SAMPLE DATA banner on legacy pages; not yet verified on a Pi | [#12](https://github.com/nathansottung/gps-time/pull/12) [#24](https://github.com/nathansottung/gps-time/pull/24) |
-| Review | GPS-020 | Installer unpinned pip / TOFU ephemeris | planned | partial: skyfield pinned in requirements.txt; ephemeris still trust-on-first-use | [#17](https://github.com/nathansottung/gps-time/pull/17) |
+| Review | GPS-020 | Installer unpinned pip / TOFU ephemeris | planned | partial: skyfield pinned in requirements.txt and installed into a venv (`apt-get update` added). Still open: hashed requirements, ephemeris trust-on-first-use, staged install | [#17](https://github.com/nathansottung/gps-time/pull/17) PRLINK |
 | Review | GPS-021 | Deploy scripts ignore failures | planned |  |  |
 | Review | GPS-022 | Bundle builder sweeps secrets | planned | partial: file modes |  |
 | Review | GPS-023 | Third-party provenance/licenses | planned |  |  |

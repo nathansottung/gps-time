@@ -5,12 +5,23 @@ DEST=/opt/gps-time-pi
 EPH_URL="https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de440s.bsp"
 EPH=$DEST/gps_time_pi/data/de440s.bsp
 
-echo "== Installing Python dependencies =="
-apt-get install -y python3-pip >/dev/null
-pip3 install --break-system-packages --quiet -r requirements.txt
+VENV=$DEST/venv
+
+echo "== Installing Python dependencies (venv: $VENV) =="
+# Debian Bookworm's system Python is externally managed (PEP 668): pip may not
+# install into it. The station's dependencies go into a venv instead, so
+# apt-managed Python packages are never touched (review GPS-020).
+apt-get update >/dev/null
+apt-get install -y python3-venv >/dev/null
+mkdir -p $DEST
+# Recreate the venv if its interpreter no longer runs (e.g. after an OS Python upgrade).
+if [ -x "$VENV/bin/python" ] && ! "$VENV/bin/python" -c "import sys" 2>/dev/null; then
+  rm -rf "$VENV"
+fi
+[ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
+"$VENV/bin/python" -m pip install --quiet --disable-pip-version-check -r requirements.txt
 
 echo "== Copying application to $DEST =="
-mkdir -p $DEST
 cp -r gps_time_pi $DEST/
 [ -f $DEST/config.json ] || echo '{}' > $DEST/config.json
 
