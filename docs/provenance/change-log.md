@@ -313,3 +313,9 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Tests: 2 more in `tests/test_packaging.py`. They check there's no system pip or `--break-system-packages`, that the venv is created and used, and the service ExecStart.
 - Not verified on a Pi. Existing stations pick it up on the next `install.sh` run. The old system-wide skyfield is left in place (removal is in the Pi deploy guide).
 - Still open for GPS-020: hash-pinned requirements, which need hashes for piwheels' ARM wheels too; the pinned DE440s checksum; and a staged install.
+
+## 2026-10-02 — CI reports the version (#26)
+
+- `ci.yml` and `web.yml` check out with `fetch-depth: 0`, so tags are present and `git describe` works. This resolves the #23 note that CI builds reported `unknown`.
+- New steps print the version and fail if no `v*` tag is reachable: `gps_time_pi.__version__` in `ci.yml`, and `git describe` before the web build. A shallow checkout can't silently bring back `unknown`.
+- No STATUS row changes except the note on the version row.
