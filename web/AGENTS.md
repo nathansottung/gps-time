@@ -40,9 +40,11 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/api/view.ts` — maps API payloads onto component shapes (no invented values)
 - `src/components/planned.tsx` — `<Planned>` (preview under demo, "not available" live) and `ApiErrorNote`
 - `src/index.css` — font imports, Tailwind import, design tokens and utility classes
-- `vite.config.ts` — standalone Vite config (React, Tailwind, `@` alias for `src`)
+- `vite.config.ts` — standalone Vite config (React, Tailwind, `@` alias for `src`); defines `__GTP_UI_VERSION__` from `git describe` at build time (`GTP_VERSION` overrides)
 - `vitest.config.ts` — unit tests for pure logic (`src/**/*.test.ts`); keep logic that needs tests out of components (e.g. `src/lib/banner.ts`)
 - `src/lib/banner.ts` — banner guards: never a bare SYNCHRONIZED; GPS/PPS with a non-PPS selected source shows UNKNOWN (tested in `banner.test.ts`)
+- `src/lib/version.ts` — `UI_VERSION` (build-time tag) and `versionLine()` for the footer: one version when UI and station match, both when they differ, "unknown" rather than a guess (tested in `version.test.ts`)
+- `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling
 
