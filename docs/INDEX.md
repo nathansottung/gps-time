@@ -68,6 +68,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
+- `releases/v1.4.0-rc.3.md` — deploy scripts stop on failure, sun shifts; intended bundle for the first Pi deploy (pre-release)
 - `releases/v1.4.0-rc.2.md` — admin security, venv installer, version reporting (pre-release)
 - `releases/v1.4.0-rc.1.md` — first tagged version (pre-release); rollback target for rc.2
 
