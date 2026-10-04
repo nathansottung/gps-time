@@ -150,7 +150,10 @@ class TestBashScript(unittest.TestCase):
                 prepare, install = self.ssh_argv()
                 self.assertEqual(prepare, ["pi@pi.example", "rm -rf ~/gps-time-deploy && mkdir -m 0700 ~/gps-time-deploy"])
                 self.assertEqual(install[:-1], flag + ["pi@pi.example"])
-                self.assertEqual(" ".join(install[-1].split()), _install_command(sha))
+                # the bash command spans lines; compare with whitespace runs collapsed,
+                # but keep the two spaces sha256sum -c needs between hash and name
+                self.assertIn(f"echo '{sha}  gps-time-pi-deploy.tar.gz' | sha256sum -c -", install[-1])
+                self.assertEqual(install[-1].split(), _install_command(sha).split())
 
     def test_success_verifies_then_installs(self):
         r = self.run_script()
