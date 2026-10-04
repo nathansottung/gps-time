@@ -450,7 +450,7 @@ The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI 
 - Tests: 2 more in `tests/test_packaging.py` (the polkit directory, the polkit warning).
 - Not yet run on a Pi.
 
-## 2026-10-04 — v1.4.0-rc.5 (docs/release-v1.4.0-rc.5)
+## 2026-10-04 — v1.4.0-rc.5 (#39)
 
 - Release notes in `docs/releases/v1.4.0-rc.5.md`: Debian 13 and Python 3.13 tested in CI, the aarch64 wheel check, the polkit directory fix.
 - `fresh-pi-install.md` gains an almanac check. The almanac with the real ephemeris isn't covered by the tests on Python 3.13, so the checklist verifies it on the station.
