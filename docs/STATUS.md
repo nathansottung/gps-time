@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-04 (docs/roadmap-sdr-rf, #32; no status change). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-04 (docs/release-v1.4.0-rc.3). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -50,7 +50,7 @@ Last updated: 2026-10-04 (docs/roadmap-sdr-rf, #32; no status change). Built fro
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping).
 
-**Totals:** 358 rows: 172 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 359 rows: 173 done, 0 in progress, 21 next, 165 planned.
 
 ## Status table
 
@@ -414,3 +414,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Version from the git tag in /api and the UI footer | done | bundles carry gps_time_pi/VERSION; demo reports the real version; CI checks out tags and fails on `unknown` | [#23](https://github.com/nathansottung/gps-time/pull/23) [#26](https://github.com/nathansottung/gps-time/pull/26) |
 | Repo |  | Tag v1.4.0-rc.2 with release notes | done | pre-release; tag on this PR's merge commit; rollback target v1.4.0-rc.1 | [#28](https://github.com/nathansottung/gps-time/pull/28) |
 | Repo |  | actionlint in CI (invalid workflow files fail) | done |  | [#29](https://github.com/nathansottung/gps-time/pull/29) |
+| Repo |  | Tag v1.4.0-rc.3 with release notes | done | pre-release; tag on this PR's merge commit; intended first Pi deploy | PRLINK |

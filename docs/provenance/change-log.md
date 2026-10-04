@@ -377,3 +377,9 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 
 - Added `docs/roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (owner-provided, copied verbatim; SHA-256 `fbb9dd26…`) and indexed it in `docs/INDEX.md`.
 - Status SCOPING, not scheduled. Pi timing work and the first Pi deploy come first. No rows added to `STATUS.md`; it's listed there as unscheduled work outside the table.
+
+## 2026-10-04 — v1.4.0-rc.3 (docs/release-v1.4.0-rc.3)
+
+- Release notes in `docs/releases/v1.4.0-rc.3.md`, covering #29–#33: deploy scripts (GPS-021), sun shifts, actionlint, the SDR roadmap. They also state what `install.sh` does to chrony on every run (it restarts it) and that nothing in the 1.4 line has run on a Pi yet.
+- The annotated tag `v1.4.0-rc.3` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+- Indexed in `docs/INDEX.md`; README and START-HERE name the version.
