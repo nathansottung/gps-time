@@ -396,3 +396,18 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - It states what the deploy does to the station: `install.sh` restarts chrony, and `/app/` returns 503 until the built UI is copied by hand (optional step) or shipped in the bundle.
 - Written from the code and docs. No command in it has been run against a Pi; the deploy itself is the owner's step.
 - `STATUS.md`: new row "First Pi deploy of the 1.4 line" (next).
+
+## 2026-10-04 — the Pi bundle ships the web UI (#35)
+
+- The Pi archive now carries the built UI as `gps-time/web/dist`, and `install.sh` installs it to `/opt/gps-time-pi/web/dist`, removing the previous copy first. `/app/` works on a station without Node. Before, a station returned 503 there.
+- `tools/build_bundles.py`:
+  - stops if `web/dist` isn't built, or if it was built from another version than the checkout. The Vite build now writes `dist/version.txt` for that check.
+  - `--without-web` builds a bundle with no UI.
+  - The development zip no longer sweeps in `web/node_modules` (part of GPS-022). The bundle tests run faster for it.
+- `deploy-to-pi.ps1` and `deploy-to-pi.sh` build the UI (`corepack pnpm install --frozen-lockfile`, `pnpm run build`) before the bundle. A failed UI build stops the deploy. The deploying machine needs Node 22 with corepack.
+- `install.sh` changes only by the copy step. It still edits `chrony.conf` and restarts chrony as before.
+- Tests:
+  - `tests/test_packaging.py`: the tar ships the UI with 0644/root members, version match and mismatch, an unbuilt UI, `main()` stopping without one, the installer's copy order, no `node_modules` in the zip.
+  - `tests/test_deploy_scripts.py`: the UI is built before the bundle, and a failed UI build stops both scripts.
+- Checked locally: a real bundle extracted to a temp directory serves `/app/` (200) and `/app/version.txt`, and `/api` reports the version from the `VERSION` file with no git present. Not yet run on a Pi.
+- Docs: Pi deploy guide, first-deploy checklist (`/app/` now expected to work; the manual copy step is gone), ADR-0004 update, `STATUS.md` (row done; next-5 moves up).

@@ -7,10 +7,12 @@ exec'd it directly (203/EXEC), aborting install.sh under `set -e`.
 
 import importlib.util
 import re
+import shutil
 import stat
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 from pathlib import Path
 
@@ -131,6 +133,68 @@ class TestBuiltBundles(unittest.TestCase):
             self.assertEqual(mode & 0o777, 0o755)
             self.assertEqual((z.getinfo("gps-time/README.md").external_attr >> 16) & 0o777, 0o644)
             self.assertIsNone(z.testzip())
+
+    def test_dev_zip_has_no_node_modules_or_build_output(self):
+        with zipfile.ZipFile(self.zip_path) as z:
+            bad = [n for n in z.namelist() if "/node_modules/" in n or "/web/dist/" in n]
+            self.assertEqual(bad, [])
+
+    def test_pi_tar_without_web_has_no_web_dir(self):
+        with tarfile.open(self.tar_path) as t:
+            self.assertEqual([n for n in t.getnames() if n.startswith("gps-time/web")], [])
+
+
+class TestWebUiInBundle(unittest.TestCase):
+    """The Pi bundle ships the built UI so /app/ works on a station without Node."""
+
+    def setUp(self):
+        self.bb = _load_build_bundles()
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.dist = self.tmp / "dist"
+        (self.dist / "assets").mkdir(parents=True)
+        (self.dist / "index.html").write_text("<!doctype html>", encoding="utf-8")
+        (self.dist / "assets" / "index-abc123.js").write_text("//js", encoding="utf-8")
+        (self.dist / "version.txt").write_text("9.8.7\n", encoding="utf-8")
+
+    def test_pi_tar_ships_the_built_ui(self):
+        out = self.tmp / "pi.tar.gz"
+        self.bb.build_pi_tar(out, version="9.8.7", web_dist=self.dist)
+        with tarfile.open(out) as t:
+            members = {m.name: m for m in t.getmembers()}
+            for name in ("index.html", "assets/index-abc123.js", "version.txt"):
+                m = members[f"gps-time/web/dist/{name}"]
+                self.assertEqual(m.mode & 0o777, 0o644, name)
+                self.assertEqual((m.uid, m.gid), (0, 0), name)
+
+    def test_matching_built_ui_is_accepted(self):
+        self.assertIsNone(self.bb.web_dist_problem(self.dist, "9.8.7"))
+        self.assertIsNone(self.bb.web_dist_problem(self.dist, None))   # no tag reachable: nothing to compare
+
+    def test_ui_built_from_another_version_is_refused(self):
+        self.assertIn("built from 9.8.7", self.bb.web_dist_problem(self.dist, "9.8.8"))
+        (self.dist / "version.txt").unlink()
+        self.assertIn("unknown version", self.bb.web_dist_problem(self.dist, "9.8.7"))
+
+    def test_unbuilt_ui_is_refused(self):
+        (self.dist / "index.html").unlink()
+        self.assertIn("not built", self.bb.web_dist_problem(self.dist, "9.8.7"))
+
+    def test_main_stops_instead_of_shipping_a_bundle_without_the_ui(self):
+        with mock.patch.object(self.bb, "WEB_DIST", self.tmp / "missing"), \
+             mock.patch.object(self.bb, "DIST", self.tmp / "out"):
+            with self.assertRaises(SystemExit) as cm:
+                self.bb.main([])
+            self.assertIn("--without-web", str(cm.exception))
+            self.assertFalse((self.tmp / "out").exists(), "nothing is built when the UI is missing")
+
+    def test_installer_installs_the_ui_and_removes_the_old_copy(self):
+        text = (ROOT / "install.sh").read_text(encoding="utf-8")
+        rm = text.index('rm -rf "$DEST/web/dist"')
+        cp = text.index('cp -r web/dist "$DEST/web/"')
+        self.assertLess(rm, cp)
+        self.assertLess(text.index("cp -r gps_time_pi $DEST/"), cp)
+        self.assertLess(cp, text.index("systemctl restart gps-time-pi"))
 
 
 if __name__ == "__main__":

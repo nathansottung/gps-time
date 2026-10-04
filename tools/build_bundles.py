@@ -1,11 +1,16 @@
 """Build reproducible-ish development and Pi deployment archives.
 
+The Pi archive ships the built web UI (web/dist) so /app/ works on a station
+without Node. Build it first: cd web && corepack pnpm install --frozen-lockfile
+&& corepack pnpm run build. --without-web skips it (then /app/ returns 503).
+
 No network access is required. The Pi installer may still fetch third-party
 runtime dependencies/ephemerides unless a future offline dependency pack is
 provided.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib.util
 import io
@@ -16,7 +21,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
-EXCLUDE_DIRS = {".git", ".dev", "dist", "__pycache__", ".pytest_cache", ".mypy_cache"}
+EXCLUDE_DIRS = {".git", ".dev", "dist", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"}
+WEB_DIST = ROOT / "web" / "dist"
 EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 PI_TOP = ["gps_time_pi", "scripts", "system", "examples", "config", "install.sh", "requirements.txt", "gps-time-pi.service", "README.md", "LICENSE", "SECURITY.md"]
 
@@ -67,6 +73,20 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def web_dist_problem(web_dist: Path, version: str | None) -> str | None:
+    """Why this built UI must not be shipped, or None if it can be.
+
+    The Vite build writes version.txt (the git describe it was built from); a
+    UI built from another commit than the bundle is refused instead of shipped."""
+    if not (web_dist / "index.html").is_file():
+        return f"{web_dist} has no index.html: the web UI is not built"
+    stamp = web_dist / "version.txt"
+    built = stamp.read_text(encoding="utf-8").strip() if stamp.is_file() else None
+    if version and built != version:
+        return f"{web_dist} was built from {built or 'an unknown version'}, but this checkout is {version}: rebuild the web UI"
+    return None
+
+
 def build_repo_zip(out: Path, version: str | None = None):
     version = version or source_version()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -83,7 +103,8 @@ def build_repo_zip(out: Path, version: str | None = None):
             z.writestr(info, version + "\n")
 
 
-def build_pi_tar(out: Path, version: str | None = None):
+def build_pi_tar(out: Path, version: str | None = None, web_dist: Path | None = None):
+    """web_dist: a built web UI to ship as gps-time/web/dist (served at /app/); None ships none."""
     version = version or source_version()
     with tarfile.open(out, "w:gz") as t:
         if version:
@@ -101,15 +122,33 @@ def build_pi_tar(out: Path, version: str | None = None):
                 for child in sorted(p.rglob("*")):
                     if wanted(child):
                         t.add(child, arcname=Path("gps-time") / child.relative_to(ROOT), filter=_tar_member)
+        if web_dist is not None:
+            for child in sorted(Path(web_dist).rglob("*")):
+                if child.is_file():
+                    t.add(child, arcname=Path("gps-time/web/dist") / child.relative_to(web_dist), filter=_tar_member)
 
 
-def main():
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--without-web", action="store_true",
+                    help="build the Pi archive without web/dist (/app/ will return 503 on the station)")
+    args = ap.parse_args(argv)
+    version = source_version()
+    web_dist = None
+    if not args.without_web:
+        problem = web_dist_problem(WEB_DIST, version)
+        if problem:
+            raise SystemExit(f"error: {problem}.\n"
+                             "  cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build\n"
+                             "or pass --without-web to build a bundle with no /app/.")
+        web_dist = WEB_DIST
     DIST.mkdir(exist_ok=True)
     repo = DIST / "gps-time-development.zip"
     pi = DIST / "gps-time-pi-deploy.tar.gz"
     build_repo_zip(repo)
-    build_pi_tar(pi)
-    print("version:", source_version() or "unknown (no reachable v* tag)")
+    build_pi_tar(pi, version, web_dist)
+    print("version:", version or "unknown (no reachable v* tag)")
+    print("web UI:", "web/dist included (/app/)" if web_dist else "NOT included (--without-web)")
     manifest = DIST / "SHA256SUMS.txt"
     manifest.write_text(f"{sha256(repo)}  {repo.name}\n{sha256(pi)}  {pi.name}\n", encoding="utf-8")
     print(repo)

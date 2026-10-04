@@ -26,6 +26,13 @@ $RemoteDir = 'gps-time-deploy'
 
 if ($UseDemoLayout) { Invoke-Native python @('tools/promote_dashboard.py') }
 if (Test-Path $Archive) { Remove-Item $Archive -Force }
+# The bundle ships the built web UI (/app/). Build it from this checkout;
+# build_bundles.py refuses a web/dist built from another version.
+Push-Location (Join-Path $Repo 'web')
+try {
+  Invoke-Native corepack @('pnpm', 'install', '--frozen-lockfile')
+  Invoke-Native corepack @('pnpm', 'run', 'build')
+} finally { Pop-Location }
 Invoke-Native python @('tools/build_bundles.py')
 if (-not (Test-Path $Archive) -or (Get-Item $Archive).Length -eq 0) { throw "Build did not produce $Archive; deploy stopped." }
 $Sha = (Get-FileHash -Algorithm SHA256 $Archive).Hash.ToLowerInvariant()

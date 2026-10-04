@@ -10,7 +10,7 @@ Nothing in the 1.4 line has run on a Pi yet. This deploy is the first test of th
 - `install.sh` makes sure `chrony.conf` has `log tracking` and `logdir /run/chrony-log`. A v1.3 station already has both, so the file shouldn't change. Nothing else in chrony, gpsd or PPS setup is touched.
 - The web service changes from root to the user `gps-time`, and runs from a venv.
 - Settings changes and admin actions will need the admin token.
-- `/app/` (the new UI) returns 503 after the deploy. The bundle doesn't ship the built UI yet; step 5 has an optional manual copy. The legacy pages work as before.
+- `/app/` (the new UI) works after the deploy: the bundle ships the built UI. The deploy script builds it on Windows first, so Windows needs Node 22 with corepack (`docs/development/new-machine.md`). The legacy pages work as before.
 - The install needs the Internet on the Pi (apt, PyPI or piwheels).
 
 Throughout, PowerShell blocks run on Windows and `sh` blocks run on the Pi. Set these once per PowerShell window, with your own values. **Don't commit them, the backups or the token anywhere in the repository.**
@@ -155,7 +155,7 @@ Still on the Pi. Everything goes into one directory in your home.
 
   What you should see, in order:
 
-  1. `Built ...gps-time-pi-deploy.tar.gz (SHA-256 ...)`
+  1. the web UI build (`pnpm install`, `vite build`), then `Built ...gps-time-pi-deploy.tar.gz (SHA-256 ...)`
   2. `gps-time-pi-deploy.tar.gz: OK`, the checksum verified on the Pi
   3. the `install.sh` sections, possibly after a sudo password prompt
   4. `== Admin token ==` followed by the token, **shown once**
@@ -269,30 +269,15 @@ ssh $Pi
 
 **Web pages**
 
-- [ ] The legacy dashboard loads (`200`), and `/app/` returns `503`, which is expected for this bundle.
+- [ ] The legacy dashboard and the new UI both load: expect `200` twice, then the version the UI was built from.
 
   ```sh
   curl -s -o /dev/null -w "%{http_code}\n" localhost/
   curl -s -o /dev/null -w "%{http_code}\n" localhost/app/
+  curl -s localhost/app/version.txt
   ```
 
-- [ ] Optional: copy the built UI by hand so `/app/` works. Build it on Windows from the same tag (`git checkout v1.4.0-rc.3` first, `git checkout main` after), then install it on the Pi. No restart is needed. Afterwards `/app/` returns `200` and its footer shows `v1.4.0-rc.3`.
-
-  ```powershell
-  cd web
-  corepack pnpm install --frozen-lockfile
-  corepack pnpm run build
-  scp -r dist "${Pi}:gps-time-deploy/web-dist"
-  cd ..
-  ```
-
-  ```sh
-  sudo install -d /opt/gps-time-pi/web
-  sudo rm -rf /opt/gps-time-pi/web/dist
-  sudo cp -r ~/gps-time-deploy/web-dist /opt/gps-time-pi/web/dist
-  sudo chown -R root:root /opt/gps-time-pi/web
-  curl -s -o /dev/null -w "%{http_code}\n" localhost/app/
-  ```
+- [ ] In a browser, open `http://<pi>/app/`. The footer shows one version (the UI and the station match), and the banner names the sync source.
 
 **From another machine**
 

@@ -42,10 +42,16 @@ class TestStatic(unittest.TestCase):
         self.assertIn("$LASTEXITCODE -ne 0", code)
         # every python/scp/ssh call goes through Invoke-Native
         for line in code.splitlines():
-            if re.search(r"^\s*&?\s*(python|scp|ssh)\b", line.strip()):
+            if re.search(r"^\s*&?\s*(python|scp|ssh|corepack)\b", line.strip()):
                 self.fail(f"native call without an exit-code check: {line.strip()}")
-        for exe in ("python", "scp", "ssh"):
+        for exe in ("python", "scp", "ssh", "corepack"):
             self.assertRegex(code, rf"Invoke-Native {exe}\b")
+
+    def test_web_ui_built_before_the_bundle(self):
+        for p in (SH, PS1):
+            with self.subTest(script=p.name):
+                code = _code(p)
+                self.assertLess(code.index("--frozen-lockfile"), code.index("build_bundles.py"))
 
     def test_stale_archive_removed_before_build(self):
         for p, rm in ((SH, 'rm -f "$ARCHIVE"'), (PS1, "Remove-Item $Archive")):
@@ -62,6 +68,7 @@ class _FakeTree:
         self.repo = self.tmp / "repo"
         (self.repo / "scripts").mkdir(parents=True)
         (self.repo / "dist").mkdir()
+        (self.repo / "web").mkdir()
         shutil.copy2(script, self.repo / "scripts" / script.name)
         self.home = self.tmp / "home"
         self.home.mkdir()
@@ -92,6 +99,10 @@ class TestBashScript(unittest.TestCase):
                   d=$(mktemp -d); mkdir -p "$d/gps-time"; echo 'echo installed' > "$d/gps-time/install.sh"
                   tar -czf dist/gps-time-pi-deploy.tar.gz -C "$d" gps-time
                 fi""",
+            "corepack": """
+                echo "corepack $*" >> "$FAKE_LOG"
+                [ "${FAKE_WEB_FAIL:-}" = 1 ] && [ "$3" = build ] && exit 1
+                exit 0""",
             "ssh": """
                 [ "$1" = -t ] && shift
                 echo "ssh $1" >> "$FAKE_LOG"
@@ -119,6 +130,8 @@ class TestBashScript(unittest.TestCase):
         r = self.run_script()
         self.assertEqual(r.returncode, 0, r.stderr)
         calls = self.t.calls()
+        self.assertEqual(calls[:3], ["corepack pnpm install --frozen-lockfile", "corepack pnpm run build",
+                                     "python3 tools/build_bundles.py"])
         self.assertIn("scp pi@pi.example:gps-time-deploy/gps-time-pi-deploy.tar.gz", calls)
         self.assertEqual(calls[-1], "sudo bash install.sh")
         self.assertIn("gps-time-pi-deploy.tar.gz: OK", r.stdout)
@@ -128,6 +141,12 @@ class TestBashScript(unittest.TestCase):
         r = self.run_script(FAKE_BUILD_FAIL="1")
         self.assertNotEqual(r.returncode, 0)
         self.assertFalse(any(c.startswith(("scp", "ssh", "sudo")) for c in self.t.calls()), self.t.calls())
+
+    def test_failed_web_build_stops_before_the_bundle(self):
+        (self.t.repo / "dist" / "gps-time-pi-deploy.tar.gz").write_bytes(b"stale")
+        r = self.run_script(FAKE_WEB_FAIL="1")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse(any(c.startswith(("python3", "scp", "ssh", "sudo")) for c in self.t.calls()), self.t.calls())
 
     def test_build_without_archive_uploads_nothing(self):
         (self.t.repo / "dist" / "gps-time-pi-deploy.tar.gz").write_bytes(b"stale")
@@ -157,6 +176,10 @@ class TestPowerShellScript(unittest.TestCase):
                 if not "%1"=="tools/build_bundles.py" exit /b 0
                 if "%FAKE_BUILD_FAIL%"=="1" exit /b 1
                 echo bundle> dist\gps-time-pi-deploy.tar.gz
+                exit /b 0""",
+            "corepack": r"""
+                echo corepack %*>> "%FAKE_LOG%"
+                if "%FAKE_WEB_FAIL%"=="1" if "%3"=="build" exit /b 1
                 exit /b 0""",
             "scp": r"""
                 echo scp %2>> "%FAKE_LOG%"
@@ -190,6 +213,12 @@ class TestPowerShellScript(unittest.TestCase):
         r = self.run_script(FAKE_BUILD_FAIL="1")
         self.assertNotEqual(r.returncode, 0)
         self.assertFalse(any(c.startswith(("scp", "ssh")) for c in self.t.calls()), self.t.calls())
+
+    def test_failed_web_build_stops_before_the_bundle(self):
+        (self.t.repo / "dist" / "gps-time-pi-deploy.tar.gz").write_bytes(b"stale")
+        r = self.run_script(FAKE_WEB_FAIL="1")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse(any(c.startswith(("python", "scp", "ssh")) for c in self.t.calls()), self.t.calls())
 
     def test_failed_upload_stops_before_install(self):
         r = self.run_script(FAKE_SCP_FAIL="1")

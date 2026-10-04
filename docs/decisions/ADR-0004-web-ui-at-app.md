@@ -28,5 +28,5 @@ The React/Vite UI in `web/` is being ported to become the Pi UI (CLAUDE.md). Unt
 
 - ADR-0002 still holds. The server's demo mode (`GTP_DEMO=1`) remains the primary demo, and the new UI renders it through the same live client. The client-side adapter is a provider swap for front-end development, not a separate mockup.
 - The new UI can be tried on any station at `/app/` without affecting the legacy pages. The parity gap list is `docs/dashboard/web-ui-parity.md`. The legacy pages are retired only when that list is empty or each item is explicitly dropped.
-- `install.sh` and the deploy bundle do not yet ship `web/dist`; that is a follow-up. Building on the Pi would need Node, so the bundle should carry the built files.
+- Update 2026-10-04: the deploy bundle ships `web/dist` and `install.sh` installs it to `/opt/gps-time-pi/web/dist`. The UI is built on the deploying machine; the Pi needs no Node. (Before that, a station returned 503 at `/app/`.)
 - The API has no authentication. Exposing more write actions in the new UI (admin actions, survey reset) waits on the administrative-security item in the independent review.

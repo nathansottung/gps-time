@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
@@ -29,16 +29,27 @@ function uiVersion(): string {
   }
 }
 
+const version = uiVersion()
+
+// dist/version.txt: the version this UI was built from. tools/build_bundles.py
+// refuses to ship a dist built from another commit than the bundle.
+const versionFile: Plugin = {
+  name: 'gtp-version-file',
+  generateBundle() {
+    this.emitFile({ type: 'asset', fileName: 'version.txt', source: version + '\n' })
+  },
+}
+
 export default defineConfig(({ mode }) => ({
   base: './',
-  define: { __GTP_UI_VERSION__: JSON.stringify(uiVersion()) },
+  define: { __GTP_UI_VERSION__: JSON.stringify(version) },
   build: {
     sourcemap: mode === 'development' ? 'inline' : false,
     // Never inline assets as data: URIs. The station's CSP allows fonts and
     // images from 'self' only (gps_time_pi/security.py).
     assetsInlineLimit: 0,
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), versionFile],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
