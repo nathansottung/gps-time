@@ -456,3 +456,13 @@ The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI 
 - `fresh-pi-install.md` gains an almanac check. The almanac with the real ephemeris isn't covered by the tests on Python 3.13, so the checklist verifies it on the station.
 - The annotated tag `v1.4.0-rc.5` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - Indexed in `docs/INDEX.md`; README and START-HERE name the version.
+
+## 2026-10-04 — deploy-to-pi.ps1: ssh `-t` joined to user@host (fix/deploy-ssh-argv)
+
+- Reported by the owner on the first run against a Pi: the install step failed with ssh's `Bad configuration option: ...`. The build, the first ssh call and the upload had succeeded; `install.sh` never ran, so nothing was installed.
+- Root cause: `$TtyOpt = if (...) { @() } else { @('-t') }`. A PowerShell `if` expression unwraps a one-element array to the string `-t`, and `'-t' + @($Remote, $RemoteCmd)` is then string concatenation. ssh received one argument, `-tuser@host set -e; ...`, and read it as a run of flags (`-t -n -s -o ...`).
+- It only happened with an interactive terminal. The tests ran with redirected output, where the option list was empty and the bug couldn't show. The #30 change log said the PowerShell script was tested; that covered the redirected path only.
+- Fix: the argument list is built element by element (`List[string]`).
+- `GTP_DEPLOY_TTY=1` or `0` overrides the terminal detection in both scripts, so the tests can run the terminal path.
+- Tests: `test_exact_ssh_argv` for both scripts, with and without `-t`. The fake ssh records the exact argv (on Windows through the real interpreter, which parses the command line by the same rules as ssh.exe). The tests assert the prepare call and the install call element by element. With the old line put back, the PowerShell test fails with `['-tpi@pi.example set -e; ...']`.
+- Not yet re-run against the Pi.

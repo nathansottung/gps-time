@@ -31,6 +31,8 @@ scp "$ARCHIVE" "${REMOTE}:${REMOTE_DIR}/gps-time-pi-deploy.tar.gz"
 # redirected output never captures it. Without one, sudo must not need a password.
 TTY_OPT=()
 if [ -t 0 ] && [ -t 1 ]; then TTY_OPT=(-t); fi
+# GTP_DEPLOY_TTY=1 or 0 overrides the detection (the tests use it).
+case "${GTP_DEPLOY_TTY:-}" in 1) TTY_OPT=(-t) ;; 0) TTY_OPT=() ;; esac
 ssh ${TTY_OPT[@]+"${TTY_OPT[@]}"} "$REMOTE" "set -e; cd ~/$REMOTE_DIR \
   && echo '$SHA  gps-time-pi-deploy.tar.gz' | sha256sum -c - \
   && tar -xzf gps-time-pi-deploy.tar.gz \

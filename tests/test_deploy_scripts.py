@@ -6,6 +6,7 @@ PowerShell script on Windows; static checks run everywhere.
 """
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -60,6 +61,13 @@ class TestStatic(unittest.TestCase):
                 self.assertLess(code.index(rm), code.index("build_bundles.py"))
 
 
+def _install_command(sha):
+    """The remote command both scripts send for the verify-and-install step."""
+    return ("set -e; cd ~/gps-time-deploy && "
+            f"echo '{sha}  gps-time-pi-deploy.tar.gz' | sha256sum -c - && "
+            "tar -xzf gps-time-pi-deploy.tar.gz && cd gps-time && sudo bash install.sh")
+
+
 class _FakeTree:
     """A copy of the script in a temp repo layout, plus a fake remote home."""
 
@@ -104,6 +112,8 @@ class TestBashScript(unittest.TestCase):
                 [ "${FAKE_WEB_FAIL:-}" = 1 ] && [ "$3" = build ] && exit 1
                 exit 0""",
             "ssh": """
+                # exact argv: one line per call, arguments separated by US (0x1f)
+                { printf '%s\\037' "$@"; printf '\\n'; } >> "$FAKE_LOG.argv"
                 [ "$1" = -t ] && shift
                 echo "ssh $1" >> "$FAKE_LOG"
                 HOME="$FAKE_HOME" bash -c "$2" """,
@@ -125,6 +135,22 @@ class TestBashScript(unittest.TestCase):
                  FAKE_LOG=str(self.t.log), FAKE_HOME=str(self.t.home), **env)
         return subprocess.run(["bash", str(self.t.repo / "scripts" / SH.name), "pi.example", "pi"],
                               env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
+
+    def ssh_argv(self):
+        lines = Path(str(self.t.log) + ".argv").read_text(encoding="utf-8").splitlines()
+        return [line.split("\x1f")[:-1] for line in lines]
+
+    def test_exact_ssh_argv(self):
+        for tty, flag in (("1", ["-t"]), ("0", [])):
+            with self.subTest(tty=tty):
+                Path(str(self.t.log) + ".argv").unlink(missing_ok=True)
+                r = self.run_script(GTP_DEPLOY_TTY=tty)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                sha = hashlib.sha256((self.t.repo / "dist" / "gps-time-pi-deploy.tar.gz").read_bytes()).hexdigest()
+                prepare, install = self.ssh_argv()
+                self.assertEqual(prepare, ["pi@pi.example", "rm -rf ~/gps-time-deploy && mkdir -m 0700 ~/gps-time-deploy"])
+                self.assertEqual(install[:-1], flag + ["pi@pi.example"])
+                self.assertEqual(" ".join(install[-1].split()), _install_command(sha))
 
     def test_success_verifies_then_installs(self):
         r = self.run_script()
@@ -185,10 +211,17 @@ class TestPowerShellScript(unittest.TestCase):
                 echo scp %2>> "%FAKE_LOG%"
                 if "%FAKE_SCP_FAIL%"=="1" exit /b 1
                 exit /b 0""",
-            "ssh": r"""
+            # The real interpreter records the exact argv (parsed by the same C
+            # runtime rules as ssh.exe); "python" on PATH is the fake above.
+            "ssh": rf"""
                 echo ssh %*>> "%FAKE_LOG%"
+                "{sys.executable}" "%~dp0record_argv.py" %*
                 exit /b 0""",
         }
+        (self.t.bin / "record_argv.py").write_text(
+            "import json, os, sys\n"
+            "with open(os.environ['FAKE_LOG'] + '.argv', 'a', encoding='utf-8') as f:\n"
+            "    f.write(json.dumps(sys.argv[1:]) + '\\n')\n", encoding="utf-8")
         for name, body in fakes.items():
             (self.t.bin / f"{name}.cmd").write_text("@echo off\r\n" + textwrap.dedent(body).strip().replace("\n", "\r\n") + "\r\n",
                                                    encoding="ascii")
@@ -198,6 +231,23 @@ class TestPowerShellScript(unittest.TestCase):
         return subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                                str(self.t.repo / "scripts" / PS1.name), "-PiHost", "pi.example"],
                               env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
+
+    def ssh_argv(self):
+        lines = Path(str(self.t.log) + ".argv").read_text(encoding="utf-8").splitlines()
+        return [json.loads(line) for line in lines]
+
+    def test_exact_ssh_argv(self):
+        # With a terminal the install call is exactly: -t, user@host, command.
+        # A joined "-tuser@host ..." makes ssh fail with "Bad configuration option".
+        for tty, flag in (("1", ["-t"]), ("0", [])):
+            with self.subTest(tty=tty):
+                Path(str(self.t.log) + ".argv").unlink(missing_ok=True)
+                r = self.run_script(GTP_DEPLOY_TTY=tty)
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+                sha = hashlib.sha256((self.t.repo / "dist" / "gps-time-pi-deploy.tar.gz").read_bytes()).hexdigest()
+                prepare, install = self.ssh_argv()
+                self.assertEqual(prepare, ["pi@pi.example", "rm -rf ~/gps-time-deploy && mkdir -m 0700 ~/gps-time-deploy"])
+                self.assertEqual(install, flag + ["pi@pi.example", _install_command(sha)])
 
     def test_success_installs_with_the_archive_checksum(self):
         r = self.run_script()
