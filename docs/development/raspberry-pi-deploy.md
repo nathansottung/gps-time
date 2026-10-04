@@ -7,8 +7,11 @@ For the first deploy of the 1.4 line onto a v1.3 station, follow the step-by-ste
 From Windows/VS Code:
 
 ```powershell
+cd web; corepack pnpm install --frozen-lockfile; corepack pnpm run build; cd ..
 python tools\build_bundles.py
 ```
+
+The Pi archive ships the built web UI (`web/dist`), so `/app/` works on a station without Node. `build_bundles.py` stops if the UI isn't built, or if it was built from another version than the checkout (`web/dist/version.txt`). `--without-web` builds a bundle with no UI; `/app/` then returns 503 on the station.
 
 Outputs:
 
@@ -26,10 +29,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost 192.
 
 The script:
 
-1. builds the bundle, after deleting any old one, so a failed build can't upload a stale archive;
+1. builds the web UI, then the bundle, after deleting any old one, so a failed build can't upload a stale archive;
 2. uploads it with `scp` into a fresh `~/gps-time-deploy` on the Pi;
 3. checks its SHA-256 there;
-4. extracts it and runs `sudo bash install.sh`.
+4. extracts it and runs `sudo bash install.sh`, which also installs the UI to `/opt/gps-time-pi/web/dist`, replacing the previous copy.
 
 It stops at the first failed step, so `install.sh` never runs on an archive that doesn't match. Run it from an interactive terminal: `ssh -t` then lets sudo prompt and shows the admin token. Without a terminal, sudo on the Pi must not need a password.
 

@@ -25,6 +25,18 @@ echo "== Copying application to $DEST =="
 cp -r gps_time_pi $DEST/
 [ -f $DEST/config.json ] || echo '{}' > $DEST/config.json
 
+echo "== Web UI (/app/) =="
+# The bundle ships the built UI, so the station needs no Node. The old copy is
+# removed first: asset file names carry content hashes and would pile up.
+if [ -f web/dist/index.html ]; then
+  rm -rf "$DEST/web/dist"
+  mkdir -p "$DEST/web"
+  cp -r web/dist "$DEST/web/"
+  echo "Installed web UI $(cat web/dist/version.txt 2>/dev/null || echo '(version unknown)')"
+else
+  echo "This bundle has no built web UI: /app/ will return 503. The legacy pages at / still work."
+fi
+
 echo "== Ephemeris (JPL DE440s, ~32 MB, one-time download) =="
 if [ ! -f "$EPH" ]; then
   curl -L --fail -o "$EPH" "$EPH_URL"

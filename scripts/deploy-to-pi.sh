@@ -14,6 +14,9 @@ REMOTE_DIR="gps-time-deploy"
 
 if [[ "$USE_LAYOUT" == "--use-demo-layout" ]]; then python3 tools/promote_dashboard.py; fi
 rm -f "$ARCHIVE"
+# The bundle ships the built web UI (/app/). Build it from this checkout;
+# build_bundles.py refuses a web/dist built from another version.
+(cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build)
 python3 tools/build_bundles.py
 [[ -s "$ARCHIVE" ]] || { echo "build did not produce $ARCHIVE" >&2; exit 1; }
 if command -v sha256sum >/dev/null; then SHA="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
