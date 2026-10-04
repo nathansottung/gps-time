@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-04 (docs/fresh-pi-install, #36). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-04 (docs/release-v1.4.0-rc.4, #37). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -50,7 +50,7 @@ Last updated: 2026-10-04 (docs/fresh-pi-install, #36). Built from the specs, `ro
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping).
 
-**Totals:** 360 rows: 174 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 361 rows: 175 done, 0 in progress, 21 next, 165 planned.
 
 ## Status table
 
@@ -416,3 +416,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | actionlint in CI (invalid workflow files fail) | done |  | [#29](https://github.com/nathansottung/gps-time/pull/29) |
 | Repo |  | Tag v1.4.0-rc.3 with release notes | done | pre-release; tag on this PR's merge commit; intended first Pi deploy | [#33](https://github.com/nathansottung/gps-time/pull/33) |
 | Repo |  | First Pi deploy of the 1.4 line | next | checklists written (`deploy/fresh-pi-install.md` for a new Pi, `deploy/first-pi-deploy.md` for a v1.3 station); the deploy itself is the owner's step and hasn't been run | [#34](https://github.com/nathansottung/gps-time/pull/34) [#36](https://github.com/nathansottung/gps-time/pull/36) |
+| Repo |  | Tag v1.4.0-rc.4 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#37](https://github.com/nathansottung/gps-time/pull/37) |
