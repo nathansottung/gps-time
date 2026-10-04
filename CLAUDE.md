@@ -42,7 +42,7 @@ cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run typecheck
 ```
 
 CI (`.github/workflows/`):
-- `ci.yml` runs Python 3.11 on Ubuntu. Real-SIGTERM and POSIX-only tests run there and are skipped on Windows.
+- `ci.yml` runs Python 3.11 and 3.13 on Ubuntu (the system Pythons of Debian 12 and 13), and checks that the pinned runtime dependencies have aarch64 wheels for both. Real-SIGTERM and POSIX-only tests run there and are skipped on Windows.
 - `web.yml` runs Node 22 and pnpm: type-check, Vitest unit tests (`web/src/**/*.test.ts`), build. It also fails on runtime CDN, font-host or analytics URLs, and on 700/bold weights.
 
 ## Where things are
