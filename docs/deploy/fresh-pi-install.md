@@ -256,6 +256,12 @@ ssh $Pi
   curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"action":"flush_logs"}' localhost/api/admin
   ```
 
+- [ ] The almanac computes with the real ephemeris. This path isn't covered by the tests on Python 3.13, so check it here: expect `True` and a sunrise time, not a traceback in the journal. In `hidden` privacy mode it prints `False` with the privacy reason instead.
+
+  ```sh
+  curl -s localhost/api/almanac | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('available'), d.get('reason') or d['sun']['events'].get('sunrise'))"
+  ```
+
 - [ ] Both UIs load: `200` twice, then `1.4.0-rc.5`.
 
   ```sh
