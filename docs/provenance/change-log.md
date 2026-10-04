@@ -384,7 +384,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - The annotated tag `v1.4.0-rc.3` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - Indexed in `docs/INDEX.md`; README and START-HERE name the version.
 
-## 2026-10-04 — first Pi deploy checklist (docs/first-pi-deploy)
+## 2026-10-04 — first Pi deploy checklist (#34)
 
 - `docs/deploy/first-pi-deploy.md`: a step-by-step checklist for upgrading a v1.3 station to v1.4.0-rc.3.
   - SSH key setup from Windows.
