@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-04 (fix/deploy-ssh-argv, #40). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-04 (docs/release-v1.4.0-rc.6). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -50,7 +50,7 @@ Last updated: 2026-10-04 (fix/deploy-ssh-argv, #40). Built from the specs, `road
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping).
 
-**Totals:** 363 rows: 177 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 364 rows: 178 done, 0 in progress, 21 next, 165 planned.
 
 ## Status table
 
@@ -419,3 +419,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Tag v1.4.0-rc.4 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#37](https://github.com/nathansottung/gps-time/pull/37) |
 | Repo |  | Debian 13 (Trixie, Python 3.13) support: CI matrix 3.11 + 3.13, aarch64 wheel check, installer and docs audit | done | not yet run on a Pi | [#38](https://github.com/nathansottung/gps-time/pull/38) |
 | Repo |  | Tag v1.4.0-rc.5 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#39](https://github.com/nathansottung/gps-time/pull/39) |
+| Repo |  | Tag v1.4.0-rc.6 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | PRLINK |

@@ -466,3 +466,9 @@ The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI 
 - `GTP_DEPLOY_TTY=1` or `0` overrides the terminal detection in both scripts, so the tests can run the terminal path.
 - Tests: `test_exact_ssh_argv` for both scripts, with and without `-t`. The fake ssh records the exact argv (on Windows through the real interpreter, which parses the command line by the same rules as ssh.exe). The tests assert the prepare call and the install call element by element. With the old line put back, the PowerShell test fails with `['-tpi@pi.example set -e; ...']`.
 - Not yet re-run against the Pi.
+
+## 2026-10-04 — v1.4.0-rc.6 (docs/release-v1.4.0-rc.6)
+
+- Release notes in `docs/releases/v1.4.0-rc.6.md`: the `deploy-to-pi.ps1` ssh argument fix (#40). The station software is unchanged from rc.5.
+- Both deploy checklists target v1.4.0-rc.6. The fresh-install checklist says which part has now run against a Pi (build and upload only).
+- The annotated tag `v1.4.0-rc.6` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
