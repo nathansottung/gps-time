@@ -397,7 +397,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Written from the code and docs. No command in it has been run against a Pi; the deploy itself is the owner's step.
 - `STATUS.md`: new row "First Pi deploy of the 1.4 line" (next).
 
-## 2026-10-04 — the Pi bundle ships the web UI (feat/ship-web-dist)
+## 2026-10-04 — the Pi bundle ships the web UI (#35)
 
 - The Pi archive now carries the built UI as `gps-time/web/dist`, and `install.sh` installs it to `/opt/gps-time-pi/web/dist`, removing the previous copy first. `/app/` works on a station without Node. Before, a station returned 503 there.
 - `tools/build_bundles.py`:

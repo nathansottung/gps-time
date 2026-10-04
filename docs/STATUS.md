@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-04 (feat/ship-web-dist). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-04 (feat/ship-web-dist, #35). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -20,7 +20,7 @@ Last updated: 2026-10-04 (feat/ship-web-dist). Built from the specs, `roadmap/fe
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
-- **2026-10-04, next-5:** shipping `web/dist` was done in PRLINK, so the list has 4 items until the owner picks a fifth. Item 4 (GPS-021) is already done.
+- **2026-10-04, next-5:** shipping `web/dist` was done in [#35](https://github.com/nathansottung/gps-time/pull/35), so the list has 4 items until the owner picks a fifth. Item 4 (GPS-021) is already done.
 - **2026-10-02, deploys:** GPS-021 (deploy scripts stop on failure and verify the upload) is next-5 item 5 and must land before any Pi deploy. Owner decision.
 
 ## Legend
@@ -373,7 +373,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Pre-release | Administrative security | done | not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
-| Web UI |  | Ship web/dist in the Pi bundle and install.sh | done | built on the deploying machine; a UI from another version is refused; not yet run on a Pi | PRLINK |
+| Web UI |  | Ship web/dist in the Pi bundle and install.sh | done | built on the deploying machine; a UI from another version is refused; not yet run on a Pi | [#35](https://github.com/nathansottung/gps-time/pull/35) |
 | Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
