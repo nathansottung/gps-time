@@ -412,7 +412,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Checked locally: a real bundle extracted to a temp directory serves `/app/` (200) and `/app/version.txt`, and `/api` reports the version from the `VERSION` file with no git present. Not yet run on a Pi.
 - Docs: Pi deploy guide, first-deploy checklist (`/app/` now expected to work; the manual copy step is gone), ADR-0004 update, `STATUS.md` (row done; next-5 moves up).
 
-## 2026-10-04 — fresh Pi install checklist; installer preflight (docs/fresh-pi-install)
+## 2026-10-04 — fresh Pi install checklist; installer preflight (#36)
 
 - `docs/deploy/fresh-pi-install.md`: a checklist for a newly flashed Raspberry Pi OS Lite, ending with a station on v1.4.0-rc.4.
   - Steps: SSH key; packages (chrony, gpsd, pps-tools); UART and PPS configuration from `tools/generate_config.py`; deploy; reboot; hardware checks (`cgps`, `ppstest`); chrony refclocks; station checks.
