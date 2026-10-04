@@ -383,3 +383,16 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Release notes in `docs/releases/v1.4.0-rc.3.md`, covering #29–#33: deploy scripts (GPS-021), sun shifts, actionlint, the SDR roadmap. They also state what `install.sh` does to chrony on every run (it restarts it) and that nothing in the 1.4 line has run on a Pi yet.
 - The annotated tag `v1.4.0-rc.3` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - Indexed in `docs/INDEX.md`; README and START-HERE name the version.
+
+## 2026-10-04 — first Pi deploy checklist (#34)
+
+- `docs/deploy/first-pi-deploy.md`: a step-by-step checklist for upgrading a v1.3 station to v1.4.0-rc.3.
+  - SSH key setup from Windows.
+  - Read-only pre-flight on the Pi: OS and polkit version, the `_chrony` and `video` groups, disk, Internet, current timing state.
+  - Backups: the whole `/opt/gps-time-pi`, `config.json`, `chrony.conf`, system configuration and the before-state, copied off the Pi to a folder outside the repository.
+  - The interactive deploy command, from the tag, and what it should print.
+  - Checks afterward: service user, polkit (one allowed and one refused action), timing chain, token, web pages, survey.
+  - Rollback: timing configuration check, Level 1 drop-in, Level 2 restore of the v1.3 backup.
+- It states what the deploy does to the station: `install.sh` restarts chrony, and `/app/` returns 503 until the built UI is copied by hand (optional step) or shipped in the bundle.
+- Written from the code and docs. No command in it has been run against a Pi; the deploy itself is the owner's step.
+- `STATUS.md`: new row "First Pi deploy of the 1.4 line" (next).
