@@ -425,7 +425,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - `first-pi-deploy.md` targets v1.4.0-rc.4 and mentions the preflight.
 - Tests: 2 more in `tests/test_packaging.py`: the preflight comes before any change, and (POSIX) it stops with "Nothing was changed" when chrony is missing.
 
-## 2026-10-04 — v1.4.0-rc.4 (docs/release-v1.4.0-rc.4)
+## 2026-10-04 — v1.4.0-rc.4 (#37)
 
 - Release notes in `docs/releases/v1.4.0-rc.4.md`, covering #34–#37: the bundle ships the web UI, the installer preflight, the two deploy checklists.
 - The annotated tag `v1.4.0-rc.4` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
