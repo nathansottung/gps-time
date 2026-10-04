@@ -1,6 +1,6 @@
 # Fresh Pi install: checklist
 
-For a newly flashed **Raspberry Pi OS Lite** with nothing on it yet, ending with a station running **v1.4.0-rc.4**. To upgrade a station that already runs v1.3, use [`first-pi-deploy.md`](first-pi-deploy.md) instead.
+For a newly flashed **Raspberry Pi OS Lite** with nothing on it yet, ending with a station running **v1.4.0-rc.5**. To upgrade a station that already runs v1.3, use [`first-pi-deploy.md`](first-pi-deploy.md) instead.
 
 Work top to bottom and stop at any step that doesn't match what's written. No command here has been run against a Pi yet.
 
@@ -12,7 +12,7 @@ Work top to bottom and stop at any step that doesn't match what's written. No co
 - Windows has Python, git, and Node 22 with corepack (`docs/development/new-machine.md`).
 - The Pi has Internet access during the install (apt, PyPI or piwheels, the JPL ephemeris).
 
-**Not covered by an automated test:** Raspberry Pi OS based on Debian 13 (Trixie) ships Python 3.13. CI runs Python 3.11 only. If `python3 --version` on the Pi is newer, that's an untested combination; note anything that fails.
+**OS releases.** Written for Raspberry Pi OS on Debian 13 (Trixie, Python 3.13) and Debian 12 (Bookworm, Python 3.11). CI runs the tests on both Python versions and checks that every pinned dependency has an aarch64 wheel for each. The paths and names used below (`/boot/firmware/config.txt`, `/etc/chrony/chrony.conf`, the `_chrony` and `video` groups, `raspi-config nonint`) are the same on both. A 32-bit OS (`uname -m` prints `armv7l`) isn't covered by that wheel check.
 
 PowerShell blocks run on Windows and `sh` blocks run on the Pi. Set these once per PowerShell window. **Don't commit your values, the generated files or the token.**
 
@@ -69,7 +69,7 @@ This step sets up the hardware side only. The chrony refclock lines come later, 
   ssh $Pi
   ```
 
-- [ ] Record the starting point.
+- [ ] Record the starting point. Expect `trixie` or `bookworm`, Python 3.13 or 3.11, and `aarch64`.
 
   ```sh
   grep VERSION_CODENAME /etc/os-release; python3 --version; uname -m
@@ -79,17 +79,20 @@ This step sets up the hardware side only. The chrony refclock lines come later, 
 
   ```sh
   sudo apt-get update
-  sudo apt-get install -y chrony gpsd gpsd-clients pps-tools
+  sudo apt-get install -y chrony gpsd gpsd-clients pps-tools polkitd python3-venv
   pkaction --version        # 121 or newer, for the admin actions
   getent group _chrony video
   ```
 
-- [ ] Free the UART for the receiver: no login console on it, hardware on.
+- [ ] Free the UART for the receiver: no login console on it, hardware on. The last line must print `0`: no serial console left in the kernel command line.
 
   ```sh
   sudo raspi-config nonint do_serial_cons 1
   sudo raspi-config nonint do_serial_hw 0
+  grep -c 'console=serial0\|console=ttyAMA0\|console=ttyS0' /boot/firmware/cmdline.txt
   ```
+
+  If `raspi-config` has no such option, do the same by hand: remove the `console=serial0,115200` word from `/boot/firmware/cmdline.txt`, and run `sudo systemctl disable --now serial-getty@ttyAMA0.service`. `enable_uart=1` comes from the snippet in the next step.
 
 - [ ] Add the overlays to `config.txt`, keeping the original.
 
@@ -113,12 +116,12 @@ At this point chrony still has its default configuration (network time only), so
 
 - [ ] Open a normal PowerShell or Windows Terminal window: interactive, no output redirection, not a VS Code task. The admin token is shown on the terminal only.
 
-- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.4`.
+- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.5`.
 
   ```powershell
   cd <repository folder>
   git fetch --tags
-  git checkout v1.4.0-rc.4
+  git checkout v1.4.0-rc.5
   git status --short
   git describe --tags --dirty
   ```
@@ -133,8 +136,8 @@ At this point chrony still has its default configuration (network time only), so
 
   1. the web UI build, then `Built ...gps-time-pi-deploy.tar.gz (SHA-256 ...)`
   2. `gps-time-pi-deploy.tar.gz: OK`, the checksum verified on the Pi
-  3. `== Preflight ==` with no "Cannot install" message
-  4. the install sections, including the venv, the ephemeris download (about 32 MB) and `Installed web UI 1.4.0-rc.4`
+  3. `== Preflight ==` with no "Cannot install" message and no warnings
+  4. the install sections, including the venv, the ephemeris download (about 32 MB) and `Installed web UI 1.4.0-rc.5`
   5. `== Admin token ==` followed by the token, **shown once**
   6. `Open http://gpstime.local/`
 
@@ -200,6 +203,12 @@ ssh $Pi
 
   If chrony isn't `active`, read `journalctl -u chrony -n 20 --no-pager`, then restore the original with `sudo cp /etc/chrony/chrony.conf.orig /etc/chrony/chrony.conf && sudo systemctl restart chrony`.
 
+- [ ] chrony writes its tracking log to RAM. The file exists and gains a line every few minutes. If it's missing, read `journalctl -u chrony -n 20 --no-pager`; the History page stays empty without it, but timing isn't affected.
+
+  ```sh
+  ls -l /run/chrony-log/
+  ```
+
 - [ ] chrony selects PPS. Give it a few minutes. Expect a `#*` line with the name `GPS` (the PPS refclock), a `#` line named `NMEA` that is never selected, and `Stratum : 1` with `Reference ID` showing `GPS`.
 
   ```sh
@@ -218,7 +227,7 @@ ssh $Pi
   curl -s localhost/api | python3 -c "import sys,json; print(json.load(sys.stdin)['versions']['app'])"
   ```
 
-  Expect `active`, `User=gps-time`, `/opt/gps-time-pi/venv/bin/python`, no tracebacks, and `1.4.0-rc.4`.
+  Expect `active`, `User=gps-time`, `/opt/gps-time-pi/venv/bin/python`, no tracebacks, and `1.4.0-rc.5`.
 
 - [ ] The timing chain agrees with chrony: a GPS/PPS status once chrony has selected PPS, and no stage UNKNOWN that the commands above showed working.
 
@@ -247,7 +256,7 @@ ssh $Pi
   curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"action":"flush_logs"}' localhost/api/admin
   ```
 
-- [ ] Both UIs load: `200` twice, then `1.4.0-rc.4`.
+- [ ] Both UIs load: `200` twice, then `1.4.0-rc.5`.
 
   ```sh
   curl -s -o /dev/null -w "%{http_code}\n" localhost/

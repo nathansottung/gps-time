@@ -430,3 +430,22 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
 - Release notes in `docs/releases/v1.4.0-rc.4.md`, covering #34–#37: the bundle ships the web UI, the installer preflight, the two deploy checklists.
 - The annotated tag `v1.4.0-rc.4` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - Indexed in `docs/INDEX.md`; README and START-HERE name the version.
+
+## 2026-10-04 — Debian 13 (Trixie) and Python 3.13 (#38)
+
+The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI ran 3.11 only.
+
+- **CI:** `ci.yml` runs the Python job on 3.11 and 3.13. Two new steps on each:
+  - install `requirements.txt` into a venv, as `install.sh` does, and import skyfield and numpy;
+  - `pip download --only-binary=:all:` for cp311/cp313 on manylinux aarch64, so a pin without a Pi wheel fails CI.
+- **Checked locally on Python 3.13.15:** the 187 tests pass with no deprecation warnings. `skyfield==1.55` resolves to numpy 2.5.3, sgp4 2.27, jplephem 2.24 and certifi, all with cp313 (or abi3 or pure-Python) aarch64 wheels, and they import and build a timescale. Only skyfield is pinned; the others float (hash-pinning is still open under GPS-020). The full almanac path needs the JPL ephemeris and wasn't run.
+- **`install.sh`:**
+  - It no longer forces `/etc/polkit-1/rules.d` to mode 0755 when the directory exists. Debian's polkitd package owns it.
+  - The preflight warns if polkit (`pkaction`) isn't installed; the admin actions need it.
+  - Nothing else in it is release-specific: the chrony path, the `_chrony` and `video` groups, `python3-venv` and the unit's options are the same on Debian 12 and 13.
+- **Docs:**
+  - `fresh-pi-install.md`: states both supported releases, installs `polkitd` and `python3-venv` explicitly, verifies the serial console is off (with a manual fallback if `raspi-config` lacks the option), and checks that chrony writes the RAM tracking log.
+  - `first-pi-deploy.md`: accepts `bookworm` or `trixie`.
+  - Both checklists target v1.4.0-rc.5. `CLAUDE.md` names the CI Python versions.
+- Tests: 2 more in `tests/test_packaging.py` (the polkit directory, the polkit warning).
+- Not yet run on a Pi.

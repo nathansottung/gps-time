@@ -101,6 +101,18 @@ class TestStaticInvocation(unittest.TestCase):
         for check in ("chronyc", "/etc/chrony/chrony.conf", "_chrony video", "id -u", "exit 1"):
             self.assertIn(check, block, check)
 
+    def test_installer_leaves_an_existing_polkit_rules_dir_alone(self):
+        # Debian's polkitd package owns /etc/polkit-1/rules.d; the installer must not chmod it.
+        text = (ROOT / "install.sh").read_text(encoding="utf-8")
+        code = [l.strip() for l in text.splitlines() if not l.lstrip().startswith("#")]
+        touching = [l for l in code if "install -d" in l and "/etc/polkit-1/rules.d" in l]
+        self.assertEqual(touching, ["[ -d /etc/polkit-1/rules.d ] || install -d -m 0755 /etc/polkit-1/rules.d"])
+        self.assertFalse([l for l in code if re.search(r"ch(mod|own)\b.*polkit-1", l)])
+
+    def test_installer_warns_when_polkit_is_missing(self):
+        text, start, end = self._preflight()
+        self.assertIn("command -v pkaction", text[start:end])
+
     @unittest.skipIf(os.name == "nt" or not shutil.which("bash"), "POSIX bash needed")
     def test_installer_preflight_stops_without_chrony(self):
         text, start, end = self._preflight()

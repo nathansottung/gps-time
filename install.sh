@@ -26,9 +26,12 @@ if [ -n "$problems" ]; then
 fi
 command -v gpsd >/dev/null 2>&1 || [ -x /usr/sbin/gpsd ] \
   || echo "Warning: gpsd is not installed. The station will report GNSS as UNKNOWN until it is (sudo apt-get install -y gpsd)."
+command -v pkaction >/dev/null 2>&1 \
+  || echo "Warning: polkit is not installed. Admin actions (restart, reboot, log flush) will fail until it is (sudo apt-get install -y polkitd)."
 
 echo "== Installing Python dependencies (venv: $VENV) =="
-# Debian Bookworm's system Python is externally managed (PEP 668): pip may not
+# The system Python on Debian 12 (Bookworm, 3.11) and 13 (Trixie, 3.13) is
+# externally managed (PEP 668): pip may not
 # install into it. The station's dependencies go into a venv instead, so
 # apt-managed Python packages are never touched (review GPS-020).
 apt-get update >/dev/null
@@ -99,7 +102,9 @@ for f in config.json config.json.prev dashboard.json timing-events.json custom.c
 done
 
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
-install -d -m 0755 /etc/polkit-1/rules.d
+# Debian's polkitd package owns this directory and sets its owner and mode.
+# Create it only if it is missing; never change an existing one.
+[ -d /etc/polkit-1/rules.d ] || install -d -m 0755 /etc/polkit-1/rules.d
 install -m 0644 system/50-gps-time-pi.rules /etc/polkit-1/rules.d/50-gps-time-pi.rules
 # Emergency rollback drop-in (root service), kept on the station; not enabled.
 install -D -m 0644 system/gps-time-pi-root-rollback.conf "$DEST/rollback/gps-time-pi-root-rollback.conf"
