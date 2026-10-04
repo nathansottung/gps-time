@@ -6,9 +6,11 @@ exec'd it directly (203/EXEC), aborting install.sh under `set -e`.
 """
 
 import importlib.util
+import os
 import re
 import shutil
 import stat
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -84,6 +86,34 @@ class TestStaticInvocation(unittest.TestCase):
         unit = (ROOT / "gps-time-pi.service").read_text(encoding="utf-8")
         execs = re.findall(r"(?m)^ExecStart=(.*)$", unit)
         self.assertEqual(execs, ["/opt/gps-time-pi/venv/bin/python -m gps_time_pi.server"])
+
+    def _preflight(self):
+        text = (ROOT / "install.sh").read_text(encoding="utf-8")
+        start = text.index('echo "== Preflight =="')
+        return text, start, text.index('echo "== Installing Python dependencies', start)
+
+    def test_installer_preflight_runs_before_anything_changes(self):
+        text, start, end = self._preflight()
+        head = "\n".join(l for l in text[:start].splitlines() if not l.lstrip().startswith("#"))
+        for changing in ("apt-get", "mkdir", "cp ", "systemctl", "useradd", ">>", "sed -i"):
+            self.assertNotIn(changing, head, changing)
+        block = text[start:end]
+        for check in ("chronyc", "/etc/chrony/chrony.conf", "_chrony video", "id -u", "exit 1"):
+            self.assertIn(check, block, check)
+
+    @unittest.skipIf(os.name == "nt" or not shutil.which("bash"), "POSIX bash needed")
+    def test_installer_preflight_stops_without_chrony(self):
+        text, start, end = self._preflight()
+        with tempfile.TemporaryDirectory() as d:
+            script = Path(d) / "preflight.sh"
+            script.write_text("set -e\n" + text[start:end] + 'echo REACHED-INSTALL\n', encoding="utf-8")
+            # an empty PATH dir plus bash builtins: chronyc and getent are "not installed"
+            r = subprocess.run([shutil.which("bash"), str(script)], env={"PATH": d}, cwd=d,
+                               capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("chrony is not installed", r.stderr)
+        self.assertIn("Nothing was changed.", r.stderr)
+        self.assertNotIn("REACHED-INSTALL", r.stdout)
 
 
 class TestBuiltBundles(unittest.TestCase):

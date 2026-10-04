@@ -411,3 +411,16 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - `tests/test_deploy_scripts.py`: the UI is built before the bundle, and a failed UI build stops both scripts.
 - Checked locally: a real bundle extracted to a temp directory serves `/app/` (200) and `/app/version.txt`, and `/api` reports the version from the `VERSION` file with no git present. Not yet run on a Pi.
 - Docs: Pi deploy guide, first-deploy checklist (`/app/` now expected to work; the manual copy step is gone), ADR-0004 update, `STATUS.md` (row done; next-5 moves up).
+
+## 2026-10-04 — fresh Pi install checklist; installer preflight (#36)
+
+- `docs/deploy/fresh-pi-install.md`: a checklist for a newly flashed Raspberry Pi OS Lite, ending with a station on v1.4.0-rc.4.
+  - Steps: SSH key; packages (chrony, gpsd, pps-tools); UART and PPS configuration from `tools/generate_config.py`; deploy; reboot; hardware checks (`cgps`, `ppstest`); chrony refclocks; station checks.
+  - The chrony GPS/PPS refclock lines are added **after** the reboot. chrony exits at startup if `/dev/pps0` doesn't exist, and `install.sh` restarts chrony, so adding them before the reboot would abort the install.
+  - The example hostname is `gpstime.local`; the user name is a placeholder, per the rule on personal infrastructure details.
+  - It flags that Python 3.13 (Raspberry Pi OS on Debian 13) isn't covered by CI, which runs 3.11.
+  - Written from the code and the hardware docs. No command in it has been run against a Pi.
+- `install.sh` starts with a preflight. Before changing anything, it stops if it isn't run as root, chrony isn't installed, `/etc/chrony/chrony.conf` is missing, or the `_chrony` or `video` group doesn't exist. It warns if gpsd is missing. Before, a fresh Pi without chrony failed partway through, after the venv and the application were already copied. Part of GPS-020.
+- `generated/` (the output of `tools/generate_config.py`) is now in `.gitignore` and left out of the development zip. It holds the LAN subnet.
+- `first-pi-deploy.md` targets v1.4.0-rc.4 and mentions the preflight.
+- Tests: 2 more in `tests/test_packaging.py`: the preflight comes before any change, and (POSIX) it stops with "Nothing was changed" when chrony is missing.

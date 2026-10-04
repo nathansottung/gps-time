@@ -1,6 +1,8 @@
 # Build and deploy to Raspberry Pi
 
-For the first deploy of the 1.4 line onto a v1.3 station, follow the step-by-step checklist in [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md).
+Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-install.md) for a newly flashed Pi, and [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md) for upgrading a v1.3 station.
+
+`install.sh` starts with a preflight: it stops, before changing anything, if it isn't run as root, chrony isn't installed, or the `_chrony` or `video` group is missing. It doesn't install or configure chrony, gpsd or PPS.
 
 ## Build archives
 

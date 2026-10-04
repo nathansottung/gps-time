@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
-EXCLUDE_DIRS = {".git", ".dev", "dist", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"}
+EXCLUDE_DIRS = {".git", ".dev", "dist", "generated", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"}
 WEB_DIST = ROOT / "web" / "dist"
 EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 PI_TOP = ["gps_time_pi", "scripts", "system", "examples", "config", "install.sh", "requirements.txt", "gps-time-pi.service", "README.md", "LICENSE", "SECURITY.md"]

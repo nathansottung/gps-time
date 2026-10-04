@@ -1,8 +1,8 @@
 # First Pi deploy of the 1.4 line: checklist
 
-For upgrading a working v1.3 station to **v1.4.0-rc.3**. Work top to bottom and stop at any step that doesn't match what's written.
+For upgrading a working v1.3 station to **v1.4.0-rc.4**. For a newly flashed Pi, use [`fresh-pi-install.md`](fresh-pi-install.md) instead. Work top to bottom and stop at any step that doesn't match what's written.
 
-Nothing in the 1.4 line has run on a Pi yet. This deploy is the first test of the unprivileged service, the polkit rule, the venv installer and the deploy scripts. Background: `docs/development/raspberry-pi-deploy.md`, `docs/releases/v1.4.0-rc.3.md`, ADR-0005.
+Nothing in the 1.4 line has run on a Pi yet. This deploy is the first test of the unprivileged service, the polkit rule, the venv installer and the deploy scripts. Background: `docs/development/raspberry-pi-deploy.md`, `docs/releases/v1.4.0-rc.4.md`, ADR-0005.
 
 **What will happen to the station**
 
@@ -137,12 +137,12 @@ Still on the Pi. Everything goes into one directory in your home.
 
 - [ ] Open a normal PowerShell or Windows Terminal window. It must be an interactive terminal, with no output redirection and not a VS Code task: the admin token is shown on the terminal only, and sudo may need to prompt. Set `$PiHost` and `$PiUser` again if it's a new window.
 
-- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.3`, and `git status` must list nothing.
+- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.4`, and `git status` must list nothing.
 
   ```powershell
   cd <repository folder>
   git fetch --tags
-  git checkout v1.4.0-rc.3
+  git checkout v1.4.0-rc.4
   git status --short
   git describe --tags --dirty
   ```
@@ -157,7 +157,7 @@ Still on the Pi. Everything goes into one directory in your home.
 
   1. the web UI build (`pnpm install`, `vite build`), then `Built ...gps-time-pi-deploy.tar.gz (SHA-256 ...)`
   2. `gps-time-pi-deploy.tar.gz: OK`, the checksum verified on the Pi
-  3. the `install.sh` sections, possibly after a sudo password prompt
+  3. `== Preflight ==` with no "Cannot install" message, then the `install.sh` sections, possibly after a sudo password prompt
   4. `== Admin token ==` followed by the token, **shown once**
   5. `Open http://<pi>/`
 
@@ -195,7 +195,7 @@ ssh $Pi
   journalctl -u gps-time-pi -b --no-pager -n 40
   ```
 
-- [ ] The version is `1.4.0-rc.3`.
+- [ ] The version is `1.4.0-rc.4`.
 
   ```sh
   curl -s localhost/api | python3 -c "import sys,json; print(json.load(sys.stdin)['versions']['app'])"
