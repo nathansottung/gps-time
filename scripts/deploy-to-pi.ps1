@@ -45,8 +45,17 @@ Invoke-Native scp @($Archive, "${Remote}:$RemoteDir/gps-time-pi-deploy.tar.gz")
 # A remote terminal only when this console is interactive: sudo can then
 # prompt, and install.sh shows the admin token on the terminal only, so
 # redirected output never captures it. Without one, sudo must not need a password.
-$TtyOpt = if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) { @() } else { @('-t') }
+# GTP_DEPLOY_TTY=1 or 0 overrides the detection (the tests use it).
+$UseTty = -not ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected)
+if ($env:GTP_DEPLOY_TTY -eq '1') { $UseTty = $true } elseif ($env:GTP_DEPLOY_TTY -eq '0') { $UseTty = $false }
 Write-Host 'Verifying the upload and installing on the Raspberry Pi ...'
 $RemoteCmd = "set -e; cd ~/$RemoteDir && echo '$Sha  gps-time-pi-deploy.tar.gz' | sha256sum -c - && tar -xzf gps-time-pi-deploy.tar.gz && cd gps-time && sudo bash install.sh"
-Invoke-Native ssh ($TtyOpt + @($Remote, $RemoteCmd))
+# Build the argument list element by element. An `if` expression unwraps a
+# one-element array to a string, and string + array concatenates into ONE
+# argument ("-tuser@host ..."), which ssh then reads as a run of flags.
+$SshArgs = New-Object System.Collections.Generic.List[string]
+if ($UseTty) { $SshArgs.Add('-t') }
+$SshArgs.Add($Remote)
+$SshArgs.Add($RemoteCmd)
+Invoke-Native ssh $SshArgs.ToArray()
 Write-Host "Open http://$PiHost/"
