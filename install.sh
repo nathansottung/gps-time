@@ -7,6 +7,26 @@ EPH=$DEST/gps_time_pi/data/de440s.bsp
 
 VENV=$DEST/venv
 
+echo "== Preflight =="
+# Stop before changing anything if the station's base isn't there (review
+# GPS-020). This script edits chrony.conf and restarts chrony, and the web
+# service's unit names the _chrony and video groups, so without chrony it
+# would fail partway through. It does not install or configure chrony, gpsd or
+# PPS; see docs/deploy/fresh-pi-install.md.
+problems=""
+[ "$(id -u)" = 0 ] || problems="$problems\n  - not running as root: use sudo bash install.sh"
+command -v chronyc >/dev/null 2>&1 || problems="$problems\n  - chrony is not installed (sudo apt-get install -y chrony)"
+[ -f /etc/chrony/chrony.conf ] || problems="$problems\n  - /etc/chrony/chrony.conf is missing"
+for g in _chrony video; do
+  getent group "$g" >/dev/null 2>&1 || problems="$problems\n  - group $g does not exist (the service unit needs it)"
+done
+if [ -n "$problems" ]; then
+  printf "Cannot install:$problems\nNothing was changed.\n" >&2
+  exit 1
+fi
+command -v gpsd >/dev/null 2>&1 || [ -x /usr/sbin/gpsd ] \
+  || echo "Warning: gpsd is not installed. The station will report GNSS as UNKNOWN until it is (sudo apt-get install -y gpsd)."
+
 echo "== Installing Python dependencies (venv: $VENV) =="
 # Debian Bookworm's system Python is externally managed (PEP 668): pip may not
 # install into it. The station's dependencies go into a venv instead, so

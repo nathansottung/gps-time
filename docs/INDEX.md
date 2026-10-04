@@ -49,6 +49,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Development
 - `development/windows-demo.md`
+- `deploy/fresh-pi-install.md` — checklist for a newly flashed Raspberry Pi OS Lite: SSH key, packages, UART/PPS configuration, deploy, reboot, chrony refclocks, checks
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
