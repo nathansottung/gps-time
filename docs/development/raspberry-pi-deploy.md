@@ -1,5 +1,7 @@
 # Build and deploy to Raspberry Pi
 
+For the first deploy of the 1.4 line onto a v1.3 station, follow the step-by-step checklist in [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md).
+
 ## Build archives
 
 From Windows/VS Code:
