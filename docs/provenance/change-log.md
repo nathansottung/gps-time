@@ -373,7 +373,7 @@ Root cause: `/api/almanac` and `/api/object` computed sunrise and sunset, solar 
   - `web/src/lib/legacy-dashboard.test.ts` (3): it evaluates the legacy helper from the file and fails to load against the previous `dashboard.js`.
 - **Checked in the demo:** the `/app/` table reads sunrise +57/+57 s, solar noon −35/−34 s, sunset −126/−125 s, daylight −183/−182 s. The legacy widget reads "−182.8 s change vs yesterday". No console errors.
 
-## 2026-10-04 — roadmap: SDR and RF observatory (docs/roadmap-sdr-rf)
+## 2026-10-04 — roadmap: SDR and RF observatory (#32)
 
 - Added `docs/roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (owner-provided, copied verbatim; SHA-256 `fbb9dd26…`) and indexed it in `docs/INDEX.md`.
 - Status SCOPING, not scheduled. Pi timing work and the first Pi deploy come first. No rows added to `STATUS.md`; it's listed there as unscheduled work outside the table.
