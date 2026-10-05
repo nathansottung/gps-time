@@ -307,7 +307,8 @@ def timing_status(trk, srcs, gnss=None, pps=None, refclocks=None):
         # no external reference.
         return out("HOLDOVER", "HOLDOVER", "HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF",
                    f"chrony's selected source {sel['name']} is this station's own address, so the clock is "
-                   f"following itself. Remove that server from chrony (it usually comes from DHCP). {gnss_note}.",
+                   f"following itself. Remove that server from chrony (it usually comes from DHCP; "
+                   f"re-running install.sh disables DHCP-provided servers). {gnss_note}.",
                    {**src, "is_self": True})
     if sel["name"] == pps_name:
         return out("GPS_PPS", "SYNCHRONIZED", f"SYNCHRONIZED · GPS/PPS · STRATUM {stratum}",

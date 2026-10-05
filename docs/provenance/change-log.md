@@ -616,3 +616,19 @@ Reported from the Pi, with CSP blocking inline styles as the suspected cause.
 - Correction to #43. Before the first `/api/almanac` answer arrived, the legacy Sun widget said "the station did not answer /api/almanac". It now says "Astronomy data: loading…" until an attempt has actually failed.
 - An almanac request that fails no longer stops the rest of the legacy dashboard from rendering or marks the whole server unavailable; only the Sun widget reports it.
 - Tests: 2 more in `web/src/lib/legacy-almanac.test.ts`. No status change.
+
+## 2026-10-05 — installer: chrony takes no NTP servers from DHCP (#52)
+
+Owner decision, 2026-10-04: the installer makes the change that #48 left as an operator step. It is also the first of the smaller items in the owner's timing-metrology spec, which the next PR adds to `docs/specs/`.
+
+- **This changes chrony's configuration**, on the owner's explicit instruction. `install.sh` comments out `sourcedir /run/chrony-dhcp` in `/etc/chrony/chrony.conf`, so chrony no longer adds the NTP servers a DHCP server hands out and can't end up polling the station's own address. The installer restarts chrony afterwards, as it has since v1.3.
+- **Scope of the edit** (`scripts/chrony-no-dhcp-sources.sh`):
+  - only that one line; refclocks, `pool`/`server` lines and `sourcedir /etc/chrony/sources.d` are untouched;
+  - the file as it was before the first change is kept as `chrony.conf.before-gps-time-pi`, and never overwritten;
+  - a second run changes nothing;
+  - `GTP_KEEP_DHCP_NTP=1` skips it;
+  - a failure is a warning, not a failed install.
+- **Consequence to know about:** a station whose only network fallback came from DHCP has no network fallback after this, until a `server` or `pool` line is added. Debian's default `pool` line is not affected.
+- The running web service still only reads chrony. The #48 detection (`is_self`, THIS STATION, the HOLDOVER status) stays, for a station address named some other way.
+- Docs: deploy guide, both checklists (the fresh-install check now confirms the line is commented instead of asking the operator to edit it).
+- Tests: `tests/test_installer_dhcp_sources.py` (12; 8 run the script against a fixture `chrony.conf` and are POSIX-only). Not yet run on a Pi.

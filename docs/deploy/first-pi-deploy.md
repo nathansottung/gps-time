@@ -7,7 +7,7 @@ Nothing in the 1.4 line has run on a Pi yet. This deploy is the first test of th
 **What will happen to the station**
 
 - `install.sh` **restarts chrony**. PPS selection takes a few minutes to come back. NTP clients see a fallback source or an unsynchronized server until then. Pick a time when that's acceptable.
-- `install.sh` makes sure `chrony.conf` has `log tracking` and `logdir /run/chrony-log`. A v1.3 station already has both, so the file shouldn't change. Nothing else in chrony, gpsd or PPS setup is touched.
+- `install.sh` makes sure `chrony.conf` has `log tracking` and `logdir /run/chrony-log`. A v1.3 station already has both. From v1.4.0-rc.7 it also comments out `sourcedir /run/chrony-dhcp`, if the file has that line, so chrony stops taking NTP servers from DHCP and can't poll the station itself; the file as it was is kept as `chrony.conf.before-gps-time-pi`. If DHCP was the station's only network fallback, add a `server` or `pool` line, or keep it with `GTP_KEEP_DHCP_NTP=1` (`docs/development/raspberry-pi-deploy.md`). Nothing else in chrony, gpsd or PPS setup is touched.
 - The web service changes from root to the user `gps-time`, and runs from a venv.
 - Settings changes and admin actions will need the admin token.
 - `/app/` (the new UI) works after the deploy: the bundle ships the built UI. The deploy script builds it on Windows first, so Windows needs Node 22 with corepack (`docs/development/new-machine.md`). The legacy pages work as before.
@@ -299,13 +299,13 @@ journalctl -u gps-time-pi -b --no-pager -n 200 > ~/gps-time-failure.txt
 systemctl status gps-time-pi --no-pager >> ~/gps-time-failure.txt
 ```
 
-If **timing** is wrong (chrony not selecting PPS after 15 minutes), compare the configuration first. The deploy shouldn't have changed it:
+If **timing** is wrong (chrony not selecting PPS after 15 minutes), compare the configuration first. The only difference the deploy should have made is the commented-out `sourcedir /run/chrony-dhcp` line:
 
 ```sh
 sudo diff /etc/chrony/chrony.conf "$B/chrony.conf" && echo unchanged
 ```
 
-If it differs, restore it and restart chrony: `sudo cp -a "$B/chrony.conf" /etc/chrony/chrony.conf && sudo systemctl restart chrony`. The web service doesn't discipline the clock, so a web-service problem alone doesn't call for a timing rollback.
+If anything else differs, restore it and restart chrony: `sudo cp -a "$B/chrony.conf" /etc/chrony/chrony.conf && sudo systemctl restart chrony`. The web service doesn't discipline the clock, so a web-service problem alone doesn't call for a timing rollback.
 
 **Level 1: root service, new code.** Use this if the service fails to start or values are missing because of the unprivileged user. It keeps the new code and the token checks.
 

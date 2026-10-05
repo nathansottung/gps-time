@@ -222,12 +222,13 @@ ssh $Pi
   for a in $(hostname -I); do chronyc -n sources | grep -F " $a "; done
   ```
 
-  If it prints a line, your router's DHCP names the station as the LAN's NTP server, and the station received that too (`cat /run/chrony-dhcp/*.sources`). The station must not use itself as a time source. The web pages flag such a source as THIS STATION and never count it as a reference, but chrony still polls it. To stop that, tell chrony on the station to ignore NTP servers from DHCP; it keeps the servers from the generated snippet:
+  `install.sh` disabled NTP servers from DHCP for this reason (it commented out `sourcedir /run/chrony-dhcp` and kept the original as `chrony.conf.before-gps-time-pi`). Confirm the line is commented:
 
   ```sh
-  sudo sed -i 's|^sourcedir /run/chrony-dhcp|#&|' /etc/chrony/chrony.conf
-  sudo systemctl restart chrony
+  grep -n "chrony-dhcp" /etc/chrony/chrony.conf
   ```
+
+  If the loop above still prints a line, the station's address is named as a server somewhere else. Find it with `grep -rn "<that address>" /etc/chrony/`, remove it, and restart chrony. The station must not use itself as a time source. The web pages flag such a source as THIS STATION and never count it as a reference, but chrony still polls it.
 
 **The station**
 

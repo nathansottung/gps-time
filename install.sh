@@ -85,6 +85,15 @@ if grep -q "^logdir" /etc/chrony/chrony.conf; then
 else
   echo "logdir /run/chrony-log" >> /etc/chrony/chrony.conf
 fi
+
+echo "== chrony: no NTP servers from DHCP (the station must not poll itself) =="
+# If the router's DHCP names this station as the LAN's NTP server, chrony would
+# poll the station's own address and could select it after a PPS loss. This
+# comments out `sourcedir /run/chrony-dhcp` only; refclocks and pool/server
+# lines are untouched. Skip with: sudo GTP_KEEP_DHCP_NTP=1 bash install.sh
+bash scripts/chrony-no-dhcp-sources.sh /etc/chrony/chrony.conf \
+  || echo "Warning: could not change /etc/chrony/chrony.conf; chrony may still take NTP servers from DHCP (docs/development/raspberry-pi-deploy.md)."
+
 cp -r scripts $DEST/
 # Archives (ZIP in particular) may drop execute bits; set them explicitly.
 # Units also invoke logsync.sh via /bin/bash, so either alone is sufficient.
