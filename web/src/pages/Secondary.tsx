@@ -266,8 +266,11 @@ export function Network() {
             <tbody>
               {(core.data?.sources ?? []).map(s => (
                 <tr key={s.name} style={{ borderBottom:'1px solid var(--border-dim)' }}>
-                  <td className="px-4 py-2 mono" style={{ color:'var(--t2)' }}>{s.name}</td>
-                  <td className="px-4 py-2 mono" style={{ color: s.state === '*' ? 'var(--good-text)' : 'var(--t3)' }}>{s.state} {s.state_label}</td>
+                  <td className="px-4 py-2 mono" style={{ color:'var(--t2)' }}>
+                    {s.name}
+                    {s.is_self && <span style={{ color:'var(--warn-text)' }} title="chrony is polling this station's own address (usually from DHCP). It is not an external reference."> · THIS STATION</span>}
+                  </td>
+                  <td className="px-4 py-2 mono" style={{ color: s.state === '*' && !s.is_self ? 'var(--good-text)' : s.is_self ? 'var(--warn-text)' : 'var(--t3)' }}>{s.state} {s.state_label}</td>
                   <td className="px-4 py-2 mono" style={{ color:'var(--t3)' }}>{s.stratum}</td>
                   <td className="px-4 py-2 mono" style={{ color:'var(--t3)' }}>{2 ** s.poll} s</td>
                   <td className="px-4 py-2 mono" style={{ color:'var(--t3)' }}>{s.reach}</td>

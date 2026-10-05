@@ -174,7 +174,10 @@ def chrony_view(inputs, refcfg):
         "selected": None if not selected else {
             "name": selected["name"], "kind": "refclock" if selected["mode"] == "#" else "network",
             "stratum": selected["stratum"],
-            "is_pps": selected["name"] == pps_name, "is_nmea": selected["name"] == nmea_name},
+            "is_pps": selected["name"] == pps_name, "is_nmea": selected["name"] == nmea_name,
+            "is_self": bool(selected.get("is_self"))},
+        # chrony sources that are this station's own address (never an external reference)
+        "self_sources": [r["name"] for r in rows if r.get("is_self")],
         "any_selected": selected is not None if sources_ok else None,
         "tracking": {
             "leap": trk.get("Leap status"), "stratum": trk.get("Stratum"),
@@ -223,6 +226,14 @@ def timing_status(trk, srcs, gnss=None, pps=None, refclocks=None):
                    f"No source selected; clock coasting on chrony's last frequency estimate. {gnss_note}.")
     kind = "refclock" if sel.get("mode") == "#" else "network"
     src = {"name": sel["name"], "kind": kind, "stratum": stratum}
+    if sel.get("is_self"):
+        # chrony is polling this station's own address and has selected it: the
+        # clock follows itself. Whatever stratum that "source" reports, there is
+        # no external reference.
+        return out("HOLDOVER", "HOLDOVER", "HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF",
+                   f"chrony's selected source {sel['name']} is this station's own address, so the clock is "
+                   f"following itself. Remove that server from chrony (it usually comes from DHCP). {gnss_note}.",
+                   {**src, "is_self": True})
     if sel["name"] == pps_name:
         return out("GPS_PPS", "SYNCHRONIZED", f"SYNCHRONIZED · GPS/PPS · STRATUM {stratum}",
                    f"PPS refclock {sel['name']} selected by chrony.", src)
@@ -402,10 +413,15 @@ def build_chain(pps_snap, pps_state, gnss, chrony_v, status, events=None, now=No
                 "ACQUIRING": "INFO"}.get(status["code"], "DEGRADED"),
                status["banner"], tracking=cv.get("tracking")),
         _stage("fallback_source", "Fallback source",
+               "FAILED" if (cv.get("selected") or {}).get("is_self") else
                "INFO" if (status["source"] and not (cv.get("selected") or {}).get("is_pps")) else "NOT_APPLICABLE",
-               (f"{status['source']['name']} ({status['source']['kind']})" if status["source"]
-                and not (cv.get("selected") or {}).get("is_pps") else "not in use"),
-               source=status["source"]),
+               (f"{cv['selected']['name']} is this station's own address, not an external source"
+                if (cv.get("selected") or {}).get("is_self") else
+                f"{status['source']['name']} ({status['source']['kind']})" if status["source"]
+                and not (cv.get("selected") or {}).get("is_pps") else "not in use")
+               + (f"; chrony also lists this station's own address as a source: {', '.join(cv['self_sources'])}"
+                  if cv.get("self_sources") and not (cv.get("selected") or {}).get("is_self") else ""),
+               source=status["source"], self_sources=cv.get("self_sources") or []),
         _stage("failover_duration", "PPS unavailable/unused for", "INFO" if open_ev else "NOT_APPLICABLE",
                "open PPS outage event" if open_ev else "no open PPS outage",
                duration_s=q(round(now - open_ev["start_epoch"]) if open_ev else None, "s", "calculated"),
@@ -609,8 +625,9 @@ class EventTracker:
             e["satellites_used_range"] = [min(lo, used), max(hi, used)]
         sel = snap["selected_source"]
         sel_is_pps = (chain["chrony"].get("selected") or {}).get("is_pps")
-        if sel and not sel_is_pps and sel not in e["fallback_sources"]:
-            e["fallback_sources"].append(sel)
+        sel_is_self = (chain["chrony"].get("selected") or {}).get("is_self")
+        if sel and not sel_is_pps and not sel_is_self and sel not in e["fallback_sources"]:
+            e["fallback_sources"].append(sel)     # the station's own address is not a fallback
         st = _val(((chain["chrony"].get("tracking") or {}).get("system_time_s")))
         if st is not None:
             e["max_abs_system_time_s"] = max(abs(st), e["max_abs_system_time_s"] or 0.0)

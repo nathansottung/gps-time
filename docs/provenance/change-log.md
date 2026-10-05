@@ -564,3 +564,17 @@ Follow-up to #45, which the owner asked for as "big clock is GPS-derived local t
 - The header clock uses the same station time. One `/api/ping` loop now serves the whole app (it lives in `StationProvider`); before, each page that used it ran its own.
 - GPS-004 is partly addressed: the `/app/` clocks no longer show the browser's clock as if it were the station's. The legacy dashboard's "UTC reference" card is unchanged.
 - Tests: `clockDiscipline` (4) and `stationInstant` (2); 78 web tests in all. Checked in the demo with the `pps_selected` and `network_failover` scenarios.
+
+## 2026-10-05 — chrony polling the station itself (#48)
+
+From the owner's list: "Filter the station's own address out of chrony sources picked up from DHCP."
+
+- **What happens.** When the router's DHCP names the station as the LAN's NTP server, the station receives that too, and Debian's chrony adds it as a source (`sourcedir /run/chrony-dhcp`). The station then polls its own address. That source looks like a healthy stratum-1 server, and the software counted it as a network reference: a status could read "NETWORK FAILOVER", synchronized, while chrony was following itself.
+- **Fix, in the station software:**
+  - `chrony.parse_sources` marks a network source whose address is one of the machine's own (`ip -o addr show`, read-only, cached 60 s; loopback always) with `is_self`.
+  - If chrony **selects** it, the status is `HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF`, with the address and what to do.
+  - It is never recorded as a fallback source in an outage event, and the Fallback source stage reports it.
+  - `/api/timing-chain` → `chrony.selected.is_self` and `chrony.self_sources`; `/api` → `sources[].is_self`. The Network page marks the row THIS STATION.
+  - Listed but not selected (PPS selected) doesn't change the status.
+- **Not done: changing chrony's configuration.** The software only reads chrony. Stopping chrony from polling itself is a documented operator step: comment out `sourcedir /run/chrony-dhcp` on the station. It's in the fresh-install checklist with a check that finds the problem, and in the deploy guide.
+- Tests: `tests/test_self_source.py` (12) with two new source fixtures. Not yet seen on a Pi.
