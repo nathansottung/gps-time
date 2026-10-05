@@ -44,6 +44,7 @@ Stage-by-stage status of GNSS → PPS → chrony, the PPS state machine, the sta
 - `chrony`:
   - `available.{tracking,sources,sourcestats}`
   - `selected.is_self` and `self_sources[]`: chrony sources that are this station's own address. If chrony selects one, the status is `HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF`, never a network failover.
+  - `nmea_calibration`: a measured recommendation for the NMEA refclock's `offset` in `chrony.conf`. `{available, reason}`, and when available `configured_offset_s`, `residual_s` (chronyc sourcestats Offset for NMEA while PPS is selected; observed), `std_dev_s`, `samples`, `span_s`, `suggested_offset_s` (configured + residual; calculated), `change_worthwhile`, `advice`. Available only while PPS is the selected source and chrony has at least 16 NMEA samples. The station never edits `chrony.conf`.
   - `refclocks`: identified from `chrony.conf`, never by name alone
   - `pps_status`, `nmea_status`
   - `pps` and `nmea`: per-refclock labeled reach, offset, error bound, frequency, skew and std dev

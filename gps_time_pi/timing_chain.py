@@ -179,6 +179,9 @@ def chrony_view(inputs, refcfg):
         # chrony sources that are this station's own address (never an external reference)
         "self_sources": [r["name"] for r in rows if r.get("is_self")],
         "any_selected": selected is not None if sources_ok else None,
+        "nmea_calibration": nmea_calibration((refcfg or {}).get("nmea") if not assumed else None,
+                                             stats.get(nmea_name) if nmea_name else None,
+                                             bool(selected) and selected["name"] == pps_name),
         "tracking": {
             "leap": trk.get("Leap status"), "stratum": trk.get("Stratum"),
             "reference": trk.get("reference_name"),
@@ -188,6 +191,78 @@ def chrony_view(inputs, refcfg):
             "root_dispersion_s": q(chrony._parse_float((trk.get("Root dispersion", "").split() or [None])[0]), "s", "observed"),
             "frequency": trk.get("Frequency"),
         } if trk else None,
+    }
+
+
+def _nmea_cal_line(cal):
+    if not cal:
+        return "not reported"
+    conf = _val(cal.get("configured_offset_s")) if cal.get("configured_offset_s") else None
+    if not cal.get("available"):
+        return f"configured {conf if conf is not None else 'UNKNOWN'} s; not measurable now ({cal.get('reason')})"
+    return (f"configured {conf} s; residual {_val(cal['residual_s']):+.3f} s over {_val(cal['samples'])} samples; "
+            f"suggested {_val(cal['suggested_offset_s'])} s" + ("" if cal.get("change_worthwhile") else " (no change needed)"))
+
+
+NMEA_CAL_MIN_SAMPLES = 16
+NMEA_CAL_MIN_CHANGE_S = 0.005
+
+
+def nmea_calibration(nmea_cfg, nmea_stats, pps_selected):
+    """A measured recommendation for the NMEA refclock's `offset` in chrony.conf.
+    Nothing here changes chrony; the operator edits the file.
+
+    Serial time messages arrive a roughly constant delay after the second they
+    describe; chrony's `offset` option compensates for it. While PPS disciplines
+    the clock, the system clock is right to far better than a millisecond, so
+    chrony's own statistics for the NMEA source measure what is left over:
+
+      residual  = `chronyc sourcestats` Offset for the NMEA source. In chrony's
+                  reports a positive offset means the local clock is ahead of
+                  the source, i.e. the NMEA time is still late.
+      suggested = configured offset + residual
+
+    The sign rule is chrony's documented convention; it has not been confirmed
+    on this project's hardware, so the result says how to verify the change.
+    """
+    def unavailable(reason, **kw):
+        return {"available": False, "reason": reason, **kw}
+
+    if not nmea_cfg:
+        return unavailable("no NMEA/serial refclock in chrony.conf")
+    configured = nmea_cfg.get("offset_s")
+    conf_q = q(configured, "s", "observed", "the offset option on the NMEA refclock line in chrony.conf")
+    if configured is None:
+        return unavailable("the NMEA refclock's offset in chrony.conf could not be read", configured_offset_s=conf_q)
+    if not pps_selected:
+        return unavailable("PPS must be the selected source: only then is the system clock a good enough "
+                           "reference to measure the NMEA delay against", configured_offset_s=conf_q)
+    st = nmea_stats or {}
+    residual, sd, n = st.get("offset_s"), st.get("std_dev_s"), st.get("samples")
+    if residual is None or sd is None or n is None:
+        return unavailable("chrony has no statistics for the NMEA source", configured_offset_s=conf_q)
+    if n < NMEA_CAL_MIN_SAMPLES:
+        return unavailable(f"too few NMEA samples so far ({n}; {NMEA_CAL_MIN_SAMPLES} needed)",
+                           configured_offset_s=conf_q, samples=q(n, "count", "observed"))
+    suggested = round(configured + residual, 3)
+    worthwhile = abs(residual) >= max(3 * sd, NMEA_CAL_MIN_CHANGE_S)
+    return {
+        "available": True, "reason": None,
+        "configured_offset_s": conf_q,
+        "residual_s": q(residual, "s", "observed",
+                        "chronyc sourcestats Offset for the NMEA source while PPS is selected; "
+                        "positive = the NMEA time is late relative to the PPS-disciplined clock"),
+        "std_dev_s": q(sd, "s", "observed"),
+        "samples": q(n, "count", "observed"),
+        "span_s": q(st.get("span_s"), "s", "observed"),
+        "suggested_offset_s": q(suggested, "s", "calculated", "configured offset + residual, to the millisecond"),
+        "change_worthwhile": worthwhile,
+        "advice": (f"Change `offset {configured:g}` to `offset {suggested:g}` on the NMEA refclock line in "
+                   "chrony.conf and restart chrony. Then check this again after a few minutes: the residual "
+                   "should be near zero. If it has roughly doubled instead, the sign is the other way round on "
+                   f"this system: use `offset {round(configured - residual, 3):g}`."
+                   if worthwhile else
+                   "The residual is within the noise or under 5 ms: no change is needed."),
     }
 
 
@@ -858,6 +933,7 @@ def diagnostic_snapshot(chain, location):
         f"  PPS source status: {cv['pps_status']}",
         f"  NMEA refclock: {cv['refclocks']['nmea'] or 'none'} — {cv['nmea_status']}",
         f"  PPS lock reference: {cv['refclocks']['pps_lock'] or 'none'}",
+        "  NMEA offset: " + _nmea_cal_line(cv.get("nmea_calibration")),
         f"  Selected source: {sel.get('name', 'none')}",
         f"  System stratum: {(cv.get('tracking') or {}).get('stratum', 'UNKNOWN')}",
         "",

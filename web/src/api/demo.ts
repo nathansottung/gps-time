@@ -299,6 +299,14 @@ function timingChain(scenario: string = 'pps_selected'): TimingChain {
         ? ppsRef('?', "connectivity lost or samples fail chrony's tests (also shown until enough samples exist)", '0', false)
         : ppsRef('*', 'current best source, used to discipline the clock', '377', true),
       nmea: null,
+      // Mirrors timing_chain.nmea_calibration: measurable only while PPS is selected.
+      nmea_calibration: failover
+        ? { available: false, reason: 'PPS must be the selected source: only then is the system clock a good enough reference to measure the NMEA delay against',
+            configured_offset_s: m(0.1, 's', 'observed') }
+        : { available: true, reason: null, configured_offset_s: m(0.1, 's', 'observed'), residual_s: m(0.035, 's', 'observed'),
+            std_dev_s: m(0.001271, 's', 'observed'), samples: m(32, 'count', 'observed'), span_s: m(496, 's', 'observed'),
+            suggested_offset_s: m(0.135, 's', 'calculated'), change_worthwhile: true,
+            advice: 'Change `offset 0.1` to `offset 0.135` on the NMEA refclock line in chrony.conf and restart chrony. Then check this again after a few minutes: the residual should be near zero. If it has roughly doubled instead, the sign is the other way round on this system: use `offset 0.065`.' },
       selected: failover
         ? { name: '192.0.2.10', kind: 'network', stratum: 2, is_pps: false, is_nmea: false }
         : { name: 'GPS', kind: 'refclock', stratum: 0, is_pps: true, is_nmea: false },
