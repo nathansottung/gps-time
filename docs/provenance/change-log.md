@@ -579,7 +579,7 @@ From the owner's list: "Filter the station's own address out of chrony sources p
 - **Not done: changing chrony's configuration.** The software only reads chrony. Stopping chrony from polling itself is a documented operator step: comment out `sourcedir /run/chrony-dhcp` on the station. It's in the fresh-install checklist with a check that finds the problem, and in the deploy guide.
 - Tests: `tests/test_self_source.py` (12) with two new source fixtures. Not yet seen on a Pi.
 
-## 2026-10-05 — satellite C/N₀ bars rendered empty (fix/csp-inline-styles)
+## 2026-10-05 — satellite C/N₀ bars rendered empty (#50)
 
 Reported from the Pi, with CSP blocking inline styles as the suspected cause.
 
