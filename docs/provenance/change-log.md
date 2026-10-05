@@ -478,7 +478,7 @@ The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI 
 - Added `docs/roadmap/ROADMAP-WEB-UPDATES.md` (owner-provided, copied verbatim; SHA-256 `98023c1c…`) and indexed it in `docs/INDEX.md`.
 - Status FUTURE, low priority: not before the station has run stably on v1.4.0. `STATUS.md` lists it as unscheduled work outside the table, with that label. No rows added.
 
-## 2026-10-04 — astronomy says why it is unavailable (fix/astro-reason)
+## 2026-10-04 — astronomy says why it is unavailable (#43)
 
 Reported from the first Pi build: the legacy dashboard showed "Astronomy data unavailable." with no reason.
 
