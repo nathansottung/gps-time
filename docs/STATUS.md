@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (docs/release-v1.4.0-rc.8, #59). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (docs/spec-rf-node-tdoa, #60; new rows only, all planned). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -21,6 +21,7 @@ Last updated: 2026-10-05 (docs/release-v1.4.0-rc.8, #59). Built from the specs, 
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
+- **2026-10-05, RF nodes and TDOA:** `specs/SPEC-RF-NODE-AND-TDOA.md` added as PLANNED. It builds on `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` and starts after v1.4.0. Nothing is scheduled; the next-5 list is unchanged.
 - **2026-10-05, release:** rc.6 has run on the Pi since 2026-10-04 (PPS selected, stratum 1, about 300 ns). The owner will upgrade it to rc.8 and run that for 3 days before v1.4.0.
 - **2026-10-04, timing metrology:** `specs/SPEC-TIMING-METROLOGY.md` added as NEXT. The owner asked for §1, §3, §4 and §6 to be built now, in that order, one PR each, and for work to stop before NTS (§2) and PTP (§5). Items 1–3 of the list stay pre-release blockers. The former item 4 (GPS-021) was done in [#30](https://github.com/nathansottung/gps-time/pull/30).
 - **2026-10-04, next-5:** shipping `web/dist` was done in [#35](https://github.com/nathansottung/gps-time/pull/35), so the list has 4 items until the owner picks a fifth. Item 4 (GPS-021) is already done.
@@ -45,6 +46,7 @@ Last updated: 2026-10-05 (docs/release-v1.4.0-rc.8, #59). Built from the specs, 
 | TASK | `specs/TASK-PPS-CHAIN.md` |
 | OBS | `specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md` |
 | TM | `specs/SPEC-TIMING-METROLOGY.md` |
+| RF | `specs/SPEC-RF-NODE-AND-TDOA.md` |
 | ADD | `specs/ADDENDUM-SKY-SOLAR-SATELLITE.md` |
 | Feature A–J | `roadmap/feature-registry.md` sections |
 | Scope | `roadmap/current-scope.md` |
@@ -54,7 +56,7 @@ Last updated: 2026-10-05 (docs/release-v1.4.0-rc.8, #59). Built from the specs, 
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 404 rows: 209 done, 0 in progress, 30 next, 165 planned.
+**Totals:** 423 rows: 209 done, 0 in progress, 30 next, 184 planned.
 
 ## Status table
 
@@ -464,3 +466,22 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4, §6 done; §2 and §5 not started | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | Repo |  | Tag v1.4.0-rc.8 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#59](https://github.com/nathansottung/gps-time/pull/59) |
 | Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | next | owner's step: upgrade with `deploy/upgrade-1.4-station.md` and run it for 3 days | [#59](https://github.com/nathansottung/gps-time/pull/59) |
+| RF | Architecture | RF node (`rf-node/` in this repo): SDR on its own machine, chrony client of the station, SoapySDR, OpenWebRX, GNU Radio, agent | planned |  |  |
+| RF | Architecture | Agent: short IQ snippets around detections, tagged with UTC, the node's chrony offset and uncertainty, and frequency reference state; sends events | planned |  |  |
+| RF | Architecture | Coordinator on a stronger machine (not the station Pi): calibration and position solving; offline-capable, no cloud | planned |  |  |
+| RF | Architecture | Event format shared with the station's event model | planned | the station has a generic event schema (OBS §12a) |  |
+| RF | Accuracy | Limits reported with every fix: bandwidth, multipath, geometry, frequency drift | planned | meter-level results are a stretch goal, not a promise |  |
+| RF | Phase 1 | Every node listens to ADS-B at 1090 MHz as the shared reference signal | planned | see also Feature E "ADS-B 1090 adapter" |  |
+| RF | Phase 1 | Coordinator solves each node's clock offset and drift continuously | planned | see also Feature F "MLAT metadata/solver" |  |
+| RF | Phase 1 | Per node: offset, drift, residual error, calibration quality score, labeled modeled | planned |  |  |
+| RF | Phase 1 | Node positions from each node's own GNSS survey, at the privacy level its owner sets | planned |  |  |
+| RF | Phase 2 | TDOA on other signals: position estimate from three or more nodes, hyperbola line from two | planned | see also Feature E "Fox-hunt TOA/TDoA research" |  |
+| RF | Phase 2 | Error ellipse and number of nodes with every result, labeled modeled; never a point without its uncertainty | planned |  |  |
+| RF | Phase 2 | Optional known beacon at a surveyed spot to check accuracy continuously | planned |  |  |
+| RF | Phase 3 | Hunt mode: pick a frequency, nodes capture, live map of estimates and error ellipses | planned |  |  |
+| RF | Phase 3 | History of fixes, so the estimate is seen to tighten over time | planned |  |  |
+| RF | Rules | Locate only amateur transmissions, beacons, aircraft broadcasts meant to be public, and participating transmitters | planned |  |  |
+| RF | Rules | No decoding or storing of private communications' content; timing and signal metadata only, except amateur signals the operator chooses to record | planned |  |  |
+| RF | Rules | Never present a position as more certain than the error estimate supports | planned |  |  |
+| RF | Rules | Node positions follow the station's privacy modes | planned |  |  |
+| RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |

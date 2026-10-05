@@ -724,3 +724,9 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - Release notes in `docs/releases/v1.4.0-rc.8.md`: everything merged since rc.7 (#54 to #58). Checklists, README and START-HERE target rc.8.
 - The annotated tag `v1.4.0-rc.8` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - `STATUS.md`: "First Pi deploy of the 1.4 line" → done; new rows for the rc.8 tag and the owner's soak run (next-5 item 5).
+
+## 2026-10-05 — spec: RF node, MLAT calibration and distributed TDOA (#60)
+
+- Added `docs/specs/SPEC-RF-NODE-AND-TDOA.md` (owner-provided, copied verbatim; SHA-256 `8444e4d8…`) and indexed it. Status PLANNED: it builds on `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` and starts after v1.4.0.
+- `STATUS.md`: new area RF with 19 rows, all `planned`. Three of them point at the existing Feature E and F rows they overlap (ADS-B 1090, MLAT solver, fox-hunt TDoA); those rows are unchanged. The next-5 list is unchanged.
+- A specification is a requirement, not implemented behavior. No code changed, and no `rf-node/` directory exists yet.
