@@ -174,6 +174,27 @@ def stability() -> dict:
             .isoformat(timespec="seconds")}
 
 
+def ntp_service() -> dict:
+    """Sample /api/ntp-service payload: the real tracker fed synthetic counters
+    (about 14 requests a minute, a few dropped), two hours of history."""
+    from . import ntpservice
+    now = time.time()
+    clock = [now]
+    state = {"rx": 48210, "drop": 37}
+    tracker = ntpservice.Tracker(clock=lambda: clock[0], reader=lambda: {
+        "ntp_received": state["rx"], "ntp_dropped": state["drop"], "cmd_received": 412, "cmd_dropped": 0,
+        "client_log_dropped": 0, "nts_ke_accepted": 0, "nts_ke_dropped": 0,
+        "ntp_authenticated": 0, "ntp_interleaved": 96})
+    for i in range(121):
+        clock[0] = now - (120 - i) * 60
+        state["rx"] += 12 + int(4 * (1 + math.sin(i / 7.0)))
+        state["drop"] += 1 if i % 45 == 44 else 0
+        tracker.update()
+    out = tracker.report()
+    out["note"] += " Sample data."
+    return out
+
+
 REFERENCE_SCENARIOS = ("agree", "disagree", "unreachable", "none")
 
 

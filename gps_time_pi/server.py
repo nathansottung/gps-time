@@ -369,6 +369,14 @@ def stability_payload():
     return timing_chain.service().stability.report()
 
 
+def ntp_service_payload():
+    if DEMO_MODE:
+        return demo.ntp_service()
+    svc = timing_chain.service()
+    svc.latest()                      # make sure the counters have been read at least once
+    return svc.ntp_service.report()
+
+
 def references_payload(qs):
     if DEMO_MODE:
         return demo.references(qs.get("scenario", ["agree"])[0])
@@ -577,6 +585,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(timing_chain_payload(qs))
             elif p == "/api/stability":
                 self._json(stability_payload())
+            elif p == "/api/ntp-service":
+                self._json(ntp_service_payload())
             elif p == "/api/references":
                 self._json(references_payload(qs))
             elif p == "/api/timescales":

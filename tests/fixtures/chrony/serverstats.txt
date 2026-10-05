@@ -1,0 +1,11 @@
+NTP packets received       : 1598
+NTP packets dropped        : 8
+Command packets received   : 19
+Command packets dropped    : 0
+Client log records dropped : 0
+NTS-KE connections accepted: 3
+NTS-KE connections dropped : 0
+Authenticated NTP packets  : 189
+Interleaved NTP packets    : 43
+NTP timestamps held        : 44
+NTP timestamp span         : 120
