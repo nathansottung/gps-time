@@ -2,7 +2,7 @@
 
 Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-install.md) for a newly flashed Pi, and [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md) for upgrading a v1.3 station.
 
-`install.sh` starts with a preflight: it stops, before changing anything, if it isn't run as root, chrony isn't installed, or the `_chrony` or `video` group is missing. It warns if gpsd or polkit is missing. It doesn't install chrony, gpsd or PPS, and it doesn't configure them beyond three `chrony.conf` edits: `log tracking`, `logdir /run/chrony-log`, and disabling DHCP-provided NTP servers (below).
+`install.sh` starts with a preflight: it stops, before changing anything, if it isn't run as root, chrony isn't installed, or the `_chrony` or `video` group is missing. It warns if gpsd or polkit is missing. It doesn't install chrony, gpsd or PPS, and it doesn't configure them beyond three `chrony.conf` edits: `log tracking`, `logdir /run/chrony-log`, and disabling DHCP-provided NTP servers (below). Only when asked, it also adds a file of `noselect` servers ("Independent references", below).
 
 ## Build archives
 
@@ -64,6 +64,20 @@ If the router's DHCP names the station as the LAN's NTP server (option 42), the 
 ## Local time display
 
 The main clock shows local time; the station itself stays on UTC. Don't change the Pi's system time zone for this (`timedatectl` is not used anywhere). The zone is found offline from the station's position with `tzfpy` (in the venv), or set in Administration → Local time zone. With the location hidden, the zone is not derived from the position.
+
+## Independent references (optional)
+
+Timing → References compares the station with NTP servers that chrony measures but doesn't use to set the clock. It works with whatever such servers chrony already has. To add dedicated ones that can never be selected (`noselect`):
+
+```sh
+sudo GTP_INDEPENDENT_REFS=1 bash install.sh
+```
+
+- This adds `time.nist.gov`, `tick.usno.navy.mil` and `tock.usno.navy.mil` in `/etc/chrony/sources.d/gps-time-independent.sources`, polled every 4 to 17 minutes. Give your own list instead with `GTP_INDEPENDENT_REFS="host1 host2"`. Remove them with `GTP_INDEPENDENT_REFS=0`.
+- It is off unless you ask: it changes chrony's configuration and makes chrony contact those servers over the Internet. Without the variable, the installer leaves an existing file alone.
+- Without Internet the page reads "no external references reachable". Nothing else is affected.
+- The per-server network delay comes from the same helper service as the NTP client list (`systemctl status gps-time-pi-chrony-clients`). If it isn't running, delay reads UNKNOWN.
+- Details: `../architecture/independent-references.md`.
 
 ## Leap seconds and UT1 (time scales panel)
 

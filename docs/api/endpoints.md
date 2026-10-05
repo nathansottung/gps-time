@@ -17,7 +17,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `fmt` | the server's human-readable strings for the legacy pages |
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample`, `is_self` (the source is one of this station's own addresses, so not an external reference) |
 | `sourcestats` | raw `chronyc sourcestats` text |
-| `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
+| `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (which also publishes `chronyc -n ntpdata` for `/api/references`) (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
 | `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`; in `hidden` privacy mode `el` and `az` are null), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
 | `location` | position **after the privacy mode**: `{mode, lat, lon, alt_msl?, alt_hae?}`. exact → 4 decimals, alt_msl and alt_hae; rounded → 1 decimal, alt_msl to 10 m, no alt_hae; hidden → lat/lon null. |
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
@@ -107,6 +107,36 @@ Frequency-stability statistics of the system clock against kernel PPS timestamps
 - With no PPS events: `available: false`, a `reason`, and empty `points`.
 - The answer is recomputed at most every 60 s. The history is in RAM and starts again when the service restarts.
 - Nothing here depends on the location, so the privacy mode doesn't change it.
+
+## GET /api/references
+
+The station compared with NTP servers that are not steering its clock. Type: `References`. Background: `architecture/independent-references.md`.
+
+```json
+{"available": true, "provenance": "external", "as_of_utc": "2026-10-05T02:44:00+00:00",
+ "verdict": {"code": "AGREE", "headline": "STATION AGREES WITH INDEPENDENT REFERENCES",
+             "detail": "3 of 3 independent references are within 50 ms of the station.",
+             "provenance": "calculated", "threshold_s": 0.05,
+             "configured": 3, "usable": 3, "agreeing": 3, "disagreeing": 0, "inconclusive": 0},
+ "references": [{"name": "192.0.2.10", "state": "?", "state_label": "not selectable", "stratum": 1, "poll_s": 256,
+                 "reach": "377", "reachable": true, "usable": true, "lastrx_s": 30,
+                 "offset_s": 0.0026, "error_bound_s": 0.018, "delay_s": 0.031, "root_delay_s": 0.0004,
+                 "assessment": "agrees", "provenance": "external",
+                 "history": [{"t": 1791168210.0, "offset_s": 0.0026, "error_bound_s": 0.018, "delay_s": 0.031}]}],
+ "excluded": [{"name": "198.51.100.7", "why": "chrony has it combined: it is steering the clock, so it is not independent"}],
+ "delay_available": true, "delay_note": null,
+ "sign": "offset_s is chrony's figure for the last measurement: positive means the station's clock is ahead of that server.",
+ "history": {"interval_s": 60.0, "max_points": 1440, "storage": "RAM only; lost when the service restarts"}}
+```
+
+- `verdict.code`: `AGREE`, `DISAGREE`, `ONE_REFERENCE`, `NONE_REACHABLE` ("no external references reachable"), `NONE_CONFIGURED`, `UNKNOWN` (chrony unreadable; then `available` is false). The counts are absent for `NONE_CONFIGURED` and `UNKNOWN`.
+- A `DISAGREE` reports a difference between clocks. It does not say which clock is wrong or why, and it does not change `/api/timing-chain`.
+- `references[]` holds only independent servers. Servers chrony has selected or combined, and the station's own address, are in `excluded[]` with the reason.
+- For a reference that is not `usable`, `offset_s`, `error_bound_s` and `delay_s` are null and `assessment` is `not usable`.
+- `assessment`: `agrees`, `disagrees`, `inconclusive` (over the limit but inside the server's own error bound), `not usable`.
+- `delay_s` is chrony's "Peer delay" from the helper's published `chronyc -n ntpdata`. null = UNKNOWN; `delay_note` says why when no server has one.
+- `threshold_s` is `GTP_REF_DISAGREE_S` (default 0.05).
+- Demo mode takes `?scenario=agree|disagree|unreachable|none` and adds a `demo` block. A live station ignores the query.
 
 ## GET /api/timescales
 

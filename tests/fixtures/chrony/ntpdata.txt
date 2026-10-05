@@ -1,0 +1,54 @@
+
+Remote address  : 192.0.2.10 (C000020A)
+Remote port     : 123
+Local address   : 192.0.2.50 (C0000232)
+Leap status     : Normal
+Version         : 4
+Mode            : Server
+Stratum         : 1
+Poll interval   : 8 (256 seconds)
+Precision       : -24 (0.000000060 seconds)
+Root delay      : 0.000015 seconds
+Root dispersion : 0.000015 seconds
+Reference ID    : 47505300 (GPS)
+Reference time  : Mon Oct 05 02:22:12 2026
+Offset          : -0.002060878 seconds
+Peer delay      : 0.031175634 seconds
+Peer dispersion : 0.000000681 seconds
+Response time   : 0.000053050 seconds
+Jitter asymmetry: +0.00
+NTP tests       : 111 111 1111
+Interleaved     : No
+Authenticated   : No
+TX timestamping : Kernel
+RX timestamping : Kernel
+Total TX        : 24
+Total RX        : 24
+Total valid RX  : 24
+
+Remote address  : 2001:DB8::5 (20010DB8)
+Remote port     : 123
+Local address   : 2001:db8::50 (20010DB8)
+Leap status     : Normal
+Version         : 4
+Mode            : Server
+Stratum         : 2
+Poll interval   : 10 (1024 seconds)
+Precision       : -23 (0.000000119 seconds)
+Root delay      : 0.004100 seconds
+Root dispersion : 0.000900 seconds
+Reference ID    : C0000201 (192.0.2.1)
+Reference time  : Mon Oct 05 02:20:01 2026
+Offset          : +0.000410000 seconds
+Peer delay      : 0.018200000 seconds
+Peer dispersion : 0.000001200 seconds
+Response time   : 0.000061000 seconds
+Jitter asymmetry: -0.12
+NTP tests       : 111 111 1111
+Interleaved     : No
+Authenticated   : No
+TX timestamping : Daemon
+RX timestamping : Kernel
+Total TX        : 9
+Total RX        : 9
+Total valid RX  : 9

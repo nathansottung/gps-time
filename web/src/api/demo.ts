@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
-  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, Satellite,
+  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, References, ReferenceServer, Satellite,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
 
@@ -84,6 +84,7 @@ export function demoApi(): StationApi {
     history: () => delay(history()),
     stability: () => delay(stability()),
     timescales: () => delay(timescales()),
+    references: (o) => delay(references(o?.scenario)),
     survey: () => delay(survey()),
     system: () => delay(system()),
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
@@ -393,6 +394,50 @@ function stability(): Stability {
     points,
     key_points: [key(1, '1 s'), key(10, '10 s'), key(100, '100 s'), key(1000, '1000 s'), key(86400, '1 day')],
     notes: ['sample data'],
+  };
+}
+
+function references(scenario: string = 'agree'): References {
+  // Mirrors gps_time_pi/demo.py: three noselect servers, 15 h of history.
+  const now = Date.now() / 1000;
+  const shift = scenario === 'disagree' ? 0.180 : 0;
+  const reachable = scenario !== 'unreachable';
+  const threshold = 0.05;
+  const servers: [string, number, number, number, number][] = [
+    ['192.0.2.10', 1, 0.0021, 0.018, 0.031], ['192.0.2.20', 1, -0.0034, 0.022, 0.038], ['198.51.100.7', 2, 0.0009, 0.015, 0.024],
+  ];
+  const refs: ReferenceServer[] = (scenario === 'none' ? [] : servers).map(([name, stratum, off, err, del], k) => {
+    const at = (i: number) => off + shift + 0.0006 * Math.sin(i / 9 + k);
+    const offset = at(180);
+    return {
+      name, state: '?', state_label: 'not selectable', stratum, poll_s: 256, reach: reachable ? '377' : '0',
+      reachable, usable: reachable, lastrx_s: reachable ? 30 : null,
+      offset_s: reachable ? offset : null, error_bound_s: reachable ? err : null,
+      delay_s: reachable ? del : null, root_delay_s: reachable ? 0.0004 : null,
+      assessment: !reachable ? 'not usable' : Math.abs(offset) <= threshold ? 'agrees' : 'disagrees',
+      provenance: 'external',
+      history: reachable ? Array.from({ length: 181 }, (_, i) => ({ t: now - (180 - i) * 300 - 30, offset_s: at(i), error_bound_s: err, delay_s: del })) : [],
+    };
+  });
+  const usable = refs.filter(r => r.usable).length;
+  const disagreeing = refs.filter(r => r.assessment === 'disagrees').length;
+  const counts = { configured: refs.length, usable, agreeing: usable - disagreeing, disagreeing, inconclusive: 0 };
+  const base = { provenance: 'calculated' as const, threshold_s: threshold };
+  const verdict: References['verdict'] =
+    !refs.length ? { ...base, code: 'NONE_CONFIGURED', headline: 'NO INDEPENDENT REFERENCES',
+                     detail: 'chrony is not polling any server that is not steering the clock, so there is nothing to compare with.' }
+    : !usable ? { ...base, ...counts, code: 'NONE_REACHABLE', headline: 'NO EXTERNAL REFERENCES REACHABLE',
+                  detail: `None of the ${refs.length} independent server(s) has answered recently. The station works without them; there is no comparison to report.` }
+    : disagreeing * 2 > usable ? { ...base, ...counts, code: 'DISAGREE', headline: 'STATION DISAGREES WITH MOST INDEPENDENT REFERENCES',
+                  detail: `The station's clock differs from ${disagreeing} of ${usable} independent references by more than 50 ms. This is a disagreement between clocks; it does not say which clock is wrong or why.` }
+    : { ...base, ...counts, code: 'AGREE', headline: 'STATION AGREES WITH INDEPENDENT REFERENCES',
+        detail: `${usable - disagreeing} of ${usable} independent references are within 50 ms of the station.` };
+  return {
+    available: true, provenance: 'external', as_of_utc: new Date().toISOString().slice(0, 19) + '+00:00',
+    verdict, references: refs, excluded: [], delay_available: true, delay_note: null,
+    sign: "offset_s is chrony's figure for the last measurement: positive means the station's clock is ahead of that server.",
+    history: { interval_s: 60, max_points: 1440, storage: 'RAM only; lost when the service restarts' },
+    demo: { scenario, scenarios: ['agree', 'disagree', 'unreachable', 'none'], note: 'synthetic data — not a measurement' },
   };
 }
 

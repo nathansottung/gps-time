@@ -299,6 +299,51 @@ def published_clients(path=None, now=None, max_age_s=CLIENTS_MAX_AGE_S):
         return None
 
 
+NTPDATA_FILE = os.environ.get("GTP_CHRONY_NTPDATA_FILE", "/run/gps-time-pi/chrony-ntpdata.txt")
+
+_NTPDATA_SECONDS = {"Root delay": "root_delay_s", "Root dispersion": "root_dispersion_s",
+                    "Offset": "offset_s", "Peer delay": "peer_delay_s",
+                    "Peer dispersion": "peer_dispersion_s", "Response time": "response_time_s"}
+_NTPDATA_INTS = {"Stratum": "stratum", "Total TX": "total_tx", "Total RX": "total_rx",
+                 "Total valid RX": "total_valid_rx"}
+
+
+def parse_ntpdata(text):
+    """`chronyc -n ntpdata` -> {remote address (lower case): fields}. Pure.
+    Seconds fields are floats; a field that doesn't parse is left out."""
+    out, cur = {}, None
+    for line in (text or "").splitlines():
+        if ":" not in line:
+            continue
+        key, value = (part.strip() for part in line.split(":", 1))
+        if key == "Remote address":
+            addr = value.split()[0].lower() if value else ""
+            cur = out.setdefault(addr, {}) if addr and addr != "[unspec]" else None
+        elif cur is None:
+            continue
+        elif key in _NTPDATA_SECONDS:
+            m = re.match(r"([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s+seconds", value)
+            if m:
+                cur[_NTPDATA_SECONDS[key]] = float(m.group(1))
+        elif key in _NTPDATA_INTS:
+            m = re.match(r"(\d+)", value)
+            if m:
+                cur[_NTPDATA_INTS[key]] = int(m.group(1))
+    return out
+
+
+def ntpdata():
+    """Per-server NTP measurement details ({address: fields}), or None when
+    they can't be read (UNKNOWN). Source: the helper service's published
+    `chronyc -n ntpdata`; else chronyc directly, which works only as root."""
+    out = published_clients(NTPDATA_FILE)
+    if out is None:
+        ok, out = run_chronyc("ntpdata")
+        if not ok:
+            return None
+    return parse_ntpdata(out)
+
+
 def clients():
     """NTP client rows, or None when they can't be read. None is UNKNOWN, not
     "no clients".
