@@ -48,6 +48,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 ## Web prototype
 - `../web/` — React/Vite UI being ported to become the Pi UI; served by the station at `/app/` and wired to the API through a typed client (`web/src/api/`). Legacy pages stay until parity.
 - `dashboard/web-ui-parity.md` — legacy features the new UI still lacks
+- `dashboard/legacy-removal-plan.md` — PLAN, nothing removed: inventory of the legacy pages and the code that exists only for them, parity today, proposed order, timing (not before v1.4.0)
 - `../web/guidelines/Guidelines.md` — UI guidelines all project UI must follow
 
 ## API

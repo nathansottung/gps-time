@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (feat/earth-shadow-satellites, #61). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (docs/legacy-removal-plan, #62). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -21,6 +21,7 @@ Last updated: 2026-10-05 (feat/earth-shadow-satellites, #61). Built from the spe
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
+- **2026-10-05, legacy pages:** a removal plan is written; nothing is removed. The owner asked for a report before any deletion. Open decisions are listed in the plan (themes, the saved-layout model, `custom.css`, `/zones`, dropping the 1/ppm holdover figure).
 - **2026-10-05, merged rows:** three feature-registry rows (Feature E "ADS-B 1090 adapter" and "Fox-hunt TOA/TDoA research", Feature F "MLAT metadata/solver") described the same work as three RF-spec rows. Each pair is now one row, in the RF block, with both sources named in the Area column. Owner's request.
 - **2026-10-05, RF nodes and TDOA:** `specs/SPEC-RF-NODE-AND-TDOA.md` added as PLANNED. It builds on `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` and starts after v1.4.0. Nothing is scheduled; the next-5 list is unchanged.
 - **2026-10-05, release:** rc.6 has run on the Pi since 2026-10-04 (PPS selected, stratum 1, about 300 ns). The owner will upgrade it to rc.8 and run that for 3 days before v1.4.0.
@@ -57,7 +58,7 @@ Last updated: 2026-10-05 (feat/earth-shadow-satellites, #61). Built from the spe
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 420 rows: 216 done, 0 in progress, 30 next, 174 planned.
+**Totals:** 421 rows: 216 done, 0 in progress, 30 next, 175 planned.
 
 ## Status table
 
@@ -378,7 +379,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | done | built on the deploying machine; a UI from another version is refused; not yet run on a Pi | [#35](https://github.com/nathansottung/gps-time/pull/35) |
-| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned | partial: 2 done (#3 station clock, #17 TDOP), 3 partly covered; admin actions and survey reset (#6, #7) are not in `/app/` yet | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) |
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
@@ -483,3 +484,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Rules | Never present a position as more certain than the error estimate supports | planned |  |  |
 | RF | Rules | Node positions follow the station's privacy modes | planned |  |  |
 | RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |
+| Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
