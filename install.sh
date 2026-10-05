@@ -73,6 +73,10 @@ else
     echo "MISMATCH — re-download by deleting $EPH and re-running."; exit 1
   fi
 fi
+# The web service runs as gps-time, not root: whatever root's umask was, the
+# code, the venv and the ephemeris must be readable by it (never writable).
+chmod -R a+rX "$DEST/gps_time_pi" "$VENV"
+[ -d "$DEST/web" ] && chmod -R a+rX "$DEST/web"
 
 echo "== Enabling chrony tracking log (RAM-backed) for the History page =="
 grep -q "^log tracking" /etc/chrony/chrony.conf || echo "log tracking" >> /etc/chrony/chrony.conf
@@ -139,4 +143,16 @@ cp gps-time-pi.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable gps-time-pi
 systemctl restart gps-time-pi
+
+echo "== Self-check as the service user =="
+# Reads what the service reads, as gps-time, and says why astronomy would be
+# unavailable (missing or unreadable ephemeris, a broken NumPy/Skyfield).
+# A warning only: astronomy never blocks the timing pages.
+if command -v runuser >/dev/null 2>&1; then
+  (cd "$DEST" && runuser -u gps-time -- "$VENV/bin/python" -c '
+from gps_time_pi import astro
+s = astro.STATUS
+print("Astronomy: available" if s["available"] else "Astronomy: UNAVAILABLE - " + str(s["reason"]))') \
+    || echo "Astronomy: self-check could not run as gps-time (see the error above)."
+fi
 echo "Done. Open http://$(hostname -I | awk '{print $1}')/"

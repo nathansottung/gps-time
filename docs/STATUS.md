@@ -50,7 +50,7 @@ Last updated: 2026-10-04 (fix/chrony-clients, #44). Built from the specs, `roadm
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0).
 
-**Totals:** 365 rows: 179 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 366 rows: 180 done, 0 in progress, 21 next, 165 planned.
 
 ## Status table
 
@@ -405,7 +405,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-027 | Quantity/unit labels | planned | legacy dashboard.js |  |
 | Review | GPS-028 | Browser clock estimators biased | planned | partial: /app min-RTT | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Review | GPS-029 | Dashboard config hardening | planned |  |  |
-| Review | GPS-030 | Global object target; non-portable strftime | planned | partial: server.py fixed; astro.py %-d remains | [#12](https://github.com/nathansottung/gps-time/pull/12) |
+| Review | GPS-030 | Global object target; non-portable strftime | planned | partial: server.py and astro.py strftime fixed; the shared object target remains | [#12](https://github.com/nathansottung/gps-time/pull/12) [#43](https://github.com/nathansottung/gps-time/pull/43) |
 | Review | GPS-031 | No automated tests | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
 | Repo |  | Dependabot weekly: pip, pnpm, GitHub Actions | done |  | [#17](https://github.com/nathansottung/gps-time/pull/17) |
@@ -420,4 +420,5 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Debian 13 (Trixie, Python 3.13) support: CI matrix 3.11 + 3.13, aarch64 wheel check, installer and docs audit | done | not yet run on a Pi | [#38](https://github.com/nathansottung/gps-time/pull/38) |
 | Repo |  | Tag v1.4.0-rc.5 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#39](https://github.com/nathansottung/gps-time/pull/39) |
 | Repo |  | Tag v1.4.0-rc.6 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#41](https://github.com/nathansottung/gps-time/pull/41) |
+| Repo |  | Astronomy states why it is unavailable (API, legacy widget, install self-check) | done | found on the first Pi build; the Pi's own cause is not yet known | [#43](https://github.com/nathansottung/gps-time/pull/43) |
 | Repo |  | NTP client list for the unprivileged service (helper as `_chrony`) | done | found on the first Pi build; cause from chrony's design, not yet confirmed on the Pi | [#44](https://github.com/nathansottung/gps-time/pull/44) |
