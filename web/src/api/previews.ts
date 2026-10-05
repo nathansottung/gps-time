@@ -51,9 +51,6 @@ export const errorBudget = [
   { stage: 'System clock (application)', nominalNs: 100,  corrNs: 0,    uncertNs: 50,  calibrated: false },
 ];
 
-// NTP request rate (needs: chronyc serverstats parsing)
-export const ntpRequestRatePerMin = 23;
-
 // SDR devices (needs: SDR layer)
 export const sdrDevices = [
   { id: 'RTL-0', name: 'RTL-SDR Blog V4', serial: '00000001', tuner: 'R820T2', service: 'ADS-B 1090', freqMHz: 1090,

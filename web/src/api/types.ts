@@ -363,6 +363,26 @@ export interface Stability {
   notes: string[];
 }
 
+// ─── GET /api/ntp-service ────────────────────────────────────────────────────
+
+export interface NtpRate { received_per_s: Measured; dropped_per_s: Measured }
+export interface NtpService {
+  available: boolean;
+  reason: string | null;
+  provenance: Provenance;                       // observed: chrony's own counters
+  state: 'SERVING' | 'SERVING_WITH_DROPS' | 'NO_REQUESTS' | 'UNKNOWN';
+  state_basis?: string;
+  state_provenance?: Provenance;
+  as_of_utc: string | null;
+  counters: Record<string, number> | null;      // every counter read from chronyc serverstats
+  ntp: { received: Measured; dropped: Measured; not_dropped: Measured; drop_fraction: Measured } | null;
+  rates: { last_minute: NtpRate; last_hour: NtpRate } | null;
+  history: { t: number; received_per_min: number; dropped_per_min: number }[];
+  history_info?: { interval_s: number; max_points: number; storage: string };
+  counter_resets: number;                       // times chronyd restarted while the station was watching
+  note?: string;
+}
+
 // ─── GET /api/references ─────────────────────────────────────────────────────
 
 export interface ReferencePoint { t: number; offset_s: number; error_bound_s: number | null; delay_s: number | null }
