@@ -611,7 +611,7 @@ Reported from the Pi, with CSP blocking inline styles as the suspected cause.
   - the strict CSP has no inline exception, and the new UI's source never builds HTML strings or style attributes that it would drop.
 - Browsers cache the stylesheet for 5 minutes, so the fix can take that long to show after a deploy.
 
-## 2026-10-05 — legacy Sun widget: "loading" is not "did not answer" (fix/almanac-loading-text)
+## 2026-10-05 — legacy Sun widget: "loading" is not "did not answer" (#51)
 
 - Correction to #43. Before the first `/api/almanac` answer arrived, the legacy Sun widget said "the station did not answer /api/almanac". It now says "Astronomy data: loading…" until an attempt has actually failed.
 - An almanac request that fails no longer stops the rest of the legacy dashboard from rendering or marks the whole server unavailable; only the Sun widget reports it.
