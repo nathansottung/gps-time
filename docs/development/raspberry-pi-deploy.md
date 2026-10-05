@@ -2,7 +2,7 @@
 
 Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-install.md) for a newly flashed Pi, and [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md) for upgrading a v1.3 station.
 
-`install.sh` starts with a preflight: it stops, before changing anything, if it isn't run as root, chrony isn't installed, or the `_chrony` or `video` group is missing. It warns if gpsd or polkit is missing. It doesn't install or configure chrony, gpsd or PPS.
+`install.sh` starts with a preflight: it stops, before changing anything, if it isn't run as root, chrony isn't installed, or the `_chrony` or `video` group is missing. It warns if gpsd or polkit is missing. It doesn't install chrony, gpsd or PPS, and it doesn't configure them beyond three `chrony.conf` edits: `log tracking`, `logdir /run/chrony-log`, and disabling DHCP-provided NTP servers (below).
 
 ## Build archives
 
@@ -55,7 +55,11 @@ Older installs put skyfield into the system Python with `--break-system-packages
 If the router's DHCP names the station as the LAN's NTP server (option 42), the station receives that too, and Debian's chrony adds it as a source through `sourcedir /run/chrony-dhcp`. The station then polls its own address. That "server" looks like a perfect stratum-1 source, and after a PPS loss chrony can select it and follow itself.
 
 - The station software detects it: `/api` marks the source `is_self`, the Network page shows THIS STATION, it is never counted as a fallback, and if chrony selects it the status is `HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF`.
-- The software doesn't change chrony's configuration. To stop chrony polling it, comment out `sourcedir /run/chrony-dhcp` in `/etc/chrony/chrony.conf` on the station and restart chrony (steps in `../deploy/fresh-pi-install.md`).
+- `install.sh` stops it: it comments out `sourcedir /run/chrony-dhcp` in `/etc/chrony/chrony.conf` (`scripts/chrony-no-dhcp-sources.sh`), then restarts chrony as it always has.
+  - Only that line changes. Refclocks, `pool`/`server` lines and `/etc/chrony/sources.d` are untouched, so a station whose only network fallback came from DHCP needs a `server` or `pool` line of its own.
+  - The file as it was before the first change is kept as `/etc/chrony/chrony.conf.before-gps-time-pi`. Running the installer again changes nothing more.
+  - To keep DHCP-provided servers: `sudo GTP_KEEP_DHCP_NTP=1 bash install.sh`. To undo later: remove the leading `# ` from that line and `sudo systemctl restart chrony`.
+- The running web service still never writes chrony's configuration; only the installer does.
 
 ## Local time display
 

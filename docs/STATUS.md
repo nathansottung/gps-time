@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (fix/almanac-loading-text, #51; no status change). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/installer-no-dhcp-ntp-sources, #52). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -50,7 +50,7 @@ Last updated: 2026-10-05 (fix/almanac-loading-text, #51; no status change). Buil
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 371 rows: 185 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 372 rows: 186 done, 0 in progress, 21 next, 165 planned.
 
 ## Status table
 
@@ -424,6 +424,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | NTP client list for the unprivileged service (helper as `_chrony`) | done | found on the first Pi build; cause from chrony's design, not yet confirmed on the Pi | [#44](https://github.com/nathansottung/gps-time/pull/44) |
 | Web UI |  | Main clock in local time (zone from position or override, DST, UTC and Unix epoch, 12/24 h) | done | display only; the system stays on UTC. Big clock on the Overview shows the station's time, and says GPS/PPS only when chrony has PPS selected. Not yet seen on a Pi | [#45](https://github.com/nathansottung/gps-time/pull/45) [#47](https://github.com/nathansottung/gps-time/pull/47) |
 | Web UI |  | Main clock in local time (zone from position or override, DST, UTC and Unix epoch, 12/24 h) | done | display only; the system stays on UTC. Not yet seen on a Pi | [#45](https://github.com/nathansottung/gps-time/pull/45) |
-| Repo |  | chrony polling the station's own address is flagged and never counted as a reference | done | detection and reporting only; stopping chrony polling it is a documented operator step. Not yet seen on a Pi | [#48](https://github.com/nathansottung/gps-time/pull/48) |
+| Repo |  | chrony polling the station's own address is flagged and never counted as a reference | done | detection and reporting only; the installer now stops chrony taking servers from DHCP (#52). Not yet seen on a Pi | [#48](https://github.com/nathansottung/gps-time/pull/48) |
 | Repo |  | NMEA refclock offset: measured recommendation on the PPS diagnostics page | done | report only; the operator edits chrony.conf. chrony's sign convention not yet confirmed on the hardware | [#49](https://github.com/nathansottung/gps-time/pull/49) |
 | Repo |  | Legacy dashboard: satellite C/N₀ bars render (CSS display, not CSP); inline-style and CSP tests | done | fix only, no restyle | [#50](https://github.com/nathansottung/gps-time/pull/50) |
+| Repo |  | Installer disables chrony's DHCP-provided NTP servers, so the station never polls itself | done | one line of `chrony.conf` commented out, original kept; `GTP_KEEP_DHCP_NTP=1` skips it. Not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
