@@ -9,6 +9,7 @@ import glob
 import os
 import re
 import subprocess
+import time
 from datetime import datetime, timezone
 
 
@@ -237,14 +238,46 @@ def sourcestats():
     return out if ok else ""
 
 
-def clients():
-    """`chronyc -n clients` rows, or None when chronyc failed or refused (the
-    command needs chrony's local socket, i.e. root or the _chrony group). None
-    is UNKNOWN, not "no clients"."""
-    rows, started = [], False
-    ok, out = run_chronyc("clients")
-    if not ok:
+# Written every few seconds by gps-time-pi-chrony-clients.service (user _chrony).
+# chronyd answers `clients` only over its Unix socket, which the unprivileged
+# web service cannot and must not use; see scripts/chrony-clients.sh.
+CLIENTS_FILE = os.environ.get("GTP_CHRONY_CLIENTS_FILE", "/run/gps-time-pi/chrony-clients.txt")
+CLIENTS_MAX_AGE_S = 60.0
+
+
+def published_clients(path=None, now=None, max_age_s=CLIENTS_MAX_AGE_S):
+    """The helper's last `chronyc -n clients` output, or None if there is no
+    file, it can't be read, or it is older than max_age_s (a stopped helper
+    must not look like a live list)."""
+    path = path or CLIENTS_FILE
+    try:
+        age = (time.time() if now is None else now) - os.stat(path).st_mtime
+        if not -5.0 <= age <= max_age_s:
+            return None
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
         return None
+
+
+def clients():
+    """NTP client rows, or None when they can't be read. None is UNKNOWN, not
+    "no clients".
+
+    Source: the list published by the helper service; else `chronyc -n clients`
+    directly, which works only where this process may use chrony's Unix socket
+    (root, e.g. the root-rollback drop-in)."""
+    out = published_clients()
+    if out is None:
+        ok, out = run_chronyc("clients")
+        if not ok:
+            return None
+    return parse_clients(out)
+
+
+def parse_clients(out):
+    """Rows of `chronyc -n clients` output. Pure."""
+    rows, started = [], False
     for line in out.splitlines():
         if line.startswith("==="):
             started = True

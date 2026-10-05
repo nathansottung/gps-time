@@ -237,9 +237,10 @@ ssh $Pi
   curl -s localhost/api/diagnostics | head -40
   ```
 
-- [ ] Values that depend on the new groups are still there: the NTP client list isn't `None` (needs `_chrony`), and the CPU temperature is a number (needs `video`). If either is missing, note it; it's one of the items ADR-0005 lists as unverified. Timing isn't affected.
+- [ ] The NTP client list helper is running, and the values that depend on it and on the `video` group are present: expect `active`, a client count that isn't `None` (it can be `0` on a new station), and a CPU temperature that is a number. If the count is `None`, read `journalctl -u gps-time-pi-chrony-clients -n 20 --no-pager`. Timing isn't affected.
 
   ```sh
+  systemctl is-active gps-time-pi-chrony-clients
   curl -s localhost/api | python3 -c "import sys,json; d=json.load(sys.stdin); print('clients:', None if d.get('clients') is None else len(d['clients'])); print('cpu_temp_c:', d.get('cpu_temp_c'))"
   ```
 
@@ -332,6 +333,8 @@ sudo mv /opt/gps-time-pi /opt/gps-time-pi.failed-$(date +%Y%m%d-%H%M%S)
 sudo tar -xzf "$B/opt-gps-time-pi.tar.gz" -C /opt
 # the old unit files only; chrony and gpsd configuration are not restored here
 sudo tar -xzf "$B/system-config.tar.gz" -C / --wildcards 'etc/systemd/system/gps-time-pi*'
+sudo systemctl disable --now gps-time-pi-chrony-clients.service
+sudo rm -f /etc/systemd/system/gps-time-pi-chrony-clients.service
 sudo rm -f /etc/polkit-1/rules.d/50-gps-time-pi.rules
 sudo rm -rf /etc/systemd/system/gps-time-pi.service.d
 sudo systemctl daemon-reload && sudo systemctl restart gps-time-pi

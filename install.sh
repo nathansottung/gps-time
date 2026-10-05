@@ -109,6 +109,16 @@ install -m 0644 system/50-gps-time-pi.rules /etc/polkit-1/rules.d/50-gps-time-pi
 # Emergency rollback drop-in (root service), kept on the station; not enabled.
 install -D -m 0644 system/gps-time-pi-root-rollback.conf "$DEST/rollback/gps-time-pi-root-rollback.conf"
 
+echo "== NTP client list helper =="
+# chronyd answers `chronyc clients` only over its control socket, which the
+# unprivileged web service cannot and must not use. This helper runs as
+# _chrony, runs that one command, and publishes the output in /run (RAM).
+cp system/gps-time-pi-chrony-clients.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable gps-time-pi-chrony-clients.service
+systemctl restart gps-time-pi-chrony-clients.service \
+  || echo "Warning: the NTP client list helper did not start; the client list will read UNKNOWN (journalctl -u gps-time-pi-chrony-clients)."
+
 echo "== Admin token =="
 if [ ! -f "$DEST/admin-token.sha256" ]; then
   # --tty-only: the token goes to the terminal (/dev/tty) only, never to stdout,

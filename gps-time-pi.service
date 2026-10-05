@@ -19,7 +19,9 @@ Restart=always
 # chrony/gpsd/this service, starting the log flush, and reboot.
 User=gps-time
 Group=gps-time
-# _chrony: chronyc's local socket (needed for `chronyc clients`).
+# _chrony: chrony-owned files (the RAM tracking log). The NTP client list comes
+# from gps-time-pi-chrony-clients.service; this service never gets chronyd's
+# control socket.
 # video: vcgencmd (temperature, throttling, voltage).
 SupplementaryGroups=_chrony video
 AmbientCapabilities=CAP_NET_BIND_SERVICE
