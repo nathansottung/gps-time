@@ -730,3 +730,26 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - Added `docs/specs/SPEC-RF-NODE-AND-TDOA.md` (owner-provided, copied verbatim; SHA-256 `8444e4d8…`) and indexed it. Status PLANNED: it builds on `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` and starts after v1.4.0.
 - `STATUS.md`: new area RF with 19 rows, all `planned`. Three of them point at the existing Feature E and F rows they overlap (ADS-B 1090, MLAT solver, fox-hunt TDoA); those rows are unchanged. The next-5 list is unchanged.
 - A specification is a requirement, not implemented behavior. No code changed, and no `rf-node/` directory exists yet.
+
+## 2026-10-05 — Earth shadow and satellites (#61)
+
+`specs/ADDENDUM-SKY-SOLAR-SATELLITE.md` §1 to §5. Architecture: `docs/architecture/earth-shadow-and-satellites.md`.
+
+- **Shadow model** (`gps_time_pi/shadow.py`, `/api/shadow`): umbra and penumbra as two cones from a Sun of finite size, not a cylinder. The Sun's position is an analytic series (Meeus, about 0.01°), so this needs no ephemeris file, no NumPy and no network, and it works when the almanac doesn't. Labeled `modeled`.
+  - Stated limits: geometric only (an airless spherical Earth, no refraction); the atmosphere moves the real edge by some tens of km of height; the sunlit fraction inside the penumbra is a linear estimate.
+- **Zenith metric:** the 550 km shell's state straight up, and the heights at which the zenith line leaves the umbra and reaches full sunlight. It says that this is the zenith only. In daylight it says there is no shadow overhead.
+- **Sky map:** the chosen shell (350, 550, 1200 km or a custom height) over the whole sky; clicking it asks "would a satellite at this height, in this direction, be sunlit?".
+- **Contamination summary:** Sun altitude, the 550 km and 1200 km shells (share of the sky sunlit, and where), astronomical darkness, and sentences that are geometric statements. They never say a satellite is visible, and they end by saying so.
+- **Satellites** (`gps_time_pi/satellites.py`, `/api/satellites`): for one satellite, the present azimuth, altitude, range, angular speed and shadow state (`modeled`), and for each pass in the next 24 h the rise, culmination and set, the penumbra and umbra crossings, and the interval in which it could be seen (`predicted`).
+  - "Could be seen" is geometry: 10° up, not in the umbra, Sun 6° down. Nothing about brightness or weather.
+  - SGP4 comes from the `sgp4` package that Skyfield already installs. The rest is this project's code, so passes need no ephemeris.
+  - **Offline cache.** Elements are `external` and live in `tle/` next to `config.json`. The web service never fetches them. `python -m gps_time_pi.tle_fetch`, run by the operator, downloads a CelesTrak group or imports a local file; it validates checksums before replacing anything, writes atomically, and refuses to fetch the same group twice within two hours. No timer is installed.
+  - **Element age** is shown on the cache, on each satellite and on the pass table, and a satellite is marked unreliable beyond 14 days.
+  - Scope: one satellite at a time. Nothing counts or tracks a whole constellation.
+- **Privacy:** both depend on the position. `hidden` computes neither; `rounded` uses the rounded site. Demo mode honors the mode too.
+- **Sun & Astronomy** in `/app/` now has three tabs: Sun & Moon (as before), Earth Shadow, Satellites.
+- **Validation:** Meeus's worked examples for the Sun and sidereal time; the known size of the Earth's shadow; zenith heights that bracket the cylinder formula; satellite direction and range against Skyfield (0.05°, 1 km) and rise and set times equal to Skyfield's to the second.
+- **CI:** the plain test run has no `sgp4`, so the satellite geometry tests would be skipped there. A new step runs them in the station's virtual environment and fails if any are skipped.
+- Tests: `tests/test_shadow.py` (37), `tests/test_satellites.py` (37), `web/src/lib/shadow.test.ts` (13). Checked in the demo.
+- `STATUS.md`: ADD §1 to §5 and AC6, AC7 → done; AC8 stays planned (the time at which a shell goes into shadow isn't predicted). Also, on the owner's request, the three RF-spec rows that overlapped feature-registry rows are merged into one row each (three fewer rows).
+- Not yet run on a Pi; the cost of a request there has not been timed.

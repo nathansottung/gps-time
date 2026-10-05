@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
-  DashboardWriteResult, History, LocationMode, NtpService, Ping, References, SettingResult, Stability, Survey, SystemDiagnostics,
+  DashboardWriteResult, History, LocationMode, NtpService, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -29,6 +29,10 @@ export interface StationApi {
   references(opts?: { scenario?: string }): Promise<References>;
   /** chrony's NTP server counters (packets received and dropped) with rates. */
   ntpService(): Promise<NtpService>;
+  /** Earth-shadow geometry over the station's sky (modeled). az/alt ask about one direction. */
+  shadow(opts?: { shell?: number; az?: number; alt?: number }): Promise<Shadow>;
+  /** Individual satellites from cached orbital elements: now, and passes. */
+  satellites(opts?: { sat?: number; q?: string }): Promise<Satellites>;
   survey(): Promise<Survey>;
   system(): Promise<SystemDiagnostics>;
   almanac(q?: AlmanacQuery): Promise<Almanac | Unavailable>;
@@ -116,6 +120,8 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     timescales: () => json('/api/timescales'),
     references: (o) => json('/api/references' + query({ scenario: o?.scenario })),
     ntpService: () => json('/api/ntp-service'),
+    shadow: (o) => json('/api/shadow' + query({ shell: o?.shell?.toString(), az: o?.az?.toString(), alt: o?.alt?.toString() })),
+    satellites: (o) => json('/api/satellites' + query({ sat: o?.sat?.toString(), q: o?.q })),
     survey: () => json('/api/survey'),
     system: () => json('/api/system'),
     almanac: (q) => json('/api/almanac' + query({ date: q?.date, tz: q?.tz, at: q?.at })),

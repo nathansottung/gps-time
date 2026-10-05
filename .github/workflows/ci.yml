@@ -38,6 +38,12 @@ jobs:
           "$RUNNER_TEMP/station-venv/bin/python" -c "import numpy, skyfield; from skyfield.api import load; load.timescale(builtin=True); print('numpy', numpy.__version__, 'skyfield', skyfield.__version__)"
           # The offline time-zone lookup, through the station's own module (US Naval Observatory example).
           "$RUNNER_TEMP/station-venv/bin/python" -c "from gps_time_pi import localtime as lt; assert lt.LOOKUP['available'], lt.LOOKUP; z = lt.display_zone({'location_display': 'exact'}, {'lat': 38.9217, 'lon': -77.0669}); print(z); assert (z['tz'], z['source']) == ('America/New_York', 'position'), z; assert lt.display_zone({'location_display': 'hidden'}, {'lat': 38.9217, 'lon': -77.0669})['tz'] is None"
+      - name: Satellite layer with the real sgp4 (the plain run above skips these tests)
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/station-venv/bin/python" -c "from gps_time_pi import satellites as s; assert s.SGP4['available'], s.SGP4"
+          "$RUNNER_TEMP/station-venv/bin/python" -m unittest tests.test_satellites tests.test_shadow 2>&1 | tee "$RUNNER_TEMP/sat-tests.txt"
+          if grep -q "skipped" "$RUNNER_TEMP/sat-tests.txt"; then echo "::error::satellite tests were skipped in the station venv"; exit 1; fi
       - name: Runtime dependencies have wheels for the Pi (aarch64) on this Python
         run: |
           # Wheels only: the station must never need a compiler. glibc: Bookworm 2.36, Trixie 2.41.

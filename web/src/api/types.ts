@@ -363,6 +363,106 @@ export interface Stability {
   notes: string[];
 }
 
+// ─── GET /api/shadow ─────────────────────────────────────────────────────────
+
+export type ShadowState = 'SUNLIT' | 'PENUMBRA' | 'UMBRA';
+export interface ShadowMap {
+  shell_km: number;
+  alt_step_deg: number;
+  az_step_deg: number;
+  alts_deg: number[];
+  azs_deg: number[];
+  rows: string[];                  // one string per altitude ring; one of S, P, U per azimuth step
+}
+export interface ShadowShell {
+  altitude_km: number;
+  zenith: ShadowState;
+  sunlit_sky_fraction: number;     // of the sky above 10°, by solid angle
+  sunlit_max_altitude_deg: number | null;
+  sunlit_sectors: string[];
+  summary: string;
+}
+export interface ShadowReport {
+  available: true;
+  reason: null;
+  provenance: Provenance;          // modeled
+  model: string;
+  meaning: string;
+  as_of_utc: string;
+  location_display?: LocationMode;
+  sun: { altitude_deg: number; azimuth_deg: number; depression_deg: number; distance_au: number;
+         antisolar: { azimuth_deg: number; altitude_deg: number }; note: string };
+  darkness: { stage: string; astronomical_darkness: boolean };
+  cone: { umbra_half_angle_deg: number; penumbra_half_angle_deg: number; umbra_length_km: number; axis: string };
+  zenith: { umbra_top_km: number | null; penumbra_top_km: number | null; ground_state: ShadowState;
+            beyond_limit: boolean; search_limit_km: number; note: string };
+  shells: ShadowShell[];
+  map: ShadowMap;
+  query: { azimuth_deg: number; altitude_deg: number; shell_km: number; state: ShadowState;
+           sunlit_fraction: number; range_km: number; note: string } | null;
+  messages: string[];
+}
+export type Shadow = ShadowReport | Unavailable;
+
+// ─── GET /api/satellites ─────────────────────────────────────────────────────
+
+export interface SatelliteNow {
+  norad: number;
+  name?: string;
+  group?: string | null;
+  epoch_utc?: string;              // epoch of the orbital elements
+  age_days?: number;
+  stale?: boolean;
+  age_note?: string | null;
+  available: boolean;
+  reason: string | null;
+  provenance?: Provenance;         // modeled
+  azimuth_deg?: number;
+  altitude_deg?: number;
+  above_horizon?: boolean;
+  range_km?: number;
+  height_km?: number;
+  angular_speed_deg_s?: number | null;
+  state?: ShadowState;
+  sunlit_fraction?: number;
+  could_be_seen?: boolean;
+}
+export interface PassPoint { utc: string; azimuth_deg: number; altitude_deg: number; range_km: number; state: ShadowState }
+export interface SatellitePass {
+  rise: PassPoint | null;          // null: the pass was already under way
+  culmination: PassPoint;
+  set: PassPoint | null;
+  in_progress: boolean;
+  duration_s: number;
+  shadow_changes: { utc: string; kind: string; from: ShadowState; to: ShadowState; azimuth_deg: number; altitude_deg: number }[];
+  visible: { start_utc: string; end_utc: string; duration_s: number; max_altitude_deg: number; max_azimuth_deg: number } | null;
+  sun_altitude_deg: number;
+  provenance: Provenance;          // predicted
+}
+export interface TleGroup {
+  group: string; file: string; count: number; rejected: number;
+  source: string | null; fetched_utc: string | null;
+  newest_epoch_utc: string | null; oldest_epoch_utc: string | null;
+}
+export interface SatelliteReport {
+  available: boolean;
+  reason: string | null;
+  provenance: Provenance;          // external: the orbital elements
+  meaning: string;
+  as_of_utc: string;
+  location_display?: LocationMode;
+  cache: { dir: string; satellites: number; groups: TleGroup[]; newest_epoch_utc: string | null;
+           newest_age_days: number | null; oldest_age_days: number | null; stale_after_days: number;
+           problems: string[]; provenance: Provenance } | null;
+  featured: SatelliteNow[];
+  satellite: SatelliteNow | null;
+  passes: SatellitePass[];
+  matches: SatelliteNow[];
+  window_hours?: number;
+  demo?: { note: string };
+}
+export type Satellites = SatelliteReport | Unavailable;
+
 // ─── GET /api/ntp-service ────────────────────────────────────────────────────
 
 export interface NtpRate { received_per_s: Measured; dropped_per_s: Measured }
