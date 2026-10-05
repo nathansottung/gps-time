@@ -363,6 +363,53 @@ export interface Stability {
   notes: string[];
 }
 
+// ─── GET /api/references ─────────────────────────────────────────────────────
+
+export interface ReferencePoint { t: number; offset_s: number; error_bound_s: number | null; delay_s: number | null }
+export interface ReferenceServer {
+  name: string;
+  state: string;
+  state_label: string;
+  stratum: number;
+  poll_s: number;
+  reach: string;
+  reachable: boolean;
+  usable: boolean;                       // reachable, with a recent measurement
+  lastrx_s: number | null;
+  offset_s: number | null;               // + = the station's clock is ahead of the server; null unless usable
+  error_bound_s: number | null;
+  delay_s: number | null;                // null = UNKNOWN (no ntpdata from the helper)
+  root_delay_s: number | null;
+  assessment: 'agrees' | 'disagrees' | 'inconclusive' | 'not usable';
+  provenance: Provenance;                // external
+  history: ReferencePoint[];
+}
+export interface ReferenceVerdict {
+  code: 'AGREE' | 'DISAGREE' | 'ONE_REFERENCE' | 'NONE_REACHABLE' | 'NONE_CONFIGURED' | 'UNKNOWN';
+  headline: string;
+  detail: string;
+  provenance: Provenance;                // calculated
+  threshold_s: number;
+  configured?: number;
+  usable?: number;
+  agreeing?: number;
+  disagreeing?: number;
+  inconclusive?: number;
+}
+export interface References {
+  available: boolean;
+  provenance: Provenance;
+  as_of_utc: string | null;
+  verdict: ReferenceVerdict;
+  references: ReferenceServer[];
+  excluded: { name: string; why: string }[];   // the station itself, and servers steering the clock
+  delay_available: boolean;
+  delay_note: string | null;
+  sign: string;
+  history: { interval_s: number; max_points: number; storage: string };
+  demo?: { scenario: string; scenarios: string[]; note: string };
+}
+
 // ─── GET /api/timescales ─────────────────────────────────────────────────────
 
 export interface LeapSeconds {

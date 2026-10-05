@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
-  DashboardWriteResult, History, LocationMode, Ping, SettingResult, Stability, Survey, SystemDiagnostics,
+  DashboardWriteResult, History, LocationMode, Ping, References, SettingResult, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -25,6 +25,8 @@ export interface StationApi {
   stability(): Promise<Stability>;
   /** TAI, GPS time, MJD/JD offsets, the leap-second table and UT1 − UTC from a cached file. */
   timescales(): Promise<TimeScales>;
+  /** The station compared with NTP servers that are not steering its clock (external). */
+  references(opts?: { scenario?: string }): Promise<References>;
   survey(): Promise<Survey>;
   system(): Promise<SystemDiagnostics>;
   almanac(q?: AlmanacQuery): Promise<Almanac | Unavailable>;
@@ -110,6 +112,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     history: () => json('/api/history'),
     stability: () => json('/api/stability'),
     timescales: () => json('/api/timescales'),
+    references: (o) => json('/api/references' + query({ scenario: o?.scenario })),
     survey: () => json('/api/survey'),
     system: () => json('/api/system'),
     almanac: (q) => json('/api/almanac' + query({ date: q?.date, tz: q?.tz, at: q?.at })),
