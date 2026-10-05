@@ -137,7 +137,7 @@ function core(location: CoreStatus['location']): CoreStatus {
               sd_lat_m: 2.1, sd_lon_m: 2.8, sd_alt_m: 4.2, updated: new Date(now).toISOString() },
     position_provenance: 'demo',
     sidereal: siderealDemo(now),
-    astro_available: true,
+    astro_available: true, astro_reason: null,
     cpu_temp_c: 44.2,
     versions: { app: UI_VERSION, chrony: 'chrony 4.x (sample)', gpsd: '3.x (sample)',
                 receiver: { driver: 'u-blox', firmware: 'sample', path: '/dev/ttyAMA0' }, python: 'demo adapter' },

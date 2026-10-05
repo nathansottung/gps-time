@@ -28,6 +28,31 @@ STATUS = {"available": False, "reason": "not initialised"}
 _S = {}
 
 
+def ephemeris_problem(path):
+    """Why the ephemeris file can't be used, as a reason an operator can act on;
+    None if it is there and readable by this process. "Missing" and "not
+    readable by the service user" need different fixes, so they are told apart."""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(8)
+    except FileNotFoundError:
+        return f"Planetary ephemeris could not be loaded ({path} is missing — run install.sh)"
+    except PermissionError:
+        return (f"Planetary ephemeris could not be loaded ({path} is not readable by the service user — "
+                "run install.sh again, or make the file and its directories world-readable)")
+    except OSError as e:
+        return f"Planetary ephemeris could not be loaded ({path}: {e.__class__.__name__}: {e.strerror or e})"
+    if len(head) < 8:
+        return (f"Planetary ephemeris could not be loaded ({path} is empty or truncated — "
+                "delete it and its .sha256, then run install.sh again)")
+    return None
+
+
+def _midnight_label(dt):
+    """'midnight → Oct 5'. No %-d: that strftime flag is glibc-only (review GPS-030)."""
+    return f"midnight → {dt.strftime('%b')} {dt.day}"
+
+
 def _init():
     global STATUS
     try:
@@ -35,18 +60,21 @@ def _init():
         from skyfield import almanac
         from skyfield.api import Loader, Star, wgs84
     except Exception as e:  # noqa: BLE001
-        STATUS = {"available": False, "reason": f"Skyfield/NumPy not available ({e.__class__.__name__})"}
-        return
-    if not os.path.exists(EPHEMERIS):
         STATUS = {"available": False,
-                  "reason": "Planetary ephemeris could not be loaded (de440s.bsp missing — run install.sh)"}
+                  "reason": f"Skyfield/NumPy not available ({e.__class__.__name__}: {str(e)[:200]})"}
+        return
+    problem = ephemeris_problem(EPHEMERIS)
+    if problem:
+        STATUS = {"available": False, "reason": problem}
         return
     try:
         loader = Loader(os.path.dirname(EPHEMERIS), verbose=False)
         eph = loader(os.path.basename(EPHEMERIS))
         ts = loader.timescale(builtin=True)
     except Exception as e:  # noqa: BLE001
-        STATUS = {"available": False, "reason": f"Ephemeris failed to load ({e})"}
+        STATUS = {"available": False,
+                  "reason": f"Ephemeris failed to load ({e.__class__.__name__}: {str(e)[:200]}); "
+                            f"delete {EPHEMERIS} and its .sha256, then run install.sh again"}
         return
     _S.update(np=__import__("numpy"), almanac=almanac, Star=Star, wgs84=wgs84,
               eph=eph, ts=ts, earth=eph["earth"], sun=eph["sun"], moon=eph["moon"])
@@ -290,7 +318,7 @@ def night(d, site, tzname):
     next_day = start_day + timedelta(days=1)
     if t0 <= next_day <= t1:
         midnight = {"f": frac(next_day),
-                    "label": next_day.astimezone(tz).strftime("midnight → %b %-d")}
+                    "label": _midnight_label(next_day.astimezone(tz))}
 
     astro_note = None
     if not (sun_alt < SUN_DARK_DEG).any():

@@ -88,6 +88,7 @@ def core_api() -> dict:
         "position_provenance": "demo",
         "sidereal": "18:42:13",
         "astro_available": True,
+        "astro_reason": None,
         "cpu_temp_c": 44.2,
         "versions": {"app": __version__, "chrony": "chrony 4.x (sample)", "gpsd": "3.x (sample)",
                      "receiver": {"driver": "u-blox", "firmware": "MAX-M8Q sample", "path": "/dev/ttyAMA0"},

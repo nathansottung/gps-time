@@ -1,2 +1,4 @@
 # Station runtime dependencies (installed by install.sh). Dependabot proposes weekly updates.
 skyfield==1.55
+# skyfield 1.55 assigns ndarray.dtype, which NumPy 2.5 deprecates; stay below the release that removes it.
+numpy<2.7

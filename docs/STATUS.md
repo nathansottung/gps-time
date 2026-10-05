@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-04 (docs/roadmap-web-updates, #42; no status change). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-04 (fix/astro-reason). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -50,7 +50,7 @@ Last updated: 2026-10-04 (docs/roadmap-web-updates, #42; no status change). Buil
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0).
 
-**Totals:** 364 rows: 178 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 365 rows: 179 done, 0 in progress, 21 next, 165 planned.
 
 ## Status table
 
@@ -405,7 +405,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-027 | Quantity/unit labels | planned | legacy dashboard.js |  |
 | Review | GPS-028 | Browser clock estimators biased | planned | partial: /app min-RTT | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Review | GPS-029 | Dashboard config hardening | planned |  |  |
-| Review | GPS-030 | Global object target; non-portable strftime | planned | partial: server.py fixed; astro.py %-d remains | [#12](https://github.com/nathansottung/gps-time/pull/12) |
+| Review | GPS-030 | Global object target; non-portable strftime | planned | partial: server.py and astro.py strftime fixed; the shared object target remains | [#12](https://github.com/nathansottung/gps-time/pull/12) PRLINK |
 | Review | GPS-031 | No automated tests | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
 | Repo |  | Dependabot weekly: pip, pnpm, GitHub Actions | done |  | [#17](https://github.com/nathansottung/gps-time/pull/17) |
@@ -420,3 +420,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Debian 13 (Trixie, Python 3.13) support: CI matrix 3.11 + 3.13, aarch64 wheel check, installer and docs audit | done | not yet run on a Pi | [#38](https://github.com/nathansottung/gps-time/pull/38) |
 | Repo |  | Tag v1.4.0-rc.5 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#39](https://github.com/nathansottung/gps-time/pull/39) |
 | Repo |  | Tag v1.4.0-rc.6 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#41](https://github.com/nathansottung/gps-time/pull/41) |
+| Repo |  | Astronomy states why it is unavailable (API, legacy widget, install self-check) | done | found on the first Pi build; the Pi's own cause is not yet known | PRLINK |
