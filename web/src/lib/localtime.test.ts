@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fmtUtcOffset, formatLocal, formatUtc, isDst, isValidZone, loadHour12, offsetMinutes, resolveZone, saveHour12, unixSeconds,
+  fmtUtcOffset, formatLocal, formatUtc, isDst, isValidZone, loadHour12, offsetMinutes, resolveZone, saveHour12, stationInstant, unixSeconds,
 } from './localtime';
 import { demoApi } from '@/api/demo';
 
@@ -132,5 +132,22 @@ describe('demo adapter mirrors the privacy rule', () => {
     await api.setTimezone(null);
     await api.setLocationDisplay('rounded');
     expect((await api.core()).timezone).toMatchObject({ tz: 'America/New_York', source: 'position', basis: 'rounded' });
+  });
+});
+
+describe('stationInstant', () => {
+  const browserNow = Date.parse('2026-07-04T00:14:05.900Z');
+
+  it("is the station's time: the browser clock corrected by station − browser", () => {
+    // browser 2.4 s fast: the station is behind it
+    expect(stationInstant(browserNow, -2400)).toEqual({ at: new Date('2026-07-04T00:14:03.500Z'), basis: 'station' });
+    expect(stationInstant(browserNow, 150).at.toISOString()).toBe('2026-07-04T00:14:06.050Z');
+    expect(stationInstant(browserNow, 0).basis).toBe('station');
+  });
+
+  it("is only the browser's clock, and says so, until an offset is measured", () => {
+    for (const none of [null, undefined, NaN]) {
+      expect(stationInstant(browserNow, none)).toEqual({ at: new Date(browserNow), basis: 'browser' });
+    }
   });
 });

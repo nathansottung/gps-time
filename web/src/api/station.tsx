@@ -67,6 +67,8 @@ interface StationContext {
   setScenario: (s: string | undefined) => void;
   /** True when anything on screen may be synthetic: client demo adapter, or a server in GTP_DEMO mode. */
   isDemo: boolean;
+  /** Station−browser clock estimate from /api/ping; one loop for the whole app. */
+  clock: BrowserClock;
 }
 
 const Ctx = createContext<StationContext | null>(null);
@@ -80,7 +82,8 @@ export function StationProvider({ api, children }: { api: StationApi; children: 
   const core = usePoll(() => api.core(), 4000, [api]);
   const chain = usePoll(() => api.timingChain({ scenario }), 5000, [api, scenario]);
   const isDemo = api.source === 'demo' || core.data?.demo === true || !!chain.data?.demo;
-  return <Ctx.Provider value={{ api, core, chain, isDemo, scenario, setScenario }}>{children}</Ctx.Provider>;
+  const clock = useBrowserClockLoop(api);
+  return <Ctx.Provider value={{ api, core, chain, isDemo, scenario, setScenario, clock }}>{children}</Ctx.Provider>;
 }
 
 export function useStation(): StationContext {
@@ -101,9 +104,13 @@ export interface BrowserClock {
   error: string | null;
 }
 
-/** Four-timestamp exchange with /api/ping every 3 s, keeping the last 24 samples (as the legacy dashboard does). */
+/** The app-wide station−browser clock estimate (see StationProvider). */
 export function useBrowserClock(): BrowserClock {
-  const { api } = useStation();
+  return useStation().clock;
+}
+
+/** Four-timestamp exchange with /api/ping every 3 s, keeping the last 24 samples (as the legacy dashboard does). */
+function useBrowserClockLoop(api: StationApi): BrowserClock {
   const [samples, setSamples] = useState<PingSample[]>([]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {

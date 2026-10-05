@@ -3,6 +3,7 @@ import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, ProvenanceTag
 import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { TimingChainCard } from '../components/timing';
+import { StationClockCard } from '../components/clock';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { toSkySats, plottable, cn0Stats, toOffsetSeries, fracFreq, allEvents, satCounts, ntpClientCount } from '../api/view';
 import type { Almanac, SolarDay, LunarDay } from '../api/types';
@@ -579,6 +580,8 @@ export default function Overview({ onNavigate }: { onNavigate?: (id: string) => 
 
       {/* Timing source and PPS state first, in every variant (CHG "Dashboard Requirement") */}
       <div className="mb-3"><TimingChainCard onOpenDiagnostics={onNavigate ? () => onNavigate('pps') : undefined} /></div>
+      {/* The main clock: station time in the local zone, UTC beneath */}
+      <div className="mb-3"><StationClockCard /></div>
       {variant==='A' && <VariantA />}
       {variant==='B' && <VariantB />}
       {variant==='C' && <VariantC />}
