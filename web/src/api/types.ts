@@ -363,6 +363,49 @@ export interface Stability {
   notes: string[];
 }
 
+// ─── GET /api/timescales ─────────────────────────────────────────────────────
+
+export interface LeapSeconds {
+  provenance: Provenance;                    // external: IERS data as packaged by the OS
+  source: 'file' | 'builtin';
+  source_label: string;
+  path: string | null;
+  updated_utc: string | null;
+  expires_utc: string | null;
+  days_to_expiry: number | null;
+  status: 'OK' | 'EXPIRES_SOON' | 'EXPIRED' | 'UNKNOWN';
+  warning: string | null;
+  warn_days: number;
+  last: { utc: string; tai_utc_s: number } | null;
+  next: { utc: string; tai_utc_s: number; kind: 'insert' | 'delete' | null; last_second_utc: string } | null;
+  next_note: string | null;
+  chrony_leap_status: Measured<string>;
+  problems: string[];
+}
+export interface Ut1 {
+  available: boolean;
+  provenance: Provenance;
+  path: string;
+  ut1_utc_s: number | null;
+  kind: string | null;
+  file_date_utc: string | null;
+  reason: string | null;
+  note?: string;
+}
+export interface TimeScales {
+  provenance: Provenance;
+  utc: string;
+  unix_s: number;
+  tai_utc_s: Measured<number>;               // null value = before the table starts
+  gps_utc_s: Measured<number>;
+  tai: Measured<string> | null;
+  gps: { time: Measured<string>; week: Measured<number>; week_mod_1024: Measured<number>; seconds_of_week: Measured<number> } | null;
+  mjd: Measured<number>;
+  jd: Measured<number>;
+  leap_seconds: LeapSeconds;
+  ut1: Ut1;
+}
+
 // ─── GET /api/survey ─────────────────────────────────────────────────────────
 
 export interface Survey {

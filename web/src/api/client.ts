@@ -11,7 +11,7 @@ import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
   DashboardWriteResult, History, LocationMode, Ping, SettingResult, Stability, Survey, SystemDiagnostics,
-  TimingChain, Unavailable,
+  TimeScales, TimingChain, Unavailable,
 } from './types';
 
 export type DataSource = 'live' | 'demo';
@@ -23,6 +23,8 @@ export interface StationApi {
   history(): Promise<History>;
   /** ADEV/MDEV/TDEV of the system clock against kernel PPS (calculated; RAM history). */
   stability(): Promise<Stability>;
+  /** TAI, GPS time, MJD/JD offsets, the leap-second table and UT1 − UTC from a cached file. */
+  timescales(): Promise<TimeScales>;
   survey(): Promise<Survey>;
   system(): Promise<SystemDiagnostics>;
   almanac(q?: AlmanacQuery): Promise<Almanac | Unavailable>;
@@ -107,6 +109,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     timingChain: (o) => json('/api/timing-chain' + query({ scenario: o?.scenario })),
     history: () => json('/api/history'),
     stability: () => json('/api/stability'),
+    timescales: () => json('/api/timescales'),
     survey: () => json('/api/survey'),
     system: () => json('/api/system'),
     almanac: (q) => json('/api/almanac' + query({ date: q?.date, tz: q?.tz, at: q?.at })),
