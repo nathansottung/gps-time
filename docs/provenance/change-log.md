@@ -591,3 +591,22 @@ From the owner's list: "Calibrate the NMEA refclock offset from measured data." 
 - **Sign.** In chrony's reports a positive offset means the local clock is ahead of the source, so a positive residual means NMEA is still late and the offset should go up. That is chrony's documented convention, not something confirmed on this hardware yet. So the advice includes a check: after the change the residual should be near zero; if it has doubled, use configured − residual instead.
 - `chrony.refclock_config` now reads each refclock's `offset` (0 when absent, unknown when unparseable).
 - Tests: `tests/test_nmea_calibration.py` (13), including that nothing in the package opens a chrony file for writing. Demo data: 0.1 s configured, +35 ms residual, 0.135 s suggested.
+
+## 2026-10-05 — satellite C/N₀ bars rendered empty (#50)
+
+Reported from the Pi, with CSP blocking inline styles as the suspected cause.
+
+- **Cause: CSS, not CSP.** The legacy dashboard draws each bar as `<i class="barfill" style="width:72%">`. The rule was `.barfill{height:100%;background:...}` with no `display`, so the `<i>` stayed `display: inline`, and CSS ignores width and height on inline elements. The bars have been empty since the 2026-09-18 baseline, in the demo too; it isn't specific to the Pi.
+- **Measured in a browser against the station's real headers:**
+  - On the legacy page the inline width **was** applied (`style.width` read `72%`); the element rendered 0 × 0 px because it was inline.
+  - After the fix it renders 109 × 5 px in a 175 px track for 62%.
+- **Fix:** `.barfill{display:block;...}`. One declaration; no restyle.
+- **CSP check of every page, as asked:**
+  - All legacy pages (`/`, its four tabs, `/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones`) are served `style-src 'self' 'unsafe-inline'`, so their style attributes aren't blocked.
+  - `/app/` is strict (`style-src 'self'`). All 12 of its pages were opened with a CSP violation observer, including buffered load-time reports: zero violations. React sets styles through the DOM, which CSP doesn't block. Its C/N₀ bars render.
+  - The only other inline element given a size in the legacy pages sets `display:inline-block` itself.
+- **Tests** (`tests/test_inline_styles.py`, 6):
+  - every inline element given a width or height in the legacy pages must have a display that can take one (fails on the old CSS, naming `barfill`);
+  - legacy pages that use style attributes are served a CSP that allows them, and scripts never get `'unsafe-inline'`;
+  - the strict CSP has no inline exception, and the new UI's source never builds HTML strings or style attributes that it would drop.
+- Browsers cache the stylesheet for 5 minutes, so the fix can take that long to show after a deploy.
