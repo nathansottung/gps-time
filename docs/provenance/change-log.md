@@ -553,7 +553,7 @@ Display only. The system clock, chrony, logs and every timestamp in the API stay
   - The four files from `gps-time-specs.zip`: the archive wasn't available to compare. They have had one commit each since the import (which recorded the archive's SHA-256), so they are unchanged since then.
   - `GPS-Time-Project-Vision-and-Roadmap.md`: not found on the machine, and not in the repository.
 
-## 2026-10-05 — big clock: the station's time in the local zone (feat/station-clock)
+## 2026-10-05 — big clock: the station's time in the local zone (#47)
 
 Follow-up to #45, which the owner asked for as "big clock is GPS-derived local time, UTC beneath". #45 put a small clock in the header that ticked from the browser's clock.
 
