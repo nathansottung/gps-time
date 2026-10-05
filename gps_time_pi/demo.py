@@ -145,6 +145,34 @@ def history() -> dict:
     return {"available": True, "points": points, "note": "sample data"}
 
 
+_STABILITY = None
+
+
+def stability() -> dict:
+    """Sample /api/stability payload: the real estimators run on synthetic
+    phase data (white phase noise plus a slow wander), computed once."""
+    global _STABILITY
+    if _STABILITY is None:
+        import random
+        from . import stability as st
+        rng = random.Random(1420)
+        seconds = [rng.gauss(0.0, 250e-9) for _ in range(st.RING_S)]
+        last, mean, wander = [], [], 0.0
+        for _ in range(5 * 1440):
+            wander += rng.gauss(0.0, 6e-9)
+            last.append(wander + rng.gauss(0.0, 250e-9))
+            mean.append(wander + rng.gauss(0.0, 250e-9 / math.sqrt(60)))
+        points = st.analyze(seconds, st.TAUS_SECONDS, 1.0, series="seconds")
+        points += st.analyze(last, st.TAUS_MINUTES, 60.0, mean_phase=mean, series="minutes")
+        flags = [True]
+        series = {"seconds": st.Recorder._series_info(seconds, flags * len(seconds), 1.0, st.RING_S),
+                  "minutes": st.Recorder._series_info(last, flags * len(last), 60.0, st.RING_MINUTES)}
+        _STABILITY = st.build_report(points, series, None)
+        _STABILITY["notes"] = ["sample data"]
+    return {**_STABILITY, "since_utc": datetime.fromtimestamp(time.time() - 5 * 86400, timezone.utc)
+            .isoformat(timespec="seconds")}
+
+
 def system_diagnostics() -> dict:
     return {
         "model": "Windows desktop demo", "kernel": "demo", "uptime_s": 12345,
