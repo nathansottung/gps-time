@@ -108,6 +108,42 @@ Frequency-stability statistics of the system clock against kernel PPS timestamps
 - The answer is recomputed at most every 60 s. The history is in RAM and starts again when the service restarts.
 - Nothing here depends on the location, so the privacy mode doesn't change it.
 
+## GET /api/timescales
+
+Time scales calculated from the station's UTC clock, the leap-second table they depend on, and UT1 − UTC when a cached IERS file exists. Type: `TimeScales`. Code: `gps_time_pi/timescales.py`.
+
+```json
+{"provenance": "calculated", "utc": "2026-10-05T02:23:20+00:00", "unix_s": 1791167000,
+ "tai_utc_s": {"value": 37, "unit": "s", "provenance": "calculated", "note": "TAI − UTC from the leap-second table"},
+ "gps_utc_s": {"value": 18, "unit": "s", "provenance": "calculated", "note": "GPS − UTC = (TAI − UTC) − 19 s"},
+ "tai": {"value": "2026-10-05 02:23:57", "unit": null, "provenance": "calculated"},
+ "gps": {"time": {"value": "2026-10-05 02:23:38"}, "week": {"value": 2439}, "week_mod_1024": {"value": 391},
+         "seconds_of_week": {"value": 95018, "unit": "s"}},
+ "mjd": {"value": 61318.099537, "unit": "d"}, "jd": {"value": 2461318.599537, "unit": "d"},
+ "leap_seconds": {"provenance": "external", "source": "file", "source_label": "IERS leap-second list from the operating system",
+                  "path": "/usr/share/zoneinfo/leap-seconds.list", "updated_utc": "...", "expires_utc": "2026-12-28T00:00:00+00:00",
+                  "days_to_expiry": 83.9, "status": "OK", "warning": null, "warn_days": 60.0,
+                  "last": {"utc": "2017-01-01T00:00:00+00:00", "tai_utc_s": 37}, "next": null,
+                  "next_note": "None scheduled in the table, which is valid until 2026-12-28.",
+                  "chrony_leap_status": {"value": "Normal", "unit": null, "provenance": "observed"}, "problems": []},
+ "ut1": {"available": false, "provenance": "external", "path": "/opt/gps-time-pi/iers/finals2000A.daily",
+         "ut1_utc_s": null, "kind": null, "file_date_utc": null, "reason": "No cached IERS file on the station. ..."}}
+```
+
+- Every scale is `calculated` from the system clock, so it is as good as that clock. `/api/timing-chain` says what disciplines it.
+- `tai`, `gps` and the two offsets are null before 1972 (the table's start); `gps` is null before 1980-01-06. Null is UNKNOWN, not zero.
+- `mjd` and `jd` are UTC-based. During an inserted leap second they repeat the last second of the day, as Unix time does.
+- `gps.week` counts from 1980-01-06 without rollover; `week_mod_1024` is the 10-bit number broadcast on L1 C/A.
+- `leap_seconds.status`:
+  - `OK`: a file was read and expires more than `warn_days` from now (default 60; `GTP_LEAP_EXPIRY_WARN_DAYS`).
+  - `EXPIRES_SOON`, `EXPIRED`: with a `warning` that says what to do (update tzdata).
+  - `UNKNOWN`: no file could be read and a built-in list ending 2017-01-01 is used, or the file has no expiry line.
+- `leap_seconds.next` is the first table entry after now (`kind`: `insert` or `delete`). When there is none, `next_note` says whether the table is valid enough to rule one out.
+- `chrony_leap_status` is chrony's own "Leap status" (observed), from the timing chain's last `chronyc -n tracking`.
+- `ut1.available` is true only when the file at `GTP_IERS_FILE` (default `/opt/gps-time-pi/iers/finals2000A.daily`) exists and covers today. `kind` says whether the value is an IERS determination or an IERS prediction. The station never downloads this file.
+- The file search path is `GTP_LEAP_SECONDS_FILE` (default `/usr/share/zoneinfo/leap-seconds.list`, from Debian's tzdata).
+- Nothing here depends on the location. Local sidereal time stays in `/api` → `sidereal` and follows the privacy mode.
+
 ## GET /api/survey
 
 Position-survey convergence for the History page. Type: `Survey`.

@@ -65,6 +65,11 @@ If the router's DHCP names the station as the LAN's NTP server (option 42), the 
 
 The main clock shows local time; the station itself stays on UTC. Don't change the Pi's system time zone for this (`timedatectl` is not used anywhere). The zone is found offline from the station's position with `tzfpy` (in the venv), or set in Administration → Local time zone. With the location hidden, the zone is not derived from the position.
 
+## Leap seconds and UT1 (time scales panel)
+
+- TAI and GPS time on Timing → Time Scales use the leap-second table from Debian's `tzdata` package (`/usr/share/zoneinfo/leap-seconds.list`). The panel warns 60 days before the table expires. To renew it: `sudo apt-get update && sudo apt-get install --only-upgrade tzdata`. This doesn't touch chrony.
+- UT1 − UTC is shown only if you place an IERS `finals2000A.daily` file at `/opt/gps-time-pi/iers/finals2000A.daily` (readable by `gps-time`). The station never downloads it. Fetch it on another machine from the IERS data centre, copy it over, and replace it every few weeks; the panel shows the file's date and whether the value is an IERS determination or prediction.
+
 ## Admin token and service user
 
 `install.sh` creates the unprivileged service user `gps-time` and installs the polkit rule `/etc/polkit-1/rules.d/50-gps-time-pi.rules`. On a first install it also creates an admin token and **shows it once, on the terminal only**; keep it. Settings changes and service actions in the web UI need it. Without a terminal (non-interactive ssh, a CI log), no token is created and admin stays disabled until you run the command below on the station.

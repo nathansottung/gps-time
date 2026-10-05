@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (feat/stability-analysis, #55). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/time-scales, #56). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -52,7 +52,7 @@ Last updated: 2026-10-05 (feat/stability-analysis, #55). Built from the specs, `
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 402 rows: 194 done, 0 in progress, 43 next, 165 planned.
+**Totals:** 402 rows: 201 done, 0 in progress, 36 next, 165 planned.
 
 ## Status table
 
@@ -300,7 +300,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature C |  | Maidenhead / geodesic / antipode | planned |  |  |
 | Feature C |  | Greyline | planned |  |  |
 | Feature C |  | WMM magnetic model | planned |  |  |
-| Feature C |  | TZ / leap-second / time-scale toolbox | planned | partial: /zones |  |
+| Feature C |  | TZ / leap-second / time-scale toolbox | planned | partial: /zones; time scales panel (TM §3) | [#56](https://github.com/nathansottung/gps-time/pull/56) |
 | Feature C |  | Gravity/relativity calculations | planned |  |  |
 | Feature C |  | Weather-derived quantities | planned |  |  |
 | Feature D |  | Configurable pages / widget visibility | done | legacy /configure; /app preview only |  |
@@ -441,13 +441,13 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §2 | NTS certificates: local CA and public certificate options documented | next |  |  |
 | TM | §2 | NTS off by default; installer flag; chrony unchanged unless the operator turns it on | next |  |  |
 | TM | §2 | Dashboard shows NTS state and certificate expiry | next |  |  |
-| TM | §3 | TAI | next |  |  |
-| TM | §3 | GPS time, GPS week number and seconds of week | next |  |  |
-| TM | §3 | Modified Julian Date and Julian Date | next |  |  |
-| TM | §3 | UTC, local time, Unix epoch, local sidereal time in one panel | next | partial: each exists on its own (big clock #47, sidereal #12) |  |
-| TM | §3 | Leap-second table source, expiry date, warning well before expiry | next |  |  |
-| TM | §3 | Next scheduled leap second, if any | next |  |  |
-| TM | §3 | UT1−UTC only from a cached IERS file, labeled external with its date | next |  |  |
+| TM | §3 | TAI | done | TAI − UTC from the leap-second table, not a constant | [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | §3 | GPS time, GPS week number and seconds of week | done | plus the 10-bit broadcast week | [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | §3 | Modified Julian Date and Julian Date | done | UTC-based | [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | §3 | UTC, local time, Unix epoch, local sidereal time in one panel | done | Timing → Time Scales; sidereal time is the value at the last update and follows the privacy mode | [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | §3 | Leap-second table source, expiry date, warning well before expiry | done | tzdata's `leap-seconds.list`; warns 60 days before; built-in list with expiry UNKNOWN when no file. Not yet run on a Pi | [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | §3 | Next scheduled leap second, if any | done | from the table; chrony's leap status shown beside it | [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | §3 | UT1−UTC only from a cached IERS file, labeled external with its date | done | the operator places the file; the station never fetches it | [#56](https://github.com/nathansottung/gps-time/pull/56) |
 | TM | §4 | Public servers compared as `noselect` sources | next | changes chrony's configuration |  |
 | TM | §4 | Per-source offset and delay history, labeled external | next |  |  |
 | TM | §4 | Disagreement with most independent references flagged; reported as a disagreement, never a cause | next |  |  |
@@ -459,4 +459,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | Installer disables chrony's DHCP-provided sources | done | not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
 | TM | §6 | Configured and suggested NMEA offset side by side | next | partial: both are on the PPS diagnostics page (#49), not side by side |  |
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | next |  |  |
-| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1 done | [#55](https://github.com/nathansottung/gps-time/pull/55) |
+| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3 done | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) |
