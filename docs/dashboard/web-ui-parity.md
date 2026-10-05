@@ -2,6 +2,8 @@
 
 The legacy pages stay until every row below is either done or explicitly dropped by the owner (ADR-0004). Status as of feat/web-dashboard, 2026-10-01.
 
+A re-check of every row against the code on 2026-10-05, and the proposed order for retiring the legacy pages, is in [`legacy-removal-plan.md`](legacy-removal-plan.md). In short: #3 and #17 are done, #2, #16 and #21 are partly covered, the rest are open, and #6 and #7 (admin actions, survey reset) block removal.
+
 ## Legacy features the new UI lacks
 
 | # | Feature (legacy location) | Notes |

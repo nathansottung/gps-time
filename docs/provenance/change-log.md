@@ -753,3 +753,14 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - Tests: `tests/test_shadow.py` (37), `tests/test_satellites.py` (37), `web/src/lib/shadow.test.ts` (13). Checked in the demo.
 - `STATUS.md`: ADD §1 to §5 and AC6, AC7 → done; AC8 stays planned (the time at which a shell goes into shadow isn't predicted). Also, on the owner's request, the three RF-spec rows that overlapped feature-registry rows are merged into one row each (three fewer rows).
 - Not yet run on a Pi; the cost of a request there has not been timed.
+
+## 2026-10-05 — legacy dashboard: removal plan, nothing removed (#62)
+
+- Added `docs/dashboard/legacy-removal-plan.md`. It is a plan only: no file, route or test was deleted or changed.
+- **Basis.** The owner asked for "the legacy-removal plan from my earlier prompt". That prompt was not found in the repository, the session memory or the searchable session transcripts. The plan is therefore built from ADR-0004 and `web-ui-parity.md`, and says so at the top. If the earlier prompt differs, it takes precedence.
+- **Inventory:** the seven routes, seven templates and six static files; the server code, CSP exception, `/api` fields and saved-layout model that exist only for them; the tests and docs that would change.
+- **Parity re-checked against the code:** of the 21 items, 2 are done, 3 are partly covered, the rest are open. Admin actions and survey reset are not in `/app/`, so removing `/admin` today would leave no browser way to restart a service or reset the survey.
+- **Proposed order:** owner decisions; port the blockers; make `/app/` the front door while keeping the old pages for a release; then remove; then close the review findings that the removal settles (GPS-016, GPS-027, GPS-029 and the legacy halves of GPS-004, GPS-009).
+- **Timing:** not before v1.4.0. The Pi runs the legacy pages and rc.8 is about to start its soak run.
+- **Found:** `gps_time_pi/templates/index.html` is not served by any route. It was left in place; deleting it is listed as the one thing that could be done now, for the owner to decide.
+- `STATUS.md`: the parity row's note updated; a new planned row "Retire the legacy pages".
