@@ -46,6 +46,26 @@ export function bannerView(chain: TimingChain | null, unreachable: boolean): Ban
   return { variant: statusVariant(st.code), title, detail: st.detail || null, outage: outageText(chain) };
 }
 
+export interface ClockDiscipline {
+  /** True only when the status is GPS/PPS and chrony's selected source is the PPS refclock. */
+  gps: boolean;
+  /** What disciplines the station clock right now, for the clock's caption. */
+  label: string;
+}
+
+/**
+ * What the station clock is disciplined by. "GPS/PPS" is claimed only on the
+ * same evidence as the banner; anything else is named as it is (network NTP,
+ * unsynchronized, unknown), never rounded up to GPS.
+ */
+export function clockDiscipline(chain: TimingChain | null, unreachable: boolean): ClockDiscipline {
+  const sel = chain?.chrony.selected;
+  if (chain && chain.status.code === 'GPS_PPS' && sel && sel.is_pps) {
+    return { gps: true, label: 'GPS/PPS-DISCIPLINED STATION CLOCK' };
+  }
+  return { gps: false, label: `STATION CLOCK · ${bannerView(chain, unreachable).title}` };
+}
+
 function outageText(chain: TimingChain): string | null {
   const ev = chain.events.open;
   if (!ev) return null;

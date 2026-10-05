@@ -1,7 +1,7 @@
 // Banner guards (CHG-PPS-HEALTH-DIAGNOSTICS "Main Status Banner", test 20):
 // the UI must name the sync source and never claim GPS/PPS that chrony is not using.
 import { describe, expect, it } from 'vitest';
-import { bannerView, statusVariant } from './banner';
+import { bannerView, clockDiscipline, statusVariant } from './banner';
 import { demoApi, DEMO_SCENARIOS } from '../api/demo';
 import type { TimingChain } from '../api/types';
 
@@ -80,5 +80,29 @@ describe('statusVariant', () => {
     ['NETWORK_FAILOVER', 'warn'], ['DEGRADED', 'warn'], ['HOLDOVER', 'warn'], ['ACQUIRING', 'warn'],
   ])('%s → %s', (code, v) => {
     expect(statusVariant(code as string | undefined)).toBe(v);
+  });
+});
+
+describe('clockDiscipline (the big clock caption)', () => {
+  it('says GPS/PPS only when the status is GPS/PPS and chrony selected the PPS refclock', async () => {
+    expect(clockDiscipline(await chain('pps_selected'), false)).toEqual({ gps: true, label: 'GPS/PPS-DISCIPLINED STATION CLOCK' });
+  });
+
+  it('names network time as network time', async () => {
+    const d = clockDiscipline(await chain('network_failover'), false);
+    expect(d.gps).toBe(false);
+    expect(d.label).toMatch(/^STATION CLOCK · /);
+    expect(d.label).not.toContain('GPS/PPS-DISCIPLINED');
+  });
+
+  it('does not claim GPS on an inconsistent report (status GPS/PPS, non-PPS source selected)', async () => {
+    const c = withStatus(await chain('pps_selected'), { code: 'GPS_PPS', banner: 'SYNCHRONIZED · GPS/PPS · STRATUM 1' },
+      { name: '192.0.2.10', kind: 'network', stratum: 2, is_pps: false, is_nmea: false });
+    expect(clockDiscipline(c, false)).toEqual({ gps: false, label: 'STATION CLOCK · TIMING STATUS UNKNOWN · INCONSISTENT REPORT' });
+  });
+
+  it('is unknown without a timing chain', () => {
+    expect(clockDiscipline(null, false)).toEqual({ gps: false, label: 'STATION CLOCK · TIMING STATUS UNKNOWN' });
+    expect(clockDiscipline(null, true).label).toBe('STATION CLOCK · TIMING STATUS UNKNOWN · STATION UNREACHABLE');
   });
 });

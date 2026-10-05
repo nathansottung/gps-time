@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (docs/roadmap-oscillator, #46; no status change). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/station-clock, #47). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -379,7 +379,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-003 | History uncertainty mixes chrony columns | next |  |  |
-| Review | GPS-004 | UTC reference shows browser clock | planned |  |  |
+| Review | GPS-004 | UTC reference shows browser clock | planned | partial: the `/app/` clocks show station time (measured offset applied, labeled); the legacy dashboard's clock is unchanged | [#47](https://github.com/nathansottung/gps-time/pull/47) |
 | Review | GPS-005 | NMEA-only labeled GPS/PPS Stratum 1 | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-006 | Sync-state edge cases | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-007 | ± is root dispersion only | next |  |  |
@@ -422,4 +422,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Tag v1.4.0-rc.6 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#41](https://github.com/nathansottung/gps-time/pull/41) |
 | Repo |  | Astronomy states why it is unavailable (API, legacy widget, install self-check) | done | found on the first Pi build; the Pi's own cause is not yet known | [#43](https://github.com/nathansottung/gps-time/pull/43) |
 | Repo |  | NTP client list for the unprivileged service (helper as `_chrony`) | done | found on the first Pi build; cause from chrony's design, not yet confirmed on the Pi | [#44](https://github.com/nathansottung/gps-time/pull/44) |
-| Web UI |  | Main clock in local time (zone from position or override, DST, UTC and Unix epoch, 12/24 h) | done | display only; the system stays on UTC. Not yet seen on a Pi | [#45](https://github.com/nathansottung/gps-time/pull/45) |
+| Web UI |  | Main clock in local time (zone from position or override, DST, UTC and Unix epoch, 12/24 h) | done | display only; the system stays on UTC. Big clock on the Overview shows the station's time, and says GPS/PPS only when chrony has PPS selected. Not yet seen on a Pi | [#45](https://github.com/nathansottung/gps-time/pull/45) [#47](https://github.com/nathansottung/gps-time/pull/47) |

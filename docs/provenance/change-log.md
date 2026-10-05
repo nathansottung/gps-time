@@ -552,3 +552,15 @@ Display only. The system clock, chrony, logs and every timestamp in the API stay
   - `ROADMAP-DESKTOP-FIELD-APP.md`: differs by one word, on purpose. #13 changed the accuracy table's label from `estimated` to `inferred`, because `estimated` isn't one of the six provenance labels. The repository copy is kept.
   - The four files from `gps-time-specs.zip`: the archive wasn't available to compare. They have had one commit each since the import (which recorded the archive's SHA-256), so they are unchanged since then.
   - `GPS-Time-Project-Vision-and-Roadmap.md`: not found on the machine, and not in the repository.
+
+## 2026-10-05 — big clock: the station's time in the local zone (#47)
+
+Follow-up to #45, which the owner asked for as "big clock is GPS-derived local time, UTC beneath". #45 put a small clock in the header that ticked from the browser's clock.
+
+- **Big clock on the Overview** (`web/src/components/clock.tsx`), directly under the timing-chain card: local time in large figures; the date, zone, UTC offset and DST marker; UTC beneath; then the Unix epoch. The 12/24-hour choice is shared with the header clock.
+- **It shows the station's time, not the browser's.** The browser's clock is corrected by the measured station − browser offset (the four-timestamp exchange with `/api/ping`). The reading is labeled `inferred`, and the card states the offset applied, the best round trip, and that the display can be off by about half the round trip.
+- **It says GPS/PPS only on evidence** (`clockDiscipline` in `web/src/lib/banner.ts`): the caption is "GPS/PPS-DISCIPLINED STATION CLOCK" only when the status is GPS/PPS and chrony's selected source is the PPS refclock. Otherwise it names what the banner names: network failover, unsynchronized, inconsistent report, unknown.
+- **Before any offset is measured**, or if `/api/ping` fails, the caption reads "THIS BROWSER'S CLOCK · STATION TIME NOT MEASURED YET".
+- The header clock uses the same station time. One `/api/ping` loop now serves the whole app (it lives in `StationProvider`); before, each page that used it ran its own.
+- GPS-004 is partly addressed: the `/app/` clocks no longer show the browser's clock as if it were the station's. The legacy dashboard's "UTC reference" card is unchanged.
+- Tests: `clockDiscipline` (4) and `stationInstant` (2); 78 web tests in all. Checked in the demo with the `pps_selected` and `network_failover` scenarios.
