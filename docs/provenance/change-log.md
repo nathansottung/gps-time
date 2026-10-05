@@ -544,7 +544,7 @@ Display only. The system clock, chrony, logs and every timestamp in the API stay
   - CI runs the real lookup through `tzfpy` on both Python versions (USNO → `America/New_York`).
 - **Checked in the demo:** the header clock, the toggle surviving a reload, and setting an override from Administration. Not yet seen on a Pi; the next `install.sh` run installs `tzfpy` into the venv.
 
-## 2026-10-05 — roadmap: oscillator profile and smaller items (docs/roadmap-oscillator)
+## 2026-10-05 — roadmap: oscillator profile and smaller items (#46)
 
 - Added `docs/roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (owner-provided, copied verbatim; SHA-256 `6e4c30cf…`) and indexed it. Status FUTURE; none of it blocks v1.4.0. No rows added to `STATUS.md`.
 - Owner-provided documents checked against the owner's copies on 2026-10-05:
