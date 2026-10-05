@@ -519,7 +519,7 @@ Reported from the first Pi build: "Client list unavailable (chronyc clients not 
 - Tests: `tests/test_chrony_clients.py` (15): the parser, fresh/stale/missing/future-dated file, the script with a fake chronyc (POSIX: exact command, atomic file, failure removes the list), the unit's user, group, modes and sandbox, and that the web service's unit doesn't get `/run/chrony`.
 - Docs: ADR-0005 update (decision and rejected alternatives), API reference, deploy guide and both checklists (helper status check; rollback removes the unit).
 
-## 2026-10-04 — main clock in local time (feat/local-time)
+## 2026-10-04 — main clock in local time (#45)
 
 Display only. The system clock, chrony, logs and every timestamp in the API stay on UTC; nothing reads or sets the Pi's system time zone.
 
