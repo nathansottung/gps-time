@@ -501,3 +501,20 @@ Reported from the first Pi build: the legacy dashboard showed "Astronomy data un
   - the system time-zone database;
   - the station's position.
 - Tests: `tests/test_astro_status.py` (11, two of them POSIX-only for unreadable files) and `web/src/lib/legacy-almanac.test.ts` (5).
+
+## 2026-10-04 — NTP client list for the unprivileged service (#44)
+
+Reported from the first Pi build: "Client list unavailable (chronyc clients not readable)".
+
+- **Cause.** chronyd answers `clients` only over its Unix socket; over UDP it replies "501 Not authorised". To use the socket, chronyc must create its own reply socket inside `/run/chrony`. The web service can't: its unit's `ProtectSystem=strict` makes `/run` read-only for it, and the directory belongs to `_chrony`. The `_chrony` supplementary group added in #24 never granted this. v1.3 ran as root, so it worked there. This is derived from how chrony works; it has not been confirmed on the Pi yet (`sudo -u gps-time chronyc -n clients` should print the 501 message).
+- **Not done: giving the web service the socket.** It controls chronyd, including stepping the clock.
+- **Fix:** `gps-time-pi-chrony-clients.service` runs as `_chrony` (never root), follows chrony's lifecycle, and runs `scripts/chrony-clients.sh`.
+  - The script runs the fixed command `chronyc -n clients` every 15 s and takes no input.
+  - It writes the output atomically to `/run/gps-time-pi/chrony-clients.txt`: RAM, not the SD card; directory 0750 and file 0640 with group `gps-time`, because the list holds client addresses.
+  - On failure it removes the file and logs the error once, not every interval.
+- `gps_time_pi/chrony.py` reads the file and ignores one older than 60 s, so a stopped helper reads as UNKNOWN. Without a file it runs `chronyc` directly as before, which works as root (the rollback drop-in). `/api` no longer starts a chronyc process per request for the client list.
+- `/api` → `clients` is now up to about 15 s old.
+- `install.sh` installs, enables and starts the helper. A helper that fails to start is a warning, not a failed install.
+- No change to chrony's configuration or behavior; the helper only reads.
+- Tests: `tests/test_chrony_clients.py` (15): the parser, fresh/stale/missing/future-dated file, the script with a fake chronyc (POSIX: exact command, atomic file, failure removes the list), the unit's user, group, modes and sandbox, and that the web service's unit doesn't get `/run/chrony`.
+- Docs: ADR-0005 update (decision and rejected alternatives), API reference, deploy guide and both checklists (helper status check; rollback removes the unit).

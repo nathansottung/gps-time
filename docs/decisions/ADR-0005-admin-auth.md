@@ -30,7 +30,8 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
    - **Display:** `install.sh` shows the token on the terminal only (`--tty-only`), never on stdout.
 4. **Demo isolation.** Demo mode needs no token (its writes go to `.dev/`), but `/api/admin` is simulated and never runs anything. Legacy pages show a SAMPLE DATA banner.
 5. **Unprivileged service.** `gps-time-pi.service` runs as `gps-time`:
-   - **Groups:** `_chrony` for the chronyc socket, `video` for vcgencmd.
+   - **Groups:** `_chrony` for chrony-owned files, `video` for vcgencmd.
+   - **No chronyd control socket.** See the 2026-10-04 update below.
    - **Capability:** only `CAP_NET_BIND_SERVICE`, for port 80.
    - **Hardening:** `NoNewPrivileges`, `ProtectSystem=strict` with `ReadWritePaths=/opt/gps-time-pi`, and **`ProtectClock=yes`**, so the web service can never set the system clock.
    - **Admin actions:** fixed `systemctl` argv lists with no shell. A polkit rule (`system/50-gps-time-pi.rules`) allows exactly: restart chrony/gpsd/gps-time-pi, start the log-flush unit, reboot.
@@ -47,11 +48,16 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
 - **Removed:** `GTP_ALLOW_CONFIG_WRITE` and the loopback exception. Behind a reverse proxy every client looked like loopback, so the token is the only gate.
 - **Clients:** the legacy `/admin` and `/configure` pages prompt for the token. The new UI has an Admin access card. The token is kept in `sessionStorage` only.
 - **No TLS:** the token crosses the LAN in clear text. On an untrusted LAN, use a TLS reverse proxy and set `GTP_ALLOWED_HOSTS`/`GTP_ALLOWED_ORIGINS`.
-- **`chronyc clients`** needs chrony's local socket. If the `_chrony` group does not grant it, `/api` reports `clients: null` (UNKNOWN), not an empty list.
+- **`chronyc clients`** needs chrony's local socket. When the list can't be read, `/api` reports `clients: null` (UNKNOWN), not an empty list.
+- **Update 2026-10-04, NTP client list.** On the first Pi build the list read UNKNOWN.
+  - Cause: chronyd answers `clients` only over its Unix socket, and chronyc must create its reply socket inside `/run/chrony` to use it. The web service can't: `ProtectSystem=strict` makes `/run` read-only for it, and the directory belongs to `_chrony`. The `_chrony` group never granted this.
+  - Decision: the web service does **not** get that socket. It controls chronyd, including stepping the clock, which is exactly what `ProtectClock=yes` is there to prevent.
+  - Instead `gps-time-pi-chrony-clients.service` runs as `_chrony` (never root), runs the fixed command `chronyc -n clients` every 15 s, takes no input from the web service, and writes the output to `/run/gps-time-pi/chrony-clients.txt` (RAM; directory 0750 and file 0640, group `gps-time`). The web service reads the file and ignores it after 60 s.
+  - Rejected: `ReadWritePaths=/run/chrony` on the web service (gives it the control socket); sudo (blocked by `NoNewPrivileges`, and broader); a socket-activated unit per request (journal writes at the UI's polling rate).
 - **Not verified on a Pi** (no hardware in the development environment):
   - the systemd hardening;
   - the polkit rule on Raspberry Pi OS (polkit ≥ 121 JavaScript rules);
-  - `_chrony` socket access;
+  - the NTP client list helper (`gps-time-pi-chrony-clients.service`);
   - vcgencmd under `video`.
 
   The installer and unit are checked statically by `tests/test_admin_auth.py`. Verify these on a station before release.

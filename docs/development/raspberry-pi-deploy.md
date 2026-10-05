@@ -57,6 +57,7 @@ Older installs put skyfield into the system Python with `--break-system-packages
 - Create or rotate: `sudo python3 -m gps_time_pi.admin_token --tty-only --path /opt/gps-time-pi/admin-token.sha256 --group gps-time` (run in `/opt/gps-time-pi`).
 - Failed token attempts are in the journal: `journalctl -u gps-time-pi | grep "admin token"`.
 - Disable admin: delete `/opt/gps-time-pi/admin-token.sha256`.
+- The NTP client list comes from `gps-time-pi-chrony-clients.service`, which runs as `_chrony` and publishes `chronyc -n clients` to `/run/gps-time-pi/` every 15 s. The web service itself can't use chronyd's control socket. If the list reads UNKNOWN: `systemctl status gps-time-pi-chrony-clients`.
 - If you reach the station by a DNS name other than its hostname, add it to `GTP_ALLOWED_HOSTS` in the service (`sudo systemctl edit gps-time-pi`). Otherwise requests get 403.
 
 After upgrading an existing station, check `systemctl status gps-time-pi`, `/api/system` (vcgencmd values) and the NTP client list. ADR-0005 lists what has not yet been verified on a Pi.
@@ -86,6 +87,8 @@ sudo systemctl daemon-reload && sudo systemctl restart gps-time-pi
 **Level 2: previous release.** Redeploy the previous `gps-time-pi-deploy.tar.gz`. Keep the last good one from `dist/` before upgrading, or rebuild it from the tag: `git checkout v1.4.0-rc.1 && python tools/build_bundles.py`. Then remove the parts the old version doesn't use:
 
 ```sh
+sudo systemctl disable --now gps-time-pi-chrony-clients.service
+sudo rm -f /etc/systemd/system/gps-time-pi-chrony-clients.service
 sudo rm -f /etc/polkit-1/rules.d/50-gps-time-pi.rules /etc/systemd/system/gps-time-pi.service.d/zz-root-rollback.conf
 sudo systemctl daemon-reload && sudo systemctl restart gps-time-pi
 ```

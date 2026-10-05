@@ -235,9 +235,10 @@ ssh $Pi
   curl -s localhost/api/timing-chain | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['status']['code'], '|', d['status']['banner']); [print(' ', s['id'], s['status']) for s in d.get('stages', [])]"
   ```
 
-- [ ] Values that depend on the service user's groups are present: the NTP client list isn't `None`, and the CPU temperature is a number.
+- [ ] The NTP client list helper is running, and the values that depend on it and on the `video` group are present: expect `active`, a client count that isn't `None` (it can be `0` on a new station), and a CPU temperature that is a number. If the count is `None`, read `journalctl -u gps-time-pi-chrony-clients -n 20 --no-pager`. Timing isn't affected.
 
   ```sh
+  systemctl is-active gps-time-pi-chrony-clients
   curl -s localhost/api | python3 -c "import sys,json; d=json.load(sys.stdin); print('clients:', None if d.get('clients') is None else len(d['clients'])); print('cpu_temp_c:', d.get('cpu_temp_c'))"
   ```
 

@@ -1,0 +1,40 @@
+[Unit]
+Description=GPS Time Pi: publish the chrony NTP client list for the web service
+# Runs only while chrony runs, and restarts with it: /run/chrony (below) must
+# exist when this unit's sandbox is set up, and chronyd recreates it.
+Requires=chrony.service
+After=chrony.service
+PartOf=chrony.service
+
+[Service]
+# Interpreter-invoked so a missing execute bit cannot break it (CHG-002).
+ExecStart=/bin/bash /opt/gps-time-pi/scripts/chrony-clients.sh
+Restart=always
+RestartSec=15
+
+# _chrony owns /run/chrony, where chronyc creates its reply socket. Never root.
+# Group gps-time, so only the web service can read the published list (it
+# holds client addresses): /run/gps-time-pi is 0750 and the file is 0640.
+User=_chrony
+Group=gps-time
+RuntimeDirectory=gps-time-pi
+RuntimeDirectoryMode=0750
+UMask=0027
+
+# This service only runs `chronyc -n clients` and writes one file. It takes no
+# input from the web service.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ReadWritePaths=/run/chrony
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

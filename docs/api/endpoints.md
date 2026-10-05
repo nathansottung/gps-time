@@ -17,7 +17,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `fmt` | the server's human-readable strings for the legacy pages |
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample` |
 | `sourcestats` | raw `chronyc sourcestats` text |
-| `clients` | `chronyc clients` rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = chronyc failed or refused the command (it needs chrony's local socket: root or the `_chrony` group). Shown as UNKNOWN. |
+| `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
 | `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`; in `hidden` privacy mode `el` and `az` are null), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
 | `location` | position **after the privacy mode**: `{mode, lat, lon, alt_msl?, alt_hae?}`. exact → 4 decimals, alt_msl and alt_hae; rounded → 1 decimal, alt_msl to 10 m, no alt_hae; hidden → lat/lon null. |
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
