@@ -267,6 +267,32 @@ export default function PPS() {
         </Section>
       </div>
 
+      <Section title="NMEA refclock offset" prov="calculated">
+        {(() => {
+          const cal = ch.nmea_calibration;
+          if (!cal) return <div className="text-[11px]" style={{ color: 'var(--t3)' }}>Not reported by this station version.</div>;
+          return (
+            <>
+              <MetricRow label="Configured offset (chrony.conf)" value={cal.configured_offset_s ? val(cal.configured_offset_s) : null} unit="s" provenance="observed" />
+              {cal.available ? (
+                <>
+                  <MetricRow label="Residual vs PPS-disciplined clock" value={signed(val(cal.residual_s!))} provenance="observed" />
+                  <MetricRow label="Std. dev. / samples" value={`${fmtSeconds(val(cal.std_dev_s!)) ?? '—'} / ${val(cal.samples!)}`} provenance="observed" />
+                  <MetricRow label="Suggested offset" value={val(cal.suggested_offset_s!)} unit="s" provenance="calculated" />
+                  <div className="text-[10px] mt-1" style={{ color: cal.change_worthwhile ? 'var(--t2)' : 'var(--t4)' }}>{cal.advice}</div>
+                </>
+              ) : (
+                <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>Not measurable now: {cal.reason}.</div>
+              )}
+              <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>
+                A positive residual means the serial time still arrives late. The station only reports this; it never edits chrony.conf.
+                The PPS refclock uses NMEA to number its seconds, so NMEA needs to be right to a fraction of a second, not better.
+              </div>
+            </>
+          );
+        })()}
+      </Section>
+
       <Section title="PPS outage events" prov="observed">
         {events.length ? events.map(e => <EventRow key={e.id} e={e} />)
           : <div className="text-[11px]" style={{ color: 'var(--t3)' }}>No PPS outages recorded.</div>}
