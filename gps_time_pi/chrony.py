@@ -70,8 +70,44 @@ _SAMPLE = re.compile(
     r"\s*\+/-\s*(?P<err>\d+(?:\.\d+)?(?:ns|us|ms|s))")
 
 
-def parse_sources(text):
-    """Parse `chronyc -n sources` into a list of dicts (one per source)."""
+_LOCAL_ADDRS = {"at": 0.0, "addrs": frozenset()}
+_LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
+def parse_ip_addr(text):
+    """Addresses from `ip -o addr show` output (IPv4 and IPv6, prefix and zone removed)."""
+    out = set()
+    for line in (text or "").splitlines():
+        f = line.split()
+        for fam in ("inet", "inet6"):
+            if fam in f and f.index(fam) + 1 < len(f):
+                out.add(f[f.index(fam) + 1].split("/")[0].split("%")[0].lower())
+    return out
+
+
+def local_addresses(max_age_s=60.0):
+    """This machine's own IP addresses (read-only `ip -o addr show`, cached).
+    Loopback is always included. If `ip` can't be run, only loopback is known."""
+    now = time.monotonic()
+    if _LOCAL_ADDRS["addrs"] and now - _LOCAL_ADDRS["at"] < max_age_s:
+        return _LOCAL_ADDRS["addrs"]
+    try:
+        r = subprocess.run(["ip", "-o", "addr", "show"], capture_output=True, text=True, timeout=2)
+        found = parse_ip_addr(r.stdout) if r.returncode == 0 else set()
+    except Exception:  # noqa: BLE001
+        found = set()
+    _LOCAL_ADDRS.update(at=now, addrs=frozenset(found | _LOOPBACK))
+    return _LOCAL_ADDRS["addrs"]
+
+
+def parse_sources(text, local_addrs=None):
+    """Parse `chronyc -n sources` into a list of dicts (one per source).
+
+    A network source whose address is one of this machine's own (local_addrs;
+    default local_addresses()) gets is_self=True: chrony is polling the station
+    itself, typically because DHCP names the station as the LAN's NTP server.
+    That is not an external reference, however good its stratum looks."""
+    addrs = local_addresses() if local_addrs is None else local_addrs
     rows, started = [], False
     for line in (text or "").splitlines():
         if line.startswith("==="):
@@ -97,6 +133,7 @@ def parse_sources(text):
             "offset_s": parse_quantity_s(sm.group("adj")) if sm else None,
             "measured_offset_s": parse_quantity_s(sm.group("meas")) if sm else None,
             "error_bound_s": parse_quantity_s(sm.group("err")) if sm else None,
+            "is_self": g["mode"] != "#" and g["name"].lower() in addrs,
         })
     return rows
 
