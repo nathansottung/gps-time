@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (docs/spec-rf-node-tdoa, #60; new rows only, all planned). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/earth-shadow-satellites, #61). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -21,6 +21,7 @@ Last updated: 2026-10-05 (docs/spec-rf-node-tdoa, #60; new rows only, all planne
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
+- **2026-10-05, merged rows:** three feature-registry rows (Feature E "ADS-B 1090 adapter" and "Fox-hunt TOA/TDoA research", Feature F "MLAT metadata/solver") described the same work as three RF-spec rows. Each pair is now one row, in the RF block, with both sources named in the Area column. Owner's request.
 - **2026-10-05, RF nodes and TDOA:** `specs/SPEC-RF-NODE-AND-TDOA.md` added as PLANNED. It builds on `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` and starts after v1.4.0. Nothing is scheduled; the next-5 list is unchanged.
 - **2026-10-05, release:** rc.6 has run on the Pi since 2026-10-04 (PPS selected, stratum 1, about 300 ns). The owner will upgrade it to rc.8 and run that for 3 days before v1.4.0.
 - **2026-10-04, timing metrology:** `specs/SPEC-TIMING-METROLOGY.md` added as NEXT. The owner asked for §1, §3, §4 and §6 to be built now, in that order, one PR each, and for work to stop before NTS (§2) and PTP (§5). Items 1–3 of the list stay pre-release blockers. The former item 4 (GPS-021) was done in [#30](https://github.com/nathansottung/gps-time/pull/30).
@@ -56,7 +57,7 @@ Last updated: 2026-10-05 (docs/spec-rf-node-tdoa, #60; new rows only, all planne
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 423 rows: 209 done, 0 in progress, 30 next, 184 planned.
+**Totals:** 420 rows: 216 done, 0 in progress, 30 next, 174 planned.
 
 ## Status table
 
@@ -224,11 +225,11 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | AC8 | Has it happened before? | next | partial: last 10 events | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | OBS | AC9 | Drift during the outage? | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | OBS | AC10 | RF anomaly vs PPS/software path? | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| ADD | §1 | Earth-shadow umbra/penumbra model | planned |  |  |
-| ADD | §2 | Zenith satellite-shadow metric | planned |  |  |
-| ADD | §3 | Illumination sky map | planned |  |  |
-| ADD | §4 | Starlink contamination indicator | planned |  |  |
-| ADD | §5 | Satellite ephemeris layer | planned |  |  |
+| ADD | §1 | Earth-shadow umbra/penumbra model | done | conical umbra and penumbra, finite Sun; geometric (no atmosphere, no refraction); needs no ephemeris. Not yet run on a Pi | [#61](https://github.com/nathansottung/gps-time/pull/61) |
+| ADD | §2 | Zenith satellite-shadow metric | done | 550 km state, and the umbra and full-sunlight heights; says it is the zenith only | [#61](https://github.com/nathansottung/gps-time/pull/61) |
+| ADD | §3 | Illumination sky map | done | 350 / 550 / 1200 km and custom shells; click to ask about one direction | [#61](https://github.com/nathansottung/gps-time/pull/61) |
+| ADD | §4 | Starlink contamination indicator | done | geometric statements per shell, never a claim that a satellite is visible | [#61](https://github.com/nathansottung/gps-time/pull/61) |
+| ADD | §5 | Satellite ephemeris layer | done | offline TLE cache filled by an operator-run fetcher (the web service never fetches); position, passes, shadow crossings, visible interval; element age shown. One satellite at a time, not a whole constellation | [#61](https://github.com/nathansottung/gps-time/pull/61) |
 | ADD | §6 | Astrophotography darkness card | planned | partial: night/twilight times; no current state | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | ADD | §7 | Solar time (AST, MST, EoT) | planned | partial: solar noon only | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | ADD | §8 | Solar geometry list | planned | partial: rise/set/noon/twilight/daylight | [#10](https://github.com/nathansottung/gps-time/pull/10) |
@@ -251,9 +252,9 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | ADD | AC3 | How long on failover | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | ADD | AC4 | GNSS behaving normally | planned | partial: no integrity baseline |  |
 | ADD | AC5 | Below astronomical twilight now? | planned | partial: times only | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| ADD | AC6 | Shadow altitude at zenith | planned |  |  |
-| ADD | AC7 | 550 km satellites sunlit in field | planned |  |  |
-| ADD | AC8 | When a shell is shadowed | planned |  |  |
+| ADD | AC6 | Shadow altitude at zenith | done |  | [#61](https://github.com/nathansottung/gps-time/pull/61) |
+| ADD | AC7 | 550 km satellites sunlit in field | done | for a direction picked on the sky map; no camera field of view is modeled | [#61](https://github.com/nathansottung/gps-time/pull/61) |
+| ADD | AC8 | When a shell is shadowed | planned | partial: the present state per shell is shown; the time at which a shell goes into shadow is not predicted | [#61](https://github.com/nathansottung/gps-time/pull/61) |
 | ADD | AC9 | Daylight gained/lost | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | ADD | AC10 | Apparent solar time | planned |  |  |
 | ADD | AC11 | Obstructed sky portions | planned |  |  |
@@ -322,7 +323,6 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature E (SDR) |  | Noise floor / occupancy | planned |  |  |
 | Feature E (SDR) |  | WWV/CHU monitoring | planned |  |  |
 | Feature E (SDR) |  | WSPR/FST4W reception | planned |  |  |
-| Feature E (SDR) |  | ADS-B 1090 adapter | planned |  |  |
 | Feature E (SDR) |  | UAT 978 adapter | planned |  |  |
 | Feature E (SDR) |  | Radiosonde reception | planned |  |  |
 | Feature E (SDR) |  | Meteor scatter | planned |  |  |
@@ -333,16 +333,14 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature E (SDR) |  | RF group-delay profiles | planned |  |  |
 | Feature E (SDR) |  | PPS/sample-marker research | planned |  |  |
 | Feature E (SDR) |  | SDR timing tiers | planned |  |  |
-| Feature E (SDR) |  | Fox-hunt TOA/TDoA research | planned |  |  |
 | Feature F (aviation) |  | readsb/dump1090 receiver | planned |  |  |
 | Feature F (aviation) |  | 978 MHz UAT receiver | planned |  |  |
 | Feature F (aviation) |  | External feed adapters (optional) | planned |  |  |
-| Feature F (aviation) |  | MLAT metadata/solver | planned |  |  |
 | Feature F (aviation) |  | Radiosonde tracking | planned |  |  |
 | Feature F (aviation) |  | Topocentric alignment engine | planned |  |  |
-| Feature F (aviation) |  | Sun/Moon transit predictions (OMM+SGP4, aircraft, sondes) | planned |  |  |
+| Feature F (aviation) |  | Sun/Moon transit predictions (OMM+SGP4, aircraft, sondes) | planned | partial: SGP4 satellite passes from TLEs (ADD §5); no Sun/Moon transits, no OMM, no aircraft or sondes | [#61](https://github.com/nathansottung/gps-time/pull/61) |
 | Feature F (aviation) |  | Aircraft predictions as short-term estimates | planned |  |  |
-| Feature F (aviation) |  | Satellite contamination for cameras | planned |  |  |
+| Feature F (aviation) |  | Satellite contamination for cameras | planned | partial: shadow-geometry summary (ADD §4); no camera field of view or exposure planning | [#61](https://github.com/nathansottung/gps-time/pull/61) |
 | Feature G (network) |  | Opt-in request/accept/reject flow | planned |  |  |
 | Feature G (network) |  | Private location shared with solver only | planned |  |  |
 | Feature G (network) |  | Local-first raw data | planned |  |  |
@@ -471,11 +469,11 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Architecture | Coordinator on a stronger machine (not the station Pi): calibration and position solving; offline-capable, no cloud | planned |  |  |
 | RF | Architecture | Event format shared with the station's event model | planned | the station has a generic event schema (OBS §12a) |  |
 | RF | Accuracy | Limits reported with every fix: bandwidth, multipath, geometry, frequency drift | planned | meter-level results are a stretch goal, not a promise |  |
-| RF | Phase 1 | Every node listens to ADS-B at 1090 MHz as the shared reference signal | planned | see also Feature E "ADS-B 1090 adapter" |  |
-| RF | Phase 1 | Coordinator solves each node's clock offset and drift continuously | planned | see also Feature F "MLAT metadata/solver" |  |
+| RF + Feature E (SDR) | Phase 1 | ADS-B 1090 adapter; every RF node listens to ADS-B at 1090 MHz as the shared reference signal | planned | merged row: registry "ADS-B 1090 adapter" and the RF spec's Phase 1 |  |
+| RF + Feature F (aviation) | Phase 1 | MLAT metadata/solver: the coordinator solves each node's clock offset and drift continuously | planned | merged row: registry "MLAT metadata/solver" and the RF spec's Phase 1 |  |
 | RF | Phase 1 | Per node: offset, drift, residual error, calibration quality score, labeled modeled | planned |  |  |
 | RF | Phase 1 | Node positions from each node's own GNSS survey, at the privacy level its owner sets | planned |  |  |
-| RF | Phase 2 | TDOA on other signals: position estimate from three or more nodes, hyperbola line from two | planned | see also Feature E "Fox-hunt TOA/TDoA research" |  |
+| RF + Feature E (SDR) | Phase 2 | Fox-hunt TOA/TDoA: TDOA on other signals, position estimate from three or more nodes, hyperbola line from two | planned | merged row: registry "Fox-hunt TOA/TDoA research" and the RF spec's Phase 2 |  |
 | RF | Phase 2 | Error ellipse and number of nodes with every result, labeled modeled; never a point without its uncertainty | planned |  |  |
 | RF | Phase 2 | Optional known beacon at a surveyed spot to check accuracy continuously | planned |  |  |
 | RF | Phase 3 | Hunt mode: pick a frequency, nodes capture, live map of estimates and error ellipses | planned |  |  |

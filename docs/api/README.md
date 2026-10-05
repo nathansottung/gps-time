@@ -13,6 +13,8 @@ The TypeScript types in `web/src/api/types.ts` mirror these responses, and `web/
 | GET | `/api/diagnostics` | plain-text diagnostic snapshot | none | [→](endpoints.md#get-apidiagnostics) |
 | GET | `/api/history` | chrony tracking-log offset series | none | [→](endpoints.md#get-apihistory) |
 | GET | `/api/stability` | ADEV, MDEV, TDEV of the system clock against kernel PPS | none | [→](endpoints.md#get-apistability) |
+| GET | `/api/shadow` | Earth-shadow geometry over the sky: sunlit / penumbra / umbra per orbital shell | none | [→](endpoints.md#get-apishadow) |
+| GET | `/api/satellites` | satellites from cached orbital elements: position now, passes, shadow crossings | none | [→](endpoints.md#get-apisatellites) |
 | GET | `/api/ntp-service` | chrony's NTP server counters (received, dropped), rates, history | none | [→](endpoints.md#get-apintp-service) |
 | GET | `/api/references` | the station compared with NTP servers not steering its clock | none | [→](endpoints.md#get-apireferences) |
 | GET | `/api/timescales` | TAI, GPS time and week, MJD/JD, leap-second table, UT1 − UTC from a cached file | none | [→](endpoints.md#get-apitimescales) |

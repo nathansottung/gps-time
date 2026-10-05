@@ -81,6 +81,22 @@ If the router's DHCP names the station as the LAN's NTP server (option 42), the 
 
 The main clock shows local time; the station itself stays on UTC. Don't change the Pi's system time zone for this (`timedatectl` is not used anywhere). The zone is found offline from the station's position with `tzfpy` (in the venv), or set in Administration → Local time zone. With the location hidden, the zone is not derived from the position.
 
+## Satellite orbital elements (optional)
+
+Sun & Astronomy → Earth Shadow needs nothing. Sun & Astronomy → Satellites needs orbital elements (TLEs), which come from the Internet and go out of date in days. The web service never fetches them; run this on the station when you want them refreshed:
+
+```sh
+cd /opt/gps-time-pi
+sudo -u gps-time venv/bin/python -m gps_time_pi.tle_fetch --group stations
+sudo -u gps-time venv/bin/python -m gps_time_pi.tle_fetch --list
+```
+
+- `stations` is a small group that holds the ISS. Other CelesTrak groups work the same way (`visual`, `starlink`, …); a large group is a large file.
+- Without Internet on the station, copy a TLE file over and import it: `... -m gps_time_pi.tle_fetch --file my.tle --name mine`.
+- The cache is `/opt/gps-time-pi/tle/`. It is written only when you run the command. The page shows how old the elements are, and marks a satellite unreliable beyond 14 days.
+- No timer is installed. If you add one, the fetcher refuses to download the same group twice within two hours.
+- Details: `../architecture/earth-shadow-and-satellites.md`.
+
 ## Independent references (optional)
 
 Timing → References compares the station with NTP servers that chrony measures but doesn't use to set the clock. It works with whatever such servers chrony already has. To add dedicated ones that can never be selected (`noselect`):

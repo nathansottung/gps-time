@@ -108,6 +108,79 @@ Frequency-stability statistics of the system clock against kernel PPS timestamps
 - The answer is recomputed at most every 60 s. The history is in RAM and starts again when the service restarts.
 - Nothing here depends on the location, so the privacy mode doesn't change it.
 
+## GET /api/shadow
+
+Earth-shadow geometry over the station's sky: where a satellite at a given height is in sunlight, penumbra or umbra. Type: `Shadow`. Background: `architecture/earth-shadow-and-satellites.md`.
+
+Query: `shell` (height in km, 100 to 50000; default 550) selects the shell for `map` and `query`; `az` and `alt` (degrees) ask about one direction.
+
+```json
+{"available": true, "reason": null, "provenance": "modeled", "model": "Conical umbra and penumbra ...", "meaning": "...",
+ "as_of_utc": "2026-10-06T01:00:00+00:00", "location_display": "exact",
+ "sun": {"altitude_deg": -26.94, "azimuth_deg": 289.5, "depression_deg": 26.94, "distance_au": 0.99963,
+         "antisolar": {"azimuth_deg": 109.5, "altitude_deg": 26.94}, "note": "geometric altitude, no refraction; ..."},
+ "darkness": {"stage": "night", "astronomical_darkness": true},
+ "cone": {"umbra_half_angle_deg": 0.2642, "penumbra_half_angle_deg": 0.2691, "umbra_length_km": 1381900, "axis": "..."},
+ "zenith": {"umbra_top_km": 762.8, "penumbra_top_km": 796.7, "ground_state": "UMBRA", "beyond_limit": false,
+            "search_limit_km": 50000.0, "note": "..."},
+ "shells": [{"altitude_km": 550.0, "zenith": "UMBRA", "sunlit_sky_fraction": 0.226, "sunlit_max_altitude_deg": 45,
+             "sunlit_sectors": ["N", "SW", "W", "NW"], "summary": "In Earth's shadow above 45° altitude; ..."}],
+ "map": {"shell_km": 550.0, "alt_step_deg": 2, "az_step_deg": 5, "alts_deg": [0, 2, "..."], "azs_deg": [0, 5, "..."],
+         "rows": ["SSSSUUUU...", "..."]},
+ "query": {"azimuth_deg": 300.0, "altitude_deg": 20.0, "shell_km": 550.0, "state": "SUNLIT", "sunlit_fraction": 1.0,
+           "range_km": 1294.3, "note": "..."},
+ "messages": ["Most satellites at ~550 km LEO should be in Earth's shadow above 45° altitude; ...", "These are geometric predictions ..."]}
+```
+
+- States are `SUNLIT`, `PENUMBRA`, `UMBRA`. In `map.rows` they are the characters `S`, `P`, `U`: one string per altitude in `alts_deg`, one character per azimuth in `azs_deg`.
+- `zenith.umbra_top_km` and `penumbra_top_km` are null in daylight (`ground_state: "SUNLIT"`), and when the line of sight is still in shadow at `search_limit_km` (`beyond_limit: true`).
+- `shells[]` always has 200, 350, 400, 550, 1000, 1200 and 2000 km, plus the requested shell. `sunlit_sky_fraction` covers the sky above 10°, weighted by solid angle. `sunlit_max_altitude_deg` is null when the shell is in shadow everywhere above 10°.
+- `query` is null unless both `az` (0 to 360) and `alt` (0 to 90) are valid. An invalid `shell` falls back to 550.
+- `sunlit_fraction` inside the penumbra is a linear estimate.
+- Everything is `modeled` and geometric: no atmosphere, no refraction. It says whether a satellite there would be sunlit, not that one is there.
+- Needs no ephemeris and no Skyfield.
+- Privacy: `hidden` → `{"available": false, "reason": "...", "location_display": "hidden"}`; `rounded` → computed from the rounded site. No position → `available: false`.
+- Answers are kept for 20 s.
+
+## GET /api/satellites
+
+Individual satellites from the station's cache of orbital elements. Type: `Satellites`. Background: `architecture/earth-shadow-and-satellites.md`.
+
+Query: `sat` (NORAD catalogue number) selects the satellite for `satellite` and `passes`; `q` (up to 40 characters) searches the cache by name or number.
+
+```json
+{"available": true, "reason": null, "provenance": "external", "meaning": "...", "as_of_utc": "...", "location_display": "exact",
+ "cache": {"dir": "/opt/gps-time-pi/tle", "satellites": 14,
+           "groups": [{"group": "stations", "file": "stations.tle", "count": 14, "rejected": 0,
+                       "source": "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
+                       "fetched_utc": "...", "newest_epoch_utc": "...", "oldest_epoch_utc": "..."}],
+           "newest_epoch_utc": "...", "newest_age_days": 1.29, "oldest_age_days": 3.4, "stale_after_days": 14.0,
+           "problems": [], "provenance": "external"},
+ "featured": [{"norad": 25544, "name": "ISS (ZARYA)", "epoch_utc": "...", "age_days": 1.29, "stale": false, "age_note": null,
+               "available": true, "provenance": "modeled", "azimuth_deg": 212.4, "altitude_deg": -31.6, "above_horizon": false,
+               "range_km": 7480.2, "height_km": 418, "angular_speed_deg_s": 0.051, "state": "SUNLIT",
+               "sunlit_fraction": 1.0, "could_be_seen": false}],
+ "satellite": {"...": "as in featured"},
+ "passes": [{"rise": {"utc": "...", "azimuth_deg": 318.2, "altitude_deg": 0.0, "range_km": 2368.4, "state": "SUNLIT"},
+             "culmination": {"...": "..."}, "set": {"...": "..."}, "in_progress": false, "duration_s": 590,
+             "shadow_changes": [{"utc": "...", "kind": "umbra entry", "from": "PENUMBRA", "to": "UMBRA",
+                                 "azimuth_deg": 99.8, "altitude_deg": 28.9}],
+             "visible": {"start_utc": "...", "end_utc": "...", "duration_s": 276, "max_altitude_deg": 48.3, "max_azimuth_deg": 41.7},
+             "sun_altitude_deg": -16.3, "provenance": "predicted"}],
+ "matches": [], "window_hours": 24.0}
+```
+
+- The elements are `external`; a satellite's present position is `modeled`; passes are `predicted`.
+- **Age of the elements:** `epoch_utc` and `age_days` on every satellite, `newest_age_days` on the cache. `stale: true` with an `age_note` beyond 14 days.
+- `rise` is null for a pass already under way (`in_progress: true`); `set` is null for one still up at the end of the search.
+- `shadow_changes[].kind`: `penumbra entry`, `umbra entry`, `umbra exit`, `shadow exit`.
+- `visible` is null when there is no interval that meets all three conditions: at least 10° up, not in the umbra, Sun at least 6° below the horizon. It is geometry only.
+- Without `sat`, the first of ISS (25544) and CSS (48274) found in the cache is used. A satellite that isn't cached gives `satellite.available: false` with a reason and no passes.
+- `available: false` with a `reason` when the cache is empty (the reason says how to fill it), when the `sgp4` package can't be imported, in `hidden` privacy mode, or without a position. `cache` is still reported where it can be.
+- The web service never downloads elements. They come from `python -m gps_time_pi.tle_fetch`, run by the operator.
+- Up to 10 passes in the next 24 h. Answers are kept for 20 s.
+- Demo mode returns a hand-written sample (`demo.note`); it needs no elements.
+
 ## GET /api/ntp-service
 
 chrony's NTP server counters (`chronyc -n serverstats`) with rates and a short history. Type: `NtpService`. Code: `gps_time_pi/ntpservice.py`.
