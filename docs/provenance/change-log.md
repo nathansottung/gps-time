@@ -543,3 +543,12 @@ Display only. The system clock, chrony, logs and every timestamp in the API stay
   - `web/src/lib/localtime.test.ts` (16): zone choice, offsets, DST in both hemispheres and at the transition, 12/24-hour formats, UTC and epoch, the stored preference, the demo adapter's privacy rule.
   - CI runs the real lookup through `tzfpy` on both Python versions (USNO → `America/New_York`).
 - **Checked in the demo:** the header clock, the toggle surviving a reload, and setting an override from Administration. Not yet seen on a Pi; the next `install.sh` run installs `tzfpy` into the venv.
+
+## 2026-10-05 — roadmap: oscillator profile and smaller items (docs/roadmap-oscillator)
+
+- Added `docs/roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (owner-provided, copied verbatim; SHA-256 `6e4c30cf…`) and indexed it. Status FUTURE; none of it blocks v1.4.0. No rows added to `STATUS.md`.
+- Owner-provided documents checked against the owner's copies on 2026-10-05:
+  - `ROADMAP-SDR-RF-OBSERVATORY.md` and `ROADMAP-WEB-UPDATES.md`: byte-identical.
+  - `ROADMAP-DESKTOP-FIELD-APP.md`: differs by one word, on purpose. #13 changed the accuracy table's label from `estimated` to `inferred`, because `estimated` isn't one of the six provenance labels. The repository copy is kept.
+  - The four files from `gps-time-specs.zip`: the archive wasn't available to compare. They have had one commit each since the import (which recorded the archive's SHA-256), so they are unchanged since then.
+  - `GPS-Time-Project-Vision-and-Roadmap.md`: not found on the machine, and not in the repository.
