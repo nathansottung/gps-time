@@ -646,3 +646,19 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - `STATUS.md`: new area TM with 29 rows. 28 are `next`; the installer step of §6 is `done` (#52). The next-5 list's free slot (GPS-021, done in #30) now holds timing metrology.
 - Owner's instruction, 2026-10-04: build §1, §3, §4 and §6 in that order, one PR each; stop before NTS (§2) and PTP (§5) and report.
 - A specification is a requirement, not implemented behavior. No code changed.
+
+## 2026-10-05 — stability analysis: ADEV, MDEV, TDEV (#55)
+
+`specs/SPEC-TIMING-METROLOGY.md` §1. Architecture: `docs/architecture/stability-analysis.md`.
+
+- **New: `gps_time_pi/stability.py`**, pure Python (no NumPy): overlapping Allan deviation, modified Allan deviation, time deviation; power-law noise identification by lag-1 autocorrelation; chi-squared confidence interval for ADEV.
+- **Input.** The fractional second of each kernel PPS timestamp: the system clock against the PPS edges as Linux saw them. Labeled `calculated`, with the measurement layer stated in the payload and on the page. This is not the receiver's electrical PPS and not the oscillator alone.
+- **Difference from the spec's wording.** The spec says "from chrony PPS offset history". chrony reports a PPS offset once per refclock poll (16 s by default), which can't give a 1 s averaging time. The kernel timestamps are the per-second samples chrony's PPS refclock consumes, so they are used.
+- **Storage, RAM only:** 4 h of 1 s samples; 14 d of minute summaries (each minute's last sample for ADEV, its mean for MDEV and TDEV, both exact inputs). Lost on a service restart. Nothing is written to disk.
+- **Honesty rules:** a value needs 3 averaging times of history (4 for MDEV, TDEV); a missing second is a gap and nothing is interpolated; no PPS events means `available: false`, never zero; the payload gives the share of samples taken while chrony had PPS selected.
+- **Confidence bars for ADEV only.** Where there are too few points to identify the noise type, the type from a shorter averaging time is kept and the point is marked as assumed. No interval is calculated for MDEV or TDEV.
+- **`/api/stability`** (recomputed at most once a minute) and **Timing → Stability** in `/app/`: log–log plot with bars, key-point table (1 s, 10 s, 100 s, 1000 s, 1 day; UNKNOWN with the reason where history is too short), and the data behind the values.
+- **Poll timing changed.** The timing-chain service now polls on a fixed grid 0.25 s after each whole second. Before, its period was one second plus the tick's own duration, so the read drifted across the pulse and skipped one from time to time. This changes when the station software looks, nothing in chrony, gpsd or PPS.
+- **Validated against published values** (NIST SP 1065 §12.4): the 9-point NBS set and the 1000-point suite agree to the seven digits published for ADEV, MDEV and TDEV, and for the degrees of freedom (146.177).
+- Tests: `tests/test_stability.py` (33) and `web/src/lib/stability.test.ts` (10). Checked in the demo.
+- Not yet run on a Pi. The cost of a full recalculation on a Pi has not been timed.

@@ -185,7 +185,10 @@ Each runs the real pipeline on synthetic inputs and is marked as synthetic data.
 1. reads the PPS sysfs file;
 2. runs three `chronyc -n` calls every 5 s;
 3. reads the GNSS cache, which never polls gpsd;
-4. evaluates the chain.
+4. evaluates the chain;
+5. hands the newest PPS timestamp to the stability recorder (`architecture/stability-analysis.md`).
+
+Ticks run on a fixed grid, 0.25 s after each whole second, so the read doesn't drift across the pulse and skip one.
 
 It doesn't depend on browser traffic. A tick failure never stops the server. It does **not** change chrony, gpsd or PPS configuration.
 

@@ -81,6 +81,33 @@ System-clock offset history from chrony's tracking log (`GTP_TRACKING_LOG`, defa
 
 If the log is missing, the response is `{"available": false, "points": [], "note": "chrony tracking log not found — add 'log tracking' to chrony.conf"}`. The span covered depends on the log's rotation, so a "7 d" view may show less.
 
+## GET /api/stability
+
+Frequency-stability statistics of the system clock against kernel PPS timestamps: overlapping Allan deviation, modified Allan deviation and time deviation. Type: `Stability`. Background: `architecture/stability-analysis.md`.
+
+```json
+{"available": true, "reason": null, "provenance": "calculated",
+ "measurement_layer": "System clock against kernel PPS timestamps: ...",
+ "confidence": {"level": 0.683, "applies_to": "adev", "method": "...", "noise_provenance": "inferred"},
+ "since_utc": "2026-10-05T01:00:00+00:00", "history_resets": 0, "storage": "RAM only; lost when the service restarts",
+ "series": {"seconds": {"tau0_s": 1.0, "samples": 3600, "gaps": 0, "span_s": 3600.0, "capacity_s": 14400.0, "pps_selected_fraction": 1.0},
+            "minutes": {"tau0_s": 60.0, "samples": 59, "gaps": 0, "span_s": 3540.0, "capacity_s": 1209600.0, "pps_selected_fraction": 1.0}},
+ "points": [{"tau_s": 1.0, "series": "seconds", "adev": 4.4e-07, "adev_terms": 3598, "adev_low": 4.3e-07, "adev_high": 4.5e-07,
+             "edf": 1800.0, "noise": "white PM", "noise_assumed": false, "mdev": 4.4e-07, "mdev_terms": 3598, "tdev_s": 2.5e-07}],
+ "key_points": [{"tau_s": 1.0, "label": "1 s", "point": {"...": "as in points"}, "reason": null},
+                {"tau_s": 86400.0, "label": "1 day", "point": null, "reason": "needs about 3 days of PPS history ..."}],
+ "notes": []}
+```
+
+- `adev` and `mdev` are dimensionless fractional-frequency deviations; `tdev_s` is in seconds.
+- `adev_low`/`adev_high` are the confidence interval for ADEV. They are null when the noise type could not be identified. `noise_assumed: true` means the type from a shorter averaging time was kept.
+- `mdev` and `tdev_s` are null where the data covers 3 but not 4 averaging times.
+- `key_points` always lists 1 s, 10 s, 100 s, 1000 s and 1 day. `point: null` with a `reason` means UNKNOWN: not enough history yet.
+- `pps_selected_fraction` is the share of samples taken while chrony had the PPS refclock selected; null when not known.
+- With no PPS events: `available: false`, a `reason`, and empty `points`.
+- The answer is recomputed at most every 60 s. The history is in RAM and starts again when the service restarts.
+- Nothing here depends on the location, so the privacy mode doesn't change it.
+
 ## GET /api/survey
 
 Position-survey convergence for the History page. Type: `Survey`.
