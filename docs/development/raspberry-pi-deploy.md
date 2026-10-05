@@ -50,6 +50,13 @@ The system Python on Debian 12 (Bookworm, 3.11) and Debian 13 (Trixie, 3.13) is 
 
 Older installs put skyfield into the system Python with `--break-system-packages`. That copy is no longer used. Removing it is optional (`sudo pip3 uninstall --break-system-packages skyfield`), and a full rollback to v1.4.0-rc.1 or earlier still uses it.
 
+## chrony polling the station itself
+
+If the router's DHCP names the station as the LAN's NTP server (option 42), the station receives that too, and Debian's chrony adds it as a source through `sourcedir /run/chrony-dhcp`. The station then polls its own address. That "server" looks like a perfect stratum-1 source, and after a PPS loss chrony can select it and follow itself.
+
+- The station software detects it: `/api` marks the source `is_self`, the Network page shows THIS STATION, it is never counted as a fallback, and if chrony selects it the status is `HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF`.
+- The software doesn't change chrony's configuration. To stop chrony polling it, comment out `sourcedir /run/chrony-dhcp` in `/etc/chrony/chrony.conf` on the station and restart chrony (steps in `../deploy/fresh-pi-install.md`).
+
 ## Local time display
 
 The main clock shows local time; the station itself stays on UTC. Don't change the Pi's system time zone for this (`timedatectl` is not used anywhere). The zone is found offline from the station's position with `tzfpy` (in the venv), or set in Administration → Local time zone. With the location hidden, the zone is not derived from the position.

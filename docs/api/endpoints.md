@@ -15,7 +15,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `timing_status` | the same status as `/api/timing-chain` → `status`; **live mode only** (absent in demo) |
 | `quality` | parsed `chronyc -n tracking`: `system_time_s` (signed, + = system clock fast), `last_offset_s`, `rms_offset_s`, `root_delay_s`, `root_dispersion_s`, plus chrony's text for `frequency` ("x ppm fast/slow"), `residual_freq`, `skew`, `update_interval`, `leap`, `stratum`, `reference`, `ref_time`. `frequency_ppm` appears only in demo payloads. |
 | `fmt` | the server's human-readable strings for the legacy pages |
-| `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample` |
+| `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample`, `is_self` (the source is one of this station's own addresses, so not an external reference) |
 | `sourcestats` | raw `chronyc sourcestats` text |
 | `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
 | `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`; in `hidden` privacy mode `el` and `az` are null), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
@@ -43,6 +43,7 @@ Stage-by-stage status of GNSS → PPS → chrony, the PPS state machine, the sta
 - `gnss`: `receiver_comms`, `satellite_reception`, `nav_time_solution`, `healthy`, plus labeled `fix`, `satellites_visible`, `satellites_used`, `best_cn0`, `median_cn0_used`, `tdop`, `data_age_s`.
 - `chrony`:
   - `available.{tracking,sources,sourcestats}`
+  - `selected.is_self` and `self_sources[]`: chrony sources that are this station's own address. If chrony selects one, the status is `HOLDOVER · NO EXTERNAL REFERENCE · CHRONY SELECTED THIS STATION ITSELF`, never a network failover.
   - `refclocks`: identified from `chrony.conf`, never by name alone
   - `pps_status`, `nmea_status`
   - `pps` and `nmea`: per-refclock labeled reach, offset, error bound, frequency, skew and std dev

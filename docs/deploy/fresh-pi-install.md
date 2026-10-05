@@ -216,6 +216,19 @@ ssh $Pi
   chronyc tracking
   ```
 
+- [ ] chrony isn't polling the station itself. This prints nothing when all is well:
+
+  ```sh
+  for a in $(hostname -I); do chronyc -n sources | grep -F " $a "; done
+  ```
+
+  If it prints a line, your router's DHCP names the station as the LAN's NTP server, and the station received that too (`cat /run/chrony-dhcp/*.sources`). The station must not use itself as a time source. The web pages flag such a source as THIS STATION and never count it as a reference, but chrony still polls it. To stop that, tell chrony on the station to ignore NTP servers from DHCP; it keeps the servers from the generated snippet:
+
+  ```sh
+  sudo sed -i 's|^sourcedir /run/chrony-dhcp|#&|' /etc/chrony/chrony.conf
+  sudo systemctl restart chrony
+  ```
+
 **The station**
 
 - [ ] The service is active, runs as `gps-time` from the venv, and reports the version.

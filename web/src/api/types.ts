@@ -42,6 +42,7 @@ export interface ChronySource {
   reach: string;
   lastrx: string;
   sample: string;
+  is_self?: boolean;   // the source is this station's own address: not an external reference
 }
 
 export interface NtpClient {
@@ -273,7 +274,8 @@ export interface TimingChain {
     nmea_status: string;
     pps: ChronyRefclock | null;
     nmea: ChronyRefclock | null;
-    selected: { name: string; kind: string; stratum: number; is_pps: boolean; is_nmea: boolean } | null;
+    selected: { name: string; kind: string; stratum: number; is_pps: boolean; is_nmea: boolean; is_self?: boolean } | null;
+    self_sources?: string[];   // chrony sources that are this station's own address
     any_selected: boolean;
     tracking: {
       leap: string | null;
