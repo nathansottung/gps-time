@@ -126,6 +126,7 @@ export interface CoreStatus {
   position_provenance: 'live' | 'stored' | 'none' | 'demo';
   sidereal: string | null;
   astro_available: boolean;
+  astro_reason?: string | null;   // why astronomy is unavailable; null when available
   cpu_temp_c: number | null;
   versions: {
     app: string;

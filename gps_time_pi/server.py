@@ -24,6 +24,7 @@ import math
 import os
 import re
 import sys
+import traceback
 from datetime import date as _date
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -156,6 +157,7 @@ def core_api():
         "position_provenance": provenance,
         "sidereal": sidereal_for(cfg, site),
         "astro_available": astro.STATUS["available"],
+        "astro_reason": astro.STATUS["reason"],     # why not, when unavailable; None when available
         "cpu_temp_c": cpu_temp(),
         "versions": {
             "app": __version__,
@@ -176,7 +178,24 @@ def _obs_datetime(d, tzname, at):
     return datetime(d.year, d.month, d.day, h, mi, tzinfo=tz)
 
 
+def _astro_failure(e):
+    """An astronomy calculation raised. Say so with the reason instead of a bare
+    {"error": ...}, which the pages can't tell from "unavailable"; the traceback
+    goes to the journal. Astronomy must never take the timing pages down."""
+    traceback.print_exc()
+    return {"available": False,
+            "reason": f"Astronomy calculation failed ({e.__class__.__name__}: {str(e)[:200]}). "
+                      "See journalctl -u gps-time-pi."}
+
+
 def almanac_api(qs):
+    try:
+        return _almanac_api(qs)
+    except Exception as e:  # noqa: BLE001
+        return _astro_failure(e)
+
+
+def _almanac_api(qs):
     cfg = config.load()
     if cfg.get("location_display") == "hidden":
         return {"available": False, "reason": PRIVACY_HIDDEN_REASON, "location_display": "hidden"}
@@ -230,6 +249,13 @@ _LAST_TARGET = {}
 
 
 def object_api(qs):
+    try:
+        return _object_api(qs)
+    except Exception as e:  # noqa: BLE001
+        return _astro_failure(e)
+
+
+def _object_api(qs):
     q = qs.get("q", [""])[0]
     target = catalog.lookup(q)
     if target is None:

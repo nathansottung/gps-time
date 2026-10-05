@@ -477,3 +477,27 @@ The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI 
 
 - Added `docs/roadmap/ROADMAP-WEB-UPDATES.md` (owner-provided, copied verbatim; SHA-256 `98023c1c…`) and indexed it in `docs/INDEX.md`.
 - Status FUTURE, low priority: not before the station has run stably on v1.4.0. `STATUS.md` lists it as unscheduled work outside the table, with that label. No rows added.
+
+## 2026-10-04 — astronomy says why it is unavailable (#43)
+
+Reported from the first Pi build: the legacy dashboard showed "Astronomy data unavailable." with no reason.
+
+- **What was checked.** With the real DE440s ephemeris, on Python 3.13.15 with numpy 2.5.3 and skyfield 1.55 (the versions the Pi resolves), all nine astronomy functions compute: solar day, daylight deltas, lunar day, night, sky snapshot with and without a target, object report for a planet and a star, sidereal time. So the code path isn't the Pi's cause. **The Pi's own cause isn't known yet**; it needs the station's answer from `/api/almanac`, which now states it.
+- **Defect found: the reason was thrown away.** The widget printed the same sentence for three different cases: the station's `reason`, a server exception (returned as `{"error": ...}`), and no answer at all.
+  - Legacy widget: shows the reason, the error, or "the station did not answer /api/almanac".
+  - `/api/almanac` and `/api/object`: a calculation that raises now answers `{available: false, reason: "Astronomy calculation failed (...)"}`, and the traceback goes to the journal.
+  - `/api` gains `astro_reason`.
+- **Ephemeris reasons are told apart** (`astro.ephemeris_problem`): missing, not readable by the service user, empty or truncated. Before, an unreadable file was reported as missing.
+- **`install.sh`:**
+  - makes the code, the venv, the web UI and the ephemeris world-readable (`chmod -R a+rX`), whatever root's umask was. The state directory and the token file are not touched.
+  - ends with a self-check that imports the astronomy layer **as `gps-time`** and prints `Astronomy: available` or the reason.
+- **Also fixed while testing:**
+  - `astro.night` used the glibc-only `%-d` (GPS-030), which failed on Windows. Linux output is unchanged.
+  - `requirements.txt` caps `numpy<2.7`: skyfield 1.55 assigns `ndarray.dtype`, which NumPy 2.5 deprecates. It still works on 2.5.3, as a warning.
+- **What astronomy needs at runtime, all offline:**
+  - `de440s.bsp` (Sun, Moon, Earth and planets, 1849–2150; the code enforces 1850–2149);
+  - the time scales bundled inside the skyfield package (leap seconds and ΔT, as of that skyfield release);
+  - the star and constellation JSON files in `gps_time_pi/data/`;
+  - the system time-zone database;
+  - the station's position.
+- Tests: `tests/test_astro_status.py` (11, two of them POSIX-only for unreadable files) and `web/src/lib/legacy-almanac.test.ts` (5).

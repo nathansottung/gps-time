@@ -24,6 +24,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `position_provenance` | `live` (current fix), `stored` (saved site), `none`, or `demo` |
 | `sidereal` | local sidereal time `HH:MM:SS`, or null without astronomy or a position. Follows the privacy mode: computed from the rounded site in `rounded`, null in `hidden` (LST − GST is the longitude). |
 | `astro_available` | whether Skyfield/NumPy loaded |
+| `astro_reason` | Why astronomy is unavailable (ephemeris missing, not readable by the service user, truncated; NumPy/Skyfield import failure); `null` when available. It can contain the ephemeris file path. |
 | `cpu_temp_c` | `/sys/class/thermal/thermal_zone0/temp`, or null |
 | `versions` | `app`, `chrony`, `gpsd`, `receiver` ({driver, firmware, path} or null), `python`. `app` is read from the git tag (`gps_time_pi/version.py`): `gps_time_pi/VERSION` in a deploy bundle, else `git describe` in a checkout (e.g. `1.4.0-rc.1`, `1.4.0-rc.1-3-gabc1234`, `-dirty`), else `unknown`. Demo mode reports the real app version. |
 | `demo` | `true` only in demo mode |
@@ -136,6 +137,8 @@ Available responses include `location_display`.
 - `sky`: `{stars, lines, bodies, target}`.
 - `sky_when`, `position_provenance`, `position_age`.
 - `demo: true` in demo mode.
+
+**Unavailable:** `{available: false, reason}`. The reason is the privacy mode, no position, the ephemeris or library problem from `astro_reason`, or `Astronomy calculation failed (<error>)` when a calculation raised (the traceback is in the journal). `/api/object` answers the same way.
 
 Every value is **predicted** (computed from ephemerides for the date).
 
