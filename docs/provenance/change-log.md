@@ -565,7 +565,7 @@ Follow-up to #45, which the owner asked for as "big clock is GPS-derived local t
 - GPS-004 is partly addressed: the `/app/` clocks no longer show the browser's clock as if it were the station's. The legacy dashboard's "UTC reference" card is unchanged.
 - Tests: `clockDiscipline` (4) and `stationInstant` (2); 78 web tests in all. Checked in the demo with the `pps_selected` and `network_failover` scenarios.
 
-## 2026-10-05 — NMEA refclock offset: a measured recommendation (feat/nmea-offset-calibration)
+## 2026-10-05 — NMEA refclock offset: a measured recommendation (#49)
 
 From the owner's list: "Calibrate the NMEA refclock offset from measured data." The project's chrony snippet uses a fixed guess, `offset 0.1`.
 
