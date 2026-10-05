@@ -23,6 +23,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
 | `position_provenance` | `live` (current fix), `stored` (saved site), `none`, or `demo` |
 | `sidereal` | local sidereal time `HH:MM:SS`, or null without astronomy or a position. Follows the privacy mode: computed from the rounded site in `rounded`, null in `hidden` (LST − GST is the longitude). |
+| `timezone` | Zone for local-time **display** (every timestamp in the API stays UTC): `{tz, source, provenance, basis, note}`. `source` is `override` (the operator's setting), `position` (found offline from the station's position; `provenance: calculated`; `basis` is `exact` or `rounded`), or `null` with `tz: null` (the page uses the browser's zone). In `hidden` privacy mode it is never derived from the position. |
 | `astro_available` | whether Skyfield/NumPy loaded |
 | `astro_reason` | Why astronomy is unavailable (ephemeris missing, not readable by the service user, truncated; NumPy/Skyfield import failure); `null` when available. It can contain the ephemeris file path. |
 | `cpu_temp_c` | `/sys/class/thermal/thermal_zone0/temp`, or null |
@@ -219,10 +220,11 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 | Body | Effect | Response |
 |---|---|---|
 | `{"location_display": "exact" \| "rounded" \| "hidden"}` | sets the location privacy mode in `config.json` | `{"ok": true, "location_display": "<mode>"}` |
+| `{"timezone": "<IANA name>"}` or `{"timezone": null}` | sets or clears the local-time display zone override in `config.json`. Display only; the system clock stays on UTC. An unknown name gets **400**. | `{"ok": true, "timezone": "<name>" \| null}` |
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
-| anything else | nothing | **400** `{"ok": false, "error": "expected location_display or reset_site"}` |
+| anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone or reset_site"}` |
 
-The new UI uses `location_display` (Administration → Location privacy). Survey reset remains on the legacy `/admin` page.
+The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). Survey reset remains on the legacy `/admin` page.
 
 ## POST /api/admin
 
@@ -290,6 +292,7 @@ HTML from `gps_time_pi/templates/`, served with `no-store`. They stay until the 
 ## Privacy notes
 
 - **Applied by the server:**
+  - `/api` → `timezone`: in `hidden` mode the zone is never derived from the position (a zone narrows the position to a region); `rounded` mode uses the rounded position. The operator's override is returned in every mode, as their own choice;
   - `/api` → `location`;
   - `/api` → `sidereal`;
   - `/api` → `gps.sats`: azimuth and elevation are null in `hidden` (`config.privacy_sats()`); kept in `exact` and `rounded`;

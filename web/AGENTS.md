@@ -44,6 +44,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `vitest.config.ts` — unit tests for pure logic (`src/**/*.test.ts`); keep logic that needs tests out of components (e.g. `src/lib/banner.ts`)
 - `src/lib/banner.ts` — banner guards: never a bare SYNCHRONIZED; GPS/PPS with a non-PPS selected source shows UNKNOWN (tested in `banner.test.ts`)
 - `src/lib/version.ts` — `UI_VERSION` (build-time tag) and `versionLine()` for the footer: one version when UI and station match, both when they differ, "unknown" rather than a guess (tested in `version.test.ts`)
+- `src/lib/localtime.ts` — main-clock local time: zone choice (station override, zone from station position, else the browser's), offset, DST, UTC and Unix epoch, and the 12/24-hour preference in `localStorage` (tested in `localtime.test.ts`)
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling

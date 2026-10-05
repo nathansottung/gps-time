@@ -14,7 +14,7 @@ import { UI_VERSION } from '../lib/version';
 import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import type {
-  Almanac, CoreStatus, DashboardConfig, DashboardLayout, History, LocationMode, Measured, Satellite,
+  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, Satellite,
   Survey, SystemDiagnostics, TimingChain, TimingEvent, TimingStage,
 } from './types';
 
@@ -48,6 +48,7 @@ function iso(ms: number) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/
 
 export function demoApi(): StationApi {
   let locationMode: LocationMode = 'exact';
+  let tzOverride: string | null = null;
   let layout: DashboardLayout = defaultLayout();
   const delay = <T,>(v: T) => new Promise<T>(res => setTimeout(() => res(v), 60));
 
@@ -60,11 +61,21 @@ export function demoApi(): StationApi {
     return { mode: locationMode, ...SITE };
   }
 
+  // Mirrors gps_time_pi/localtime.py: override first; never from the position in hidden mode.
+  function zone(): DisplayZone {
+    if (tzOverride) return { tz: tzOverride, source: 'override', provenance: null, basis: null, note: 'set by the operator' };
+    if (locationMode === 'hidden') {
+      return { tz: null, source: null, provenance: null, basis: null, note: 'location is hidden: the zone is not derived from the position' };
+    }
+    return { tz: 'America/New_York', source: 'position', provenance: 'calculated', basis: locationMode,
+             note: "from the station's position and bundled zone boundaries (simplified near borders)" };
+  }
+
   return {
     source: 'demo',
     core: () => {
       // Mirrors the server's privacy rules: hidden drops sidereal time and satellite az/el.
-      const c = core(displayed());
+      const c = { ...core(displayed()), timezone: zone() };
       if (locationMode !== 'hidden') return delay(c);
       return delay({ ...c, sidereal: null, gps: { ...c.gps, sats: c.gps.sats.map(s => ({ ...s, az: null, el: null })) } });
     },
@@ -91,6 +102,7 @@ export function demoApi(): StationApi {
     saveDashboard: (l) => { layout = l; return delay({ ok: true as const, dashboard: l }); },
     resetDashboard: () => { layout = defaultLayout(); return delay({ ok: true as const, dashboard: layout }); },
     setLocationDisplay: (mode) => { locationMode = mode; return delay({ ok: true as const, location_display: mode }); },
+    setTimezone: (tz) => { tzOverride = tz || null; return delay({ ok: true as const, timezone: tzOverride }); },
     resetSite: () => delay({ ok: true as const, reset_site: true as const }),
     admin: (action) => delay({ ok: true, action, simulated: true as const, detail: `demo adapter: ${action} was not executed` }),
     auth: () => delay({ demo: true, auth_required: false, admin_configured: false, authenticated: true }),

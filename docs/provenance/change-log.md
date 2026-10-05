@@ -518,3 +518,28 @@ Reported from the first Pi build: "Client list unavailable (chronyc clients not 
 - No change to chrony's configuration or behavior; the helper only reads.
 - Tests: `tests/test_chrony_clients.py` (15): the parser, fresh/stale/missing/future-dated file, the script with a fake chronyc (POSIX: exact command, atomic file, failure removes the list), the unit's user, group, modes and sandbox, and that the web service's unit doesn't get `/run/chrony`.
 - Docs: ADR-0005 update (decision and rejected alternatives), API reference, deploy guide and both checklists (helper status check; rollback removes the unit).
+
+## 2026-10-04 — main clock in local time (#45)
+
+Display only. The system clock, chrony, logs and every timestamp in the API stay on UTC; nothing reads or sets the Pi's system time zone.
+
+- **Zone** (`gps_time_pi/localtime.py`, `/api` → `timezone`), in this order:
+  1. the operator's override (`POST /api/setting {"timezone": ...}`, admin token; Administration → Local time zone);
+  2. the zone found **offline** from the station's position, preferring the surveyed site over a single live fix. Labeled `calculated`;
+  3. none: the page uses the browser's own zone.
+- **Privacy:** a zone narrows the position to a region, so in `hidden` mode it is never derived from the position; the override or the browser's zone is used. `rounded` mode looks up the rounded position only. Same rule as astronomy (`config.privacy_site`).
+- **Library:** `tzfpy==2.1.0`, pinned in `requirements.txt`. One 2.9 MB wheel covers Python 3.11 and 3.13 on aarch64, with no dependencies.
+  - `timezonefinder` was the suggestion, but its current release has no prebuilt wheel for Python 3.13 on aarch64 (the station must never need a compiler), and the version pip falls back to is 44 MB plus a compiled dependency.
+  - tzfpy's zone boundaries are simplified, so a station very close to a zone border may get the neighbouring zone; the override covers that.
+  - The import is guarded like astronomy's: without the library there is no zone and the page uses the browser's.
+- **Main clock** (`/app/` header, `web/src/lib/localtime.ts`):
+  - local time with the zone abbreviation, UTC offset and a DST marker, e.g. `9:15:07 PM EDT UTC−4 · DST`;
+  - beneath it, UTC and the Unix epoch;
+  - a 12/24-hour toggle, remembered per browser in `localStorage`; until chosen it follows the browser's locale;
+  - offsets, abbreviations and DST come from the browser's time-zone database for the chosen zone. Where the browser has only an offset name (`GMT+2`), just the offset is shown.
+- **Unchanged:** the clock still ticks from the browser's clock, as before (GPS-004 is open). The sun and moon times still use the browser's zone.
+- **Tests:**
+  - `tests/test_localtime.py` (18): order of sources; hidden mode makes no lookup; rounded mode looks up the rounded position; override validation; missing library; the setting over HTTP with and without the token; nothing in the code sets a system time zone.
+  - `web/src/lib/localtime.test.ts` (16): zone choice, offsets, DST in both hemispheres and at the transition, 12/24-hour formats, UTC and epoch, the stored preference, the demo adapter's privacy rule.
+  - CI runs the real lookup through `tzfpy` on both Python versions (USNO → `America/New_York`).
+- **Checked in the demo:** the header clock, the toggle surviving a reload, and setting an override from Administration. Not yet seen on a Pi; the next `install.sh` run installs `tzfpy` into the venv.
