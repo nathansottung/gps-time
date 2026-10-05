@@ -7,19 +7,20 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (docs/release-v1.4.0-rc.7, #53). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (docs/spec-timing-metrology, #54). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
 1. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
-4. **Deploy scripts stop on failure** (GPS-021): check every native exit code, verify the uploaded archive's SHA-256 on the Pi before `install.sh`, no fixed `/tmp` name. **Must land before any Pi deploy** (owner, 2026-10-02). *Done in [#30](https://github.com/nathansottung/gps-time/pull/30).*
+4. **Timing metrology** (TM §1, §3, §4, §6; then §2 NTS; then §5 PTP): stability analysis, time scales panel, independent references, smaller items. Owner, 2026-10-04: built now, ahead of items 1–3, one PR per section; stop before NTS and PTP.
 
 ## Decisions
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
+- **2026-10-04, timing metrology:** `specs/SPEC-TIMING-METROLOGY.md` added as NEXT. The owner asked for §1, §3, §4 and §6 to be built now, in that order, one PR each, and for work to stop before NTS (§2) and PTP (§5). Items 1–3 of the list stay pre-release blockers. The former item 4 (GPS-021) was done in [#30](https://github.com/nathansottung/gps-time/pull/30).
 - **2026-10-04, next-5:** shipping `web/dist` was done in [#35](https://github.com/nathansottung/gps-time/pull/35), so the list has 4 items until the owner picks a fifth. Item 4 (GPS-021) is already done.
 - **2026-10-02, deploys:** GPS-021 (deploy scripts stop on failure and verify the upload) is next-5 item 5 and must land before any Pi deploy. Owner decision.
 
@@ -41,6 +42,7 @@ Last updated: 2026-10-05 (docs/release-v1.4.0-rc.7, #53). Built from the specs, 
 | CHG | `specs/CHG-PPS-HEALTH-DIAGNOSTICS.md` |
 | TASK | `specs/TASK-PPS-CHAIN.md` |
 | OBS | `specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md` |
+| TM | `specs/SPEC-TIMING-METROLOGY.md` |
 | ADD | `specs/ADDENDUM-SKY-SOLAR-SATELLITE.md` |
 | Feature A–J | `roadmap/feature-registry.md` sections |
 | Scope | `roadmap/current-scope.md` |
@@ -50,7 +52,7 @@ Last updated: 2026-10-05 (docs/release-v1.4.0-rc.7, #53). Built from the specs, 
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 373 rows: 187 done, 0 in progress, 21 next, 165 planned.
+**Totals:** 402 rows: 188 done, 0 in progress, 49 next, 165 planned.
 
 ## Status table
 
@@ -429,3 +431,32 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Legacy dashboard: satellite C/N₀ bars render (CSS display, not CSP); inline-style and CSP tests | done | fix only, no restyle | [#50](https://github.com/nathansottung/gps-time/pull/50) |
 | Repo |  | Installer disables chrony's DHCP-provided NTP servers, so the station never polls itself | done | one line of `chrony.conf` commented out, original kept; `GTP_KEEP_DHCP_NTP=1` skips it. Not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
 | Repo |  | Tag v1.4.0-rc.7 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#53](https://github.com/nathansottung/gps-time/pull/53) |
+| TM | §1 | Overlapping ADEV, MDEV and TDEV from PPS offset history | next |  |  |
+| TM | §1 | Averaging times from 1 s to the longest span the stored data supports | next |  |  |
+| TM | §1 | Log–log plot with confidence bars; table of key points (1 s, 10 s, 100 s, 1000 s, 1 day) | next |  |  |
+| TM | §1 | Labeled calculated; states the measurement layer (Linux/chrony view of PPS) | next |  |  |
+| TM | §1 | RAM ring for recent seconds, minute summaries for long spans; no extra SD writes | next |  |  |
+| TM | §1 | Math validated against published reference data sets | next |  |  |
+| TM | §2 | Optional chrony NTS server | next | after §1, §3, §4, §6; owner: stop and report before starting |  |
+| TM | §2 | NTS certificates: local CA and public certificate options documented | next |  |  |
+| TM | §2 | NTS off by default; installer flag; chrony unchanged unless the operator turns it on | next |  |  |
+| TM | §2 | Dashboard shows NTS state and certificate expiry | next |  |  |
+| TM | §3 | TAI | next |  |  |
+| TM | §3 | GPS time, GPS week number and seconds of week | next |  |  |
+| TM | §3 | Modified Julian Date and Julian Date | next |  |  |
+| TM | §3 | UTC, local time, Unix epoch, local sidereal time in one panel | next | partial: each exists on its own (big clock #47, sidereal #12) |  |
+| TM | §3 | Leap-second table source, expiry date, warning well before expiry | next |  |  |
+| TM | §3 | Next scheduled leap second, if any | next |  |  |
+| TM | §3 | UT1−UTC only from a cached IERS file, labeled external with its date | next |  |  |
+| TM | §4 | Public servers compared as `noselect` sources | next | changes chrony's configuration |  |
+| TM | §4 | Per-source offset and delay history, labeled external | next |  |  |
+| TM | §4 | Disagreement with most independent references flagged; reported as a disagreement, never a cause | next |  |  |
+| TM | §4 | Works without Internet: "no external references reachable" | next |  |  |
+| TM | §5 | PTP grandmaster (`linuxptp`) disciplined from the same PPS | next | last in the spec's order; hardware-dependent; owner: stop and report before starting |  |
+| TM | §5 | Hardware-timestamping detection at runtime; "not supported on this hardware" on a Pi 4 | next |  |  |
+| TM | §5 | Dashboard shows PTP state, clock class, client count | next |  |  |
+| TM | §5 | PTP off by default | next |  |  |
+| TM | §6 | Installer disables chrony's DHCP-provided sources | done | not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
+| TM | §6 | Configured and suggested NMEA offset side by side | next | partial: both are on the PPS diagnostics page (#49), not side by side |  |
+| TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | next |  |  |
+| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next |  |  |

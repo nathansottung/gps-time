@@ -639,3 +639,10 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - Both deploy checklists target v1.4.0-rc.7.
 - The annotated tag `v1.4.0-rc.7` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 - Not changed, because the facts aren't recorded in the repository: the checklists' statements about how much of the 1.4 line has run on a Pi. Several rc.7 fixes were reported from the first Pi build, so those statements may be out of date; the owner knows what ran.
+
+## 2026-10-05 — spec: timing metrology, time scales and time distribution (#54)
+
+- Added `docs/specs/SPEC-TIMING-METROLOGY.md` (owner-provided, copied verbatim; SHA-256 `dcb3d332…`) and indexed it. Status NEXT.
+- `STATUS.md`: new area TM with 29 rows. 28 are `next`; the installer step of §6 is `done` (#52). The next-5 list's free slot (GPS-021, done in #30) now holds timing metrology.
+- Owner's instruction, 2026-10-04: build §1, §3, §4 and §6 in that order, one PR each; stop before NTS (§2) and PTP (§5) and report.
+- A specification is a requirement, not implemented behavior. No code changed.

@@ -8,6 +8,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `specs/CHG-PPS-HEALTH-DIAGNOSTICS.md` — REQUIRED change: PPS health, failure diagnostics, timing-chain observability, 20 required tests
 - `specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md` — timing-pipeline stages, PPS-loss events and graphs, holdover projections, GNSS integrity/interference/spoofing monitoring
 - `specs/ADDENDUM-SKY-SOLAR-SATELLITE.md` — roadmap addendum: Earth shadow and satellite illumination, solar time and geometry, sky obstruction, observing conditions, provenance
+- `specs/SPEC-TIMING-METROLOGY.md` — NEXT: stability analysis (ADEV/MDEV/TDEV), time scales panel, independent references, smaller items; then NTS, then PTP output
 - `specs/TASK-PPS-CHAIN.md` — implementation task for the PPS timing-chain backend (branch `feat/pps-chain`)
 
 ## Architecture
