@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from . import chrony
+from . import chrony, stability
 from .labels import q
 from .pps import PPSMonitor
 
@@ -791,6 +791,7 @@ class TimingChainService:
         self.boot_config_reader = boot_config_reader or pps.boot_pps_config
         self.clock = clock
         self.sm = PPSStateMachine()
+        self.stability = stability.Recorder(clock=clock)   # RAM-only phase history for /api/stability
         self._chrony_inputs, self._chrony_at = None, None
         self._refcfg = None
         self._boot = None
@@ -823,6 +824,10 @@ class TimingChainService:
         chain = build_chain(pps_snap, pps_state, gnss, cv, status, events=self.tracker.view(), now=now, boot=boot)
         chain["raw"] = {k: self._chrony_inputs.get(f"{k}_text") if self._chrony_inputs.get(f"{k}_ok") else None
                         for k in ("tracking", "sources", "sourcestats")}
+        last = self.monitor.last_event()
+        if last is not None:
+            # One phase sample per kernel PPS event; the recorder ignores a repeat.
+            self.stability.add(last[1], status.get("code") == "GPS_PPS")
         with self._lock:
             self._latest = chain
         return chain
@@ -845,7 +850,7 @@ class TimingChainService:
                 self.tick()
             except Exception:  # noqa: BLE001 — observability must never take the server down
                 pass
-            stop.wait(interval)
+            stop.wait(next_tick_delay(self.clock(), interval))
 
     def start(self, interval=1.0):
         if self._thread and self._thread.is_alive():
@@ -862,6 +867,18 @@ class TimingChainService:
         if self._thread:
             self._thread.join(timeout)
         self._thread = self._stop = None
+
+
+TICK_PHASE_S = 0.25
+
+
+def next_tick_delay(now, interval=1.0, phase=TICK_PHASE_S):
+    """Seconds until the next poll, on a fixed grid `phase` after each whole
+    interval of the clock. Sleeping a fixed interval after each tick would make
+    the period interval + the tick's own duration, so the poll would drift
+    across the PPS edge and skip a pulse every so often. With the clock on PPS
+    the pulse lands on the second, and a poll 0.25 s later sees each one once."""
+    return interval - ((now - phase) % interval)
 
 
 SERVICE = None

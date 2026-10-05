@@ -1,9 +1,10 @@
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
-  ScatterChart, Scatter, BarChart, Bar, Cell,
+  ScatterChart, Scatter, BarChart, Bar, Cell, ErrorBar,
   ResponsiveContainer,
 } from 'recharts';
+import { decadeTicks, fmtDeviation, fmtInterval, fmtTau, valueExtent, type StabilityMetric, type StabilityRow } from '../lib/stability';
 
 // Shared tick style
 const TICK = { fontSize: 9, fontFamily: 'JetBrains Mono', fill: 'var(--t3)' } as const;
@@ -204,6 +205,47 @@ export function SolarCurve({ data }: { data: { h: number; w: number }[] }) {
         <Tooltip content={<ChartTip unit="W/m²"/>}/>
         <Area type="monotone" dataKey="w" stroke="var(--warn-text)" strokeWidth={1.5} fill="url(#solFill)" dot={false}/>
       </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Stability (ADEV / MDEV / TDEV), log–log ─────────────────────────────────
+const SUP: Record<string, string> = { '-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' };
+const pow10 = (v: number) => `10${String(Math.round(Math.log10(v))).split('').map(c => SUP[c]).join('')}`;
+
+function StabilityTip({ active, payload, metric }: any) {
+  if (!active || !payload?.length) return null;
+  const r: StabilityRow = payload[0].payload;
+  const interval = metric === 'adev' ? fmtInterval(r.point) : null;
+  return (
+    <div className="chart-tip">
+      <div style={{ color:'var(--t3)', marginBottom:2 }}>τ = {fmtTau(r.tau)}</div>
+      <div style={{ color:'var(--live)' }}>{fmtDeviation(r.v, metric)}</div>
+      {interval && <div style={{ color:'var(--t3)' }}>{interval}</div>}
+    </div>
+  );
+}
+
+export function StabilityChart({ rows, metric }: { rows: StabilityRow[]; metric: StabilityMetric }) {
+  const extent = valueExtent(rows);
+  if (!extent) return null;
+  const yTicks = decadeTicks(extent[0], extent[1]);
+  const xTicks = decadeTicks(rows[0].tau, rows[rows.length - 1].tau);
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <LineChart data={rows} margin={{ top:8, right:12, left:0, bottom:0 }}>
+        <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
+        <XAxis dataKey="tau" type="number" scale="log" domain={[xTicks[0], xTicks[xTicks.length - 1]]} ticks={xTicks}
+               tickFormatter={fmtTau} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} allowDataOverflow/>
+        <YAxis type="number" scale="log" domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks}
+               tickFormatter={metric === 'tdev' ? (v: number) => fmtDeviation(v, 'tdev') ?? '' : pow10}
+               tick={TICK} tickLine={false} axisLine={false} width={metric === 'tdev' ? 46 : 34} allowDataOverflow/>
+        <Tooltip content={<StabilityTip metric={metric}/>}/>
+        <Line type="linear" dataKey="v" stroke="var(--live)" strokeWidth={1.5} isAnimationActive={false}
+              dot={{ r:2, fill:'var(--live)', strokeWidth:0 }} activeDot={{ r:3, fill:'var(--live)', strokeWidth:0 }}>
+          {metric === 'adev' && <ErrorBar dataKey="err" direction="y" width={3} stroke="var(--t3)" strokeWidth={1}/>}
+        </Line>
+      </LineChart>
     </ResponsiveContainer>
   );
 }

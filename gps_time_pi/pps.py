@@ -134,6 +134,11 @@ class PPSMonitor:
             self._last = (seq, ts)
             self._events.append((seq, ts))
 
+    def last_event(self):
+        """(sequence, kernel timestamp) of the newest observed event, or None."""
+        with self._lock:
+            return self._last
+
     def _device_state(self):
         if self._device_state_fn:
             return self._device_state_fn()

@@ -48,6 +48,7 @@ CI (`.github/workflows/`):
 ## Where things are
 
 - **Timing chain** (GNSS → PPS → chrony stages, PPS state machine, status banner, outage events, boot rule): `gps_time_pi/timing_chain.py`, `gps_time_pi/pps.py`. Architecture doc: `docs/architecture/timing-chain.md`.
+- **Stability analysis** (ADEV, MDEV, TDEV from kernel PPS timestamps; RAM only): `gps_time_pi/stability.py`, `/api/stability`. Architecture doc: `docs/architecture/stability-analysis.md`.
 - **chrony parsing:** `gps_time_pi/chrony.py`. Always `chronyc -n`. Refclocks are identified from `chrony.conf`, never by name alone.
 - **Local-time display zone** (display only; the system stays on UTC): `gps_time_pi/localtime.py` (override, offline lookup with `tzfpy`, privacy rule), `web/src/lib/localtime.ts`.
 - **GNSS collection and survey:** `gps_time_pi/gps.py` (background collector, fresh-epoch gating), `gps_time_pi/config.py` (persistence: SIGTERM flush, fsync, `config.json.prev`, corrupt files set aside).

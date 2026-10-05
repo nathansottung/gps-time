@@ -16,6 +16,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `architecture/compute-tiers.md`
 - `architecture/observation-model.md`
 - `architecture/timing-core-boundaries.md`
+- `architecture/stability-analysis.md` — ADEV/MDEV/TDEV: what is measured, confidence bars, RAM storage, validation against NIST SP 1065
 - `architecture/timing-chain.md` — GNSS → PPS → chrony stages, PPS state machine, status banner, outage events, `/api/timing-chain`
 
 ## Roadmap

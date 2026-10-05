@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import type {
   Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, Satellite,
-  Survey, SystemDiagnostics, TimingChain, TimingEvent, TimingStage,
+  Stability, StabilityPoint, Survey, SystemDiagnostics, TimingChain, TimingEvent, TimingStage,
 } from './types';
 
 const SITE = { lat: 38.9217, lon: -77.0669, alt_msl: 92.0, alt_hae: 59.0 };
@@ -81,6 +81,7 @@ export function demoApi(): StationApi {
     },
     timingChain: (o) => delay(timingChain(o?.scenario)),
     history: () => delay(history()),
+    stability: () => delay(stability()),
     survey: () => delay(survey()),
     system: () => delay(system()),
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
@@ -352,6 +353,45 @@ function history(): History {
     return { t, offset_s: 12e-9 + Math.sin(i * 0.15) * 6e-9 + noise(i) * 10e-9 + spike, err_s: 4e-9 + Math.abs(noise(i + 7)) * 4e-9 };
   });
   return { available: true, points, note: 'demo adapter sample data' };
+}
+
+function stability(): Stability {
+  // White phase noise of 250 ns: ADEV = √3·σ/τ, MDEV falls as τ^-1.5; a small
+  // floor stands in for slow wander. Not a measurement.
+  const sigma = 250e-9;
+  const mk = (tau: number, series: 'seconds' | 'minutes', n: number): StabilityPoint => {
+    const m = tau / (series === 'seconds' ? 1 : 60);
+    const adev = Math.hypot(Math.sqrt(3) * sigma / tau, 4e-12);
+    const mdev = Math.hypot(Math.sqrt(3) * sigma / tau ** 1.5, 1.5e-12);
+    const edf = Math.max(8, (n - 2 * m) / 2);
+    const spread = 1 / Math.sqrt(2 * edf);
+    return { tau_s: tau, series, adev, adev_terms: n - 2 * m,
+             adev_low: adev * (1 - spread), adev_high: adev * (1 + spread), edf,
+             noise: 'white PM', noise_assumed: n / m < 30,
+             mdev, mdev_terms: n - 3 * m + 1, tdev_s: tau * mdev / Math.sqrt(3) };
+  };
+  const points = [
+    ...[1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000].map(t => mk(t, 'seconds', 14400)),
+    ...[3600, 7200, 18000, 36000, 86400].map(t => mk(t, 'minutes', 7200)),
+  ];
+  const key = (tau: number, label: string) => ({ tau_s: tau, label, point: points.find(p => p.tau_s === tau) ?? null, reason: null });
+  return {
+    available: true, reason: null, provenance: 'calculated',
+    measurement_layer: "System clock against kernel PPS timestamps: the Linux/chrony view of PPS, including interrupt latency and chrony's loop. Not the receiver's electrical PPS and not the oscillator alone.",
+    method: 'Overlapping Allan deviation, modified Allan deviation and time deviation (NIST SP 1065). Input: the fractional second of each kernel PPS timestamp. Up to 2000 s from 1 s samples; from 1 h from minute summaries (last sample of each minute for ADEV, minute mean for MDEV and TDEV).',
+    confidence: { level: 0.683, applies_to: 'adev', noise_provenance: 'inferred',
+                  method: 'Chi-squared interval; degrees of freedom from the power-law noise type identified by lag-1 autocorrelation (SP 1065 sections 5.4.1 and 5.5.6). No interval is calculated for MDEV or TDEV.' },
+    storage: 'RAM only; lost when the service restarts',
+    since_utc: new Date(Date.now() - 5 * 86400e3).toISOString(),
+    history_resets: 0,
+    series: {
+      seconds: { tau0_s: 1, samples: 14400, gaps: 0, span_s: 14400, capacity_s: 14400, pps_selected_fraction: 1 },
+      minutes: { tau0_s: 60, samples: 7200, gaps: 0, span_s: 432000, capacity_s: 1209600, pps_selected_fraction: 1 },
+    },
+    points,
+    key_points: [key(1, '1 s'), key(10, '10 s'), key(100, '100 s'), key(1000, '1000 s'), key(86400, '1 day')],
+    notes: ['sample data'],
+  };
 }
 
 function survey(): Survey {

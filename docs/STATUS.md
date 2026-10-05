@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (docs/spec-timing-metrology, #54). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/stability-analysis, #55). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -52,7 +52,7 @@ Last updated: 2026-10-05 (docs/spec-timing-metrology, #54). Built from the specs
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 402 rows: 188 done, 0 in progress, 49 next, 165 planned.
+**Totals:** 402 rows: 194 done, 0 in progress, 43 next, 165 planned.
 
 ## Status table
 
@@ -263,7 +263,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature A |  | Source-loss / fallback / reacquisition timeline | next | partial: backend + event list | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Oscillator fractional-frequency history | planned |  |  |
 | Feature A |  | Time-to-1 ms…1 s holdover estimates | planned | partial: legacy raw projection |  |
-| Feature A |  | ADEV / MDEV / TDEV / TIE / MTIE | planned |  |  |
+| Feature A |  | ADEV / MDEV / TDEV / TIE / MTIE | planned | partial: ADEV, MDEV, TDEV done (TM §1); TIE and MTIE not | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | Feature A |  | Error budget + light-distance | planned | partial: light-distance done | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Antenna/coax/user-delay calibration | planned |  |  |
 | Feature A |  | PTP / PHC / NIC timestamps | planned | research |  |
@@ -431,12 +431,12 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Legacy dashboard: satellite C/N₀ bars render (CSS display, not CSP); inline-style and CSP tests | done | fix only, no restyle | [#50](https://github.com/nathansottung/gps-time/pull/50) |
 | Repo |  | Installer disables chrony's DHCP-provided NTP servers, so the station never polls itself | done | one line of `chrony.conf` commented out, original kept; `GTP_KEEP_DHCP_NTP=1` skips it. Not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
 | Repo |  | Tag v1.4.0-rc.7 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#53](https://github.com/nathansottung/gps-time/pull/53) |
-| TM | §1 | Overlapping ADEV, MDEV and TDEV from PPS offset history | next |  |  |
-| TM | §1 | Averaging times from 1 s to the longest span the stored data supports | next |  |  |
-| TM | §1 | Log–log plot with confidence bars; table of key points (1 s, 10 s, 100 s, 1000 s, 1 day) | next |  |  |
-| TM | §1 | Labeled calculated; states the measurement layer (Linux/chrony view of PPS) | next |  |  |
-| TM | §1 | RAM ring for recent seconds, minute summaries for long spans; no extra SD writes | next |  |  |
-| TM | §1 | Math validated against published reference data sets | next |  |  |
+| TM | §1 | Overlapping ADEV, MDEV and TDEV from PPS offset history | done | from kernel PPS timestamps (the samples behind chrony's PPS offset; chrony reports one only every 16 s). Not yet run on a Pi | [#55](https://github.com/nathansottung/gps-time/pull/55) |
+| TM | §1 | Averaging times from 1 s to the longest span the stored data supports | done | 1 s to 2 d; needs 3 averaging times of history (4 for MDEV, TDEV) | [#55](https://github.com/nathansottung/gps-time/pull/55) |
+| TM | §1 | Log–log plot with confidence bars; table of key points (1 s, 10 s, 100 s, 1000 s, 1 day) | done | bars for ADEV only; none calculated for MDEV or TDEV | [#55](https://github.com/nathansottung/gps-time/pull/55) |
+| TM | §1 | Labeled calculated; states the measurement layer (Linux/chrony view of PPS) | done |  | [#55](https://github.com/nathansottung/gps-time/pull/55) |
+| TM | §1 | RAM ring for recent seconds, minute summaries for long spans; no extra SD writes | done | 4 h of seconds, 14 d of minutes; lost on a service restart | [#55](https://github.com/nathansottung/gps-time/pull/55) |
+| TM | §1 | Math validated against published reference data sets | done | NIST SP 1065 §12.4: 9-point and 1000-point sets | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | TM | §2 | Optional chrony NTS server | next | after §1, §3, §4, §6; owner: stop and report before starting |  |
 | TM | §2 | NTS certificates: local CA and public certificate options documented | next |  |  |
 | TM | §2 | NTS off by default; installer flag; chrony unchanged unless the operator turns it on | next |  |  |
@@ -459,4 +459,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | Installer disables chrony's DHCP-provided sources | done | not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
 | TM | §6 | Configured and suggested NMEA offset side by side | next | partial: both are on the PPS diagnostics page (#49), not side by side |  |
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | next |  |  |
-| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next |  |  |
+| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1 done | [#55](https://github.com/nathansottung/gps-time/pull/55) |

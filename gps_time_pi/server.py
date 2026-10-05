@@ -363,6 +363,12 @@ def timing_chain_payload(qs):
     return timing_chain.service().latest()
 
 
+def stability_payload():
+    if DEMO_MODE:
+        return demo.stability()
+    return timing_chain.service().stability.report()
+
+
 def diagnostics_text(qs):
     chain = timing_chain_payload(qs)
     cfg = config.load()
@@ -552,6 +558,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(demo.history() if DEMO_MODE else chrony.history())
             elif p == "/api/timing-chain":
                 self._json(timing_chain_payload(qs))
+            elif p == "/api/stability":
+                self._json(stability_payload())
             elif p == "/api/diagnostics":
                 self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
