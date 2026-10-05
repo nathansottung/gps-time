@@ -697,3 +697,20 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - **Timing → References** in `/app/`: the outcome, the server table (offset, bound, delay, comparison), the servers not counted and why, and offset and delay history for one server.
 - Tests: `tests/test_references.py` (41; 8 of them run the installer script and are POSIX-only), `tests/test_chrony_clients.py` updated for the second report, `web/src/lib/references.test.ts` (9). Checked in the demo with `?refs=disagree`.
 - Not yet run on a Pi. Not confirmed there: the state symbol chrony shows for a `noselect` server (the code doesn't depend on it), and that `ntpdata` is readable by `_chrony` over the socket.
+
+## 2026-10-05 — NTP service counters; NMEA offsets side by side (#58)
+
+`specs/SPEC-TIMING-METROLOGY.md` §6, the two remaining smaller items. The third, the installer's DHCP step, was #52.
+
+- **NTP service view** (`gps_time_pi/ntpservice.py`, `/api/ntp-service`, Network page in `/app/`):
+  - chrony's own counters from `chronyc -n serverstats`: NTP packets received and dropped (`observed`), with the share dropped, request rates over the last minute and hour, and a requests-per-minute chart (`calculated`).
+  - **"Served" is not a chrony counter.** chrony counts packets received and packets dropped under its rate limit; it does not count replies. The page shows "not dropped (received − dropped)" as the nearest figure and says so.
+  - "Dropped" is described only as chrony describes it (its rate limit). No other reason is inferred.
+  - History: RAM only, one sample a minute, 24 h. The counters restart at zero with chronyd; the tracker notices, counts the restart and starts the history again.
+  - Unreadable counters give UNKNOWN with the reason, never zeros.
+  - `serverstats` needs chronyd's Unix socket, so the `_chrony` helper publishes it as a third fixed report (`chrony-serverstats.txt`), like the client list and `ntpdata`. ADR-0005 updated.
+  - The Network page's "Request rate" row was a demo-only placeholder; it now shows the measured rate.
+- **NMEA refclock offset** on the PPS diagnostics page: the configured value and the suggested value are now shown side by side, with the difference in milliseconds. When the suggestion can't be measured (PPS not selected, too few samples), its side reads UNKNOWN with the reason; the configured side still shows. The calculation from #49 is unchanged, and the station still never edits `chrony.conf`.
+- Tests: `tests/test_ntp_service.py` (17), `tests/test_chrony_clients.py` updated for the third report, `web/src/lib/ntpservice.test.ts` (10). Checked in the demo.
+- Not yet run on a Pi: that `_chrony` can read `serverstats` over the socket is expected from chrony's design, not confirmed.
+- With this, `SPEC-TIMING-METROLOGY.md` §1, §3, §4 and §6 are done. §2 (NTS) and §5 (PTP) are not started, on the owner's instruction to stop and report first.

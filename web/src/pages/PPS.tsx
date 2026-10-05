@@ -11,6 +11,7 @@ import { allEvents } from '../api/view';
 import type { Measured, TimingChain, TimingEvent } from '../api/types';
 import { fmtDuration, fmtSeconds, fmtUtc } from '../lib/format';
 import { copyText, downloadText, snapshotFilename } from '../lib/export';
+import { nmeaCompare } from '../lib/ntpservice';
 
 const val = <T,>(m: Measured<T> | null | undefined): T | null => (m ? m.value : null);
 const sec = (s: number | null | undefined) => (s === null || s === undefined ? null : fmtSeconds(s, 3));
@@ -271,19 +272,40 @@ export default function PPS() {
         {(() => {
           const cal = ch.nmea_calibration;
           if (!cal) return <div className="text-[11px]" style={{ color: 'var(--t3)' }}>Not reported by this station version.</div>;
+          const cmp = nmeaCompare(cal);
           return (
             <>
-              <MetricRow label="Configured offset (chrony.conf)" value={cal.configured_offset_s ? val(cal.configured_offset_s) : null} unit="s" provenance="observed" />
+              <div className="grid grid-cols-2 gap-4 mb-2">
+                <div className="px-3 py-2 rounded-[2px]" style={{ background: 'var(--bg)', border: '1px solid var(--border-dim)' }}>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--t3)' }}>Configured (chrony.conf)</div>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    {cmp.configured
+                      ? <span className="mono tabular text-base font-medium" style={{ color: 'var(--t1)' }}>{cmp.configured}</span>
+                      : <StatusBadge variant="muted" label="UNKNOWN" dot={false} />}
+                    <ProvenanceTag type="observed" />
+                  </div>
+                </div>
+                <div className="px-3 py-2 rounded-[2px]" style={{ background: 'var(--bg)', border: '1px solid var(--border-dim)' }}>
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--t3)' }}>Suggested (measured)</div>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    {cmp.suggested
+                      ? <>
+                          <span className="mono tabular text-base font-medium" style={{ color: 'var(--t1)' }}>{cmp.suggested}</span>
+                          <span className="mono tabular text-[11px]" style={{ color: cmp.same ? 'var(--t3)' : 'var(--warn-text)' }}>{cmp.same ? 'same' : cmp.difference}</span>
+                        </>
+                      : <StatusBadge variant="muted" label="UNKNOWN" dot={false} />}
+                    <ProvenanceTag type="calculated" />
+                  </div>
+                  {!cmp.suggested && <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>{cmp.suggestedReason}</div>}
+                </div>
+              </div>
               {cal.available ? (
                 <>
                   <MetricRow label="Residual vs PPS-disciplined clock" value={signed(val(cal.residual_s!))} provenance="observed" />
                   <MetricRow label="Std. dev. / samples" value={`${fmtSeconds(val(cal.std_dev_s!)) ?? '—'} / ${val(cal.samples!)}`} provenance="observed" />
-                  <MetricRow label="Suggested offset" value={val(cal.suggested_offset_s!)} unit="s" provenance="calculated" />
                   <div className="text-[10px] mt-1" style={{ color: cal.change_worthwhile ? 'var(--t2)' : 'var(--t4)' }}>{cal.advice}</div>
                 </>
-              ) : (
-                <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>Not measurable now: {cal.reason}.</div>
-              )}
+              ) : null}
               <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>
                 A positive residual means the serial time still arrives late. The station only reports this; it never edits chrony.conf.
                 The PPS refclock uses NMEA to number its seconds, so NMEA needs to be right to a fraction of a second, not better.

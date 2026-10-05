@@ -2,6 +2,7 @@
 # Publishes read-only chronyc reports for the unprivileged web service:
 #   chronyc -n clients  -> chrony-clients.txt  (NTP client list)
 #   chronyc -n ntpdata  -> chrony-ntpdata.txt  (per-server delay, for independent references)
+#   chronyc -n serverstats -> chrony-serverstats.txt  (NTP packets received and dropped)
 #
 # chronyd answers these only over its Unix socket, and chronyc must create
 # its reply socket inside /run/chrony to use it. The web service (user
@@ -14,7 +15,7 @@ OUT_DIR="${RUNTIME_DIRECTORY:-/run/gps-time-pi}"
 INTERVAL="${GTP_CLIENTS_INTERVAL_S:-15}"
 declare -A last_error
 while true; do
-  for cmd in clients ntpdata; do
+  for cmd in clients ntpdata serverstats; do
     OUT="$OUT_DIR/chrony-$cmd.txt"
     if out=$(chronyc -n "$cmd" 2>&1); then
       if printf '%s\n' "$out" > "$OUT.tmp" && mv -f "$OUT.tmp" "$OUT"; then

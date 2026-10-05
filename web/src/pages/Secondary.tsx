@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag } from '../components/ui';
-import { SolarCurve } from '../components/charts';
+import { OffsetChart, SolarCurve } from '../components/charts';
+import { fmtCount, fmtPerMin, fmtShare, requestSeries, serviceLabel, serviceVariant } from '../lib/ntpservice';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
 import type { AuthState, LocationMode, LunarDay, SolarDay } from '../api/types';
 import type { Polled } from '../api/station';
-import { adsbStats, dataPacks, ntpRequestRatePerMin } from '../api/previews';
+import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { browserTimeZone, fmtClock, fmtDuration, fmtUtc } from '../lib/format';
 import { isValidZone, resolveZone, zoneNames } from '../lib/localtime';
@@ -175,8 +176,11 @@ function SciValueInline({ value, unit, sub }: { value: string; unit: string; sub
 
 // ─── Network & Devices ────────────────────────────────────────────────────────
 export function Network() {
-  const { core, chain, isDemo } = useStation();
+  const { api, core, chain } = useStation();
   const clk = useBrowserClock();
+  const ntp = usePoll(() => api.ntpService(), 30_000, [api]);
+  const svc = ntp.data;
+  const reqSeries = requestSeries(svc?.history);
   const q = core.data?.quality;
   const clients = core.data?.clients ?? [];
   const status = chain.data?.status;
@@ -195,8 +199,7 @@ export function Network() {
             <MetricRow label="Reference" value={q?.reference ?? null} />
             <MetricRow label="Leap status" value={q?.leap ?? null} />
             <MetricRow label="Clients seen" value={ntpClientCount(core.data, chain.data)} provenance="observed" />
-            {/* planned: needs chronyc serverstats parsing */}
-            <MetricRow label="Request rate" value={isDemo ? `${ntpRequestRatePerMin} req/min` : null} muted={!isDemo} />
+            <MetricRow label="Request rate (last minute)" value={fmtPerMin(ntp.data?.rates?.last_minute.received_per_s.value)} provenance="calculated" />
           </CardBody>
         </Card>
         <Card>
@@ -225,6 +228,39 @@ export function Network() {
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader title="NTP Service (chrony serverstats)" badge={<ProvenanceTag type="observed" />}
+          action={<StatusBadge variant={serviceVariant(svc?.state)} label={serviceLabel(svc?.state)} dot={false} />} />
+        <CardBody>
+          <ApiErrorNote error={ntp.error} />
+          {svc && !svc.available && <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>{svc.reason}</div>}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <MetricRow label="NTP packets received" value={fmtCount(svc?.ntp?.received.value)} provenance="observed" />
+              <MetricRow label="Dropped (chrony rate limit)" value={fmtCount(svc?.ntp?.dropped.value)} provenance="observed" />
+              <MetricRow label="Not dropped (received − dropped)" value={fmtCount(svc?.ntp?.not_dropped.value)} provenance="calculated" />
+              <MetricRow label="Share dropped" value={fmtShare(svc?.ntp?.drop_fraction.value)} provenance="calculated" />
+              <MetricRow label="Requests, last minute" value={fmtPerMin(svc?.rates?.last_minute.received_per_s.value)} provenance="calculated" />
+              <MetricRow label="Requests, last hour" value={fmtPerMin(svc?.rates?.last_hour.received_per_s.value)} provenance="calculated" />
+              <MetricRow label="Dropped, last hour" value={fmtPerMin(svc?.rates?.last_hour.dropped_per_s.value)} provenance="calculated" />
+            </div>
+            <div>
+              <div className="text-[10px] mb-1" style={{ color:'var(--t3)' }}>Requests per minute</div>
+              {reqSeries.length
+                ? <OffsetChart data={reqSeries} range="24h" unit="/min" />
+                : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
+                    {svc?.available ? 'No history yet (one sample a minute).' : 'UNKNOWN'}
+                  </div>}
+            </div>
+          </div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+            Totals count from when chronyd started{svc?.counter_resets ? ` (it restarted ${svc.counter_resets} time(s) while the station was watching)` : ''}.
+            chrony does not count the replies it sent, so "not dropped" is the nearest figure to requests served.
+            {svc?.state_basis ? ` Status is judged ${svc.state_basis}.` : ''}
+          </div>
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader title="NTP Clients" badge={<ProvenanceTag type="observed" />} />

@@ -344,6 +344,44 @@ def ntpdata():
     return parse_ntpdata(out)
 
 
+SERVERSTATS_FILE = os.environ.get("GTP_CHRONY_SERVERSTATS_FILE", "/run/gps-time-pi/chrony-serverstats.txt")
+
+_SERVERSTATS_KEYS = {
+    "NTP packets received": "ntp_received", "NTP packets dropped": "ntp_dropped",
+    "Command packets received": "cmd_received", "Command packets dropped": "cmd_dropped",
+    "Client log records dropped": "client_log_dropped",
+    "NTS-KE connections accepted": "nts_ke_accepted", "NTS-KE connections dropped": "nts_ke_dropped",
+    "Authenticated NTP packets": "ntp_authenticated", "Interleaved NTP packets": "ntp_interleaved",
+}
+
+
+def parse_serverstats(text):
+    """`chronyc -n serverstats` -> {counter: int} for the counters this
+    project names; None when the text has no "NTP packets received" line
+    (an error message, or nothing). Pure."""
+    out = {}
+    for line in (text or "").splitlines():
+        if ":" not in line:
+            continue
+        key, value = (part.strip() for part in line.split(":", 1))
+        name = _SERVERSTATS_KEYS.get(key)
+        if name and re.fullmatch(r"\d+", value):
+            out[name] = int(value)
+    return out if "ntp_received" in out else None
+
+
+def serverstats():
+    """chrony's NTP server counters, or None when they can't be read
+    (UNKNOWN). Source: the helper service's published `chronyc -n
+    serverstats`; else chronyc directly, which works only as root."""
+    out = published_clients(SERVERSTATS_FILE)
+    if out is None:
+        ok, out = run_chronyc("serverstats")
+        if not ok:
+            return None
+    return parse_serverstats(out)
+
+
 def clients():
     """NTP client rows, or None when they can't be read. None is UNKNOWN, not
     "no clients".

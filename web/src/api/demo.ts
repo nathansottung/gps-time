@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
-  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, NtpService, References, ReferenceServer, Satellite,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
 
@@ -85,6 +85,7 @@ export function demoApi(): StationApi {
     stability: () => delay(stability()),
     timescales: () => delay(timescales()),
     references: (o) => delay(references(o?.scenario)),
+    ntpService: () => delay(ntpService()),
     survey: () => delay(survey()),
     system: () => delay(system()),
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
@@ -394,6 +395,41 @@ function stability(): Stability {
     points,
     key_points: [key(1, '1 s'), key(10, '10 s'), key(100, '100 s'), key(1000, '1000 s'), key(86400, '1 day')],
     notes: ['sample data'],
+  };
+}
+
+function ntpService(): NtpService {
+  // Mirrors gps_time_pi/demo.py: about 14 requests a minute, a few dropped, two hours of history.
+  const now = Date.now() / 1000;
+  let rx = 48210, drop = 37;
+  const totals: [number, number, number][] = [];
+  for (let i = 0; i <= 120; i++) {
+    rx += 12 + Math.floor(4 * (1 + Math.sin(i / 7)));
+    drop += i % 45 === 44 ? 1 : 0;
+    totals.push([now - (120 - i) * 60, rx, drop]);
+  }
+  const history = totals.slice(1).map(([t, r, d], i) => ({ t, received_per_min: r - totals[i][1], dropped_per_min: d - totals[i][2] }));
+  const hourAgo = totals[60], minAgo = totals[119], last = totals[120];
+  const rate = (a: [number, number, number]) => ({
+    received_per_s: m((last[1] - a[1]) / (last[0] - a[0]), '1/s', 'calculated'),
+    dropped_per_s: m((last[2] - a[2]) / (last[0] - a[0]), '1/s', 'calculated'),
+  });
+  return {
+    available: true, reason: null, provenance: 'observed',
+    state: 'SERVING_WITH_DROPS', state_basis: 'over the last hour', state_provenance: 'calculated',
+    as_of_utc: new Date().toISOString().slice(0, 19) + '+00:00',
+    counters: { ntp_received: rx, ntp_dropped: drop, cmd_received: 412, cmd_dropped: 0, client_log_dropped: 0, ntp_interleaved: 96 },
+    ntp: {
+      received: m(rx, 'packets', 'observed', 'NTP packets received, since chronyd started'),
+      dropped: m(drop, 'packets', 'observed', 'NTP packets chrony dropped under its rate limit'),
+      not_dropped: m(rx - drop, 'packets', 'calculated', 'received − dropped; chrony does not count the replies it sent'),
+      drop_fraction: m(drop / rx, null, 'calculated'),
+    },
+    rates: { last_minute: rate(minAgo), last_hour: rate(hourAgo) },
+    history,
+    history_info: { interval_s: 60, max_points: 1440, storage: 'RAM only; lost when the service restarts' },
+    counter_resets: 0,
+    note: "Counters are chrony's and restart from zero when chronyd restarts. Sample data.",
   };
 }
 
