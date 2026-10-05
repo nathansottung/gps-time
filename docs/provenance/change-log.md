@@ -632,3 +632,10 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - The running web service still only reads chrony. The #48 detection (`is_self`, THIS STATION, the HOLDOVER status) stays, for a station address named some other way.
 - Docs: deploy guide, both checklists (the fresh-install check now confirms the line is commented instead of asking the operator to edit it).
 - Tests: `tests/test_installer_dhcp_sources.py` (12; 8 run the script against a fixture `chrony.conf` and are POSIX-only). Not yet run on a Pi.
+
+## 2026-10-05 — v1.4.0-rc.7 (#53)
+
+- Release notes in `docs/releases/v1.4.0-rc.7.md`: everything merged since rc.6 (#42 to #52).
+- Both deploy checklists target v1.4.0-rc.7.
+- The annotated tag `v1.4.0-rc.7` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+- Not changed, because the facts aren't recorded in the repository: the checklists' statements about how much of the 1.4 line has run on a Pi. Several rc.7 fixes were reported from the first Pi build, so those statements may be out of date; the owner knows what ran.

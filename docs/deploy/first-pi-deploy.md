@@ -1,13 +1,13 @@
 # First Pi deploy of the 1.4 line: checklist
 
-For upgrading a working v1.3 station to **v1.4.0-rc.6**. For a newly flashed Pi, use [`fresh-pi-install.md`](fresh-pi-install.md) instead. Work top to bottom and stop at any step that doesn't match what's written.
+For upgrading a working v1.3 station to **v1.4.0-rc.7**. For a newly flashed Pi, use [`fresh-pi-install.md`](fresh-pi-install.md) instead. Work top to bottom and stop at any step that doesn't match what's written.
 
-Nothing in the 1.4 line has run on a Pi yet. This deploy is the first test of the unprivileged service, the polkit rule, the venv installer and the deploy scripts. Background: `docs/development/raspberry-pi-deploy.md`, `docs/releases/v1.4.0-rc.6.md`, ADR-0005.
+Nothing in the 1.4 line has run on a Pi yet. This deploy is the first test of the unprivileged service, the polkit rule, the venv installer and the deploy scripts. Background: `docs/development/raspberry-pi-deploy.md`, `docs/releases/v1.4.0-rc.7.md`, ADR-0005.
 
 **What will happen to the station**
 
 - `install.sh` **restarts chrony**. PPS selection takes a few minutes to come back. NTP clients see a fallback source or an unsynchronized server until then. Pick a time when that's acceptable.
-- `install.sh` makes sure `chrony.conf` has `log tracking` and `logdir /run/chrony-log`. A v1.3 station already has both. From v1.4.0-rc.7 it also comments out `sourcedir /run/chrony-dhcp`, if the file has that line, so chrony stops taking NTP servers from DHCP and can't poll the station itself; the file as it was is kept as `chrony.conf.before-gps-time-pi`. If DHCP was the station's only network fallback, add a `server` or `pool` line, or keep it with `GTP_KEEP_DHCP_NTP=1` (`docs/development/raspberry-pi-deploy.md`). Nothing else in chrony, gpsd or PPS setup is touched.
+- `install.sh` makes sure `chrony.conf` has `log tracking` and `logdir /run/chrony-log`. A v1.3 station already has both. It also comments out `sourcedir /run/chrony-dhcp`, if the file has that line, so chrony stops taking NTP servers from DHCP and can't poll the station itself; the file as it was is kept as `chrony.conf.before-gps-time-pi`. If DHCP was the station's only network fallback, add a `server` or `pool` line, or keep it with `GTP_KEEP_DHCP_NTP=1` (`docs/development/raspberry-pi-deploy.md`). Nothing else in chrony, gpsd or PPS setup is touched.
 - The web service changes from root to the user `gps-time`, and runs from a venv.
 - Settings changes and admin actions will need the admin token.
 - `/app/` (the new UI) works after the deploy: the bundle ships the built UI. The deploy script builds it on Windows first, so Windows needs Node 22 with corepack (`docs/development/new-machine.md`). The legacy pages work as before.
@@ -137,12 +137,12 @@ Still on the Pi. Everything goes into one directory in your home.
 
 - [ ] Open a normal PowerShell or Windows Terminal window. It must be an interactive terminal, with no output redirection and not a VS Code task: the admin token is shown on the terminal only, and sudo may need to prompt. Set `$PiHost` and `$PiUser` again if it's a new window.
 
-- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.6`, and `git status` must list nothing.
+- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.7`, and `git status` must list nothing.
 
   ```powershell
   cd <repository folder>
   git fetch --tags
-  git checkout v1.4.0-rc.6
+  git checkout v1.4.0-rc.7
   git status --short
   git describe --tags --dirty
   ```
@@ -195,7 +195,7 @@ ssh $Pi
   journalctl -u gps-time-pi -b --no-pager -n 40
   ```
 
-- [ ] The version is `1.4.0-rc.6`.
+- [ ] The version is `1.4.0-rc.7`.
 
   ```sh
   curl -s localhost/api | python3 -c "import sys,json; print(json.load(sys.stdin)['versions']['app'])"

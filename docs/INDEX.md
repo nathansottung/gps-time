@@ -72,7 +72,8 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
-- `releases/v1.4.0-rc.6.md` — Windows deploy script fix (ssh `-t`); the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.7.md` — fixes from the first Pi build, local-time clock, self-source handling, installer disables DHCP NTP servers; the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.6.md` — Windows deploy script fix (ssh `-t`) (pre-release)
 - `releases/v1.4.0-rc.5.md` — Debian 13 / Python 3.13 tested in CI (pre-release)
 - `releases/v1.4.0-rc.4.md` — the bundle ships the web UI, installer preflight (pre-release)
 - `releases/v1.4.0-rc.3.md` — deploy scripts stop on failure, sun shifts (pre-release)
