@@ -323,6 +323,46 @@ export type History =
   | { available: true; points: HistoryPoint[]; note: string | null }
   | { available: false; points: HistoryPoint[]; note: string };
 
+// ─── GET /api/stability ──────────────────────────────────────────────────────
+
+export interface StabilityPoint {
+  tau_s: number;
+  series: 'seconds' | 'minutes';     // which stored series the value comes from
+  adev: number;                      // overlapping Allan deviation, dimensionless
+  adev_terms: number;
+  adev_low: number | null;           // confidence interval; null when the noise type could not be identified
+  adev_high: number | null;
+  edf: number | null;
+  noise: string | null;              // identified power-law noise type (inferred)
+  noise_assumed: boolean;            // too few points at this tau: the type from a shorter tau was kept
+  mdev: number | null;               // modified Allan deviation; null when the data is too short
+  mdev_terms: number;
+  tdev_s: number | null;             // time deviation, seconds
+}
+export interface StabilitySeries {
+  tau0_s: number;
+  samples: number;
+  gaps: number;
+  span_s: number;
+  capacity_s: number;
+  pps_selected_fraction: number | null;   // share of samples taken while chrony had PPS selected
+}
+export interface Stability {
+  available: boolean;
+  reason: string | null;
+  provenance: Provenance;
+  measurement_layer: string;
+  method: string;
+  confidence: { level: number; applies_to: string; method: string; noise_provenance: Provenance };
+  storage: string;
+  since_utc: string | null;
+  history_resets: number;
+  series: { seconds: StabilitySeries; minutes: StabilitySeries };
+  points: StabilityPoint[];
+  key_points: { tau_s: number; label: string; point: StabilityPoint | null; reason: string | null }[];
+  notes: string[];
+}
+
 // ─── GET /api/survey ─────────────────────────────────────────────────────────
 
 export interface Survey {
