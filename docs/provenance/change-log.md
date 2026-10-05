@@ -553,7 +553,7 @@ Display only. The system clock, chrony, logs and every timestamp in the API stay
   - The four files from `gps-time-specs.zip`: the archive wasn't available to compare. They have had one commit each since the import (which recorded the archive's SHA-256), so they are unchanged since then.
   - `GPS-Time-Project-Vision-and-Roadmap.md`: not found on the machine, and not in the repository.
 
-## 2026-10-05 — chrony polling the station itself (fix/chrony-self-source)
+## 2026-10-05 — chrony polling the station itself (#48)
 
 From the owner's list: "Filter the station's own address out of chrony sources picked up from DHCP."
 
