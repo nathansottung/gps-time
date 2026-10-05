@@ -7,14 +7,14 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (feat/independent-references, #57). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/timing-smaller-items, #58). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
 1. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
-4. **Timing metrology** (TM §1, §3, §4, §6; then §2 NTS; then §5 PTP): stability analysis, time scales panel, independent references, smaller items. Owner, 2026-10-04: built now, ahead of items 1–3, one PR per section; stop before NTS and PTP.
+4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
 
 ## Decisions
 
@@ -52,7 +52,7 @@ Last updated: 2026-10-05 (feat/independent-references, #57). Built from the spec
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 402 rows: 205 done, 0 in progress, 32 next, 165 planned.
+**Totals:** 402 rows: 207 done, 0 in progress, 30 next, 165 planned.
 
 ## Status table
 
@@ -457,6 +457,6 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §5 | Dashboard shows PTP state, clock class, client count | next |  |  |
 | TM | §5 | PTP off by default | next |  |  |
 | TM | §6 | Installer disables chrony's DHCP-provided sources | done | not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
-| TM | §6 | Configured and suggested NMEA offset side by side | next | partial: both are on the PPS diagnostics page (#49), not side by side |  |
-| TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | next |  |  |
-| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4 done | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) |
+| TM | §6 | Configured and suggested NMEA offset side by side | done | PPS diagnostics page; the suggestion reads UNKNOWN with the reason when it can't be measured | [#49](https://github.com/nathansottung/gps-time/pull/49) [#58](https://github.com/nathansottung/gps-time/pull/58) |
+| TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | done | Network page; chrony counts received and dropped, not replies, so "served" is shown as received − dropped. Not yet run on a Pi | [#58](https://github.com/nathansottung/gps-time/pull/58) |
+| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4, §6 done; §2 and §5 not started | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) [#58](https://github.com/nathansottung/gps-time/pull/58) |

@@ -17,7 +17,7 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `fmt` | the server's human-readable strings for the legacy pages |
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample`, `is_self` (the source is one of this station's own addresses, so not an external reference) |
 | `sourcestats` | raw `chronyc sourcestats` text |
-| `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (which also publishes `chronyc -n ntpdata` for `/api/references`) (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
+| `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (which also publishes `chronyc -n ntpdata` for `/api/references` and `chronyc -n serverstats` for `/api/ntp-service`) (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
 | `gps` | gpsd snapshot: `fix` (null when TPV is stale), `sats[]` (`id`, `gnss`, `el`, `az`, `snr` (C/N₀ dB-Hz; **gpsd's missing value becomes 0**), `used`; in `hidden` privacy mode `el` and `az` are null), `used`, `visible`, `tdop`, `hdop`, `last_fix`, `last_fix_time`, `stale`, `data_age_s`, `sky_stale`, `sky_age_s`. Counts come from the last SKY report even when `sky_stale` is true. |
 | `location` | position **after the privacy mode**: `{mode, lat, lon, alt_msl?, alt_hae?}`. exact → 4 decimals, alt_msl and alt_hae; rounded → 1 decimal, alt_msl to 10 m, no alt_hae; hidden → lat/lon null. |
 | `survey` | survey statistics: `n`, `n_fresh`, `n_legacy`, `ingest_rule`, `se_horiz_m`, `se_alt_m` (standard error of the mean), `sd_lat_m`, `sd_lon_m`, `sd_alt_m` (per-fix scatter), `updated` |
@@ -107,6 +107,34 @@ Frequency-stability statistics of the system clock against kernel PPS timestamps
 - With no PPS events: `available: false`, a `reason`, and empty `points`.
 - The answer is recomputed at most every 60 s. The history is in RAM and starts again when the service restarts.
 - Nothing here depends on the location, so the privacy mode doesn't change it.
+
+## GET /api/ntp-service
+
+chrony's NTP server counters (`chronyc -n serverstats`) with rates and a short history. Type: `NtpService`. Code: `gps_time_pi/ntpservice.py`.
+
+```json
+{"available": true, "reason": null, "provenance": "observed",
+ "state": "SERVING", "state_basis": "over the last hour", "state_provenance": "calculated",
+ "as_of_utc": "2026-10-05T02:51:00+00:00",
+ "counters": {"ntp_received": 50115, "ntp_dropped": 39, "cmd_received": 412, "cmd_dropped": 0, "client_log_dropped": 0},
+ "ntp": {"received": {"value": 50115, "unit": "packets", "provenance": "observed"},
+         "dropped": {"value": 39, "unit": "packets", "provenance": "observed"},
+         "not_dropped": {"value": 50076, "unit": "packets", "provenance": "calculated"},
+         "drop_fraction": {"value": 0.00078, "unit": null, "provenance": "calculated"}},
+ "rates": {"last_minute": {"received_per_s": {"value": 0.2}, "dropped_per_s": {"value": 0.0}},
+           "last_hour": {"received_per_s": {"value": 0.25}, "dropped_per_s": {"value": 0.0003}}},
+ "history": [{"t": 1791168432.0, "received_per_min": 12.0, "dropped_per_min": 0.0}],
+ "history_info": {"interval_s": 60.0, "max_points": 1440, "storage": "RAM only; lost when the service restarts"},
+ "counter_resets": 0, "note": "Counters are chrony's and restart from zero when chronyd restarts."}
+```
+
+- The counters are chrony's own and count from when chronyd started. `counter_resets` counts the restarts the station saw; the history starts again at each one.
+- `dropped` is chrony's count of packets dropped under its rate limit (the `ratelimit` directive). No other reason is inferred.
+- chrony does not count replies. `not_dropped` (received − dropped) is the nearest figure to requests served and is labeled `calculated`.
+- `state`: `SERVING`, `SERVING_WITH_DROPS`, `NO_REQUESTS`, judged over the last hour (or the last minute until there is an hour of history; `state_basis` says which), or `UNKNOWN`.
+- A rate is null until the history covers its window.
+- When the counters can't be read: `available: false`, `state: "UNKNOWN"`, a `reason`, and null `ntp`/`rates`. Never zeros.
+- Source: `chrony-serverstats.txt` published every 15 s by `gps-time-pi-chrony-clients.service`; without that file, `chronyc` run directly, which works only as root.
 
 ## GET /api/references
 

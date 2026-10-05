@@ -55,7 +55,7 @@ Working without the Internet is normal for this station. `NONE_REACHABLE` is a p
 
 ## Delay
 
-`chronyc sources` has no delay column. The network delay per server comes from `chronyc -n ntpdata` ("Peer delay"), which chronyd answers only over its Unix socket. The existing helper service (`gps-time-pi-chrony-clients.service`, user `_chrony`, ADR-0005) now publishes that report too, as `/run/gps-time-pi/chrony-ntpdata.txt`, next to the client list. The helper still runs a fixed list of read-only reports and takes no input. Without the file, delay reads UNKNOWN and the comparison still works.
+`chronyc sources` has no delay column. The network delay per server comes from `chronyc -n ntpdata` ("Peer delay"), which chronyd answers only over its Unix socket. The existing helper service (`gps-time-pi-chrony-clients.service`, user `_chrony`, ADR-0005) now publishes that report too, as `/run/gps-time-pi/chrony-ntpdata.txt`, next to the client list. The helper still runs a fixed list of read-only reports (`clients`, `ntpdata`, `serverstats`) and takes no input. Without the file, delay reads UNKNOWN and the comparison still works.
 
 ## History
 
