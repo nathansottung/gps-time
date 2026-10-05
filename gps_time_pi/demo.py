@@ -181,9 +181,9 @@ _STATS = (_STATS_HDR +
           "NMEA                       32  17   496     +2.181      6.144    +35ms  1271us\n"
           "192.0.2.10                 10   6   644     -0.033      0.106  +1035us   178us\n")
 _REFCFG = {"pps": {"driver": "PPS", "param": "/dev/pps0", "refid": "GPS", "lock": "NMEA",
-                   "noselect": False, "prefer": True, "poll": None},
+                   "noselect": False, "prefer": True, "poll": None, "offset_s": 0.0},
            "nmea": {"driver": "SHM", "param": "0", "refid": "NMEA", "lock": None,
-                    "noselect": True, "prefer": False, "poll": None},
+                    "noselect": True, "prefer": False, "poll": None, "offset_s": 0.1},
            "source": "chrony.conf"}
 
 

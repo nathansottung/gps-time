@@ -578,3 +578,16 @@ From the owner's list: "Filter the station's own address out of chrony sources p
   - Listed but not selected (PPS selected) doesn't change the status.
 - **Not done: changing chrony's configuration.** The software only reads chrony. Stopping chrony from polling itself is a documented operator step: comment out `sourcedir /run/chrony-dhcp` on the station. It's in the fresh-install checklist with a check that finds the problem, and in the deploy guide.
 - Tests: `tests/test_self_source.py` (12) with two new source fixtures. Not yet seen on a Pi.
+
+## 2026-10-05 — NMEA refclock offset: a measured recommendation (#49)
+
+From the owner's list: "Calibrate the NMEA refclock offset from measured data." The project's chrony snippet uses a fixed guess, `offset 0.1`.
+
+- **What is measured.** Serial time messages arrive a roughly constant delay after the second they describe, and chrony's `offset` option compensates for it. While PPS disciplines the clock, chrony's own statistics for the NMEA source show what is left over: the `chronyc sourcestats` Offset for NMEA is the residual.
+- **`/api/timing-chain` → `chrony.nmea_calibration`** (`timing_chain.nmea_calibration`): the configured offset read from `chrony.conf`, the residual, its standard deviation and sample count (observed), and the suggested offset, configured + residual (calculated).
+  - Reported only while PPS is the selected source and chrony has at least 16 NMEA samples; otherwise it says why it isn't measurable.
+  - A residual within three standard deviations, or under 5 ms, is reported as "no change is needed".
+- **The station never edits `chrony.conf`.** The PPS diagnostics page and the diagnostics snapshot show the recommendation; the operator makes the change. This follows the rule against changing timing behavior.
+- **Sign.** In chrony's reports a positive offset means the local clock is ahead of the source, so a positive residual means NMEA is still late and the offset should go up. That is chrony's documented convention, not something confirmed on this hardware yet. So the advice includes a check: after the change the residual should be near zero; if it has doubled, use configured − residual instead.
+- `chrony.refclock_config` now reads each refclock's `offset` (0 when absent, unknown when unparseable).
+- Tests: `tests/test_nmea_calibration.py` (13), including that nothing in the package opens a chrony file for writing. Demo data: 0.1 s configured, +35 ms residual, 0.135 s suggested.

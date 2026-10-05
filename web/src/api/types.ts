@@ -212,6 +212,20 @@ export interface EventRecovery {
   note?: string;
 }
 
+/** A measured recommendation for the NMEA refclock's `offset` in chrony.conf. The station never changes chrony. */
+export interface NmeaCalibration {
+  available: boolean;
+  reason: string | null;
+  configured_offset_s?: Measured;
+  residual_s?: Measured;          // chronyc sourcestats Offset for NMEA while PPS is selected
+  std_dev_s?: Measured;
+  samples?: Measured;
+  span_s?: Measured;
+  suggested_offset_s?: Measured;  // configured + residual
+  change_worthwhile?: boolean;
+  advice?: string;
+}
+
 export interface ChronyRefclock {
   name: string;
   mode: string;
@@ -277,6 +291,7 @@ export interface TimingChain {
     selected: { name: string; kind: string; stratum: number; is_pps: boolean; is_nmea: boolean; is_self?: boolean } | null;
     self_sources?: string[];   // chrony sources that are this station's own address
     any_selected: boolean;
+    nmea_calibration?: NmeaCalibration;
     tracking: {
       leap: string | null;
       stratum: string | null;

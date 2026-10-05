@@ -235,7 +235,9 @@ def refclock_config(path=None):
         refid = opts.get("refid") or f"{driver[:3]}{n}"
         entry = {"driver": driver, "param": param, "refid": refid,
                  "lock": opts.get("lock"), "noselect": bool(opts.get("noselect")),
-                 "prefer": bool(opts.get("prefer")), "poll": opts.get("poll")}
+                 "prefer": bool(opts.get("prefer")), "poll": opts.get("poll"),
+                 # chrony's default when the option is absent is 0
+                 "offset_s": _parse_float(opts.get("offset")) if "offset" in opts else 0.0}
         is_pps = driver == "PPS" or (driver in ("SOCK", "SHM") and "PPS" in refid.upper())
         if is_pps and pps is None:
             pps = entry
