@@ -16,6 +16,7 @@ import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
   Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, NtpService, References, ReferenceServer, Satellite,
+  SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
 
@@ -86,6 +87,11 @@ export function demoApi(): StationApi {
     timescales: () => delay(timescales()),
     references: (o) => delay(references(o?.scenario)),
     ntpService: () => delay(ntpService()),
+    // Mirrors the server: shadow geometry and passes depend on the position, so hidden mode computes none.
+    shadow: (o) => delay(locationMode === 'hidden' ? { available: false as const, reason: SKY_HIDDEN, location_display: 'hidden' as const }
+      : { ...shadow(o?.shell ?? 550, o?.az, o?.alt), location_display: locationMode }),
+    satellites: () => delay(locationMode === 'hidden' ? { available: false as const, reason: SKY_HIDDEN, location_display: 'hidden' as const }
+      : { ...satellites(), location_display: locationMode }),
     survey: () => delay(survey()),
     system: () => delay(system()),
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
@@ -395,6 +401,110 @@ function stability(): Stability {
     points,
     key_points: [key(1, '1 s'), key(10, '10 s'), key(100, '100 s'), key(1000, '1000 s'), key(86400, '1 day')],
     notes: ['sample data'],
+  };
+}
+
+const SKY_HIDDEN = "Location is hidden by the station's privacy setting. The Earth-shadow geometry and satellite passes depend on the station's position, so they are not computed.";
+
+function shadow(shellKm: number, az?: number, alt?: number): ShadowReport {
+  // A fixed evening scene, not a calculation: Sun 27° down in the WNW. For each
+  // shell the shadow edge is a simple curve that is lowest toward the Sun.
+  const sunAz = 290, sunAlt = -26.9;
+  const edge = (km: number, a: number) => {
+    const toward = Math.cos((a - sunAz) * Math.PI / 180);          // 1 toward the Sun, -1 away
+    return Math.max(-5, (km - 420) / 16 * (0.25 + 0.75 * Math.max(0, toward)) - 8 * (1 - toward));
+  };
+  const stateAt = (km: number, a: number, h: number): ShadowState => {
+    const e = edge(km, a);
+    return h < e - 1 ? 'SUNLIT' : h <= e + 1 ? 'PENUMBRA' : 'UMBRA';
+  };
+  const alts = Array.from({ length: 46 }, (_, i) => i * 2), azs = Array.from({ length: 72 }, (_, i) => i * 5);
+  const rows = alts.map(h => azs.map(a => stateAt(shellKm, a, h)[0]).join(''));
+  const sectorNames = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const shell = (km: number): ShadowShell => {
+    let lit = 0, all = 0, maxAlt: number | null = null;
+    const sectors: string[] = [];
+    for (let h = 10; h <= 90; h += 5) for (let a = 0; a < 360; a += 10) {
+      const w = Math.cos(h * Math.PI / 180) || 1e-9;
+      all += w;
+      if (stateAt(km, a, h) !== 'UMBRA') {
+        lit += w; maxAlt = Math.max(maxAlt ?? 0, h);
+        const s = sectorNames[Math.floor(((a + 22.5) % 360) / 45)];
+        if (!sectors.includes(s)) sectors.push(s);
+      }
+    }
+    sectors.sort((x, y) => sectorNames.indexOf(x) - sectorNames.indexOf(y));
+    return { altitude_km: km, zenith: stateAt(km, 0, 90), sunlit_sky_fraction: Math.round(lit / all * 1000) / 1000,
+             sunlit_max_altitude_deg: maxAlt, sunlit_sectors: sectors,
+             summary: maxAlt === null ? "In Earth's shadow everywhere above 10°."
+               : `In Earth's shadow above ${maxAlt}° altitude; sunlit positions remain possible lower in the ${sectors.join(', ')}.` };
+  };
+  const kms = [...new Set([200, 350, 400, 550, 1000, 1200, 2000, shellKm])].sort((a, b) => a - b);
+  const shells = kms.map(shell);
+  const s550 = shells.find(s => s.altitude_km === 550)!;
+  return {
+    available: true, reason: null, provenance: 'modeled',
+    model: 'Conical umbra and penumbra of a spherical, airless Earth with the Sun as a disc of finite size. Geometric: the atmosphere blurs and shifts the real shadow edge by some tens of km of height, and angles are not corrected for refraction.',
+    meaning: 'Says whether a satellite at that height would be in sunlight. It does not say that a satellite is there, or that a sunlit one is bright enough to see.',
+    as_of_utc: iso(Date.now()),
+    sun: { altitude_deg: sunAlt, azimuth_deg: sunAz, depression_deg: -sunAlt, distance_au: 0.99963,
+           antisolar: { azimuth_deg: (sunAz + 180) % 360, altitude_deg: -sunAlt }, note: 'geometric altitude, no refraction; analytic solar position, about 0.01°' },
+    darkness: { stage: 'night', astronomical_darkness: true },
+    cone: { umbra_half_angle_deg: 0.2642, penumbra_half_angle_deg: 0.2691, umbra_length_km: 1381900, axis: "from the Earth's centre toward the anti-solar point" },
+    zenith: { umbra_top_km: 762.8, penumbra_top_km: 796.7, ground_state: 'UMBRA', beyond_limit: false, search_limit_km: 50000,
+              note: 'Height at which the line straight up leaves the shadow. One number for the zenith only: the boundary is lower toward the Sun and higher away from it.' },
+    shells,
+    map: { shell_km: shellKm, alt_step_deg: 2, az_step_deg: 5, alts_deg: alts, azs_deg: azs, rows },
+    query: az === undefined || alt === undefined ? null
+      : { azimuth_deg: az, altitude_deg: alt, shell_km: shellKm, state: stateAt(shellKm, az, alt),
+          sunlit_fraction: stateAt(shellKm, az, alt) === 'SUNLIT' ? 1 : stateAt(shellKm, az, alt) === 'UMBRA' ? 0 : 0.5,
+          range_km: Math.round(shellKm / Math.max(0.2, Math.sin(alt * Math.PI / 180))), note: 'sunlit fraction inside the penumbra is a linear estimate' },
+    messages: [
+      `Most satellites at ~550 km LEO should be in Earth's shadow above ${s550.sunlit_max_altitude_deg ?? 10}° altitude; sunlit ones remain possible in the ${s550.sunlit_sectors.join(', ')}.`,
+      "These are geometric predictions from the shadow model, not sightings: they don't say that a satellite is there or that it is bright enough to record.",
+    ],
+  };
+}
+
+function satellites(): SatelliteReport {
+  // Written by hand, like gps_time_pi/demo.py: no orbital elements are needed in demo mode.
+  const now = Date.now();
+  const at = (min: number, sec = 0) => iso(now + (min * 60 + sec) * 1000);
+  const pt = (min: number, sec: number, azimuth_deg: number, altitude_deg: number, range_km: number, state: ShadowState) =>
+    ({ utc: at(min, sec), azimuth_deg, altitude_deg, range_km, state });
+  const epoch = iso(now - 31 * 3600e3);
+  const iss: SatelliteNow = {
+    norad: 25544, name: 'ISS (ZARYA)', group: 'stations', epoch_utc: epoch, age_days: 1.29, stale: false, age_note: null,
+    available: true, reason: null, provenance: 'modeled', azimuth_deg: 212.4, altitude_deg: -31.6, above_horizon: false,
+    range_km: 7480.2, height_km: 418, angular_speed_deg_s: 0.051, state: 'SUNLIT', sunlit_fraction: 1, could_be_seen: false,
+  };
+  const css: SatelliteNow = { ...iss, norad: 48274, name: 'CSS (TIANHE)', azimuth_deg: 78.9, altitude_deg: -12.3, range_km: 4310.5,
+                              height_km: 384, angular_speed_deg_s: 0.118, state: 'UMBRA', sunlit_fraction: 0 };
+  return {
+    available: true, reason: null, provenance: 'external',
+    meaning: "Predictions from orbital elements. 'Could be seen' means above 10°, not in the Earth's umbra, and the Sun at least 6° below the horizon. It says nothing about brightness, cloud or obstructions.",
+    as_of_utc: iso(now),
+    cache: { dir: '(sample cache)', satellites: 2,
+             groups: [{ group: 'stations', file: 'stations.tle', count: 2, rejected: 0, source: '(sample data)', fetched_utc: iso(now - 9 * 3600e3),
+                        newest_epoch_utc: epoch, oldest_epoch_utc: epoch }],
+             newest_epoch_utc: epoch, newest_age_days: 1.29, oldest_age_days: 1.29, stale_after_days: 14, problems: [], provenance: 'external' },
+    featured: [iss, css], satellite: iss, matches: [], window_hours: 24,
+    passes: [
+      { rise: pt(42, 10, 318.2, 0, 2368.4, 'SUNLIT'), culmination: pt(47, 6, 41.7, 48.3, 548.9, 'SUNLIT'), set: pt(52, 0, 124.6, 0, 2371.0, 'UMBRA'),
+        in_progress: false, duration_s: 590,
+        shadow_changes: [
+          { utc: at(48, 39), kind: 'penumbra entry', from: 'SUNLIT', to: 'PENUMBRA', azimuth_deg: 96.1, altitude_deg: 31.4 },
+          { utc: at(48, 51), kind: 'umbra entry', from: 'PENUMBRA', to: 'UMBRA', azimuth_deg: 99.8, altitude_deg: 28.9 }],
+        visible: { start_utc: at(44, 14), end_utc: at(48, 50), duration_s: 276, max_altitude_deg: 48.3, max_azimuth_deg: 41.7 },
+        sun_altitude_deg: -16.3, provenance: 'predicted' },
+      { rise: pt(139, 2, 291.5, 0, 2370.1, 'SUNLIT'), culmination: pt(143, 8, 232.0, 10.9, 1489.3, 'UMBRA'), set: pt(147, 15, 173.4, 0, 2369.7, 'UMBRA'),
+        in_progress: false, duration_s: 493,
+        shadow_changes: [
+          { utc: at(140, 27), kind: 'penumbra entry', from: 'SUNLIT', to: 'PENUMBRA', azimuth_deg: 281.0, altitude_deg: 3.9 },
+          { utc: at(140, 39), kind: 'umbra entry', from: 'PENUMBRA', to: 'UMBRA', azimuth_deg: 279.2, altitude_deg: 4.6 }],
+        visible: null, sun_altitude_deg: -33.3, provenance: 'predicted' },
+    ],
+    demo: { note: 'synthetic data — not a prediction' },
   };
 }
 

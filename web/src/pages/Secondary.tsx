@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag } from '../components/ui';
+import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag, Tabs } from '../components/ui';
 import { OffsetChart, SolarCurve } from '../components/charts';
+import { ShadowPanel, SatellitesPanel } from '../components/shadow';
 import { fmtCount, fmtPerMin, fmtShare, requestSeries, serviceLabel, serviceVariant } from '../lib/ntpservice';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
@@ -17,6 +18,7 @@ const TZ = browserTimeZone();
 // ─── Sun & Astronomy ──────────────────────────────────────────────────────────
 export function SunAstronomy() {
   const [safetyAck, setSafetyAck] = useState(false);
+  const [tab, setTab] = useState('Sun & Moon');
   const { api, core } = useStation();
   const alm = usePoll(() => api.almanac({ tz: TZ }), 10 * 60_000, [api]);
   const a = alm.data && alm.data.available ? alm.data : null;
@@ -31,6 +33,12 @@ export function SunAstronomy() {
   return (
     <div className="space-y-4 page-enter">
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Sun & Astronomy</h1>
+      <Tabs tabs={['Sun & Moon', 'Earth Shadow', 'Satellites']} active={tab} onChange={setTab} />
+
+      {tab === 'Earth Shadow' && <ShadowPanel />}
+      {tab === 'Satellites' && <SatellitesPanel />}
+
+      {tab === 'Sun & Moon' && <>
       <ApiErrorNote error={alm.error} />
       {unavailable && <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>}
 
@@ -158,6 +166,7 @@ export function SunAstronomy() {
         </Card>
         </Planned>
       </div>
+      </>}
     </div>
   );
 }
