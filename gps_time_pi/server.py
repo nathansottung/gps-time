@@ -34,7 +34,7 @@ from zoneinfo import ZoneInfo, available_timezones
 import platform
 
 from . import (__version__, astro, catalog, chrony, config, dashboard, demo, gps, localtime, security, system,
-               timing_chain, units)
+               timescales, timing_chain, units)
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
@@ -369,6 +369,15 @@ def stability_payload():
     return timing_chain.service().stability.report()
 
 
+def timescales_payload():
+    now = datetime.now(timezone.utc).timestamp()
+    if DEMO_MODE:
+        return demo.timescales(now)
+    raw = (timing_chain.service().latest().get("raw") or {}).get("tracking")
+    leap = chrony.parse_tracking(raw).get("Leap status") if raw else None
+    return timescales.report(now, chrony_leap=leap)
+
+
 def diagnostics_text(qs):
     chain = timing_chain_payload(qs)
     cfg = config.load()
@@ -560,6 +569,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(timing_chain_payload(qs))
             elif p == "/api/stability":
                 self._json(stability_payload())
+            elif p == "/api/timescales":
+                self._json(timescales_payload())
             elif p == "/api/diagnostics":
                 self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
