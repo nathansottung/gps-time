@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (feat/time-scales, #56). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (feat/independent-references, #57). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -52,7 +52,7 @@ Last updated: 2026-10-05 (feat/time-scales, #56). Built from the specs, `roadmap
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 402 rows: 201 done, 0 in progress, 36 next, 165 planned.
+**Totals:** 402 rows: 205 done, 0 in progress, 32 next, 165 planned.
 
 ## Status table
 
@@ -235,7 +235,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | ADD | §13 | Weather-sensor interface | planned |  |  |
 | ADD | §14 | All-sky camera | planned |  |  |
 | ADD | §15 | SDR / radio-time layer | planned |  |  |
-| ADD | §16 | Selected vs independent references | planned | partial: chrony sources table | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| ADD | §16 | Selected vs independent references | planned | partial: chrony sources table; NTP servers that don't steer the clock are compared (TM §4). Radio-time references not | [#10](https://github.com/nathansottung/gps-time/pull/10) [#57](https://github.com/nathansottung/gps-time/pull/57) |
 | ADD | §17 | ADS-B / aircraft | planned |  |  |
 | ADD | §18 | Distributed observations | planned | concept UI only | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | ADD | §19 | NOW page modules + customization | planned | partial | [#10](https://github.com/nathansottung/gps-time/pull/10) |
@@ -448,10 +448,10 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §3 | Leap-second table source, expiry date, warning well before expiry | done | tzdata's `leap-seconds.list`; warns 60 days before; built-in list with expiry UNKNOWN when no file. Not yet run on a Pi | [#56](https://github.com/nathansottung/gps-time/pull/56) |
 | TM | §3 | Next scheduled leap second, if any | done | from the table; chrony's leap status shown beside it | [#56](https://github.com/nathansottung/gps-time/pull/56) |
 | TM | §3 | UT1−UTC only from a cached IERS file, labeled external with its date | done | the operator places the file; the station never fetches it | [#56](https://github.com/nathansottung/gps-time/pull/56) |
-| TM | §4 | Public servers compared as `noselect` sources | next | changes chrony's configuration |  |
-| TM | §4 | Per-source offset and delay history, labeled external | next |  |  |
-| TM | §4 | Disagreement with most independent references flagged; reported as a disagreement, never a cause | next |  |  |
-| TM | §4 | Works without Internet: "no external references reachable" | next |  |  |
+| TM | §4 | Public servers compared as `noselect` sources | done | any server chrony isn't using to set the clock counts; adding NIST/USNO as `noselect` is an installer option, **off by default** (`GTP_INDEPENDENT_REFS=1`), because it changes chrony's configuration. Not yet run on a Pi | [#57](https://github.com/nathansottung/gps-time/pull/57) |
+| TM | §4 | Per-source offset and delay history, labeled external | done | RAM, 1440 points per server; delay through the chrony helper (`ntpdata`), UNKNOWN without it | [#57](https://github.com/nathansottung/gps-time/pull/57) |
+| TM | §4 | Disagreement with most independent references flagged; reported as a disagreement, never a cause | done | limit 50 ms (`GTP_REF_DISAGREE_S`); needs two usable references for a majority; doesn't change the timing-chain status | [#57](https://github.com/nathansottung/gps-time/pull/57) |
+| TM | §4 | Works without Internet: "no external references reachable" | done |  | [#57](https://github.com/nathansottung/gps-time/pull/57) |
 | TM | §5 | PTP grandmaster (`linuxptp`) disciplined from the same PPS | next | last in the spec's order; hardware-dependent; owner: stop and report before starting |  |
 | TM | §5 | Hardware-timestamping detection at runtime; "not supported on this hardware" on a Pi 4 | next |  |  |
 | TM | §5 | Dashboard shows PTP state, clock class, client count | next |  |  |
@@ -459,4 +459,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | Installer disables chrony's DHCP-provided sources | done | not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
 | TM | §6 | Configured and suggested NMEA offset side by side | next | partial: both are on the PPS diagnostics page (#49), not side by side |  |
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | next |  |  |
-| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3 done | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) |
+| TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4 done | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) |

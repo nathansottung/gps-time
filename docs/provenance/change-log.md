@@ -679,3 +679,21 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - Nothing here sets the clock or changes chrony.
 - Tests: `tests/test_timescales.py` (27; fixture leap-second lists, one with an invented future leap second, and a fixture IERS file) and `web/src/lib/timescales.test.ts` (10). Known epochs checked: GPS start, the 1999 week rollover, J2000.0, MJD 0. Checked in the demo.
 - Not yet run on a Pi: that Debian's tzdata there ships `leap-seconds.list` at the expected path is assumed, and the panel says so if it doesn't.
+
+## 2026-10-05 — independent references (#57)
+
+`specs/SPEC-TIMING-METROLOGY.md` §4. Architecture: `docs/architecture/independent-references.md`.
+
+- **New: `gps_time_pi/references.py` and `/api/references`.** The station is compared with NTP servers that chrony measures but isn't using to set the clock. The software reads `chronyc -n sources` (already polled by the timing chain); it contacts no server itself and writes no chrony configuration at run time.
+- **Which servers count** is taken from chrony's state, not the configuration: a server chrony has selected or combined is steering the clock and isn't counted; the station's own address is never a reference; everything else is independent. A `noselect` server can never be selected, so it stays independent after a PPS loss too.
+- **The comparison:** a usable reference agrees within 50 ms (`GTP_REF_DISAGREE_S`), disagrees beyond it, and is inconclusive when the offset is over the limit but inside chrony's own error bound for that server. The station is flagged when more than half of at least two usable references disagree.
+- **A disagreement is not a diagnosis.** The text says the station differs from N of M references and that this doesn't say which clock is wrong or why. No cause is named. The timing-chain status and banner are not changed by it.
+- **Offline:** with no server answering the answer is "no external references reachable" (`NONE_REACHABLE`), not an error. An unreachable server shows no offset.
+- **Labels:** per-server values are `external`; the outcome is `calculated`.
+- **Delay.** `chronyc sources` has no delay column, and `chronyc ntpdata` needs chronyd's Unix socket. The helper service from #44 (user `_chrony`) now publishes `chronyc -n ntpdata` as `/run/gps-time-pi/chrony-ntpdata.txt` beside the client list. It still runs a fixed list of read-only reports and takes no input; a failing report doesn't remove the other file. Without it, delay reads UNKNOWN.
+- **History:** RAM only, one point per new measurement, at most one a minute, 1440 points per server, 16 servers.
+- **Installer option, off by default** (`scripts/chrony-independent-refs.sh`): `sudo GTP_INDEPENDENT_REFS=1 bash install.sh` adds `time.nist.gov`, `tick.usno.navy.mil` and `tock.usno.navy.mil` as `noselect`, polled every 4 to 17 minutes, in one file under `/etc/chrony/sources.d/`. A custom list or `0` (remove) is accepted; only host names and addresses pass, and every line is written with `noselect`.
+  - **Decision to confirm with the owner:** the spec says "continuously compare"; this is off unless asked for, because it changes chrony's configuration and makes chrony contact Internet servers. Making it the default is a one-line change in the script.
+- **Timing → References** in `/app/`: the outcome, the server table (offset, bound, delay, comparison), the servers not counted and why, and offset and delay history for one server.
+- Tests: `tests/test_references.py` (41; 8 of them run the installer script and are POSIX-only), `tests/test_chrony_clients.py` updated for the second report, `web/src/lib/references.test.ts` (9). Checked in the demo with `?refs=disagree`.
+- Not yet run on a Pi. Not confirmed there: the state symbol chrony shows for a `noselect` server (the code doesn't depend on it), and that `ntpdata` is readable by `_chrony` over the socket.
