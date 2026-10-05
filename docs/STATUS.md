@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (feat/timing-smaller-items, #58). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-05 (docs/release-v1.4.0-rc.8, #59). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -15,11 +15,13 @@ Last updated: 2026-10-05 (feat/timing-smaller-items, #58). Built from the specs,
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
+5. **Soak run of v1.4.0-rc.8 on the Pi** (owner): upgrade with `deploy/upgrade-1.4-station.md`, run for 3 days, then v1.4.0.
 
 ## Decisions
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
+- **2026-10-05, release:** rc.6 has run on the Pi since 2026-10-04 (PPS selected, stratum 1, about 300 ns). The owner will upgrade it to rc.8 and run that for 3 days before v1.4.0.
 - **2026-10-04, timing metrology:** `specs/SPEC-TIMING-METROLOGY.md` added as NEXT. The owner asked for §1, §3, §4 and §6 to be built now, in that order, one PR each, and for work to stop before NTS (§2) and PTP (§5). Items 1–3 of the list stay pre-release blockers. The former item 4 (GPS-021) was done in [#30](https://github.com/nathansottung/gps-time/pull/30).
 - **2026-10-04, next-5:** shipping `web/dist` was done in [#35](https://github.com/nathansottung/gps-time/pull/35), so the list has 4 items until the owner picks a fifth. Item 4 (GPS-021) is already done.
 - **2026-10-02, deploys:** GPS-021 (deploy scripts stop on failure and verify the upload) is next-5 item 5 and must land before any Pi deploy. Owner decision.
@@ -52,7 +54,7 @@ Last updated: 2026-10-05 (feat/timing-smaller-items, #58). Built from the specs,
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 402 rows: 207 done, 0 in progress, 30 next, 165 planned.
+**Totals:** 404 rows: 209 done, 0 in progress, 30 next, 165 planned.
 
 ## Status table
 
@@ -417,7 +419,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Tag v1.4.0-rc.2 with release notes | done | pre-release; tag on this PR's merge commit; rollback target v1.4.0-rc.1 | [#28](https://github.com/nathansottung/gps-time/pull/28) |
 | Repo |  | actionlint in CI (invalid workflow files fail) | done |  | [#29](https://github.com/nathansottung/gps-time/pull/29) |
 | Repo |  | Tag v1.4.0-rc.3 with release notes | done | pre-release; tag on this PR's merge commit; intended first Pi deploy | [#33](https://github.com/nathansottung/gps-time/pull/33) |
-| Repo |  | First Pi deploy of the 1.4 line | next | checklists written (`deploy/fresh-pi-install.md` for a new Pi, `deploy/first-pi-deploy.md` for a v1.3 station); the deploy itself is the owner's step and hasn't been run | [#34](https://github.com/nathansottung/gps-time/pull/34) [#36](https://github.com/nathansottung/gps-time/pull/36) |
+| Repo |  | First Pi deploy of the 1.4 line | done | v1.4.0-rc.6 on 2026-10-04: PPS selected, stratum 1, offset about 300 ns (owner's report). Individual check results not recorded. Nothing merged after rc.6 has run on a Pi | [#34](https://github.com/nathansottung/gps-time/pull/34) [#36](https://github.com/nathansottung/gps-time/pull/36) [#59](https://github.com/nathansottung/gps-time/pull/59) |
 | Repo |  | Tag v1.4.0-rc.4 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#37](https://github.com/nathansottung/gps-time/pull/37) |
 | Repo |  | Debian 13 (Trixie, Python 3.13) support: CI matrix 3.11 + 3.13, aarch64 wheel check, installer and docs audit | done | not yet run on a Pi | [#38](https://github.com/nathansottung/gps-time/pull/38) |
 | Repo |  | Tag v1.4.0-rc.5 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#39](https://github.com/nathansottung/gps-time/pull/39) |
@@ -430,7 +432,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | NMEA refclock offset: measured recommendation on the PPS diagnostics page | done | report only; the operator edits chrony.conf. chrony's sign convention not yet confirmed on the hardware | [#49](https://github.com/nathansottung/gps-time/pull/49) |
 | Repo |  | Legacy dashboard: satellite C/N₀ bars render (CSS display, not CSP); inline-style and CSP tests | done | fix only, no restyle | [#50](https://github.com/nathansottung/gps-time/pull/50) |
 | Repo |  | Installer disables chrony's DHCP-provided NTP servers, so the station never polls itself | done | one line of `chrony.conf` commented out, original kept; `GTP_KEEP_DHCP_NTP=1` skips it. Not yet run on a Pi | [#52](https://github.com/nathansottung/gps-time/pull/52) |
-| Repo |  | Tag v1.4.0-rc.7 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#53](https://github.com/nathansottung/gps-time/pull/53) |
+| Repo |  | Tag v1.4.0-rc.7 with release notes | done | pre-release; tag on this PR's merge commit | [#53](https://github.com/nathansottung/gps-time/pull/53) |
 | TM | §1 | Overlapping ADEV, MDEV and TDEV from PPS offset history | done | from kernel PPS timestamps (the samples behind chrony's PPS offset; chrony reports one only every 16 s). Not yet run on a Pi | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | TM | §1 | Averaging times from 1 s to the longest span the stored data supports | done | 1 s to 2 d; needs 3 averaging times of history (4 for MDEV, TDEV) | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | TM | §1 | Log–log plot with confidence bars; table of key points (1 s, 10 s, 100 s, 1000 s, 1 day) | done | bars for ADEV only; none calculated for MDEV or TDEV | [#55](https://github.com/nathansottung/gps-time/pull/55) |
@@ -460,3 +462,5 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | Configured and suggested NMEA offset side by side | done | PPS diagnostics page; the suggestion reads UNKNOWN with the reason when it can't be measured | [#49](https://github.com/nathansottung/gps-time/pull/49) [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | done | Network page; chrony counts received and dropped, not replies, so "served" is shown as received − dropped. Not yet run on a Pi | [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4, §6 done; §2 and §5 not started | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) [#58](https://github.com/nathansottung/gps-time/pull/58) |
+| Repo |  | Tag v1.4.0-rc.8 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#59](https://github.com/nathansottung/gps-time/pull/59) |
+| Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | next | owner's step: upgrade with `deploy/upgrade-1.4-station.md` and run it for 3 days | [#59](https://github.com/nathansottung/gps-time/pull/59) |

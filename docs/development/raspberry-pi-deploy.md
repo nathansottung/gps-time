@@ -1,8 +1,24 @@
 # Build and deploy to Raspberry Pi
 
-Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-install.md) for a newly flashed Pi, and [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md) for upgrading a v1.3 station.
+Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-install.md) for a newly flashed Pi, [`../deploy/first-pi-deploy.md`](../deploy/first-pi-deploy.md) for upgrading a v1.3 station, and [`../deploy/upgrade-1.4-station.md`](../deploy/upgrade-1.4-station.md) for a station that already runs 1.4.
 
 `install.sh` starts with a preflight: it stops, before changing anything, if it isn't run as root, chrony isn't installed, or the `_chrony` or `video` group is missing. It warns if gpsd or polkit is missing. It doesn't install chrony, gpsd or PPS, and it doesn't configure them beyond three `chrony.conf` edits: `log tracking`, `logdir /run/chrony-log`, and disabling DHCP-provided NTP servers (below). Only when asked, it also adds a file of `noselect` servers ("Independent references", below).
+
+## Deployment record
+
+| Date | Version | Result |
+|---|---|---|
+| 2026-10-04 | v1.4.0-rc.6 | First deploy of the 1.4 line to the Pi. chrony selected the PPS refclock; stratum 1; system clock offset about 300 ns (owner's report). |
+
+Found on that build and fixed since:
+
+- "Astronomy data unavailable." with no reason: the API, the legacy widget and the installer's self-check now state it (#43, #51). The Pi's own reason is still to be read from `/api/almanac`.
+- "Client list unavailable": the unprivileged service can't use chronyd's socket; a helper running as `_chrony` publishes the list (#44).
+- Empty satellite C/N₀ bars in the legacy dashboard: a CSS `display` rule (#50).
+
+Followed from the owner's list after it: chrony polling the station's own address is detected (#48) and prevented by the installer (#52); a measured NMEA offset recommendation (#49).
+
+Not recorded: which checklist was followed, and the result of each individual check (polkit, admin token, vcgencmd values). Nothing merged after rc.6 has run on a Pi yet; v1.4.0-rc.8 is the next deploy.
 
 ## Build archives
 
