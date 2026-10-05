@@ -714,3 +714,13 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - Tests: `tests/test_ntp_service.py` (17), `tests/test_chrony_clients.py` updated for the third report, `web/src/lib/ntpservice.test.ts` (10). Checked in the demo.
 - Not yet run on a Pi: that `_chrony` can read `serverstats` over the socket is expected from chrony's design, not confirmed.
 - With this, `SPEC-TIMING-METROLOGY.md` §1, §3, §4 and §6 are done. §2 (NTS) and §5 (PTP) are not started, on the owner's instruction to stop and report first.
+
+## 2026-10-05 — deploy record; v1.4.0-rc.8 (#59)
+
+- **Deploy docs now state what happened** (owner's report): v1.4.0-rc.6 was deployed to the Pi on 2026-10-04; chrony selected the PPS refclock, stratum 1, system clock offset about 300 ns. `docs/development/raspberry-pi-deploy.md` has a deployment record with the fixes found on that build (#43, #51, #44, #50) and what followed from the owner's list (#48, #49, #52).
+  - The two checklists no longer say that nothing has run on a Pi.
+  - Still not recorded, and left that way: which checklist was followed and the result of each individual check. The per-item "not yet verified on a Pi" notes in `STATUS.md` and ADR-0005 stay until someone records the check.
+- **New: `docs/deploy/upgrade-1.4-station.md`**, for a station that already runs a 1.4 release candidate: what the upgrade changes (the one `chrony.conf` line, the helper's new reports, RAM histories starting empty), the deploy command, checks for the new endpoints, the optional `noselect` step, and what the stability page can show after a 3-day run.
+- Release notes in `docs/releases/v1.4.0-rc.8.md`: everything merged since rc.7 (#54 to #58). Checklists, README and START-HERE target rc.8.
+- The annotated tag `v1.4.0-rc.8` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+- `STATUS.md`: "First Pi deploy of the 1.4 line" → done; new rows for the rc.8 tag and the owner's soak run (next-5 item 5).
