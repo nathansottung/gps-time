@@ -22,6 +22,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `roadmap/feature-registry.md` — canonical comprehensive feature inventory
 - `roadmap/ROADMAP-DESKTOP-FIELD-APP.md` — FUTURE, not scheduled: cross-platform desktop field / ham-radio app (laptop + GNSS receiver as an off-grid time source); starts only after the Pi station specs are complete
 - `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` — SCOPING, not scheduled: SDR and RF observatory (hardware tiers, GNU Radio/SoapySDR, candidate observations, grid frequency); Pi timing work and the first Pi deploy come first. Earlier SDR notes: `sdr/overview.md`, `sdr/timing-model.md`
+- `roadmap/ROADMAP-WEB-UPDATES.md` — FUTURE, low priority: software updates and config upload from the web UI (LAN only, signed releases, separate privileged installer, automatic rollback); not before the station has run stably on v1.4.0
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
 
 ## Science
