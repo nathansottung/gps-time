@@ -33,8 +33,8 @@ from zoneinfo import ZoneInfo, available_timezones
 
 import platform
 
-from . import (__version__, astro, catalog, chrony, config, dashboard, demo, gps, localtime, security, system,
-               timescales, timing_chain, units)
+from . import (__version__, astro, catalog, chrony, config, dashboard, demo, gps, localtime, satellites, security,
+               shadow, system, timescales, timing_chain, units)
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
@@ -369,6 +369,77 @@ def stability_payload():
     return timing_chain.service().stability.report()
 
 
+SKY_HIDDEN_REASON = ("Location is hidden by the station's privacy setting. The Earth-shadow geometry and "
+                     "satellite passes depend on the station's position, so they are not computed.")
+_SKY_CACHE = {}
+SKY_CACHE_S = 20.0
+
+
+def _sky_site():
+    """(site, mode, reason): the position sky calculations may use under the
+    privacy mode, or (None, mode, why not)."""
+    cfg = config.load()
+    mode = cfg.get("location_display", "exact")
+    if mode == "hidden":
+        return None, mode, SKY_HIDDEN_REASON
+    site = DEMO_SITE if DEMO_MODE else gps.observing_site()[0]
+    if site is None:
+        return None, mode, "No valid location is available (no GPS fix yet and no stored site)."
+    site, mode = config.privacy_site(cfg, site)      # rounded mode: compute from the rounded site only
+    return site, mode, None
+
+
+def _sky_cached(key, build):
+    """Keep one answer per distinct request for SKY_CACHE_S seconds (the geometry moves slowly)."""
+    now = datetime.now(timezone.utc).timestamp()
+    hit = _SKY_CACHE.get(key)
+    if hit and 0 <= now - hit[0] < SKY_CACHE_S:
+        return hit[1]
+    if len(_SKY_CACHE) > 32:
+        _SKY_CACHE.clear()
+    value = build()
+    _SKY_CACHE[key] = (now, value)
+    return value
+
+
+def _float_arg(qs, name, lo, hi):
+    try:
+        v = float(qs.get(name, [""])[0])
+    except ValueError:
+        return None
+    return v if math.isfinite(v) and lo <= v <= hi else None
+
+
+def shadow_payload(qs):
+    site, mode, reason = _sky_site()
+    if site is None:
+        return {"available": False, "reason": reason, "location_display": mode}
+    shell = shadow.valid_shell(qs.get("shell", ["550"])[0]) or 550.0
+    az, alt = _float_arg(qs, "az", 0.0, 360.0), _float_arg(qs, "alt", 0.0, 90.0)
+    query = (az, alt) if az is not None and alt is not None else None
+    key = ("shadow", round(site["lat"], 3), round(site["lon"], 3), shell, query)
+    rep = _sky_cached(key, lambda: shadow.report(site, datetime.now(timezone.utc), shell, query))
+    return {**rep, "location_display": mode}
+
+
+def satellites_payload(qs):
+    site, mode, reason = _sky_site()
+    if site is None:
+        return {"available": False, "reason": reason, "location_display": mode}
+    if DEMO_MODE:
+        return {**demo.satellites(), "location_display": mode}
+    try:
+        norad = int(qs.get("sat", [""])[0])
+    except ValueError:
+        norad = None
+    if norad is not None and not 0 < norad < 1_000_000_000:
+        norad = None
+    query = qs.get("q", [""])[0][:40]
+    key = ("sat", round(site["lat"], 3), round(site["lon"], 3), norad, query)
+    rep = _sky_cached(key, lambda: satellites.report(site, datetime.now(timezone.utc), norad, query))
+    return {**rep, "location_display": mode}
+
+
 def ntp_service_payload():
     if DEMO_MODE:
         return demo.ntp_service()
@@ -585,6 +656,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(timing_chain_payload(qs))
             elif p == "/api/stability":
                 self._json(stability_payload())
+            elif p == "/api/shadow":
+                self._json(shadow_payload(qs))
+            elif p == "/api/satellites":
+                self._json(satellites_payload(qs))
             elif p == "/api/ntp-service":
                 self._json(ntp_service_payload())
             elif p == "/api/references":

@@ -174,6 +174,58 @@ def stability() -> dict:
             .isoformat(timespec="seconds")}
 
 
+def satellites() -> dict:
+    """Sample /api/satellites payload, written by hand: demo mode must not need
+    orbital elements, the sgp4 package or the network. Times are relative to now."""
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+
+    def at(minutes, seconds=0):
+        return (now + timedelta(minutes=minutes, seconds=seconds)).isoformat(timespec="seconds")
+
+    def pt(minutes, seconds, az, alt, rng, state):
+        return {"utc": at(minutes, seconds), "azimuth_deg": az, "altitude_deg": alt, "range_km": rng, "state": state}
+
+    epoch = now - timedelta(days=1, hours=7)
+    iss = {"norad": 25544, "name": "ISS (ZARYA)", "group": "stations", "epoch_utc": epoch.isoformat(timespec="seconds"),
+           "age_days": 1.29, "stale": False, "age_note": None, "available": True, "reason": None,
+           "provenance": "modeled", "azimuth_deg": 212.4, "altitude_deg": -31.6, "above_horizon": False,
+           "range_km": 7480.2, "height_km": 418, "angular_speed_deg_s": 0.051, "state": "SUNLIT",
+           "sunlit_fraction": 1.0, "could_be_seen": False}
+    css = {**iss, "norad": 48274, "name": "CSS (TIANHE)", "azimuth_deg": 78.9, "altitude_deg": -12.3,
+           "range_km": 4310.5, "height_km": 384, "angular_speed_deg_s": 0.118, "state": "UMBRA", "sunlit_fraction": 0.0}
+    passes = [
+        {"rise": pt(42, 10, 318.2, 0.0, 2368.4, "SUNLIT"), "culmination": pt(47, 6, 41.7, 48.3, 548.9, "SUNLIT"),
+         "set": pt(52, 0, 124.6, 0.0, 2371.0, "UMBRA"), "in_progress": False, "duration_s": 590,
+         "shadow_changes": [
+             {"utc": at(48, 39), "kind": "penumbra entry", "from": "SUNLIT", "to": "PENUMBRA", "azimuth_deg": 96.1, "altitude_deg": 31.4},
+             {"utc": at(48, 51), "kind": "umbra entry", "from": "PENUMBRA", "to": "UMBRA", "azimuth_deg": 99.8, "altitude_deg": 28.9}],
+         "visible": {"start_utc": at(44, 14), "end_utc": at(48, 50), "duration_s": 276,
+                     "max_altitude_deg": 48.3, "max_azimuth_deg": 41.7},
+         "sun_altitude_deg": -16.3, "provenance": "predicted"},
+        {"rise": pt(139, 2, 291.5, 0.0, 2370.1, "SUNLIT"), "culmination": pt(143, 8, 232.0, 10.9, 1489.3, "UMBRA"),
+         "set": pt(147, 15, 173.4, 0.0, 2369.7, "UMBRA"), "in_progress": False, "duration_s": 493,
+         "shadow_changes": [
+             {"utc": at(140, 27), "kind": "penumbra entry", "from": "SUNLIT", "to": "PENUMBRA", "azimuth_deg": 281.0, "altitude_deg": 3.9},
+             {"utc": at(140, 39), "kind": "umbra entry", "from": "PENUMBRA", "to": "UMBRA", "azimuth_deg": 279.2, "altitude_deg": 4.6}],
+         "visible": None, "sun_altitude_deg": -33.3, "provenance": "predicted"},
+    ]
+    return {
+        "available": True, "reason": None, "provenance": "external",
+        "meaning": ("Predictions from orbital elements. 'Could be seen' means above 10°, not in the Earth's umbra, "
+                    "and the Sun at least 6° below the horizon. It says nothing about brightness, cloud or obstructions."),
+        "as_of_utc": now.isoformat(timespec="seconds"),
+        "cache": {"dir": "(sample cache)", "satellites": 2,
+                  "groups": [{"group": "stations", "file": "stations.tle", "count": 2, "rejected": 0,
+                              "source": "(sample data)", "fetched_utc": (now - timedelta(hours=9)).isoformat(timespec="seconds"),
+                              "newest_epoch_utc": epoch.isoformat(timespec="seconds"),
+                              "oldest_epoch_utc": epoch.isoformat(timespec="seconds")}],
+                  "newest_epoch_utc": epoch.isoformat(timespec="seconds"), "newest_age_days": 1.29,
+                  "oldest_age_days": 1.29, "stale_after_days": 14.0, "problems": [], "provenance": "external"},
+        "featured": [iss, css], "satellite": iss, "passes": passes, "matches": [], "window_hours": 24.0,
+        "demo": {"note": "synthetic data — not a prediction"},
+    }
+
+
 def ntp_service() -> dict:
     """Sample /api/ntp-service payload: the real tracker fed synthetic counters
     (about 14 requests a minute, a few dropped), two hours of history."""
