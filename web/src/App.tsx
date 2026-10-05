@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { formatLocal, formatUtc, loadHour12, resolveZone, saveHour12, unixSeconds } from './lib/localtime';
+import { formatUtc, unixSeconds } from './lib/localtime';
+import { HourToggle, useStationTime } from './components/clock';
 import { DemoBanner } from './components/ui';
 import Overview from './pages/Overview';
 import Timing from './pages/Timing';
@@ -44,18 +45,11 @@ function Header() {
   const stratum = (chain.data ? trk?.stratum : core.data?.quality.stratum) || 'UNKNOWN';
   const reference = (chain.data ? trk?.reference : core.data?.quality.reference) || 'UNKNOWN';
   const stationName = typeof window !== 'undefined' ? window.location.hostname : '';
-  // Main clock: local time in the station's display zone (operator override, or the zone found
-  // from the station's position; this browser's zone otherwise, e.g. in hidden privacy mode),
-  // with UTC and the Unix epoch beneath. Display only: the station itself stays on UTC.
-  const [now, setNow] = useState(() => new Date());
-  const [hour12, setHour12] = useState(() => loadHour12());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const zone = resolveZone(core.data?.timezone);
-  const local = formatLocal(now, zone.tz, hour12);
-  const toggleHour12 = () => { const v = !hour12; setHour12(v); saveHour12(v); };
+  // Header clock: the same station time as the big clock on the Overview (components/clock.tsx).
+  const time = useStationTime();
+  const { zone, local } = time;
+  const now = time.now.at;
+  const basisNote = time.now.basis === 'station' ? "station clock, read through this browser" : "this browser's clock (station time not measured yet)";
 
   return (
     <header
@@ -105,7 +99,7 @@ function Header() {
 
       {/* Right — time display */}
       <div className="flex items-center gap-3">
-        <div className="text-right" title={`${zone.tz} — ${zone.label}. Display only; the station keeps UTC.`}>
+        <div className="text-right" title={`${local.date} · ${zone.tz} — ${zone.label}; ${basisNote}. Display only; the station keeps UTC.`}>
           <div className="mono text-[12px] tabular font-medium" style={{ color:'var(--t1)', letterSpacing:'0.02em' }}>
             {local.time}{local.abbr && <span style={{ color:'var(--t2)' }}> {local.abbr}</span>}
             <span className="text-[9px]" style={{ color:'var(--t3)' }}> {local.offset}{local.dst ? ' · DST' : ''}</span>
@@ -114,12 +108,7 @@ function Header() {
             UTC {formatUtc(now)} · UNIX {unixSeconds(now)}
           </div>
         </div>
-        <button onClick={toggleHour12} aria-label={`Switch to ${hour12 ? '24' : '12'}-hour clock`}
-          title={`${local.date} · ${zone.label}. Click for the ${hour12 ? '24' : '12'}-hour clock.`}
-          className="px-1.5 py-[3px] text-[9px] mono rounded-[2px]"
-          style={{ border:'1px solid var(--border)', color:'var(--t3)' }}>
-          {hour12 ? '12H' : '24H'}
-        </button>
+        <HourToggle t={time} />
       </div>
     </header>
   );

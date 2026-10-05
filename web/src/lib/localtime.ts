@@ -115,6 +115,24 @@ export function unixSeconds(at: Date): number {
   return Math.floor(at.getTime() / 1000);
 }
 
+// ─── Station time ────────────────────────────────────────────────────────────
+
+export interface StationInstant {
+  at: Date;
+  /** 'station': the station's clock, read through this browser. 'browser': only this browser's clock. */
+  basis: 'station' | 'browser';
+}
+
+/**
+ * The station's time now: this browser's clock corrected by the measured
+ * station − browser offset (four-timestamp exchange with /api/ping). Until an
+ * offset has been measured, it is the browser's own clock, and says so.
+ */
+export function stationInstant(browserNowMs: number, offsetMs: number | null | undefined): StationInstant {
+  if (typeof offsetMs !== 'number' || !Number.isFinite(offsetMs)) return { at: new Date(browserNowMs), basis: 'browser' };
+  return { at: new Date(browserNowMs + offsetMs), basis: 'station' };
+}
+
 // ─── 12/24-hour preference, remembered per browser ───────────────────────────
 
 const KEY = 'gtp-clock-hour12';
