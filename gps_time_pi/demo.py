@@ -174,6 +174,43 @@ def stability() -> dict:
             .isoformat(timespec="seconds")}
 
 
+REFERENCE_SCENARIOS = ("agree", "disagree", "unreachable", "none")
+
+
+def references(scenario="agree") -> dict:
+    """Sample /api/references payload: the real logic on synthetic chronyc rows.
+    Scenarios: agree (default), disagree, unreachable, none."""
+    from . import chrony, references as refs
+    if scenario not in REFERENCE_SCENARIOS:
+        scenario = "agree"
+    now = time.time()
+    servers = [("192.0.2.10", 1, 0.0021, 0.018, 0.031), ("192.0.2.20", 1, -0.0034, 0.022, 0.038),
+               ("198.51.100.7", 2, 0.0009, 0.015, 0.024)]
+    shift = 0.180 if scenario == "disagree" else 0.0
+    reach = "0" if scenario == "unreachable" else "377"
+
+    def fmt(seconds):
+        return f"{seconds * 1e6:+.0f}us" if abs(seconds) < 0.1 else f"{seconds * 1e3:+.0f}ms"
+
+    def rows_at(i):
+        lines = [_SRC_HDR.rstrip("\n"), _PPS_SEL, _NMEA_OK]
+        for k, (addr, stratum, off, err, _delay) in enumerate(servers if scenario != "none" else []):
+            o = off + shift + 0.0006 * math.sin(i / 9.0 + k)
+            last = "-" if reach == "0" else "30"
+            lines.append(f"^? {addr:<27} {stratum:>3} {8:>3} {reach:>5} {last:>5} {fmt(o):>8}[{fmt(o):>8}] +/- {err * 1e3:.0f}ms")
+        return chrony.parse_sources("\n".join(lines) + "\n", local_addrs=frozenset())
+
+    clock = [now - 180 * 300]
+    ntp = {addr: {"peer_delay_s": delay, "root_delay_s": 0.0004} for addr, _s, _o, _e, delay in servers}
+    tracker = refs.Tracker(clock=lambda: clock[0], ntpdata_reader=lambda: ntp)
+    for i in range(181):                      # 15 h of history, one point every 5 min
+        clock[0] = now - (180 - i) * 300
+        tracker.update(rows_at(i), True)
+    out = tracker.report()
+    out["demo"] = {"scenario": scenario, "scenarios": list(REFERENCE_SCENARIOS), "note": "synthetic data — not a measurement"}
+    return out
+
+
 def timescales(now: float) -> dict:
     """Sample /api/timescales payload: the real calculation on the real clock,
     with a sample leap-second table (valid for another 200 days) and no IERS file."""

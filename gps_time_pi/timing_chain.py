@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from . import chrony, stability
+from . import chrony, references, stability
 from .labels import q
 from .pps import PPSMonitor
 
@@ -781,7 +781,7 @@ class TimingChainService:
 
     def __init__(self, monitor=None, tracker=None, chrony_reader=read_chrony_inputs,
                  gnss_reader=None, refclock_reader=chrony.refclock_config,
-                 boot_config_reader=None, clock=time.time):
+                 boot_config_reader=None, clock=time.time, ntpdata_reader=None):
         from . import gps, pps
         self.monitor = monitor or PPSMonitor()
         self.tracker = tracker if tracker is not None else EventTracker(default_events_path(), boot=read_boot())
@@ -792,6 +792,7 @@ class TimingChainService:
         self.clock = clock
         self.sm = PPSStateMachine()
         self.stability = stability.Recorder(clock=clock)   # RAM-only phase history for /api/stability
+        self.references = references.Tracker(clock=clock, ntpdata_reader=ntpdata_reader)   # /api/references
         self._chrony_inputs, self._chrony_at = None, None
         self._refcfg = None
         self._boot = None
@@ -802,8 +803,9 @@ class TimingChainService:
     def tick(self, refresh_chrony=None):
         now = self.clock()
         self.monitor.poll()
-        if refresh_chrony or self._chrony_inputs is None or \
-                (refresh_chrony is None and now - (self._chrony_at or 0) >= CHRONY_INTERVAL_S):
+        fresh_chrony = bool(refresh_chrony or self._chrony_inputs is None or
+                            (refresh_chrony is None and now - (self._chrony_at or 0) >= CHRONY_INTERVAL_S))
+        if fresh_chrony:
             self._chrony_inputs, self._chrony_at = self.chrony_reader(), now
             self._refcfg = self.refclock_reader()
             if self._boot is None:
@@ -816,6 +818,8 @@ class TimingChainService:
         ci = self._chrony_inputs
         trk = chrony.parse_tracking(ci.get("tracking_text")) if ci.get("tracking_ok") else {}
         rows = chrony.parse_sources(ci.get("sources_text")) if ci.get("sources_ok") else []
+        if fresh_chrony:
+            self.references.update(rows, bool(ci.get("sources_ok")))
         status = timing_status(trk, rows, gnss=gnss, refclocks=self._refcfg)
         chain = build_chain(pps_snap, pps_state, gnss, cv, status, now=now)
         self.tracker.update(chain)

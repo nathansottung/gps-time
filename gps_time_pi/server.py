@@ -369,6 +369,14 @@ def stability_payload():
     return timing_chain.service().stability.report()
 
 
+def references_payload(qs):
+    if DEMO_MODE:
+        return demo.references(qs.get("scenario", ["agree"])[0])
+    svc = timing_chain.service()
+    svc.latest()                      # make sure chrony has been read at least once
+    return svc.references.report()
+
+
 def timescales_payload():
     now = datetime.now(timezone.utc).timestamp()
     if DEMO_MODE:
@@ -569,6 +577,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(timing_chain_payload(qs))
             elif p == "/api/stability":
                 self._json(stability_payload())
+            elif p == "/api/references":
+                self._json(references_payload(qs))
             elif p == "/api/timescales":
                 self._json(timescales_payload())
             elif p == "/api/diagnostics":

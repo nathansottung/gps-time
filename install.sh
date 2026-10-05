@@ -94,6 +94,15 @@ echo "== chrony: no NTP servers from DHCP (the station must not poll itself) =="
 bash scripts/chrony-no-dhcp-sources.sh /etc/chrony/chrony.conf \
   || echo "Warning: could not change /etc/chrony/chrony.conf; chrony may still take NTP servers from DHCP (docs/development/raspberry-pi-deploy.md)."
 
+echo "== chrony: independent references (optional, off unless asked for) =="
+# Servers chrony only measures (noselect), for the Timing -> References page.
+# Nothing is added unless GTP_INDEPENDENT_REFS is set:
+#   sudo GTP_INDEPENDENT_REFS=1 bash install.sh        NIST and USNO
+#   sudo GTP_INDEPENDENT_REFS="a b" bash install.sh    your own servers
+#   sudo GTP_INDEPENDENT_REFS=0 bash install.sh        remove them again
+bash scripts/chrony-independent-refs.sh /etc/chrony/sources.d \
+  || echo "Warning: the independent references were not changed (see the message above)."
+
 cp -r scripts $DEST/
 # Archives (ZIP in particular) may drop execute bits; set them explicitly.
 # Units also invoke logsync.sh via /bin/bash, so either alone is sufficient.

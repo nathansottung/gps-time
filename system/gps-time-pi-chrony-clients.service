@@ -21,7 +21,8 @@ RuntimeDirectory=gps-time-pi
 RuntimeDirectoryMode=0750
 UMask=0027
 
-# This service only runs `chronyc -n clients` and writes one file. It takes no
+# This service only runs the read-only reports in scripts/chrony-clients.sh
+# (`chronyc -n clients`, `chronyc -n ntpdata`) and writes their output. It takes no
 # input from the web service.
 NoNewPrivileges=yes
 CapabilityBoundingSet=

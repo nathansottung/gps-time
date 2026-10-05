@@ -104,10 +104,10 @@ class TestHelperScript(unittest.TestCase):
         self.fake_chronyc(f'cat "{self.tmp / "fixture"}"')
         r = self.run_once()
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(self.argv.read_text().splitlines(), ["-n clients"])
+        self.assertEqual(self.argv.read_text().splitlines(), ["-n clients", "-n ntpdata"])
         published = (self.out / "chrony-clients.txt").read_text(encoding="utf-8")
         self.assertEqual(chrony.parse_clients(published), EXPECTED)
-        self.assertEqual(sorted(p.name for p in self.out.iterdir()), ["chrony-clients.txt"])
+        self.assertEqual(sorted(p.name for p in self.out.iterdir()), ["chrony-clients.txt", "chrony-ntpdata.txt"])
 
     def test_failure_removes_the_old_list_and_logs(self):
         (self.out / "chrony-clients.txt").write_text(FIXTURE, encoding="utf-8")
@@ -150,7 +150,9 @@ class TestUnitAndInstaller(unittest.TestCase):
     def test_script_is_run_through_an_interpreter_and_takes_no_input(self):
         self.assertEqual(self.settings()["ExecStart"], ["/bin/bash /opt/gps-time-pi/scripts/chrony-clients.sh"])
         code = "\n".join(l for l in SCRIPT.read_text(encoding="utf-8").splitlines() if not l.lstrip().startswith("#"))
-        self.assertEqual(re.findall(r"chronyc[^\n;)]*", code), ["chronyc -n clients 2>&1", "chronyc -n clients failed: $out\" >&2"])
+        # the only chronyc call runs a name from a fixed list of read-only reports
+        self.assertEqual(re.findall(r"chronyc[^\n;)]*", code), ['chronyc -n "$cmd" 2>&1', "chronyc -n $cmd failed: $out\" >&2"])
+        self.assertEqual(re.findall(r"for cmd in ([^;]*);", code), ["clients ntpdata"])
         self.assertNotRegex(code, r"\bread\b|\$1|\$@|\beval\b")
 
     def test_web_service_does_not_get_the_control_socket(self):
