@@ -9,6 +9,7 @@ import type { Polled } from '../api/station';
 import { adsbStats, dataPacks, ntpRequestRatePerMin } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { browserTimeZone, fmtClock, fmtDuration, fmtUtc } from '../lib/format';
+import { isValidZone, resolveZone, zoneNames } from '../lib/localtime';
 
 const TZ = browserTimeZone();
 
@@ -515,6 +516,20 @@ export function Admin() {
       core.refresh();
     } catch (e) { setMsg((e as Error).message); auth.refresh(); }
   };
+  // Local-time display zone (lib/localtime.ts). Display only; the station keeps UTC.
+  const stationZone = core.data?.timezone;
+  const shownZone = resolveZone(stationZone);
+  const [tzInput, setTzInput] = useState('');
+  const [tzMsg, setTzMsg] = useState<string | null>(null);
+  const saveZone = async (tz: string | null) => {
+    if (tz !== null && !isValidZone(tz)) { setTzMsg(`"${tz}" is not a time zone this browser knows.`); return; }
+    try {
+      const r = await api.setTimezone(tz);
+      setTzMsg(r.ok ? (tz ? `Local time is shown in ${tz}.` : 'Local time zone is automatic again.') : 'The station rejected the time zone.');
+      if (r.ok) setTzInput('');
+      core.refresh();
+    } catch (e) { setTzMsg((e as Error).message); auth.refresh(); }
+  };
   const throttledNow = s?.throttled?.flags.filter(f => f.now && f.active).map(f => f.label) ?? [];
   const throttledEver = s?.throttled?.flags.filter(f => !f.now && f.active).map(f => f.label) ?? [];
   return (
@@ -581,6 +596,43 @@ export function Admin() {
             <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>Changing this needs the admin token (Admin access, above).</div>
           )}
           {msg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{msg}</div>}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Local time zone" badge={shownZone.source === 'position' ? <ProvenanceTag type="calculated" /> : undefined} />
+        <CardBody>
+          <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+            The zone the main clock shows local time in. Display only: the station's clock, logs and API stay on UTC.
+          </div>
+          <MetricRow label="Shown in" value={core.data ? shownZone.tz : null} />
+          <MetricRow label="Source" value={core.data ? shownZone.label : null} />
+          {stationZone && !stationZone.source && (
+            <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>Station: {stationZone.note}.</div>
+          )}
+          <div className="flex gap-1 mt-3">
+            <input value={tzInput} onChange={e => setTzInput(e.target.value.trim())} list="gtp-zones" placeholder="e.g. America/New_York"
+              aria-label="Time zone override (IANA name)" disabled={!canWrite}
+              className="px-2 py-[5px] text-[10px] mono rounded-[2px] flex-1"
+              style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--t1)' }} />
+            <datalist id="gtp-zones">{zoneNames().map(z => <option key={z} value={z} />)}</datalist>
+            <button onClick={() => saveZone(tzInput)} disabled={!canWrite || !tzInput}
+              className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={{ border:'1px solid var(--border)', color:'var(--t2)' }}>
+              set override
+            </button>
+            <button onClick={() => saveZone(null)} disabled={!canWrite || stationZone?.source !== 'override'}
+              className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={{ border:'1px solid var(--border)', color:'var(--t3)' }}>
+              automatic
+            </button>
+          </div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+            Automatic: the zone is found offline from the station's position. With the location hidden it is not derived from the position;
+            the override, or each browser's own zone, is used instead.
+          </div>
+          {!canWrite && auth.data && (
+            <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>Changing this needs the admin token (Admin access, above).</div>
+          )}
+          {tzMsg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{tzMsg}</div>}
         </CardBody>
       </Card>
 

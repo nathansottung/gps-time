@@ -33,7 +33,8 @@ from zoneinfo import ZoneInfo, available_timezones
 
 import platform
 
-from . import __version__, astro, catalog, chrony, config, dashboard, demo, gps, security, system, timing_chain, units
+from . import (__version__, astro, catalog, chrony, config, dashboard, demo, gps, localtime, security, system,
+               timing_chain, units)
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
@@ -118,6 +119,7 @@ def core_api():
         d["gps"] = {**d["gps"], "sats": config.privacy_sats(cfg, d["gps"].get("sats", []))}
         if cfg.get("location_display") == "hidden":
             d["sidereal"] = None
+        d["timezone"] = localtime.display_zone(cfg, DEMO_SITE)
         return d
     now = datetime.now(timezone.utc)
     trk = chrony.tracking()
@@ -156,6 +158,8 @@ def core_api():
         "survey": config.site_stats(cfg),
         "position_provenance": provenance,
         "sidereal": sidereal_for(cfg, site),
+        # Local-time display zone. The surveyed site is preferred over a single live fix.
+        "timezone": localtime.display_zone(cfg, cfg.get("site") or snap["live"]),
         "astro_available": astro.STATUS["available"],
         "astro_reason": astro.STATUS["reason"],     # why not, when unavailable; None when available
         "cpu_temp_c": cpu_temp(),
@@ -637,11 +641,22 @@ class Handler(BaseHTTPRequestHandler):
                     cfg["location_display"] = mode
                     config.save(cfg)
                     self._json({"ok": True, "location_display": mode})
+                elif "timezone" in body:
+                    # Display only: the system clock and every API timestamp stay on UTC.
+                    tz = body.get("timezone") or None
+                    if tz is not None and not localtime.valid_zone(tz):
+                        self._json({"ok": False, "error": "unknown time zone (expected an IANA name such as "
+                                                          "America/New_York, or null for automatic)"}, code=400)
+                    else:
+                        cfg = config.load()
+                        cfg["timezone"] = tz
+                        config.save(cfg)
+                        self._json({"ok": True, "timezone": tz})
                 elif body.get("reset_site") is True:
                     config.reset_site()
                     self._json({"ok": True, "reset_site": True})
                 else:
-                    self._json({"ok": False, "error": "expected location_display or reset_site"}, code=400)
+                    self._json({"ok": False, "error": "expected location_display, timezone or reset_site"}, code=400)
             elif p == "/api/dashboard/reset":
                 cfg = dashboard.save(dashboard.default_layout())
                 self._json({"ok": True, "dashboard": cfg})

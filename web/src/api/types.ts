@@ -125,6 +125,7 @@ export interface CoreStatus {
   survey: SurveyStats;
   position_provenance: 'live' | 'stored' | 'none' | 'demo';
   sidereal: string | null;
+  timezone?: DisplayZone;         // local-time display zone; absent on stations before this field
   astro_available: boolean;
   astro_reason?: string | null;   // why astronomy is unavailable; null when available
   cpu_temp_c: number | null;
@@ -135,6 +136,15 @@ export interface CoreStatus {
     receiver: { driver?: string; firmware?: string; path?: string } | null;
     python: string;
   };
+}
+
+/** /api → timezone. Display only; every timestamp in the API is UTC. */
+export interface DisplayZone {
+  tz: string | null;                          // IANA name; null = use the browser's zone
+  source: 'override' | 'position' | null;     // operator setting | found from the station's position
+  provenance: 'calculated' | null;            // set for 'position'
+  basis: 'exact' | 'rounded' | null;          // which position the lookup used (never in hidden mode)
+  note: string;
 }
 
 // ─── GET /api/timing-chain ───────────────────────────────────────────────────
@@ -406,6 +416,7 @@ export type DashboardWriteResult = { ok: true; dashboard: DashboardLayout } | { 
 
 export type SettingResult =
   | { ok: true; location_display: LocationMode }
+  | { ok: true; timezone: string | null }
   | { ok: true; reset_site: true }
   | { ok: false };
 

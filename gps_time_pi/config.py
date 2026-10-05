@@ -31,6 +31,7 @@ M_PER_DEG_LAT = 111320.0
 DEFAULTS = {
     "location_display": "exact",   # exact | rounded | hidden
     "site": None,
+    "timezone": None,              # IANA name: operator override for local-time display; None = automatic
 }
 
 

@@ -30,6 +30,8 @@ export interface StationApi {
   saveDashboard(layout: DashboardLayout): Promise<DashboardWriteResult>;
   resetDashboard(): Promise<DashboardWriteResult>;
   setLocationDisplay(mode: LocationMode): Promise<SettingResult>;
+  /** Local-time display zone override (IANA name); null = automatic. Display only. */
+  setTimezone(tz: string | null): Promise<SettingResult>;
   resetSite(): Promise<SettingResult>;
   admin(action: AdminAction): Promise<AdminResult>;
   /** Whether admin is enabled on the station and whether the stored token is accepted. */
@@ -111,6 +113,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     saveDashboard: (layout) => json('/api/dashboard', post(layout)),
     resetDashboard: () => json('/api/dashboard/reset', post()),
     setLocationDisplay: (mode) => json('/api/setting', post({ location_display: mode })),
+    setTimezone: (tz) => json('/api/setting', post({ timezone: tz })),
     resetSite: () => json('/api/setting', post({ reset_site: true })),
     admin: (action) => json('/api/admin', post({ action })),
     auth: () => json('/api/auth', { headers: authHeader(token.get()) }),
