@@ -25,7 +25,7 @@ $Pi = "$PiUser@$PiHost"
 - [ ] Note what chrony has selected now, and keep a copy of its configuration.
 
   ```powershell
-  ssh $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc8"
+  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc8"
   ```
 
 ## 2. Upgrade
