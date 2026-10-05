@@ -578,3 +578,22 @@ From the owner's list: "Filter the station's own address out of chrony sources p
   - Listed but not selected (PPS selected) doesn't change the status.
 - **Not done: changing chrony's configuration.** The software only reads chrony. Stopping chrony from polling itself is a documented operator step: comment out `sourcedir /run/chrony-dhcp` on the station. It's in the fresh-install checklist with a check that finds the problem, and in the deploy guide.
 - Tests: `tests/test_self_source.py` (12) with two new source fixtures. Not yet seen on a Pi.
+
+## 2026-10-05 — satellite C/N₀ bars rendered empty (fix/csp-inline-styles)
+
+Reported from the Pi, with CSP blocking inline styles as the suspected cause.
+
+- **Cause: CSS, not CSP.** The legacy dashboard draws each bar as `<i class="barfill" style="width:72%">`. The rule was `.barfill{height:100%;background:...}` with no `display`, so the `<i>` stayed `display: inline`, and CSS ignores width and height on inline elements. The bars have been empty since the 2026-09-18 baseline, in the demo too; it isn't specific to the Pi.
+- **Measured in a browser against the station's real headers:**
+  - On the legacy page the inline width **was** applied (`style.width` read `72%`); the element rendered 0 × 0 px because it was inline.
+  - After the fix it renders 109 × 5 px in a 175 px track for 62%.
+- **Fix:** `.barfill{display:block;...}`. One declaration; no restyle.
+- **CSP check of every page, as asked:**
+  - All legacy pages (`/`, its four tabs, `/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones`) are served `style-src 'self' 'unsafe-inline'`, so their style attributes aren't blocked.
+  - `/app/` is strict (`style-src 'self'`). All 12 of its pages were opened with a CSP violation observer, including buffered load-time reports: zero violations. React sets styles through the DOM, which CSP doesn't block. Its C/N₀ bars render.
+  - The only other inline element given a size in the legacy pages sets `display:inline-block` itself.
+- **Tests** (`tests/test_inline_styles.py`, 6):
+  - every inline element given a width or height in the legacy pages must have a display that can take one (fails on the old CSS, naming `barfill`);
+  - legacy pages that use style attributes are served a CSP that allows them, and scripts never get `'unsafe-inline'`;
+  - the strict CSP has no inline exception, and the new UI's source never builds HTML strings or style attributes that it would drop.
+- Browsers cache the stylesheet for 5 minutes, so the fix can take that long to show after a deploy.
