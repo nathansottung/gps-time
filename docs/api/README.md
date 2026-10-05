@@ -13,6 +13,7 @@ The TypeScript types in `web/src/api/types.ts` mirror these responses, and `web/
 | GET | `/api/diagnostics` | plain-text diagnostic snapshot | none | [→](endpoints.md#get-apidiagnostics) |
 | GET | `/api/history` | chrony tracking-log offset series | none | [→](endpoints.md#get-apihistory) |
 | GET | `/api/stability` | ADEV, MDEV, TDEV of the system clock against kernel PPS | none | [→](endpoints.md#get-apistability) |
+| GET | `/api/timescales` | TAI, GPS time and week, MJD/JD, leap-second table, UT1 − UTC from a cached file | none | [→](endpoints.md#get-apitimescales) |
 | GET | `/api/survey` | position-survey convergence + persistence status | none | [→](endpoints.md#get-apisurvey) |
 | GET | `/api/system` | host diagnostics (Pi model, load, power, RAM log) | none | [→](endpoints.md#get-apisystem) |
 | GET | `/api/almanac` | sun, moon, night, sky for a date | none (reads the sky-map target last set by `/api/object`) | [→](endpoints.md#get-apialmanac) |

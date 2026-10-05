@@ -8,6 +8,7 @@ Values are intentionally labelled as sample data in the UI.
 from __future__ import annotations
 
 import math
+import os
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -171,6 +172,17 @@ def stability() -> dict:
         _STABILITY["notes"] = ["sample data"]
     return {**_STABILITY, "since_utc": datetime.fromtimestamp(time.time() - 5 * 86400, timezone.utc)
             .isoformat(timespec="seconds")}
+
+
+def timescales(now: float) -> dict:
+    """Sample /api/timescales payload: the real calculation on the real clock,
+    with a sample leap-second table (valid for another 200 days) and no IERS file."""
+    from . import timescales as ts
+    table = {"entries": ts._builtin_entries(), "updated": now - 120 * 86400, "expires": now + 200 * 86400,
+             "source": "file", "path": "(sample leap-second list)", "problems": []}
+    return {**ts.scales(table, now),
+            "leap_seconds": ts.leap_status(table, now, "Normal"),
+            "ut1": ts.ut1(now, path=os.path.join(os.path.dirname(__file__), "no-iers-file-in-demo"))}
 
 
 def system_diagnostics() -> dict:

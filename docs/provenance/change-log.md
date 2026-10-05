@@ -662,3 +662,20 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - **Validated against published values** (NIST SP 1065 §12.4): the 9-point NBS set and the 1000-point suite agree to the seven digits published for ADEV, MDEV and TDEV, and for the degrees of freedom (146.177).
 - Tests: `tests/test_stability.py` (33) and `web/src/lib/stability.test.ts` (10). Checked in the demo.
 - Not yet run on a Pi. The cost of a full recalculation on a Pi has not been timed.
+
+## 2026-10-05 — time scales panel (#56)
+
+`specs/SPEC-TIMING-METROLOGY.md` §3.
+
+- **New: `gps_time_pi/timescales.py` and `/api/timescales`.** TAI, GPS time with week number and seconds of week, Modified Julian Date and Julian Date, all `calculated` from the station's UTC clock.
+- **TAI − UTC is read from a table, not hard-coded.** The spec's "UTC + 37 s at present" is what the table says today. The source is tzdata's `leap-seconds.list` (`external`, IERS data). The payload gives its path, update date and expiry date.
+  - A warning starts 60 days before expiry (`GTP_LEAP_EXPIRY_WARN_DAYS`), and an expired table says that TAI and GPS time assume no leap second since.
+  - If no file can be read, a built-in list ending 2017-01-01 is used and the expiry is reported as UNKNOWN, with the reason.
+  - The next scheduled leap second comes from the table. When there is none, the answer says whether the table is valid enough to rule one out. chrony's own leap status is shown beside it as `observed`.
+- **UT1 − UTC** is reported only from a cached IERS `finals2000A` file that the operator places on the station, labeled `external` with the file's date and whether the value is an IERS determination or prediction. The station never fetches it. A file that doesn't cover today isn't used.
+- **Timing → Time Scales** in `/app/`: one panel with UTC, local time, TAI, GPS time, GPS week and seconds of week, Unix epoch, MJD, JD and local sidereal time, ticking from the station's clock (the same measured station time as the big clock). The caption says GPS/PPS only when chrony has PPS selected. Without the station's offset, TAI and GPS time read UNKNOWN; the page never assumes 37.
+- **Privacy.** Nothing in `/api/timescales` depends on the location. Sidereal time still comes from `/api` and reads "hidden by location privacy" in `hidden` mode.
+- **Limits.** MJD and JD are UTC-based and repeat a second during an inserted leap second, as Unix time does. The sidereal time in the panel is the value at the last `/api` update, not a ticking one.
+- Nothing here sets the clock or changes chrony.
+- Tests: `tests/test_timescales.py` (27; fixture leap-second lists, one with an invented future leap second, and a fixture IERS file) and `web/src/lib/timescales.test.ts` (10). Known epochs checked: GPS start, the 1999 week rollover, J2000.0, MJD 0. Checked in the demo.
+- Not yet run on a Pi: that Debian's tzdata there ships `leap-seconds.list` at the expected path is assumed, and the panel says so if it doesn't.

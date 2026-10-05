@@ -13,9 +13,10 @@
 import { UI_VERSION } from '../lib/version';
 import type { StationApi } from './client';
 import { tokenStore } from './auth';
+import { scaleValues } from '../lib/timescales';
 import type {
   Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, Satellite,
-  Stability, StabilityPoint, Survey, SystemDiagnostics, TimingChain, TimingEvent, TimingStage,
+  Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
 
 const SITE = { lat: 38.9217, lon: -77.0669, alt_msl: 92.0, alt_hae: 59.0 };
@@ -82,6 +83,7 @@ export function demoApi(): StationApi {
     timingChain: (o) => delay(timingChain(o?.scenario)),
     history: () => delay(history()),
     stability: () => delay(stability()),
+    timescales: () => delay(timescales()),
     survey: () => delay(survey()),
     system: () => delay(system()),
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
@@ -391,6 +393,35 @@ function stability(): Stability {
     points,
     key_points: [key(1, '1 s'), key(10, '10 s'), key(100, '100 s'), key(1000, '1000 s'), key(86400, '1 day')],
     notes: ['sample data'],
+  };
+}
+
+function timescales(): TimeScales {
+  // The real calculation on this browser's clock, with a sample leap-second
+  // table (valid for another 200 days) and no cached IERS file.
+  const now = new Date();
+  const v = scaleValues(now, 37);
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 19) + '+00:00';
+  const calc = <T,>(value: T, unit: string | null = null) => m(value, unit, 'calculated');
+  return {
+    provenance: 'calculated',
+    utc: iso(now.getTime()), unix_s: v.unix,
+    tai_utc_s: calc(37, 's'), gps_utc_s: calc(18, 's'),
+    tai: calc(v.tai!),
+    gps: { time: calc(v.gps!), week: calc(v.gpsWeek!), week_mod_1024: calc(v.gpsWeekMod1024!), seconds_of_week: calc(v.gpsSecondsOfWeek!, 's') },
+    mjd: calc(Number(v.mjd), 'd'), jd: calc(Number(v.jd), 'd'),
+    leap_seconds: {
+      provenance: 'external', source: 'file', source_label: 'IERS leap-second list from the operating system',
+      path: '(sample leap-second list)',
+      updated_utc: iso(now.getTime() - 120 * 86400e3), expires_utc: iso(now.getTime() + 200 * 86400e3),
+      days_to_expiry: 200, status: 'OK', warning: null, warn_days: 60,
+      last: { utc: '2017-01-01T00:00:00+00:00', tai_utc_s: 37 }, next: null,
+      next_note: `None scheduled in the table, which is valid until ${iso(now.getTime() + 200 * 86400e3).slice(0, 10)}.`,
+      chrony_leap_status: m('Normal', null, 'observed', 'chrony tracking: Leap status'),
+      problems: [],
+    },
+    ut1: { available: false, provenance: 'external', path: '(none in demo)', ut1_utc_s: null, kind: null, file_date_utc: null,
+           reason: 'No cached IERS file on the station. UT1 − UTC needs IERS data from the Internet, which the station does not fetch.' },
   };
 }
 
