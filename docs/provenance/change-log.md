@@ -478,7 +478,7 @@ The station Pi runs Raspberry Pi OS on Debian 13 with Python 3.13. Until now CI 
 - Added `docs/roadmap/ROADMAP-WEB-UPDATES.md` (owner-provided, copied verbatim; SHA-256 `98023c1c…`) and indexed it in `docs/INDEX.md`.
 - Status FUTURE, low priority: not before the station has run stably on v1.4.0. `STATUS.md` lists it as unscheduled work outside the table, with that label. No rows added.
 
-## 2026-10-04 — NTP client list for the unprivileged service (fix/chrony-clients)
+## 2026-10-04 — NTP client list for the unprivileged service (#44)
 
 Reported from the first Pi build: "Client list unavailable (chronyc clients not readable)".
 
