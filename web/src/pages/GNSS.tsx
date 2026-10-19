@@ -253,9 +253,9 @@ export default function GNSS() {
                   <div className="text-[10px] mono uppercase mb-2" style={{ color:'var(--t3)' }}>
                     Position · {PROV_LABEL[core.data?.position_provenance ?? 'none'] ?? 'UNKNOWN'}
                   </div>
-                  <MetricRow label="Lat" value={loc?.lat == null ? null : `${loc.lat}°`} provenance="observed" />
-                  <MetricRow label="Lon" value={loc?.lon == null ? null : `${loc.lon}°`} provenance="observed" />
-                  <MetricRow label="H (MSL)" value={H === null ? null : `${H} m`} provenance="observed" />
+                  <MetricRow label="Lat" value={loc?.lat == null ? null : `${loc.lat}°`} provenance="observed" sensitive />
+                  <MetricRow label="Lon" value={loc?.lon == null ? null : `${loc.lon}°`} provenance="observed" sensitive />
+                  <MetricRow label="H (MSL)" value={H === null ? null : `${H} m`} provenance="observed" sensitive />
                   <MetricRow label="Fix" value={gps ? (gps.stale ? `stale (last ${gps.last_fix ?? '—'})` : gps.fix) : null} />
                   <MetricRow label="Data age" value={gps?.data_age_s == null ? null : `${gps.data_age_s.toFixed(1)} s`} provenance="calculated" />
                 </div>
@@ -283,15 +283,15 @@ export default function GNSS() {
             <div className="grid grid-cols-2 gap-x-8">
               <div>
                 <SectionHeader title="Geographic Coordinates" />
-                <MetricRow label="Latitude" value={loc?.lat == null ? null : `${Math.abs(loc.lat)}° ${loc.lat >= 0 ? 'N' : 'S'}`} provenance="observed" />
-                <MetricRow label="Longitude" value={loc?.lon == null ? null : `${Math.abs(loc.lon)}° ${loc.lon >= 0 ? 'E' : 'W'}`} provenance="observed" />
+                <MetricRow label="Latitude" value={loc?.lat == null ? null : `${Math.abs(loc.lat)}° ${loc.lat >= 0 ? 'N' : 'S'}`} provenance="observed" sensitive />
+                <MetricRow label="Longitude" value={loc?.lon == null ? null : `${Math.abs(loc.lon)}° ${loc.lon >= 0 ? 'E' : 'W'}`} provenance="observed" sensitive />
                 <MetricRow label="Datum" value="WGS84" />
               </div>
               <div>
                 <SectionHeader title="Heights" />
-                <MetricRow label="Ellipsoidal height h" value={h === null ? null : `${h} m`} provenance="observed" />
-                <MetricRow label="Orthometric height H (gpsd)" value={H === null ? null : `${H} m`} provenance="observed" />
-                <MetricRow label="Geoid undulation N = h − H" value={N === null ? null : `${N.toFixed(1)} m`} provenance="calculated" />
+                <MetricRow label="Ellipsoidal height h" value={h === null ? null : `${h} m`} provenance="observed" sensitive />
+                <MetricRow label="Orthometric height H (gpsd)" value={H === null ? null : `${H} m`} provenance="observed" sensitive />
+                <MetricRow label="Geoid undulation N = h − H" value={N === null ? null : `${N.toFixed(1)} m`} provenance="calculated" sensitive />
                 <MetricRow label="Geoid model" value={null} muted />
               </div>
             </div>

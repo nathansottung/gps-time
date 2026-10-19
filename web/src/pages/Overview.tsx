@@ -4,6 +4,7 @@ import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { TimingChainCard } from '../components/timing';
 import { StationClockCard } from '../components/clock';
+import { Sensitive } from '../components/screenshot';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { toSkySats, plottable, cn0Stats, toOffsetSeries, fracFreq, allEvents, satCounts, ntpClientCount } from '../api/view';
 import type { Almanac, SolarDay, LunarDay } from '../api/types';
@@ -456,7 +457,7 @@ function VariantB() {
     <div className="page-enter">
       <div className="rounded-[2px] p-4" style={{ background:'var(--card)', border:'1px solid var(--border)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
         <div className="mono text-[9px] mb-3 uppercase tracking-[0.15em]" style={{ color:'var(--t4)' }}>
-          {window.location.hostname} — Engineering Console — {new Date().toISOString().replace('T',' ').slice(0,-5)} UTC
+          <Sensitive>{window.location.hostname}</Sensitive> — Engineering Console — {new Date().toISOString().replace('T',' ').slice(0,-5)} UTC
         </div>
         <div className="grid grid-cols-2 gap-x-10">
           {rows.map(([k,v,s]) => (

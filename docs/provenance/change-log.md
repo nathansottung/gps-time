@@ -879,3 +879,13 @@ From the owner's list.
 ## 2026-10-19 — sunset as prominent as sunrise (#78)
 
 From the owner's list ("sunset prominence"). In the legacy dashboard's Sun & daylight widget, each day showed sunrise as the large figure and sunset in the small grey line under it ("Sunrise · 6:24:12 PM sunset"). Each day now has two figures of the same size, sunrise then sunset, each labeled. A content fix in one widget, not a restyle: no CSS changed. The `/app/` Overview already gave both the same size; unchanged. Tests: `web/src/lib/legacy-dashboard.test.ts` (3).
+## 2026-10-19 — screenshot mode (#79)
+
+From the owner's list: a way to take screenshots of the station UI without showing where it is or who uses it.
+
+- **What it hides, in `/app/`:** latitude and longitude, heights (h, H and the geoid undulation N = h − H, which is derived from them), NTP client addresses, the hostname (header and the Overview's engineering console), and the station's own address when chrony polls it.
+- **How:** each hidden value is replaced by a mask of the same shape (digits → 0, letters → x: `38.9217°` → `00.0000°`), blurred. The real value is not drawn at all, because blurred digits in a known font can be recovered.
+- **Display only.** Nothing changes on the station, in the API or in exports, and the station's location privacy mode is unaffected; the toggle says "display only" and its tooltip points to Location privacy. Values it does not hide: sun and moon times, sidereal time and the local zone, which narrow the position only coarsely; for those, use the station's rounded or hidden mode.
+- **Toggle:** in the header; Alt+Shift+S (by key position, so it also works on macOS). Remembered per browser in `localStorage` (`gtp-screenshot-mode`); if storage is blocked it lasts for the page.
+- The legacy pages are not changed (they are not restyled; noted in `dashboard/web-ui-parity.md`).
+- Tests: `web/src/lib/screenshot.test.ts` (6). Checked in the desktop demo: the toggle, the shortcut, the setting surviving a reload, and no client address left in the page text.

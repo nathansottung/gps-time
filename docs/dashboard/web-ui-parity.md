@@ -37,6 +37,7 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 - Browser connection statistics: RTT current/min/median/p95, jitter.
 - chrony sources table with selection state on the Network page.
 - Explicit UNKNOWN for every value the station cannot establish, and stale sky data hidden instead of shown as current counts.
+- Screenshot mode (header toggle, Alt+Shift+S, per browser, display only): coordinates, heights, NTP client addresses and the hostname drawn as a blurred mask. The legacy pages have no equivalent; their location display follows the station's privacy mode only.
 
 ## Not parity items (unchanged routes)
 

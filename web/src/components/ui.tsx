@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { Sensitive } from './screenshot';
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 type BadgeVariant = 'good'|'warn'|'error'|'info'|'muted'|'demo';
@@ -53,9 +54,11 @@ export function SectionHeader({ title, sub, action, provenance }: {
 }
 
 // ─── Metric Row ───────────────────────────────────────────────────────────────
-export function MetricRow({ label, value, unit, uncertainty, provenance, muted, large }: {
+export function MetricRow({ label, value, unit, uncertainty, provenance, muted, large, sensitive }: {
   label: string; value: string|number|null|undefined; unit?: string; uncertainty?: string|null;
   provenance?: ProvenanceType; muted?: boolean; large?: boolean;
+  /** Hidden in screenshot mode (coordinates, heights). */
+  sensitive?: boolean;
 }) {
   // null/undefined = the station can't establish this value: show UNKNOWN, never a guess.
   if (value === null || value === undefined) {
@@ -70,7 +73,7 @@ export function MetricRow({ label, value, unit, uncertainty, provenance, muted, 
     <div className="flex items-baseline justify-between py-[5px] row-sep">
       <span className="text-[11px]" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
       <div className="flex items-baseline gap-1.5">
-        <span className={`mono tabular ${large ? 'text-base' : 'text-[12px]'} font-medium`} style={{ color:'var(--t1)' }}>{value}</span>
+        <span className={`mono tabular ${large ? 'text-base' : 'text-[12px]'} font-medium`} style={{ color:'var(--t1)' }}>{sensitive ? <Sensitive>{value}</Sensitive> : value}</span>
         {unit && <span className="text-[10px]" style={{ color:'var(--t3)' }}>{unit}</span>}
         {uncertainty && <span className="text-[10px]" style={{ color:'var(--t3)' }}>± {uncertainty}</span>}
         {provenance && <ProvenanceTag type={provenance} />}
