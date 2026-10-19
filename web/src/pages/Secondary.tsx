@@ -11,6 +11,7 @@ import type { AdminAction, AdminResult, AuthState, LocationMode, LunarDay, Solar
 import { ApiError } from '../api/client';
 import { STATION_ACTIONS, actionInfo, actionOutcome, type ActionOutcome } from '../lib/admin';
 import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome } from '../lib/survey';
+import { throttleRows, underVoltage } from '../lib/throttle';
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
@@ -628,8 +629,8 @@ export function Admin() {
       core.refresh();
     } catch (e) { setTzMsg((e as Error).message); auth.refresh(); }
   };
-  const throttledNow = s?.throttled?.flags.filter(f => f.now && f.active).map(f => f.label) ?? [];
-  const throttledEver = s?.throttled?.flags.filter(f => !f.now && f.active).map(f => f.label) ?? [];
+  const throttle = throttleRows(s?.throttled);
+  const uv = underVoltage(throttle);
   return (
     <div className="space-y-4 page-enter">
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Administration / System</h1>
@@ -664,8 +665,38 @@ export function Admin() {
           <CardBody>
             <MetricRow label="Core voltage" value={s?.core_volts ?? null} />
             <MetricRow label="Input power" value={s?.power ? s.power.watts : null} unit="W" />
-            <MetricRow label="Throttled now" value={s?.throttled ? (throttledNow.join(', ') || 'no') : null} />
-            <MetricRow label="Since boot" value={s?.throttled ? (throttledEver.join(', ') || 'no') : null} />
+            {/* get_throttled, decoded by the station (parity 21): every condition, now and since boot */}
+            {!throttle ? <MetricRow label="Throttle flags" value={null} /> : <>
+              <table className="w-full text-[11px] mt-2">
+                <thead><tr>
+                  {['Condition', 'Now', 'Since boot'].map((h, i) => (
+                    <th key={h} className={`py-1 font-normal ${i ? 'text-right' : 'text-left'}`} style={{ color:'var(--t3)', fontSize:10 }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {throttle.map(r => (
+                    <tr key={r.condition} className="row-sep">
+                      <td className="py-1" style={{ color:'var(--t2)' }}>{r.condition}</td>
+                      {[r.now, r.sinceBoot].map((v, i) => (
+                        <td key={i} className="py-1 mono text-right"
+                          style={{ color: v === null ? 'var(--t4)' : !v ? 'var(--t3)' : i === 0 ? 'var(--err-text)' : 'var(--warn-text)' }}>
+                          {v === null ? '—' : v ? 'YES' : 'no'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>get_throttled = {s?.throttled?.raw}</div>
+              {uv?.ever && (
+                <div className="text-[10px] mt-2 rounded-[2px] p-2" style={uv.now
+                  ? { color:'var(--err-text)', background:'var(--err-bg)', border:'1px solid var(--err-border)' }
+                  : { color:'var(--warn-text)', background:'var(--warn-bg)', border:'1px solid var(--warn-border)' }}>
+                  {uv.now ? 'Under-voltage now.' : 'Under-voltage occurred since boot.'} An unsteady supply can disturb the
+                  Pi's clock and the GNSS receiver; check the power supply and cable before reading timing results.
+                </div>
+              )}
+            </>}
             {s?.power_note && <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>{s.power_note}</div>}
           </CardBody>
         </Card>

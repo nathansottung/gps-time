@@ -41,10 +41,15 @@ def _throttled():
     if not out:
         return None
     try:
-        val = int(out.split("=")[1], 16)
+        return decode_throttled(out.split("=")[1])
     except (IndexError, ValueError):
         return None
-    return {"raw": out.split("=")[1],
+
+
+def decode_throttled(raw):
+    """'0x50005' -> every THROTTLE_BITS condition, current and latched since boot."""
+    val = int(raw, 16)
+    return {"raw": raw,
             "flags": [{"label": lbl, "active": bool(val >> bit & 1),
                        "now": bit < 16} for bit, lbl in THROTTLE_BITS],
             "any_now": bool(val & 0xF), "any_ever": bool(val & 0xF0000)}

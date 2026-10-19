@@ -974,3 +974,11 @@ Legacy removal step 5: what the owner kept from step 1 (#86).
 - Per browser rather than station-wide: one browser's choice doesn't change another's. The legacy saved-layout editor (`/configure`, `/api/dashboard*`) keeps working until the legacy pages are removed (step 8).
 - `Toggle` now has `role="switch"`, `aria-checked` and an optional label.
 - Tests: `web/src/lib/prefs.test.ts` (7). Checked in the desktop demo: night overlay with multiply blending, the choice surviving a reload, a hidden page leaving the sidebar, a hidden card leaving the Overview. Not run on a Pi.
+
+## 2026-10-19 — throttle flags decoded; parity items 2 and 21 decided; Dependabot (#91, #85)
+
+- Owner's decisions: the per-browser time-zone picker (parity 2) is dropped, since the station-wide override covers it; throttle flags (21) are kept, decoded; module visibility (#90) stays per browser.
+- **Administration → Power** now shows every get_throttled condition: under-voltage, frequency capped, throttled, soft temperature limit, each now and since boot, with the raw value. Before, it listed only the active flags in two lines. Under-voltage now (red) or since boot (amber) adds a note: an unsteady supply can disturb the Pi's clock and the GNSS receiver, so check the supply and cable before reading timing results. No vcgencmd: UNKNOWN, not "all clear".
+- The station side already decoded the bits; the decoding is now `system.decode_throttled()`, so the desktop demo shows a sample through the real decoder (under-voltage and throttling since boot). The client-side demo has the same sample.
+- Tests: `web/src/lib/throttle.test.ts` (3), `tests/test_throttled.py` (5; there was no test for the decoding before). Checked in the desktop demo. Not run on a Pi.
+- **Dependabot #85** (React and React DOM 19.3.1, Vitest 5.0.5, lucide-react 1.58, `@types/node` 22.20.5 — still on 22): merged when green, after checking it merged with the current main and passed the type check, tests and build.

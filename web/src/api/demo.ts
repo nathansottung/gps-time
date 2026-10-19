@@ -683,7 +683,18 @@ function system(): SystemDiagnostics {
   return {
     model: 'Demo adapter (no hardware)', kernel: 'demo', uptime_s: 7 * 86400 + 4000, load: [0.14, 0.12, 0.09],
     mem: { total_mb: 4096, available_mb: 3284, used_pct: 20 }, disk: { total_gb: 64, free_gb: 49.8, used_pct: 22 },
-    cpu_mhz: 1500, core_volts: null, throttled: null, power: null,
+    cpu_mhz: 1500, core_volts: null, power: null,
+    // sample: under-voltage and throttling latched since boot, nothing now (get_throttled=0x50000)
+    throttled: { raw: '0x50000', any_now: false, any_ever: true, flags: [
+      { label: 'Under-voltage now', active: false, now: true },
+      { label: 'Frequency capped now', active: false, now: true },
+      { label: 'Throttled now', active: false, now: true },
+      { label: 'Soft temp limit now', active: false, now: true },
+      { label: 'Under-voltage occurred since boot', active: true, now: false },
+      { label: 'Frequency capped since boot', active: false, now: false },
+      { label: 'Throttled since boot', active: true, now: false },
+      { label: 'Soft temp limit since boot', active: false, now: false },
+    ] },
     power_note: 'Sample diagnostics from the demo adapter.',
     ramlog: { path: '/run/chrony-log/tracking.log', in_ram: true, size_kb: 84.2, flushed_age_s: 723 },
   };
