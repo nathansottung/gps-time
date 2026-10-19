@@ -21,6 +21,8 @@ export interface ChronyQuality {
   rms_offset_s: number | null;
   root_delay_s: number | null;
   root_dispersion_s: number | null;
+  /** |System time| + root dispersion + ½ root delay: chronyc's bound, if the reference is right (GPS-007). */
+  max_error_bound_s: number | null;
   frequency: string | null;          // chrony text, e.g. "2.117 ppm fast"
   frequency_ppm?: number | null;     // only present in demo payloads today
   residual_freq: string | null;
@@ -320,9 +322,24 @@ export interface TimingChain {
 
 // ─── GET /api/history ────────────────────────────────────────────────────────
 
-export interface HistoryPoint { t: number; offset_s: number; err_s: number | null }  // t: Unix seconds
+/** One chrony tracking.log record, by column name (chrony 4.x; review GPS-003). t: Unix seconds. */
+export interface HistoryPoint {
+  t: number;
+  offset_s: number;                  // "Offset"
+  offset_sd_s?: number | null;       // "Offset sd": chrony's standard deviation of the offset
+  remaining_correction_s?: number | null;   // "Rem. corr."
+  root_delay_s?: number | null;
+  root_dispersion_s?: number | null;
+  max_error_s?: number | null;       // "Max. error": a bound, conditional on the reference
+  freq_ppm?: number | null;
+  skew_ppm?: number | null;
+  leap?: string;
+  n_combined?: number;               // "Co": how many sources were combined (a count)
+  stratum?: number;
+  source?: string;
+}
 export type History =
-  | { available: true; points: HistoryPoint[]; note: string | null }
+  | { available: true; points: HistoryPoint[]; note: string | null; skipped_lines?: number; columns?: string[] }
   | { available: false; points: HistoryPoint[]; note: string };
 
 // ─── GET /api/stability ──────────────────────────────────────────────────────

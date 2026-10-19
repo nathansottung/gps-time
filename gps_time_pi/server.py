@@ -135,7 +135,6 @@ def core_api():
     cfg = config.load()
     site, provenance = (snap["live"], "live") if snap["live"] else \
         ((cfg.get("site"), "stored") if cfg.get("site") else (None, "none"))
-    err = q["root_dispersion_s"]
     return {
         "epoch_ms": now.timestamp() * 1000,
         "utc": now.strftime("%Y-%m-%d %H:%M:%S.%f UTC"),
@@ -143,8 +142,10 @@ def core_api():
         "timing_status": status,
         "quality": q,
         "fmt": {
-            "system_pair": units.fmt_pair(q["system_time_s"], None) if err is None
-                           else units.fmt_pair(q["system_time_s"], err),
+            # chronyc "System time" is the correction still being slewed out, shown alone; the
+            # bound is separate and conditional on the reference (GPS-007). No "±".
+            "system_pair": units.fmt_offset(q["system_time_s"]) if q["system_time_s"] is not None else "–",
+            "error_bound": units.fmt_seconds(q["max_error_bound_s"]),
             "rms": units.fmt_seconds(q["rms_offset_s"]),
             "root_dispersion": units.fmt_seconds(q["root_dispersion_s"]),
             "root_delay": units.fmt_seconds(q["root_delay_s"]),

@@ -13,8 +13,8 @@ Core status. The legacy pages and the new UI poll it every 4–5 s. It never dep
 | `epoch_ms`, `utc` | server time when the response was built |
 | `state` | `[headline, "banner — detail"]` from the timing-status logic |
 | `timing_status` | the same status as `/api/timing-chain` → `status`; **live mode only** (absent in demo) |
-| `quality` | parsed `chronyc -n tracking`: `system_time_s` (signed, + = system clock fast), `last_offset_s`, `rms_offset_s`, `root_delay_s`, `root_dispersion_s`, plus chrony's text for `frequency` ("x ppm fast/slow"), `residual_freq`, `skew`, `update_interval`, `leap`, `stratum`, `reference`, `ref_time`. `frequency_ppm` appears only in demo payloads. |
-| `fmt` | the server's human-readable strings for the legacy pages |
+| `quality` | parsed `chronyc -n tracking`: `system_time_s` (chrony's "System time": the correction still being slewed out, signed, + = fast; not the error against UTC), `last_offset_s`, `rms_offset_s`, `root_delay_s`, `root_dispersion_s`, `max_error_bound_s` (calculated: \|system time\| + root dispersion + ½ root delay, chronyc's bound, valid only if the reference is right; null unless all three are known; since #93, GPS-007), plus chrony's text for `frequency` ("x ppm fast/slow"), `residual_freq`, `skew`, `update_interval`, `leap`, `stratum`, `reference`, `ref_time`. `frequency_ppm` appears only in demo payloads. |
+| `fmt` | the server's human-readable strings for the legacy pages. `system_pair` is the remaining correction alone (no "±" since #93); `error_bound` is `max_error_bound_s` formatted |
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample`, `is_self` (the source is one of this station's own addresses, so not an external reference) |
 | `sourcestats` | raw `chronyc sourcestats` text |
 | `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (which also publishes `chronyc -n ntpdata` for `/api/references` and `chronyc -n serverstats` for `/api/ntp-service`) (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
@@ -72,12 +72,15 @@ A plain-text (`text/plain; charset=utf-8`) snapshot for support: status, PPS, GN
 System-clock offset history from chrony's tracking log (`GTP_TRACKING_LOG`, default `/run/chrony-log/tracking.log` or `/var/log/chrony/tracking.log`), downsampled to at most 600 points. Type: `History`.
 
 ```json
-{"available": true, "points": [{"t": 1790896336.2, "offset_s": 1.2e-08, "err_s": 5e-07}], "note": null}
+{"available": true, "points": [{"t": 1790896336.2, "offset_s": 1.741e-07, "offset_sd_s": 1.789e-07, "remaining_correction_s": 2.5e-07,
+  "root_delay_s": 1e-09, "root_dispersion_s": 7.005e-06, "max_error_s": 2.612e-05, "freq_ppm": 10.295, "skew_ppm": 0.009,
+  "leap": "N", "n_combined": 1, "stratum": 1, "source": "PPS"}], "note": null, "skipped_lines": 0, "columns": ["date", "time", "..."]}
 ```
 
 - `t` is Unix seconds.
 - `offset_s` is the offset chrony logged (observed by chrony, not an independent measurement).
-- `err_s` is the logged error bound, or null.
+- Since #93 (review GPS-003) every value is one named column of the chrony 4.x `tracking.log` (`chrony.TRACKING_COLUMNS`): `offset_sd_s` ("Offset sd", chrony's standard deviation of the offset), `remaining_correction_s` ("Rem. corr."), `root_delay_s`, `root_dispersion_s`, `max_error_s` ("Max. error", a bound conditional on the reference), `freq_ppm`, `skew_ppm`, `leap`, `n_combined` ("Co", a source count), `stratum`, `source`. There is no combined `err_s` any more, and nothing is substituted when a column is missing.
+- A line that doesn't have the 4.x shape, or follows a banner naming other columns, is skipped and counted in `skipped_lines`, with a `note`. The layout is never guessed.
 
 Since rc.9 the log is parsed at most once a minute (the answer is kept for 60 s). If the log is missing, the response is `{"available": false, "points": [], "note": "chrony tracking log not found — add 'log tracking' to chrony.conf"}`. The span covered depends on the log's rotation, so a "7 d" view may show less.
 

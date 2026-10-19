@@ -445,10 +445,12 @@ def sync_state(trk, srcs, gnss=None, pps=None, refclocks=None):
 
 
 def quality(trk):
-    """The timing-quality panel, machine values in seconds."""
-    sys_t = _seconds(trk.get("System time"))
-    return {
-        "system_time_s": sys_t,
+    """The timing-quality panel, machine values in seconds.
+
+    system_time_s is chronyc's "System time": the correction chrony is still slewing out, not
+    the clock's error against UTC. max_error_bound_s is the conditional bound below (GPS-007)."""
+    q = {
+        "system_time_s": _seconds(trk.get("System time")),
         "last_offset_s": _parse_float((trk.get("Last offset", "").split() or [None])[0]),
         "rms_offset_s": _parse_float((trk.get("RMS offset", "").split() or [None])[0]),
         "root_delay_s": _parse_float((trk.get("Root delay", "").split() or [None])[0]),
@@ -462,6 +464,17 @@ def quality(trk):
         "reference": trk.get("Reference ID"),
         "ref_time": trk.get("Ref time (UTC)"),
     }
+    q["max_error_bound_s"] = max_error_bound(q["system_time_s"], q["root_dispersion_s"], q["root_delay_s"])
+    return q
+
+
+def max_error_bound(system_time_s, root_dispersion_s, root_delay_s):
+    """chronyc's bound on the clock's error: |System time| + Root dispersion + ½ Root delay
+    (chronyc(1), "tracking"). It holds only if the reference itself is right, and it is a
+    bound, not a standard uncertainty (review GPS-007). None unless all three are known."""
+    if None in (system_time_s, root_dispersion_s, root_delay_s):
+        return None
+    return abs(system_time_s) + root_dispersion_s + root_delay_s / 2
 
 
 # The RAM log first (install.sh puts chrony's logdir there), then the SD copy
@@ -491,38 +504,68 @@ def _tracking_files(path):
     return ([prev] if path.endswith("tracking.log") and os.path.exists(prev) else []) + [path]
 
 
+# chrony 4.x tracking.log (chrony.conf(5), "log tracking"). Named columns; nothing is taken by
+# position from a line that doesn't have this exact shape (review GPS-003).
+TRACKING_HEADER = ("Date (UTC) Time IP Address St Freq ppm Skew ppm Offset L Co Offset sd "
+                   "Rem. corr. Root delay Root disp. Max. error")
+TRACKING_COLUMNS = ("date", "time", "ip", "stratum", "freq_ppm", "skew_ppm", "offset_s", "leap",
+                    "n_combined", "offset_sd_s", "remaining_correction_s", "root_delay_s",
+                    "root_dispersion_s", "max_error_s")
+_LEAP_CODES = {"N", "+", "-", "?"}
+
+
+def parse_tracking_line(line):
+    """One tracking.log data line -> named values, or None if it isn't a chrony 4.x data line.
+    Every value is what chrony wrote; nothing is substituted or derived."""
+    t = line.split()
+    if len(t) != len(TRACKING_COLUMNS) or t[7] not in _LEAP_CODES or not t[8].isdigit():
+        return None
+    try:
+        when = datetime.strptime(t[0] + " " + t[1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        row = {"t": when.timestamp(), "source": t[2], "stratum": int(t[3]), "leap": t[7], "n_combined": int(t[8])}
+        for i, key in enumerate(TRACKING_COLUMNS):
+            if key.endswith(("_s", "_ppm")):
+                row[key] = float(t[i])
+    except (ValueError, IndexError):
+        return None
+    return row
+
+
 def history(max_points=600):
-    """Parse chrony's tracking.log into [{t, offset_s, err_s}, ...],
-    downsampled to at most max_points. Requires `log tracking` in
-    chrony.conf. Column positions per chrony 4.x tracking.log format:
-    Date Time IP St Freq Skew Offset LeapCombined RootDelay RootDisp MaxError..."""
-    rows = []
+    """chrony's tracking.log as [{t, offset_s, offset_sd_s, remaining_correction_s, root_delay_s,
+    root_dispersion_s, max_error_s, freq_ppm, skew_ppm, leap, n_combined, stratum, source}, ...],
+    downsampled to at most max_points. Requires `log tracking` in chrony.conf.
+
+    Columns are read by name from the chrony 4.x layout (TRACKING_COLUMNS). A banner whose text
+    differs from TRACKING_HEADER marks the file as another layout, and its lines are skipped and
+    counted rather than guessed at. There is no combined "uncertainty" field."""
+    rows, skipped, foreign_header, saw_foreign = [], 0, False, False
     path = tracking_log_path()
     try:
         for name in _tracking_files(path):
             with open(name) as f:
                 for line in f:
-                    t = line.split()
-                    if len(t) < 7 or not t[0][:2].isdigit():
+                    text = line.strip()
+                    if not text or set(text) == {"="}:
                         continue
-                    try:
-                        when = datetime.strptime(t[0] + " " + t[1], "%Y-%m-%d %H:%M:%S")
-                        when = when.replace(tzinfo=timezone.utc)
-                        offset = float(t[6])
-                    except (ValueError, IndexError):
+                    if text.startswith("Date"):
+                        foreign_header = " ".join(text.split()) != TRACKING_HEADER
+                        saw_foreign = saw_foreign or foreign_header
                         continue
-                    err = None
-                    for idx in (10, 9, 8):
-                        if len(t) > idx:
-                            v = _parse_float(t[idx])
-                            if v is not None and v >= 0:
-                                err = v
-                                break
-                    rows.append({"t": when.timestamp(), "offset_s": offset, "err_s": err})
+                    row = None if foreign_header else parse_tracking_line(text)
+                    if row is None:
+                        skipped += 1
+                        continue
+                    rows.append(row)
     except OSError:
         return {"available": False, "points": [],
                 "note": "chrony tracking log not found — add 'log tracking' to chrony.conf"}
     if len(rows) > max_points:
         step = len(rows) / max_points
         rows = [rows[int(i * step)] for i in range(max_points)]
-    return {"available": True, "points": rows, "note": None}
+    note = None
+    if skipped:
+        note = (f"{skipped} line(s) not in the chrony 4.x tracking.log layout were skipped"
+                + (" (the log's banner names other columns)" if saw_foreign else "") + ".")
+    return {"available": True, "points": rows, "note": note, "skipped_lines": skipped,
+            "columns": list(TRACKING_COLUMNS)}

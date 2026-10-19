@@ -10,7 +10,7 @@ import { useStation, usePoll } from '../api/station';
 import { toOffsetSeries, allEvents } from '../api/view';
 import type { StageStatus } from '../api/types';
 import { ppsOutages, ppsStats, errorBudget } from '../api/previews';
-import { fmtOffset, lightDistance, fmtDuration, fmtUtc } from '../lib/format';
+import { fmtOffset, fmtSeconds, lightDistance, fmtDuration, fmtUtc } from '../lib/format';
 
 const RANGES = ['1h','24h','7d'];
 const RANGE_S: Record<string, number> = { '1h': 3600, '24h': 86400, '7d': 7 * 86400 };
@@ -156,10 +156,11 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
   const series = toOffsetSeries(hist.data?.points, RANGE_S[range]);
   const status = chain.data?.status;
   const events = allEvents(chain.data?.events.open, chain.data?.events.recent);
-  const sys = core.data?.quality.system_time_s;
-  const cur = fmtOffset(sys);
+  // The light-distance row uses chrony's error bound, not the remaining correction (GPS-007).
+  const bound = core.data?.quality.max_error_bound_s;
+  const cur = bound == null ? null : fmtSeconds(bound);
   const lightRows = cur
-    ? [...lightDistRows, { dt:`${cur.value} ${cur.unit} (current)`, dist: lightDistance(sys) ?? '—', note:'Station system clock Δt (chrony)', highlight:true }]
+    ? [...lightDistRows, { dt:`≤ ${cur} (current bound)`, dist: lightDistance(bound) ?? '—', note:"chrony's error bound for this station, if the reference is right", highlight:true }]
     : lightDistRows;
 
   return (

@@ -137,7 +137,7 @@ function core(location: CoreStatus['location']): CoreStatus {
     utc: new Date(now).toISOString().replace('T', ' ').replace('Z', ' UTC'),
     state: ['SYNCHRONIZED', 'SYNCHRONIZED · GPS/PPS · STRATUM 1 — PPS refclock GPS selected by chrony.'],
     quality: {
-      system_time_s: sys, last_offset_s: 1.18e-8, rms_offset_s: 1.87e-8, root_delay_s: 1e-9,
+      system_time_s: sys, last_offset_s: 1.18e-8, rms_offset_s: 1.87e-8, root_delay_s: 1e-9, max_error_bound_s: Math.abs(sys) + 4.1e-9 + 0.5e-9,
       root_dispersion_s: 4.1e-9, frequency: '1.240 ppm slow', frequency_ppm: -1.24,
       residual_freq: '-0.003 ppm', skew: '0.018 ppm', update_interval: '16.0 seconds',
       leap: 'Normal', stratum: '1', reference: 'GPS', ref_time: new Date(now).toUTCString(),
@@ -367,7 +367,10 @@ function history(): History {
   const points = Array.from({ length: n }, (_, i) => {
     const t = now - (n - i) * 600;
     const spike = i === n - 300 ? 180e-9 : 0;
-    return { t, offset_s: 12e-9 + Math.sin(i * 0.15) * 6e-9 + noise(i) * 10e-9 + spike, err_s: 4e-9 + Math.abs(noise(i + 7)) * 4e-9 };
+    const sd = 4e-9 + Math.abs(noise(i + 7)) * 4e-9 + Math.abs(spike) / 3;
+    return { t, offset_s: 12e-9 + Math.sin(i * 0.15) * 6e-9 + noise(i) * 10e-9 + spike, offset_sd_s: sd,
+             remaining_correction_s: noise(i + 3) * 5e-9, root_delay_s: 1e-9, root_dispersion_s: 6e-6 + sd, max_error_s: 2.4e-5 + sd * 3,
+             freq_ppm: 10.3, skew_ppm: 0.009, leap: 'N', n_combined: 1, stratum: 1, source: 'PPS' };
   });
   return { available: true, points, note: 'demo adapter sample data' };
 }

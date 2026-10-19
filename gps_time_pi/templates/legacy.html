@@ -29,7 +29,8 @@
 
 <h2>Timing quality</h2>
 <div class="figures" style="border-top:none;padding-top:0">
-  <div><span>System clock</span><b id="q_sys">–</b><i>vs chrony's reference estimate</i></div>
+  <div><span>Remaining correction</span><b id="q_sys">–</b><i>chrony "System time": still being slewed out, not the error vs UTC</i></div>
+  <div><span>chrony error bound</span><b id="q_bound">–</b><i>|System time| + root dispersion + ½ root delay, if the reference is right</i></div>
   <div><span>RMS offset</span><b id="q_rms">–</b><i>long-term performance</i></div>
   <div><span>Root dispersion</span><b id="q_disp">–</b><i title="Accumulated estimated uncertainty to the synchronization root — not a ±UTC guarantee.">accumulated uncertainty</i></div>
   <div><span>Root delay</span><b id="q_delay">–</b></div>
@@ -109,6 +110,7 @@ async function refresh(){
 
   const f = d.fmt;
   q_sys.textContent = f.system_pair; q_rms.textContent = f.rms;
+  document.getElementById("q_bound").textContent = f.error_bound || "–";
   q_disp.textContent = f.root_dispersion; q_delay.textContent = f.root_delay;
   q_leap.textContent = d.quality.leap || "–";
   const gps = d.sources.find(s=>s.name==="GPS");
