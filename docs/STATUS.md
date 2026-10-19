@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/app-throttle-flags, #91). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (fix/legacy-sky-ew-labels, #92). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -86,7 +86,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 449 rows: 247 done, 0 in progress, 28 next, 174 planned.
+**Totals:** 450 rows: 248 done, 0 in progress, 28 next, 174 planned.
 
 ## Status table
 
@@ -541,3 +541,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Legacy removal 9: close GPS-016, GPS-027, GPS-029, legacy halves of GPS-004/009; update ADR-0004 | planned | with step 8 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy parity items 2 (per-browser zone picker) and 21 (individual throttle flags) | done | 2 dropped (the station-wide override covers it); 21 ported: every condition now and since boot, under-voltage warned | [#86](https://github.com/nathansottung/gps-time/pull/86) [#91](https://github.com/nathansottung/gps-time/pull/91) |
 | Repo |  | Dependabot: 5 web minor/patch updates (React 19.3.1, Vitest 5.0.5, lucide-react 1.58, @types/node 22.20.5) | done | merged when green, after a local check against current main | [#85](https://github.com/nathansottung/gps-time/pull/85) |
+| Web UI |  | Legacy almanac sky map: E and W labels were swapped | done | east-azimuth objects were drawn on the left under a right-hand "E"; labels now match the projection (N up, E left, as seen looking up). Found while porting the map (#88) | [#92](https://github.com/nathansottung/gps-time/pull/92) |
