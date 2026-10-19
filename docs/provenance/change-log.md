@@ -889,3 +889,10 @@ From the owner's list: a way to take screenshots of the station UI without showi
 - **Toggle:** in the header; Alt+Shift+S (by key position, so it also works on macOS). Remembered per browser in `localStorage` (`gtp-screenshot-mode`); if storage is blocked it lasts for the page.
 - The legacy pages are not changed (they are not restyled; noted in `dashboard/web-ui-parity.md`).
 - Tests: `web/src/lib/screenshot.test.ts` (6). Checked in the desktop demo: the toggle, the shortcut, the setting surviving a reload, and no client address left in the page text.
+
+## 2026-10-19 — v1.4.0-rc.10 (#80)
+
+- Release notes in `docs/releases/v1.4.0-rc.10.md`: sunset as prominent as sunrise (#78), screenshot mode (#79), the roadmap page, README vision, geophysics roadmap and draft public release checklist (#77). Over rc.9 only the web UI changed (`gps_time_pi/static/dashboard.js` and `web/`).
+- `deploy/upgrade-1.4-station.md` now goes to rc.10 from rc.8 or rc.9 (the Pi's last recorded release is rc.8), with a check for each UI change; rollback is rc.9. The other checklists, README, START-HERE and `ROADMAP.md` target rc.10.
+- `STATUS.md`: rc.10 replaces rc.9 as the soak-run candidate; all four queued UI fixes are done.
+- The annotated tag `v1.4.0-rc.10` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
