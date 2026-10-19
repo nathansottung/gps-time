@@ -28,7 +28,7 @@ Making the repository public publishes every commit, not only `main` as it is to
 
 `docs/README.md` says: no stable public release until the measurement-freshness, chrony-history semantics, persistence and administrative-security items are closed or dispositioned.
 
-- [ ] chrony history semantics and the honest ± (GPS-003, GPS-007). Open.
+- [x] chrony history semantics and the honest ± (GPS-003, GPS-007). Done in #93.
 - [ ] Second soak run on the Pi, then v1.4.0. Open.
 - [ ] Each remaining open review finding closed, or listed in the release notes as a known limitation. 16 were open on 2026-10-19, including unescaped `innerHTML` in the legacy view (GPS-016) and resource limits (GPS-018).
 - [ ] Security items verified on a Pi, not only in tests: admin token, Host/Origin checks, unprivileged service (GPS-014, GPS-017).

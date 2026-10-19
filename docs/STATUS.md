@@ -7,11 +7,11 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (fix/legacy-sky-ew-labels, #92). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (fix/chrony-history-semantics, #93). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-1. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
+1. *Done in [#93](https://github.com/nathansottung/gps-time/pull/93).* **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence"). *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).*
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
@@ -86,7 +86,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 450 rows: 248 done, 0 in progress, 28 next, 174 planned.
+**Totals:** 450 rows: 250 done, 0 in progress, 26 next, 174 planned.
 
 ## Status table
 
@@ -411,11 +411,11 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
-| Review | GPS-003 | History uncertainty mixes chrony columns | next |  |  |
+| Review | GPS-003 | History uncertainty mixes chrony columns | done | named tracking.log columns; offset-SD band, never synthesized; legacy history page fixed | [#93](https://github.com/nathansottung/gps-time/pull/93) |
 | Review | GPS-004 | UTC reference shows browser clock | planned | partial: the `/app/` clocks show station time (measured offset applied, labeled); the legacy dashboard's clock is unchanged | [#47](https://github.com/nathansottung/gps-time/pull/47) |
 | Review | GPS-005 | NMEA-only labeled GPS/PPS Stratum 1 | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-006 | Sync-state edge cases | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| Review | GPS-007 | ± is root dispersion only | next |  |  |
+| Review | GPS-007 | ± is root dispersion only | done | `max_error_bound_s` = \|sys\| + rootdisp + ½ rootdelay, labeled conditional; System time labeled remaining correction; light distance from the bound; both UIs | [#93](https://github.com/nathansottung/gps-time/pull/93) |
 | Review | GPS-008 | Holdover from raw frequency | planned |  |  |
 | Review | GPS-009 | Survey SE labeled repeatability | planned | partial: /app fixed; legacy not | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Review | GPS-010 | Fresh install fails (logsync mode) | done | not Pi-verified | [#1](https://github.com/nathansottung/gps-time/pull/1) |

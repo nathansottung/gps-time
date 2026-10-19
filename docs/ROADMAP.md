@@ -26,7 +26,7 @@ The timing chain from satellite to NTP client, with every stage observed or mark
 | [`specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md`](specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md) | Pipeline stages, PPS-loss graphs, holdover, GNSS integrity | In progress (34 done, 3 scheduled, 10 planned) |
 | [`review/GPS-Time-Independent-Review-2026-09-27.md`](review/GPS-Time-Independent-Review-2026-09-27.md) | Independent review of the code: 32 findings | In progress (14 closed, 2 scheduled, 16 open) |
 
-Release blockers still open: chrony history semantics and the honest ± (review GPS-003, GPS-007), and the second soak run on the Pi.
+Release blocker still open: the second soak run on the Pi. chrony history semantics and the honest error bound (review GPS-003, GPS-007) were fixed in #93.
 
 ## Phase 2 — Measurement station
 
