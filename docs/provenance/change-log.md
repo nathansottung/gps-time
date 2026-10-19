@@ -964,3 +964,13 @@ Legacy removal step 4 (parity 14, 15, 16).
   - **Survey ingest:** collector running, accepted and rejected this session (by reason), last rejection, total accepted.
 - **Timing → Overview, chrony tracking:** frequency, residual frequency, skew, update interval, last offset and reference time, as `chronyc -n tracking` reports them. The PPS sample age and raw `sourcestats` were already on PPS Diagnostics; with this, parity item 16 is covered.
 - Tests: `web/src/lib/survey.test.ts` (7 new). Checked with the client-side demo (`?source=demo`); the station demo has no survey history until fixes arrive, and says so. Not run on a Pi.
+
+## 2026-10-19 — red night theme and show/hide modules in /app/ (#90)
+
+Legacy removal step 5: what the owner kept from step 1 (#86).
+
+- **Night theme (parity 1):** header "Night", Configure → Theme, or `?theme=night`. It is a red layer over the whole page, multiplied, so no green or blue light leaves the screen whatever color a chart or control uses underneath. Only the red channel is left, so in night mode the dim text and rule tokens are lifted to stay legible. Remembered per browser in `gtp-theme`, the legacy pages' key: a night choice made there carries over, and their dropped "light" reads as dark. Native browser controls (date and time pickers, scrollbars) are outside the page's control; the overlay covers what the page draws.
+- **Show/hide modules (parity 4, 5):** Configure is now the modules page. It replaces the non-saving layout preview that was there. **Pages:** hide any of the nine optional pages from the sidebar; their data is still collected; Overview, Configure and Administration always show. **Overview cards:** hide any of the seven optional cards of the default layout (A); the timing chain, the clock and timing quality always show (CHG: timing source and PPS state first). A hidden page you are on falls back to the Overview. Stored per browser (`gtp-modules`), sanitized on load. "Show everything, dark theme" resets.
+- Per browser rather than station-wide: one browser's choice doesn't change another's. The legacy saved-layout editor (`/configure`, `/api/dashboard*`) keeps working until the legacy pages are removed (step 8).
+- `Toggle` now has `role="switch"`, `aria-checked` and an optional label.
+- Tests: `web/src/lib/prefs.test.ts` (7). Checked in the desktop demo: night overlay with multiply blending, the choice surviving a reload, a hidden page leaving the sidebar, a hidden card leaving the Overview. Not run on a Pi.
