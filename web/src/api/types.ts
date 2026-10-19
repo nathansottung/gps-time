@@ -465,6 +465,32 @@ export interface SatelliteReport {
 }
 export type Satellites = SatelliteReport | Unavailable;
 
+// ─── GET /api/evidence ───────────────────────────────────────────────────────
+
+export interface EvidenceFile {
+  id: string;
+  phase: 'open' | 'closed';
+  written_utc: string;
+  start_utc: string | null;
+  end_utc: string | null;
+  duration_s: number | null;
+  classification: string | null;
+  bytes: number;
+  tracking_lines: number;
+  timeline_points: number;
+}
+export interface EvidenceIndex {
+  available: boolean;
+  dir: string;
+  files: EvidenceFile[];
+  total_bytes: number;
+  max_bytes: number;
+  max_files: number;
+  removed_for_space: number;
+  problems: string[];
+  note: string;
+}
+
 // ─── GET /api/oscillator ─────────────────────────────────────────────────────
 
 export interface OscillatorBin {

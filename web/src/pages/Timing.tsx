@@ -152,6 +152,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
   const [tab, setTab] = useState('Overview');
   const { api, core, chain } = useStation();
   const hist = usePoll(() => api.history(), 30_000, [api]);
+  const evid = usePoll(() => api.evidence(), 60_000, [api]);
   const series = toOffsetSeries(hist.data?.points, RANGE_S[range]);
   const status = chain.data?.status;
   const events = allEvents(chain.data?.events.open, chain.data?.events.recent);
@@ -320,6 +321,35 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
               </table>
               <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
                 Classifications are inferred from the evidence at the time. They name a boundary in the signal path, not a cause.
+              </div>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardHeader title="Outage Evidence on the SD Card" badge={<ProvenanceTag type="observed" />} />
+            <CardBody className="p-0">
+              <ApiErrorNote error={evid.error} />
+              <table className="w-full text-[11px]">
+                <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
+                  {['Outage start','Duration','Classification','Kept','Size',''].map(h => (
+                    <th key={h} className="text-left px-4 py-1.5 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {(evid.data?.files ?? []).map(f => (
+                    <tr key={f.id} style={{ borderBottom:'1px solid var(--border-dim)' }}>
+                      <td className="px-4 py-1.5 mono" style={{ color:'var(--t2)' }}>{fmtUtc(f.start_utc)}</td>
+                      <td className="px-4 py-1.5 mono" style={{ color:'var(--t2)' }}>{fmtDuration(f.duration_s) ?? '—'}{f.phase === 'open' ? ' (open when written)' : ''}</td>
+                      <td className="px-4 py-1.5" style={{ color:'var(--t3)' }}>{f.classification ?? 'UNKNOWN'}</td>
+                      <td className="px-4 py-1.5 text-[10px]" style={{ color:'var(--t3)' }}>{f.timeline_points} timeline points, {f.tracking_lines} chrony lines</td>
+                      <td className="px-4 py-1.5 mono" style={{ color:'var(--t3)' }}>{(f.bytes / 1024).toFixed(0)} kB</td>
+                      <td className="px-4 py-1.5"><a href={`/api/evidence?id=${encodeURIComponent(f.id)}`} target="_blank" rel="noreferrer" className="underline text-[10px]" style={{ color:'var(--t2)' }}>JSON</a></td>
+                    </tr>
+                  ))}
+                  {evid.data && !evid.data.files.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>No outage evidence kept.</td></tr>}
+                </tbody>
+              </table>
+              <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
+                {evid.data ? `${(evid.data.total_bytes / 1024).toFixed(0)} kB of ${(evid.data.max_bytes / 1048576).toFixed(0)} MB cap. ${evid.data.note} No position is stored.` : 'Not loaded.'}
               </div>
             </CardBody>
           </Card>

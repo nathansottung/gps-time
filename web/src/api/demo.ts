@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
-  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, EvidenceIndex, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -88,6 +88,7 @@ export function demoApi(): StationApi {
     references: (o) => delay(references(o?.scenario)),
     ntpService: () => delay(ntpService()),
     oscillator: () => delay(oscillator()),
+    evidence: () => delay(evidenceIndex()),
     // Mirrors the server: shadow geometry and passes depend on the position, so hidden mode computes none.
     shadow: (o) => delay(locationMode === 'hidden' ? { available: false as const, reason: SKY_HIDDEN, location_display: 'hidden' as const }
       : { ...shadow(o?.shell ?? 550, o?.az, o?.alt), location_display: locationMode }),
@@ -508,6 +509,17 @@ function satellites(): SatelliteReport {
         visible: null, sun_altitude_deg: -33.3, provenance: 'predicted' },
     ],
     demo: { note: 'synthetic data — not a prediction' },
+  };
+}
+
+function evidenceIndex(): EvidenceIndex {
+  const now = Date.now(), start = now - 3 * 3600e3;
+  return {
+    available: true, dir: '(sample data)', total_bytes: 48213, max_bytes: 20971520, max_files: 200, removed_for_space: 0, problems: [],
+    note: 'Written 5 minutes after an outage opens and again 5 minutes after it closes; the oldest files are removed when the cap is reached.',
+    files: [{ id: `pps-outage-${Math.floor(start / 1000)}`, phase: 'closed', written_utc: iso(start + 3663e3), start_utc: iso(start),
+              end_utc: iso(start + 3363e3), duration_s: 3363, classification: 'GNSS RECEPTION ANOMALY', bytes: 48213,
+              tracking_lines: 141, timeline_points: 397 }],
   };
 }
 
