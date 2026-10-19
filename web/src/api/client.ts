@@ -133,7 +133,15 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     survey: () => json('/api/survey'),
     system: () => json('/api/system'),
     almanac: (q) => json('/api/almanac' + query({ date: q?.date, tz: q?.tz, at: q?.at, target: q?.target })),
-    object: (q, o) => json('/api/object' + query({ q, date: o?.date, tz: o?.tz, at: o?.at })),
+    object: async (q, o) => {
+      try {
+        return await json<ObjectResult>('/api/object' + query({ q, date: o?.date, tz: o?.tz, at: o?.at }));
+      } catch (e) {
+        // {"error": "unparsed"} is an answer (the query wasn't understood), not a server failure.
+        if (e instanceof ApiError && e.status === 200 && e.message === 'unparsed') return { error: 'unparsed' as const };
+        throw e;
+      }
+    },
     ping: () => json('/api/ping' + query({ n: String(Math.random()).slice(2, 10) })),
     diagnostics: async (o) => (await request('/api/diagnostics' + query({ scenario: o?.scenario }))).text(),
     dashboard: () => json('/api/dashboard'),

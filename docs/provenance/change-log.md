@@ -942,3 +942,14 @@ Legacy removal step 2 (parity 8, 9, 10; `STATUS.md` → "Legacy removal: queue")
 - `api/types.ts` now types `sun.bar` and `night` (they were `unknown`).
 - Both demos (`gps_time_pi/demo.py` and `web/src/api/demo.ts`) return a synthetic day bar, night bar and moon details for the requested date, marked demo.
 - Tests: `web/src/lib/almanac.test.ts` (10), `tests/test_demo_almanac.py` (5). Checked in the desktop demo (date navigation sends `?date=`). Not run on a Pi.
+
+## 2026-10-19 — sky map and object lookup in /app/; per-request sky target (#88)
+
+Legacy removal step 3 (parity 11, 12) and the remaining half of review finding GPS-030.
+
+- **Sky & Objects** tab on Sun & Astronomy: the sky map (stars sized by magnitude, constellation lines, Sun, Moon and planets, the target reticle or "target below the horizon") at Now or a chosen time on the selected date, beside **Find an object** (Messier numbers, star names, planets, J2000 RA/Dec): position at that time, rise, transit and altitude, set, circumpolar or never up, dark and moonless viewing windows (the moonless one first for deep-sky objects).
+- The map uses the projection of the other `/app/` sky plots: north up, east right. Constellation lines are split where they dip below the horizon rather than drawn across it. (The legacy map plots east-azimuth objects on the left but labels the right edge "E"; it is not changed here.)
+- **GPS-030:** `/api/almanac` takes `target=` (the same text `/api/object` reads as `q`) and marks only that on its sky map. `/api/object` no longer writes the server-global `_LAST_TARGET`, which is removed: one browser's lookup can't change another's map. The legacy almanac page now sends its own target. The memo key already included the target.
+- `api.object()` in the typed client returns `{error: 'unparsed'}` instead of throwing, so the card can show examples.
+- Demo: `gps_time_pi/demo.py` places the bundled chart stars and constellation lines with a plain equatorial-to-horizontal conversion for the example site (no precession or refraction; labeled "demo positions, shapes only") and answers `/api/object` with a synthetic card; the client-side demo has a small fixed sky.
+- Tests: `web/src/lib/sky.test.ts` (10), `web/src/api/object.test.ts` (3), `tests/test_location_privacy.py` (3 new: the named target is marked; a lookup doesn't mark another request's sky; no global exists), `tests/test_demo_almanac.py` (2 new). Checked in the desktop demo. Not run on a Pi.
