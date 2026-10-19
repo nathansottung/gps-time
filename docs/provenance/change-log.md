@@ -997,3 +997,13 @@ Next-5 item 1, review findings GPS-003 and GPS-007 (both pre-release blockers).
 - On NTP fallback the bound includes half the root delay (often milliseconds), which root dispersion alone left out.
 - Demos send the new fields; the server demo formats its strings from its numbers.
 - Tests: `tests/test_tracking_history.py` (10: every column by name, a negative remaining correction, repeated banners, short and odd lines, a foreign banner, the missing log, the bound, quality from a chronyc fixture), `web/src/lib/chrony-labels.test.ts` (3: the labels in both UIs, no synthesized band). Checked in the desktop demo. Not run on a Pi.
+
+## 2026-10-19 — offset history: offset-SD band, max-error bound, symlog axis (#94)
+
+Legacy removal step 6 (parity 13), on top of the named tracking.log columns from #93.
+
+- Timing → Overview, **Time Offset History** now draws chrony's offset with ± chrony's offset SD as a band, only between updates that both report it (nothing is filled in), and ± chrony's maximum-error bound as dashed lines (a bound on the error around zero, valid only if the reference is right; it can be switched off).
+- The axis is symmetric-log, as on the legacy page: linear within ±1 µs, one step per decade beyond, so nanosecond wander and a millisecond excursion fit on one chart. The tooltip gives the three values for each update.
+- If the server skipped tracking.log lines, its note is shown under the chart.
+- The small one-hour sparkline charts are unchanged.
+- Tests: `web/src/lib/offset.test.ts` (7). Checked with the client-side demo (the band is drawn; with demo values of a few ns it is thin at this scale). Not run on a Pi.

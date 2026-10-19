@@ -69,7 +69,7 @@ The legacy pages are still the only place for several things an operator needs. 
 | 12 | Object lookup | **yes** (#88) | done |
 | 14 | Survey convergence charts | **yes** (#89) | done |
 | 15 | Survey ingest counters | **yes** (#89) | done |
-| 13 | Offset chart uncertainty band, symlog axis | no | port **after** GPS-003/GPS-007 (the band's meaning is wrong today) |
+| 13 | Offset chart uncertainty band, symlog axis | **yes** (#94) | done |
 | 1 | Themes: light, dark, night (red) | **yes** (#90) | done |
 | 4, 5 | Saved layout editor and layout-driven pages | no; `/app/` has fixed pages and a non-saving preview | owner decides: port, or drop the saved-layout model |
 | 18 | `custom.css` site override | no | owner decides |

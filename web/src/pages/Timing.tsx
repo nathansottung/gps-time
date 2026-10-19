@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, RangeSelector, Tabs, ProvenanceTag } from '../components/ui';
-import { OffsetChart, PPSTimeline, HoldoverScatter, OutageBarChart } from '../components/charts';
+import { OffsetHistoryChart, PPSTimeline, HoldoverScatter, OutageBarChart } from '../components/charts';
+import { offsetRows } from '../lib/offset';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { StabilityPanel } from '../components/stability';
 import { TimeScalesPanel } from '../components/timescales';
 import { ReferencesPanel } from '../components/references';
 import { OscillatorPanel } from '../components/oscillator';
 import { useStation, usePoll } from '../api/station';
-import { toOffsetSeries, allEvents } from '../api/view';
+import { allEvents } from '../api/view';
 import type { StageStatus } from '../api/types';
 import { ppsOutages, ppsStats, errorBudget } from '../api/previews';
 import { fmtOffset, fmtSeconds, lightDistance, fmtDuration, fmtUtc } from '../lib/format';
@@ -153,7 +154,8 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
   const { api, core, chain } = useStation();
   const hist = usePoll(() => api.history(), 30_000, [api]);
   const evid = usePoll(() => api.evidence(), 60_000, [api]);
-  const series = toOffsetSeries(hist.data?.points, RANGE_S[range]);
+  const rows = offsetRows(hist.data?.points, RANGE_S[range]);
+  const [showMaxErr, setShowMaxErr] = useState(true);
   const status = chain.data?.status;
   const events = allEvents(chain.data?.events.open, chain.data?.events.recent);
   // The light-distance row uses chrony's error bound, not the remaining correction (GPS-007).
@@ -177,18 +179,31 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
           {/* Offset history */}
           <Card>
             <CardHeader
-              title={`Time Offset History — Δt (${series.unit})`}
+              title="Time Offset History"
               badge={<ProvenanceTag type="observed" />}
               action={<RangeSelector ranges={RANGES} active={range} onChange={setRange} />}
             />
             <CardBody>
               <ApiErrorNote error={hist.error} />
-              {series.data.length
-                ? <OffsetChart data={series.data} range={range} unit={series.unit} />
+              {rows.length
+                ? <OffsetHistoryChart rows={rows} range={range} showMaxErr={showMaxErr} />
                 : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
                     {hist.data && !hist.data.available ? 'chrony tracking log not available (needs "log tracking" in chrony.conf)' : 'No samples in this range'}
                   </div>}
-              <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>Source: chrony tracking log (system clock offset as chrony recorded it).</div>
+              <div className="flex items-center justify-between gap-4 mt-1">
+                <div className="flex gap-3 text-[9px] mono" style={{ color:'var(--t3)' }}>
+                  <span style={{ color:'var(--live)' }}>— offset</span>
+                  <span style={{ color:'var(--good-text)' }}>▮ ± offset SD</span>
+                  {showMaxErr && <span>- - ± max error</span>}
+                </div>
+                <label className="flex items-center gap-1.5 text-[9px] mono" style={{ color:'var(--t3)' }}>
+                  <input type="checkbox" checked={showMaxErr} onChange={e => setShowMaxErr(e.target.checked)} /> max-error bound
+                </label>
+              </div>
+              <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
+                From chrony's tracking log, one record per clock update: the offset chrony measured, ± its standard deviation of that offset (where chrony reported one; nothing is filled in), and ± chrony's maximum-error bound, which holds only if the reference is right. Symmetric-log scale: linear within ±1 µs, one step per decade beyond.
+                {hist.data && 'skipped_lines' in hist.data && hist.data.skipped_lines ? ` ${hist.data.note}` : ''}
+              </div>
             </CardBody>
           </Card>
 

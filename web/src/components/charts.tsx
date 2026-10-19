@@ -1,10 +1,11 @@
 import {
-  AreaChart, Area, LineChart, Line,
+  AreaChart, Area, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   ScatterChart, Scatter, BarChart, Bar, Cell, ErrorBar,
   ResponsiveContainer,
 } from 'recharts';
 import { decadeTicks, fmtDeviation, fmtInterval, fmtTau, valueExtent, type StabilityMetric, type StabilityRow } from '../lib/stability';
+import { fmtSeconds as fmtSym, symDomain, symexp, symTicks, type OffsetRow } from '../lib/offset';
 
 // Shared tick style
 const TICK = { fontSize: 9, fontFamily: 'JetBrains Mono', fill: 'var(--t3)' } as const;
@@ -50,6 +51,48 @@ export function OffsetChart({ data, range, unit='ns' }: { data: any[]; range: st
         <ReferenceLine y={0} stroke={AXIS} strokeDasharray="2 4" strokeOpacity={0.6}/>
         <Area type="monotone" dataKey="dt" stroke="var(--live)" strokeWidth={1.5} fill="url(#dtFill)" dot={false} activeDot={{ r:3, fill:'var(--live)', strokeWidth:0 }}/>
       </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Offset history with chrony's offset-SD band and max-error bound (lib/offset.ts) ──────────
+function OffsetHistoryTip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const r: OffsetRow = payload[0].payload;
+  return (
+    <div className="chart-tip">
+      <div style={{ color:'var(--t3)', marginBottom:2 }}>{new Date(r.ts).toLocaleString('en-GB', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false })}</div>
+      <div style={{ color:'var(--live)' }}>offset {fmtSym(r.offset)}</div>
+      <div style={{ color:'var(--t2)' }}>offset SD {r.sd === null ? '—' : fmtSym(r.sd)}</div>
+      <div style={{ color:'var(--t3)' }}>max error {r.maxError === null ? '—' : fmtSym(r.maxError)}</div>
+    </div>
+  );
+}
+
+/** Symmetric-log offset chart: line = chrony's offset, band = ± its offset SD, dashed = ± max error. */
+export function OffsetHistoryChart({ rows, range, showMaxErr }: { rows: OffsetRow[]; range: string; showMaxErr: boolean }) {
+  const dom = symDomain(rows, showMaxErr);
+  const xTicks = rows.length > 1 ? [0, 1, 2, 3, 4].map(i => rows[0].ts + (rows[rows.length - 1].ts - rows[0].ts) * i / 4) : [];
+  const fmtX = (ts: number) => {
+    const d = new Date(ts);
+    return range === '1h' || range === '24h'
+      ? d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:false })
+      : d.toLocaleDateString('en-GB', { month:'short', day:'numeric' });
+  };
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <ComposedChart data={rows} margin={{ top:8, right:4, left:0, bottom:0 }}>
+        <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
+        <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
+        <YAxis domain={dom} ticks={symTicks(dom)} allowDataOverflow tickFormatter={(v: number) => fmtSym(symexp(v))}
+          tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={48}/>
+        <Tooltip content={<OffsetHistoryTip/>}/>
+        <ReferenceLine y={0} stroke={AXIS} strokeOpacity={0.8}/>
+        <Area dataKey="band" stroke="none" fill="var(--good-text)" fillOpacity={0.16} connectNulls={false} isAnimationActive={false} activeDot={false}/>
+        {showMaxErr && <Line dataKey={(r: OffsetRow) => r.maxErr?.[1] ?? null} stroke="var(--t3)" strokeDasharray="4 3" strokeWidth={1} dot={false} connectNulls={false} isAnimationActive={false} activeDot={false}/>}
+        {showMaxErr && <Line dataKey={(r: OffsetRow) => r.maxErr?.[0] ?? null} stroke="var(--t3)" strokeDasharray="4 3" strokeWidth={1} dot={false} connectNulls={false} isAnimationActive={false} activeDot={false}/>}
+        <Line dataKey="y" stroke="var(--live)" strokeWidth={1.5} dot={false} isAnimationActive={false} activeDot={{ r:3, fill:'var(--live)', strokeWidth:0 }}/>
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
