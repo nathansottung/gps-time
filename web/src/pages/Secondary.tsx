@@ -14,6 +14,8 @@ import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
+import { DateNav, DayBarCard, NightCard } from '../components/almanac';
+import { timeOnDay, todayIn } from '../lib/almanac';
 import { browserTimeZone, fmtClock, fmtDuration, fmtUtc } from '../lib/format';
 import { isValidZone, resolveZone, zoneNames } from '../lib/localtime';
 
@@ -24,7 +26,11 @@ export function SunAstronomy() {
   const [safetyAck, setSafetyAck] = useState(false);
   const [tab, setTab] = useState('Sun & Moon');
   const { api, core } = useStation();
-  const alm = usePoll(() => api.almanac({ tz: TZ }), 10 * 60_000, [api]);
+  // Date navigation (parity 8): any date the ephemeris covers; times in the browser's zone.
+  const today = todayIn(TZ);
+  const [date, setDate] = useState(today);
+  const alm = usePoll(() => api.almanac({ tz: TZ, date }), 10 * 60_000, [api, date]);
+  const isToday = date === today;
   const a = alm.data && alm.data.available ? alm.data : null;
   const sun = a && a.sun.available ? a.sun as SolarDay : null;
   const moon = a && a.moon.available ? a.moon as LunarDay : null;
@@ -43,14 +49,15 @@ export function SunAstronomy() {
       {tab === 'Satellites' && <SatellitesPanel />}
 
       {tab === 'Sun & Moon' && <>
+      <DateNav date={date} today={today} onChange={setDate} />
       <ApiErrorNote error={alm.error} />
       {unavailable && <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>}
 
       <div className="grid grid-cols-2 gap-4">
         <Card>
-          <CardHeader title="Sun / Daylight — Yesterday / Today / Tomorrow" badge={<ProvenanceTag type="predicted" />} />
+          <CardHeader title={isToday ? 'Sun / Daylight — Yesterday / Today / Tomorrow' : `Sun / Daylight — around ${date}`} badge={<ProvenanceTag type="predicted" />} />
           <CardBody>
-            <SunDays almanac={a} />
+            <SunDays almanac={a} labels={isToday ? undefined : ['Day before', date, 'Day after']} />
             <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
               Times in {TZ}.{a?.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting.'}
             </div>
@@ -58,15 +65,22 @@ export function SunAstronomy() {
         </Card>
 
         <Card>
-          <CardHeader title="Twilight (today)" badge={<ProvenanceTag type="predicted" />} />
+          <CardHeader title={`Twilight (${isToday ? 'today' : date})`} badge={<ProvenanceTag type="predicted" />} />
           <CardBody>
             <MetricRow label="Astronomical dawn" value={fmtClock(sun?.events.astro_dawn, TZ)} />
+            <MetricRow label="Nautical dawn" value={fmtClock(sun?.events.naut_dawn, TZ)} />
             <MetricRow label="Civil dawn" value={fmtClock(sun?.events.civil_dawn, TZ)} />
             <MetricRow label="Civil dusk" value={fmtClock(sun?.events.civil_dusk, TZ)} />
+            <MetricRow label="Nautical dusk" value={fmtClock(sun?.events.naut_dusk, TZ)} />
             <MetricRow label="Astronomical dusk" value={fmtClock(sun?.events.astro_dusk, TZ)} />
             {sun?.notes.map(n => <div key={n} className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>{n}</div>)}
           </CardBody>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <DayBarCard sun={sun} tz={TZ} />
+        <NightCard almanac={a} day={date} tz={TZ} />
       </div>
 
       <Planned title="Solar Position & Solar-Equivalent Time" needs="solar position and equation-of-time in the almanac API">
@@ -121,9 +135,11 @@ export function SunAstronomy() {
                 <MetricRow label="Phase" value={moon?.phase ?? null} />
                 <MetricRow label="Illumination" value={moon ? `${moon.illum.toFixed(0)}%` : null} />
                 <MetricRow label="Age" value={moon?.age_days ?? null} unit="days" />
-                <MetricRow label="Moonrise" value={fmtClock(moon?.rise, TZ, false)} />
-                <MetricRow label="Lunar transit" value={fmtClock(moon?.transit, TZ, false)} />
-                <MetricRow label="Moonset" value={fmtClock(moon?.set, TZ, false)} />
+                <MetricRow label="Moonrise" value={moon ? timeOnDay(moon.rise, date, TZ) ?? 'none this day' : null} />
+                <MetricRow label="Lunar transit" value={moon ? timeOnDay(moon.transit, date, TZ) ?? 'none this day' : null} />
+                <MetricRow label="Transit altitude" value={moon?.transit_alt == null ? null : `${moon.transit_alt.toFixed(1)}°`} />
+                <MetricRow label="Moonset" value={moon ? timeOnDay(moon.set, date, TZ) ?? 'none this day' : null} />
+                <MetricRow label="Above the horizon" value={moon?.up_s == null ? null : fmtDuration(moon.up_s)} />
               </div>
             </div>
           </CardBody>
