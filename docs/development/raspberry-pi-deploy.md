@@ -9,6 +9,7 @@ Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-in
 | Date | Version | Result |
 |---|---|---|
 | 2026-10-04 | v1.4.0-rc.6 | First deploy of the 1.4 line to the Pi. chrony selected the PPS refclock; stratum 1; system clock offset about 300 ns (owner's report). |
+| 2026-10-04 to 2026-10-19 | v1.4.0-rc.8 | Soak run, 14 days 20 h without a restart. Real PPS/GNSS outages on 2026-10-17 (below), so **v1.4.0 was not tagged**. Otherwise GPS was chrony's reference throughout. |
 
 Found on that build and fixed since:
 
@@ -17,6 +18,29 @@ Found on that build and fixed since:
 - Empty satellite C/N₀ bars in the legacy dashboard: a CSS `display` rule (#50).
 
 Followed from the owner's list after it: chrony polling the station's own address is detected (#48) and prevented by the installer (#52); a measured NMEA offset recommendation (#49).
+
+### Soak run of v1.4.0-rc.8 (read-only check, 2026-10-19)
+
+State at the check: GPS selected, stratum 1, system time +65 ns, RMS offset 244 ns, root dispersion 13.4 µs, frequency 10.345 ppm fast, skew 0.008 ppm; CPU 53.5 °C, never throttled; 10 of 10 independent references agree within 50 ms; leap-second table valid until 2027-06-28. Stability (history since 2026-10-05 03:38 UTC): ADEV 1.70 × 10⁻⁶ at 1 s, 2.15 × 10⁻⁸ at 100 s, 2.46 × 10⁻¹¹ at 1 day (the 1-day value includes the outages, and its interval rests on an assumed noise type).
+
+**Outages on 2026-10-17, 19:04 to 20:35 UTC.** The owner confirms they were real. The station recorded ten events in that window, about 71 minutes in all: five PPS PATH ANOMALY, four PPS AND GNSS TELEMETRY UNAVAILABLE, and one GNSS RECEPTION ANOMALY lasting 3365 s (19:39:29 to 20:35:34). The classifications are inferred and name a boundary in the signal path, not a cause. Nothing in the system journal for that window (kernel, gpsd, chrony) mentions them.
+
+**Holdover result: 56 minutes, about 1.7 µs.** chrony's tracking log (copied off the station; real station data, kept outside the repository) shows how the clock behaved:
+
+| Gap in chrony updates (UTC) | Length | chrony's first offset afterwards |
+|---|---|---|
+| 19:03:35 to 19:07:03 | 208 s | +0.07 µs |
+| 19:15:20 to 19:18:16 | 176 s | +0.08 µs |
+| 19:29:28 to 19:35:05 | 337 s | −0.42 µs |
+| 19:39:37 to 20:35:40 | 3363 s (56 min) | **+1.68 µs** |
+
+- chrony did not fail over to a network source. It wrote no tracking entries while it had no usable PPS samples, coasting on its last GPS-disciplined frequency, and GPS was the reference again at the first entry after each gap.
+- After the 56-minute gap the first measured offset was +1.68 µs, and −0.16 µs one update (16 s) later. So the free-running clock drifted by roughly 1.7 µs in 56 minutes: about 5 × 10⁻¹⁰ average fractional frequency error. That is one event on one board at room temperature (`observed` from chrony's log; the rate is `calculated`), not a holdover specification.
+- Because chrony was coasting rather than following another source, the banner's NETWORK FAILOVER states didn't apply; the station's events are the record of the outage.
+
+Also seen and not yet explained: the PPS monitor counted 112,588 missed pulses over the run (about 9 % of all seconds), and the stability history had 1,875 minutes without their usual sample, which is the same amount of time. The Oct 17 events account for about 4,300 s of it. This may be an artifact of how the station polls, separate from the real outages; rc.9 separates pulses the kernel never counted from pulses the station merely didn't read individually (STATUS "rc.9").
+
+**Log flushing on rc.8 works** (hourly timer, every run successful; the SD copy was 15 minutes old at the check), but it copies the whole RAM log to the SD card every hour (10 MB at the check, about 240 MB a day and growing), and Debian's weekly logrotate keeps rotated full copies. Fix and size cap: rc.9.
 
 Not recorded: which checklist was followed, and the result of each individual check (polkit, admin token, vcgencmd values). Nothing merged after rc.6 has run on a Pi yet; v1.4.0-rc.8 is the next deploy.
 

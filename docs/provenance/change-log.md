@@ -764,3 +764,14 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - **Timing:** not before v1.4.0. The Pi runs the legacy pages and rc.8 is about to start its soak run.
 - **Found:** `gps_time_pi/templates/index.html` is not served by any route. It was left in place; deleting it is listed as the one thing that could be done now, for the owner to decide.
 - `STATUS.md`: the parity row's note updated; a new planned row "Retire the legacy pages".
+
+## 2026-10-19 — rc.8 soak run: outages, holdover, rc.9 list (#69)
+
+Docs only. Read-only checks of the Pi on 2026-10-19; nothing on the station was changed.
+
+- **v1.4.0 was not tagged.** The rc.8 soak run lasted 14 days 20 h without a restart, but the station recorded real PPS/GNSS outages on 2026-10-17 between 19:04 and 20:35 UTC (ten events, about 71 minutes). The owner confirms they were real and that outage detection is not to be weakened.
+- **Holdover recorded** in `development/raspberry-pi-deploy.md`: from chrony's tracking log (copied off the station, kept outside the repository), chrony coasted through four gaps without switching source; after the longest, 56 minutes, its first offset was +1.68 µs. One event on one board, not a specification.
+- The system journal has nothing about the outages, so the station's events and the RAM tracking log were the only evidence. That is why rc.9 keeps outage evidence on the SD card.
+- **Log flush checked:** it works on rc.8, but copies the whole RAM log to the SD card every hour (about 240 MB a day at the check) and logrotate keeps rotated full copies.
+- **`STATUS.md`:** a "v1.4.0-rc.9: to do" list (flush fix with caps; outage evidence on the SD card under a size cap; PPS polling on its own thread with missed and unread pulses counted separately; the queued UI fixes). The rc.8 soak row is done with its result; next-5 item 5 is rc.9; OBS §13 moves to next.
+- `deploy/upgrade-1.4-station.md` points to the result and says how to keep the RAM log before a restart.
