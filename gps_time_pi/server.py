@@ -440,6 +440,17 @@ def satellites_payload(qs):
     return {**rep, "location_display": mode}
 
 
+def evidence_payload(qs):
+    if DEMO_MODE:
+        return demo.evidence(qs.get("id", [None])[0])
+    store = timing_chain.service().evidence
+    eid = qs.get("id", [None])[0]
+    if eid is None:
+        return store.index()
+    doc = store.read(eid)
+    return doc if doc is not None else {"available": False, "reason": f"no evidence file for {eid!r}"}
+
+
 def oscillator_payload():
     if DEMO_MODE:
         return demo.oscillator()
@@ -666,6 +677,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(shadow_payload(qs))
             elif p == "/api/satellites":
                 self._json(satellites_payload(qs))
+            elif p == "/api/evidence":
+                self._json(evidence_payload(qs))
             elif p == "/api/oscillator":
                 self._json(oscillator_payload())
             elif p == "/api/ntp-service":

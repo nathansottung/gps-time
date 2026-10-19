@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from . import chrony, ntpservice, oscillator, references, stability
+from . import chrony, evidence, ntpservice, oscillator, references, stability
 from .labels import q
 from .pps import PPSMonitor
 
@@ -783,7 +783,7 @@ class TimingChainService:
     def __init__(self, monitor=None, tracker=None, chrony_reader=read_chrony_inputs,
                  gnss_reader=None, refclock_reader=chrony.refclock_config,
                  boot_config_reader=None, clock=time.time, ntpdata_reader=None, serverstats_reader=None,
-                 oscillator_log=None):
+                 oscillator_log=None, evidence_store=None):
         from . import gps, pps
         self.monitor = monitor or PPSMonitor()
         self.tracker = tracker if tracker is not None else EventTracker(default_events_path(), boot=read_boot())
@@ -797,6 +797,7 @@ class TimingChainService:
         self.references = references.Tracker(clock=clock, ntpdata_reader=ntpdata_reader)   # /api/references
         self.ntp_service = ntpservice.Tracker(clock=clock, reader=serverstats_reader)        # /api/ntp-service
         self._oscillator = oscillator_log      # created on first use: it reads the board identity and the log file
+        self._evidence = evidence_store        # outage evidence on the SD card; created by start()
         self._chrony_inputs, self._chrony_at = None, None
         self._refcfg = None
         self._boot = None
@@ -851,6 +852,8 @@ class TimingChainService:
         self._pps_selected = status.get("code") == "GPS_PPS"
         if self._oscillator is not None:
             self._oscillator.add(trk, self._pps_selected)
+        if self._evidence is not None:
+            self._evidence.observe(chain)
         with self._lock:
             self._latest = chain
         return chain
@@ -895,9 +898,21 @@ class TimingChainService:
             self._oscillator = oscillator.Log(clock=self.clock)
         return self._oscillator
 
+    @property
+    def evidence(self):
+        """Outage evidence files on the SD card (/api/evidence); one per service."""
+        if self._evidence is None:
+            self._evidence = evidence.Store(clock=self.clock, chrony_now=self._chrony_now)
+        return self._evidence
+
+    def _chrony_now(self):
+        ci = self._chrony_inputs or {}
+        return {k: ci.get(f"{k}_text") if ci.get(f"{k}_ok") else None for k in ("tracking", "sources", "sourcestats")}
+
     def start(self, interval=1.0):
         if self._thread and self._thread.is_alive():
             return self._thread
+        self.evidence                   # created before the first evaluation, so every outage is covered
         import atexit
         atexit.register(self.oscillator.flush)      # a clean stop (SIGTERM) writes the unsaved bins
         self.tick()                    # the first evaluation, before any request can ask for one

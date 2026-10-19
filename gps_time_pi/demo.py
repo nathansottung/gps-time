@@ -226,6 +226,28 @@ def satellites() -> dict:
     }
 
 
+def evidence(eid=None) -> dict:
+    """Sample /api/evidence: one outage, written by the real store into a temporary directory."""
+    import tempfile
+    from . import evidence as ev
+    now = time.time()
+    d = os.path.join(tempfile.gettempdir(), "gtp-demo-evidence")
+    for name in (os.listdir(d) if os.path.isdir(d) else []):
+        os.remove(os.path.join(d, name))
+    start, end = now - 3 * 3600, now - 3 * 3600 + 3363
+    store = ev.Store(directory=d, clock=lambda: now, tracking_files=[])
+    event = {"schema": "gps-time.event/1", "id": f"pps-outage-{int(start)}", "type": "PPS_OUTAGE",
+             "start_epoch": start, "start_utc": datetime.fromtimestamp(start, timezone.utc).isoformat(timespec="seconds"),
+             "end_utc": datetime.fromtimestamp(end, timezone.utc).isoformat(timespec="seconds"), "duration_s": 3363,
+             "open": False, "classification": "GNSS RECEPTION ANOMALY", "classification_provenance": "inferred",
+             "notes": ["sample data"]}
+    store.write(event, "closed")
+    out = store.index() if eid is None else (store.read(eid) or {"available": False, "reason": f"no evidence file for {eid!r}"})
+    if eid is None:
+        out["dir"] = "(sample data)"
+    return out
+
+
 def oscillator() -> dict:
     """Sample /api/oscillator payload: the real log fed a synthetic day (a
     crystal at about -0.3 ppm per degree C with the SoC warming by day)."""
