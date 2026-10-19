@@ -32,3 +32,23 @@ describe('legacy Sun & daylight: change vs yesterday', () => {
     expect(src).toContain('${signedSeconds(ALM.delta_tomorrow)}');
   });
 });
+
+describe('legacy Sun & daylight: sunset as prominent as sunrise', () => {
+  const m = ['fmtLocal', 'sunDay'].map(n => src.match(new RegExp(`^function ${n}\\(.*$`, 'm'))?.[0]);
+  const sunDay = new Function(`${m.join('\n')}; return sunDay;`)() as (l: string, r: unknown, s: unknown) => string;
+
+  it('both times are in <strong>, each with its own label', () => {
+    const html = sunDay('Today', '2026-10-19T11:15:00Z', '2026-10-19T22:20:00Z');
+    expect(html.match(/<strong>/g)).toHaveLength(2);
+    expect(html).toMatch(/<strong>[^<]+<\/strong><small class="muted">Sunrise<\/small><strong>[^<]+<\/strong><small class="muted">Sunset<\/small>/);
+  });
+
+  it('a missing time is a dash, not a blank', () => {
+    expect(sunDay('Tomorrow', null, undefined).match(/<strong>—<\/strong>/g)).toHaveLength(2);
+  });
+
+  it('all three days use it; sunset is no longer small print', () => {
+    for (const d of ['Yesterday', 'Today', 'Tomorrow']) expect(src).toContain(`\${sunDay("${d}",`);
+    expect(src).not.toContain('sunset</small>');
+  });
+});

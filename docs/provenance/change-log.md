@@ -868,6 +868,17 @@ From the owner's list. The Overview's day-to-day shifts of sunrise, solar noon a
 - Not in rc.9: "sunset prominence" and "screenshot mode" (owner's list), which need the owner's description.
 - The annotated tag `v1.4.0-rc.9` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 
+## 2026-10-19 — roadmap page, README vision, public release checklist (#77)
+
+From the owner's list.
+
+- `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` added as the owner wrote it (FUTURE, research). It also lists what no tier of this project can measure (gravity or Earth's mass from clock comparisons).
+- `ROADMAP.md`: one page for outside readers. Every spec and roadmap in five phases, each with its status and the done / scheduled / planned counts from `STATUS.md` on 2026-10-19; `STATUS.md` stays authoritative.
+- `README.md`: a three-line vision linking `ROADMAP.md`.
+- `public-release-checklist.md`: DRAFT. History scan (secrets, coordinates, personal infrastructure, archives), current tree, release blockers, licensing, outside-reader docs, GitHub settings. Only the commit-identity check has been run (all noreply). Going public stays the owner's decision.
+## 2026-10-19 — sunset as prominent as sunrise (#78)
+
+From the owner's list ("sunset prominence"). In the legacy dashboard's Sun & daylight widget, each day showed sunrise as the large figure and sunset in the small grey line under it ("Sunrise · 6:24:12 PM sunset"). Each day now has two figures of the same size, sunrise then sunset, each labeled. A content fix in one widget, not a restyle: no CSS changed. The `/app/` Overview already gave both the same size; unchanged. Tests: `web/src/lib/legacy-dashboard.test.ts` (3).
 ## 2026-10-19 — screenshot mode (#79)
 
 From the owner's list: a way to take screenshots of the station UI without showing where it is or who uses it.
