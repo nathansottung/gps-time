@@ -39,7 +39,7 @@ Stage-by-stage status of GNSS → PPS → chrony, the PPS state machine, the sta
 **Top-level fields:**
 - `status`: `{code, headline, banner, detail, source, gnss_healthy, provenance}`. Codes include `GPS_PPS`, `DEGRADED`, `NETWORK_FAILOVER`, `HOLDOVER`, `UNSYNCHRONIZED`, `ACQUIRING`, `UNKNOWN`.
 - `pps_state`: a labeled value, e.g. `SELECTED`, `LOST`.
-- `pps`: kernel PPS observation. Includes `device`, `device_present`, `pulse_health`, `last_event_utc`, `age_s`, `rate_hz`, `consecutive_pulses`, `missed_pulses`, `interval_stats` and `boot_config` (GPIO and edge from `config.txt`).
+- `pps`: kernel PPS observation. Includes `device`, `device_present`, `pulse_health`, `last_event_utc`, `age_s`, `rate_hz`, `consecutive_pulses`, `missed_pulses` (pulses the kernel never counted, from its sequence number), `unread_pulses` (counted by the kernel but not read one by one; not lost), `poller` (`polls`, `late_polls`, `max_poll_gap_s`: the station's own reads), `interval_stats` and `boot_config` (GPIO and edge from `config.txt`). The counters run from the service start.
 - `gnss`: `receiver_comms`, `satellite_reception`, `nav_time_solution`, `healthy`, plus labeled `fix`, `satellites_visible`, `satellites_used`, `best_cn0`, `median_cn0_used`, `tdop`, `data_age_s`.
 - `chrony`:
   - `available.{tracking,sources,sourcestats}`

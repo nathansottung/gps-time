@@ -28,6 +28,7 @@ BOOT_CONFIGS = [p for p in os.environ.get(
 DEGRADED_AFTER_S = float(os.environ.get("GTP_PPS_DEGRADED_S", "1.5"))
 LOST_AFTER_S = float(os.environ.get("GTP_PPS_LOST_S", "3.0"))
 RING_SIZE = 600   # ~10 minutes of 1 Hz events
+LATE_POLL_S = 1.5  # a gap between two polls longer than this is a late poll
 
 LAYER_NOTE = ("Linux kernel PPS timestamps (CLOCK_REALTIME); not receiver or "
               "electrical PPS jitter")
@@ -99,13 +100,26 @@ class PPSMonitor:
         self._intervals = deque(maxlen=ring)   # seconds between consecutive (seq+1) events
         self._last = None                      # (seq, ts)
         self._read_status = None
-        self.missed_total = 0
+        self.missed_total = 0     # pulses the kernel never counted (from its sequence number)
+        self.unread_total = 0     # pulses the kernel counted that no poll read individually
         self.consecutive = 0
         self.resets = 0
+        self.polls = 0
+        self.late_polls = 0
+        self.max_poll_gap_s = None
+        self._last_poll_at = None
 
     def poll(self):
+        polled_at = self.clock()
         status, ts, seq = self._reader()
         with self._lock:
+            if self._last_poll_at is not None:
+                gap = polled_at - self._last_poll_at
+                self.max_poll_gap_s = gap if self.max_poll_gap_s is None else max(self.max_poll_gap_s, gap)
+                if gap > LATE_POLL_S:
+                    self.late_polls += 1
+            self._last_poll_at = polled_at
+            self.polls += 1
             self._read_status = status
             if status != "ok" or seq == 0 or ts == 0:
                 return
@@ -125,11 +139,16 @@ class PPSMonitor:
                 self._events.append((seq, ts))
                 self.consecutive = 1
                 return
+            # Missed pulses are counted from the kernel's own sequence number:
+            # the pulses that the elapsed kernel time calls for, minus the ones
+            # the kernel counted. A pulse the kernel counted but no poll read on
+            # its own (dseq > 1) was not lost; it is counted as unread.
             dseq, dt = seq - lseq, ts - lts
             missed = max(0, int(round(dt)) - dseq) if dt > 0 else 0
             if dseq == 1 and dt > 0:
                 self._intervals.append(dt)
             self.missed_total += missed
+            self.unread_total += dseq - 1
             self.consecutive = 1 if missed else self.consecutive + dseq
             self._last = (seq, ts)
             self._events.append((seq, ts))
@@ -155,6 +174,7 @@ class PPSMonitor:
             last, read_status = self._last, self._read_status
             events, intervals = list(self._events), list(self._intervals)
             missed, consecutive, resets = self.missed_total, self.consecutive, self.resets
+            unread, polls, late, max_gap = self.unread_total, self.polls, self.late_polls, self.max_poll_gap_s
         present, note = self._device_state()
 
         if present is None:
@@ -188,7 +208,15 @@ class PPSMonitor:
             "last_interval_s": None, "rate_hz": None,
             "consecutive_pulses": q(consecutive if last else 0, "count", "calculated"),
             "missed_pulses": q(missed, "count", "calculated",
-                               "time gap between observed events exceeding the sequence count"),
+                               "pulses the kernel never counted: elapsed kernel time between observed events "
+                               "minus the kernel's sequence count"),
+            "unread_pulses": q(unread, "count", "calculated",
+                               "pulses the kernel counted that the station didn't read individually (two or more "
+                               "arrived between polls); not lost"),
+            "poller": {"polls": polls, "late_polls": late,
+                       "max_poll_gap_s": None if max_gap is None else round(max_gap, 3),
+                       "late_after_s": LATE_POLL_S,
+                       "note": "the station's own reads of the kernel PPS; a late poll delays observation, not the clock"},
             "sequence_resets": resets,
             "interval_stats": None,
         }

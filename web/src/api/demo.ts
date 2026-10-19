@@ -289,6 +289,8 @@ function timingChain(scenario: string = 'pps_selected'): TimingChain {
       rate_hz: m(failover ? null : 1.0, 'Hz', 'calculated'),
       consecutive_pulses: m(failover ? 0 : 21, 'count', 'calculated'),
       missed_pulses: m(failover ? null : 0, 'count', 'calculated'),
+      unread_pulses: m(failover ? null : 0, 'count', 'calculated'),
+      poller: { polls: 86400, late_polls: 0, max_poll_gap_s: 1.02, late_after_s: 1.5, note: "the station's own reads of the kernel PPS; a late poll delays observation, not the clock" },
       sequence_resets: 0,
       interval_stats: failover ? null
         : m({ count: 20, mean: 1.0000002, min: 0.9999981, max: 1.0000019, stdev: 9.4e-7 }, 's', 'calculated',

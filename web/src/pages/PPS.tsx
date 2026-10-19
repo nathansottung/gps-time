@@ -241,7 +241,9 @@ export default function PPS() {
           <MetricRow label="Age" value={fmtAge(val(p.age_s ?? null))} provenance="calculated" />
           <MetricRow label="Event rate" value={val(p.rate_hz ?? null) === null ? null : `${val(p.rate_hz ?? null)!.toFixed(6)} Hz`} provenance="calculated" />
           <MetricRow label="Consecutive pulses" value={val(p.consecutive_pulses ?? null)} provenance="calculated" />
-          <MetricRow label="Missed pulses" value={val(p.missed_pulses ?? null)} provenance="calculated" />
+          <MetricRow label="Missed pulses (never counted by the kernel)" value={val(p.missed_pulses ?? null)} provenance="calculated" />
+          <MetricRow label="Unread pulses (counted by the kernel, not lost)" value={val(p.unread_pulses ?? null)} provenance="calculated" />
+          <MetricRow label="Station polls / late / longest gap" value={p.poller ? `${p.poller.polls} / ${p.poller.late_polls} / ${p.poller.max_poll_gap_s ?? '—'} s` : null} muted />
           <MetricRow label="Sequence resets" value={p.sequence_resets ?? null} />
           <MetricRow label="Interval mean / min / max" value={stats ? `${sec(stats.mean)} / ${sec(stats.min)} / ${sec(stats.max)}` : null} provenance="calculated" />
           <MetricRow label="Interval std. dev." value={stats ? sec(stats.stdev) : null} provenance="calculated" />

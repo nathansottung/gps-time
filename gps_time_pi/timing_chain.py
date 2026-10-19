@@ -465,7 +465,8 @@ def build_chain(pps_snap, pps_state, gnss, chrony_v, status, events=None, now=No
         _stage("kernel_events", "Kernel PPS events", pulse_stage, f"pulse health {ph}",
                last_event_utc=pps_snap["last_event_utc"], age_s=pps_snap["age_s"],
                rate_hz=pps_snap["rate_hz"], consecutive=pps_snap["consecutive_pulses"],
-               missed=pps_snap["missed_pulses"], interval_stats=pps_snap["interval_stats"],
+               missed=pps_snap["missed_pulses"], unread=pps_snap.get("unread_pulses"),
+               interval_stats=pps_snap["interval_stats"],
                measurement_layer=pps_snap["measurement_layer"]),
         _stage("nmea_refclock", "chrony NMEA/serial refclock",
                {"OK": "OK", "STALE": "FAILED", "NOT_VISIBLE": "FAILED", "NOT_CONFIGURED": "NOT_APPLICABLE",
@@ -800,10 +801,25 @@ class TimingChainService:
         self._latest = None
         self._lock = threading.Lock()
         self._thread, self._stop = None, None
+        self._poller = None
+        self._pps_selected = None
 
-    def tick(self, refresh_chrony=None):
-        now = self.clock()
+    def poll_pps(self):
+        """Read the kernel PPS once and record the newest event's phase. The
+        poller thread runs this every second, so a slow tick (chronyc calls,
+        GNSS, event checkpoints) never delays reading a pulse."""
         self.monitor.poll()
+        last = self.monitor.last_event()
+        if last is not None:
+            # One phase sample per kernel PPS event; the recorder ignores a repeat.
+            self.stability.add(last[1], self._pps_selected)
+
+    def tick(self, refresh_chrony=None, poll_pps=True):
+        """Evaluate the chain. poll_pps=False when the poller thread reads the
+        PPS (the running service); True for a standalone call (tests, demo)."""
+        now = self.clock()
+        if poll_pps:
+            self.poll_pps()
         fresh_chrony = bool(refresh_chrony or self._chrony_inputs is None or
                             (refresh_chrony is None and now - (self._chrony_at or 0) >= CHRONY_INTERVAL_S))
         if fresh_chrony:
@@ -830,10 +846,7 @@ class TimingChainService:
         chain = build_chain(pps_snap, pps_state, gnss, cv, status, events=self.tracker.view(), now=now, boot=boot)
         chain["raw"] = {k: self._chrony_inputs.get(f"{k}_text") if self._chrony_inputs.get(f"{k}_ok") else None
                         for k in ("tracking", "sources", "sourcestats")}
-        last = self.monitor.last_event()
-        if last is not None:
-            # One phase sample per kernel PPS event; the recorder ignores a repeat.
-            self.stability.add(last[1], status.get("code") == "GPS_PPS")
+        self._pps_selected = status.get("code") == "GPS_PPS"
         with self._lock:
             self._latest = chain
         return chain
@@ -846,39 +859,58 @@ class TimingChainService:
         return acquiring_status(status, self.tracker.boot_view())
 
     def latest(self):
+        """The newest evaluation. While the service runs this never polls or
+        evaluates on the caller's (HTTP request) thread: start() has already
+        produced one. Without a running service it evaluates once (tests)."""
         with self._lock:
             chain = self._latest
-        return chain if chain is not None else self.tick()
+        if chain is not None or self.running():
+            return chain
+        return self.tick()
 
     def _loop(self, stop, interval):
         while not stop.is_set():
             try:
-                self.tick()
+                self.tick(poll_pps=False)
             except Exception:  # noqa: BLE001 — observability must never take the server down
                 pass
-            stop.wait(next_tick_delay(self.clock(), interval))
+            stop.wait(next_tick_delay(self.clock(), interval, TICK_PHASE_S))
+
+    def _poll_loop(self, stop, interval):
+        while not stop.is_set():
+            try:
+                self.poll_pps()
+            except Exception:  # noqa: BLE001
+                pass
+            stop.wait(next_tick_delay(self.clock(), interval, POLL_PHASE_S))
 
     def start(self, interval=1.0):
         if self._thread and self._thread.is_alive():
             return self._thread
+        self.tick()                    # the first evaluation, before any request can ask for one
         self._stop = threading.Event()
+        self._poller = threading.Thread(target=self._poll_loop, args=(self._stop, interval),
+                                        name="pps-poller", daemon=True)
         self._thread = threading.Thread(target=self._loop, args=(self._stop, interval),
                                         name="timing-chain", daemon=True)
+        self._poller.start()
         self._thread.start()
         return self._thread
 
     def stop(self, timeout=5.0):
         if self._stop:
             self._stop.set()
-        if self._thread:
-            self._thread.join(timeout)
-        self._thread = self._stop = None
+        for t in (self._poller, self._thread):
+            if t:
+                t.join(timeout)
+        self._thread = self._poller = self._stop = None
 
 
-TICK_PHASE_S = 0.25
+POLL_PHASE_S = 0.25   # PPS reads: a quarter second after each second, when the clock is on PPS
+TICK_PHASE_S = 0.45   # chain evaluation: after that second's read
 
 
-def next_tick_delay(now, interval=1.0, phase=TICK_PHASE_S):
+def next_tick_delay(now, interval=1.0, phase=POLL_PHASE_S):
     """Seconds until the next poll, on a fixed grid `phase` after each whole
     interval of the clock. Sleeping a fixed interval after each tick would make
     the period interval + the tick's own duration, so the poll would drift
@@ -949,7 +981,10 @@ def diagnostic_snapshot(chain, location):
         f"  Last event: {_fmt(p['last_event_utc'])}",
         f"  Age: {_fmt(p['age_s'], 's')}",
         f"  Rate: {_fmt(p['rate_hz'], 'Hz')}",
-        f"  Missed pulses: {_fmt(p['missed_pulses'])}",
+        f"  Missed pulses: {_fmt(p['missed_pulses'])} (never counted by the kernel)",
+        f"  Unread pulses: {_fmt(p.get('unread_pulses'))} (counted by the kernel, not read one by one; not lost)",
+        f"  Station polls: {(p.get('poller') or {}).get('polls')}, late: {(p.get('poller') or {}).get('late_polls')}, "
+        f"longest gap: {(p.get('poller') or {}).get('max_poll_gap_s')} s",
         f"  Configured GPIO: {(p.get('boot_config') or {}).get('gpio', 'UNKNOWN')}",
         "",
         "CHRONY:",
