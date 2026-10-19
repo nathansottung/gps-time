@@ -79,7 +79,7 @@ System-clock offset history from chrony's tracking log (`GTP_TRACKING_LOG`, defa
 - `offset_s` is the offset chrony logged (observed by chrony, not an independent measurement).
 - `err_s` is the logged error bound, or null.
 
-If the log is missing, the response is `{"available": false, "points": [], "note": "chrony tracking log not found — add 'log tracking' to chrony.conf"}`. The span covered depends on the log's rotation, so a "7 d" view may show less.
+Since rc.9 the log is parsed at most once a minute (the answer is kept for 60 s). If the log is missing, the response is `{"available": false, "points": [], "note": "chrony tracking log not found — add 'log tracking' to chrony.conf"}`. The span covered depends on the log's rotation, so a "7 d" view may show less.
 
 ## GET /api/stability
 
@@ -266,6 +266,7 @@ The station compared with NTP servers that are not steering its clock. Type: `Re
 
 - `verdict.code`: `AGREE`, `DISAGREE`, `ONE_REFERENCE`, `NONE_REACHABLE` ("no external references reachable"), `NONE_CONFIGURED`, `UNKNOWN` (chrony unreadable; then `available` is false). The counts are absent for `NONE_CONFIGURED` and `UNKNOWN`.
 - A `DISAGREE` reports a difference between clocks. It does not say which clock is wrong or why, and it does not change `/api/timing-chain`.
+- `?history=<server>` chooses whose `history` is included; without it, the first independent server that has any. The others carry `history: []` and `history_points` (how many the station holds). Before rc.9 every server's full history was sent, about 1 MB.
 - `references[]` holds only independent servers. Servers chrony has selected or combined, and the station's own address, are in `excluded[]` with the reason.
 - For a reference that is not `usable`, `offset_s`, `error_bound_s` and `delay_s` are null and `assessment` is `not usable`.
 - `assessment`: `agrees`, `disagrees`, `inconclusive` (over the limit but inside the server's own error bound), `not usable`.
@@ -372,6 +373,8 @@ Available responses include `location_display`.
 **Unavailable:** `{available: false, reason}`. The reason is the privacy mode, no position, the ephemeris or library problem from `astro_reason`, or `Astronomy calculation failed (<error>)` when a calculation raised (the traceback is in the journal). `/api/object` answers the same way.
 
 Every value is **predicted** (computed from ephemerides for the date).
+
+Since rc.9 the day-level parts of `/api/almanac` (sun for yesterday, today and tomorrow, daylight deltas, moon, night) are computed once per date, zone and site and kept for 6 hours, and the sky snapshot for a minute. Identical requests that arrive during a computation wait for it instead of starting their own. On the Pi a full almanac took about 15 s of CPU.
 
 ## GET /api/object
 

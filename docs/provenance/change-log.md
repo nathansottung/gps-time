@@ -830,3 +830,24 @@ rc.9 item 2; OBS §13. On the rc.8 soak run the 2026-10-17 outages left nothing 
 - `/api/evidence` (index, or one file by `id`); Timing → PPS Events lists the files.
 - Outage detection unchanged.
 - Tests: `tests/test_evidence.py` (14), using the timing-chain rig to produce real events. Not yet run on a Pi.
+
+## 2026-10-19 — the ~3 s browser round trip (#74)
+
+From the owner's list. Measured read-only on the Pi on 2026-10-19 (rc.8):
+
+| Request | Time | Size |
+|---|---|---|
+| `/api/ping` alone | about 10 ms (13 ms from the LAN, 3 ms on the Pi) | |
+| `/api` | 42 ms | 11 kB |
+| `/api/stability` | 1.7 s | 9 kB |
+| `/api/almanac` | **15.5 s** | 25 kB |
+| `/api/references` | 0.24 s | **1.1 MB** |
+
+So the network and `/api/ping` were fine. All requests share one Python process, and the legacy dashboard at `/` asks for `/api/almanac` on every 5 s refresh: the station was computing almanacs nearly all the time, and the browser's pings (which measure the round trip) waited behind them.
+
+- **Almanac:** the day-level parts depend only on the date, the zone and the privacy-reduced site, so they are computed once and kept for 6 hours; the sky snapshot is kept for a minute. Concurrent identical requests share one computation (`server.memo`). The privacy mode is part of the key, so a rounded or hidden answer is never served from an exact one. A failed computation is not kept.
+- **References:** one server's history per response (`?history=<server>`, else the first), with `history_points` for the others. 1.1 MB became a few tens of kB. The References page asks for the server you pick.
+- **History:** the tracking log is parsed at most once a minute.
+- The legacy dashboard's request pattern is unchanged (it isn't restyled or reworked); the cache makes its requests cheap.
+- Not changed: `/api/stability` (1.7 s at most once a minute, only while the page is open).
+- Tests: `tests/test_rtt.py` (10), one more web test. Not yet measured on a Pi after the change.
