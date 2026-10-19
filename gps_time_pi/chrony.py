@@ -464,14 +464,31 @@ def quality(trk):
     }
 
 
-def _default_tracking_log():
-    for p in ("/run/chrony-log/tracking.log", "/var/log/chrony/tracking.log"):
+# The RAM log first (install.sh puts chrony's logdir there), then the SD copy
+# that scripts/logsync.sh keeps, then where chrony writes by default.
+TRACKING_CANDIDATES = ("/run/chrony-log/tracking.log", "/var/log/chrony/station-tracking.txt",
+                       "/var/log/chrony/tracking.log")
+SD_COPIES = ("/var/log/chrony/station-tracking.txt", "/var/log/chrony/tracking.log")
+TRACKING_LOG = None     # a fixed path for tests; None = resolve on every call
+
+
+def tracking_log_path():
+    """Where the tracking log is now. Resolved on every call, not at import
+    (GPS-012): the RAM log appears only once chrony has written to it."""
+    if TRACKING_LOG:
+        return TRACKING_LOG
+    if os.environ.get("GTP_TRACKING_LOG"):
+        return os.environ["GTP_TRACKING_LOG"]
+    for p in TRACKING_CANDIDATES:
         if os.path.exists(p):
             return p
-    return "/var/log/chrony/tracking.log"
+    return TRACKING_CANDIDATES[0]
 
 
-TRACKING_LOG = os.environ.get("GTP_TRACKING_LOG") or _default_tracking_log()
+def _tracking_files(path):
+    """The log and, for the RAM log, the part rotated away by logsync.sh (tracking.log.1), oldest first."""
+    prev = path + ".1"
+    return ([prev] if path.endswith("tracking.log") and os.path.exists(prev) else []) + [path]
 
 
 def history(max_points=600):
@@ -480,26 +497,28 @@ def history(max_points=600):
     chrony.conf. Column positions per chrony 4.x tracking.log format:
     Date Time IP St Freq Skew Offset LeapCombined RootDelay RootDisp MaxError..."""
     rows = []
+    path = tracking_log_path()
     try:
-        with open(TRACKING_LOG) as f:
-            for line in f:
-                t = line.split()
-                if len(t) < 7 or not t[0][:2].isdigit():
-                    continue
-                try:
-                    when = datetime.strptime(t[0] + " " + t[1], "%Y-%m-%d %H:%M:%S")
-                    when = when.replace(tzinfo=timezone.utc)
-                    offset = float(t[6])
-                except (ValueError, IndexError):
-                    continue
-                err = None
-                for idx in (10, 9, 8):
-                    if len(t) > idx:
-                        v = _parse_float(t[idx])
-                        if v is not None and v >= 0:
-                            err = v
-                            break
-                rows.append({"t": when.timestamp(), "offset_s": offset, "err_s": err})
+        for name in _tracking_files(path):
+            with open(name) as f:
+                for line in f:
+                    t = line.split()
+                    if len(t) < 7 or not t[0][:2].isdigit():
+                        continue
+                    try:
+                        when = datetime.strptime(t[0] + " " + t[1], "%Y-%m-%d %H:%M:%S")
+                        when = when.replace(tzinfo=timezone.utc)
+                        offset = float(t[6])
+                    except (ValueError, IndexError):
+                        continue
+                    err = None
+                    for idx in (10, 9, 8):
+                        if len(t) > idx:
+                            v = _parse_float(t[idx])
+                            if v is not None and v >= 0:
+                                err = v
+                                break
+                    rows.append({"t": when.timestamp(), "offset_s": offset, "err_s": err})
     except OSError:
         return {"available": False, "points": [],
                 "note": "chrony tracking log not found — add 'log tracking' to chrony.conf"}
