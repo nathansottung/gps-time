@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, Tabs, ProvenanceTag, SectionHeader } from '../components/ui';
 import { SkyPlot } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
-import { useStation } from '../api/station';
+import { useStation, usePoll } from '../api/station';
+import type { Survey } from '../api/types';
+import { ConvergenceCard, IngestCard, ScatterCard } from '../components/survey';
 import { toSkySats, plottable, cn0Stats, satCounts } from '../api/view';
 
 const SYSCOLORS: Record<string,string> = {
@@ -92,7 +94,10 @@ const PROV_LABEL: Record<string, string> = {
 
 export default function GNSS() {
   const [tab, setTab] = useState('Satellites');
-  const { core } = useStation();
+  const { api, core } = useStation();
+  // /api/survey only while the Survey tab is open (parity 14, 15).
+  const surveyTab = tab === 'Survey';
+  const surveyPoll = usePoll<Survey | null>(() => surveyTab ? api.survey() : Promise.resolve(null), surveyTab ? 30_000 : 0, [api, surveyTab]);
   const gps = core.data?.gps;
   const loc = core.data?.location;
   const survey = core.data?.survey;
@@ -121,7 +126,20 @@ export default function GNSS() {
 
       <ApiErrorNote error={core.error} />
 
-      <Tabs tabs={['Satellites','Sky Plot','Sky Obstruction','Position','Geodesy','Calibration']} active={tab} onChange={setTab} />
+      <Tabs tabs={['Satellites','Sky Plot','Sky Obstruction','Position','Survey','Geodesy','Calibration']} active={tab} onChange={setTab} />
+
+      {surveyTab && (
+        <div className="space-y-4">
+          <ApiErrorNote error={surveyPoll.error} />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2"><ConvergenceCard survey={surveyPoll.data} /></div>
+            <IngestCard survey={surveyPoll.data} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <ScatterCard survey={surveyPoll.data} />
+          </div>
+        </div>
+      )}
 
       {tab === 'Satellites' && (
         <Card>

@@ -191,6 +191,28 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
             </CardBody>
           </Card>
 
+          {/* chrony's own tracking figures (parity 16); text exactly as chronyc reports it */}
+          <Card>
+            <CardHeader title="chrony tracking" badge={<ProvenanceTag type="observed" />} />
+            <CardBody>
+              <div className="grid grid-cols-2 gap-x-8">
+                <div>
+                  <MetricRow label="Frequency" value={core.data?.quality.frequency ?? null} />
+                  <MetricRow label="Residual frequency" value={core.data?.quality.residual_freq ?? null} />
+                  <MetricRow label="Skew" value={core.data?.quality.skew ?? null} />
+                </div>
+                <div>
+                  <MetricRow label="Update interval" value={core.data?.quality.update_interval ?? null} />
+                  <MetricRow label="Last offset" value={fmtOffset(core.data?.quality.last_offset_s) ? `${fmtOffset(core.data?.quality.last_offset_s)!.value} ${fmtOffset(core.data?.quality.last_offset_s)!.unit}` : null} />
+                  <MetricRow label="Reference time" value={core.data?.quality.ref_time ?? null} />
+                </div>
+              </div>
+              <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+                From <span className="mono">chronyc -n tracking</span>. Residual frequency is the difference between the frequency the reference indicates and the one chrony uses; skew is chrony's estimated error bound on that frequency. The PPS sample age is on PPS Diagnostics.
+              </div>
+            </CardBody>
+          </Card>
+
           <Planned title="PPS State Availability (today)" needs="a per-day PPS state timeline from the event history">
             <Card>
               <CardHeader title="PPS State Availability (today)" />
