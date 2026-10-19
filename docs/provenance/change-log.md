@@ -1007,3 +1007,11 @@ Legacy removal step 6 (parity 13), on top of the named tracking.log columns from
 - If the server skipped tracking.log lines, its note is shown under the chart.
 - The small one-hour sparkline charts are unchanged.
 - Tests: `web/src/lib/offset.test.ts` (7). Checked with the client-side demo (the band is drawn; with demo values of a few ns it is thin at this scale). Not run on a Pi.
+
+## 2026-10-19 — rc.10's first hours; v1.4.0-rc.11 (#95)
+
+- **rc.10 on the Pi:** deployed by the owner, service start 18:10 UTC. A read-only check (HTTP GETs and read-only SSH; nothing changed) after 2 h 17 min found three real PPS outages starting with weak GNSS signal, one expected event at the service start (chrony restarted by the installer), 812 missed pulses (9.9 %) that are real absences rather than a polling artifact, a 16 ms browser round trip, and short-window stability dominated by the outages. Record: `development/raspberry-pi-deploy.md` → "First hours of v1.4.0-rc.10".
+- **Release route (owner):** rc.11 from main, then v1.4.0 on the same commit after three clean days. Removal step 7 stays out.
+- **What "clean" means for that tag**, fixed before the run: version 1.4.0-rc.11; at least 3 days of PPS reads since the service start; timing status GPS_PPS; no outage events since the service start, except the one at the start itself ("PPS NOT USED BY CHRONY" with healthy pulses, within 5 minutes, caused by the installer's chrony restart); missed plus unread pulses at most 1 in 10,000 reads, no late reads above 1 in 1,000, longest gap between reads under 2.5 s; `/api/ping` from the LAN median under 50 ms and maximum under 250 ms, idle and while `/api/almanac` is requested; ADEV present at 1, 10, 100 and 1000 s, ADEV at 1 s between 1 × 10⁻⁹ and 1 × 10⁻⁵, PPS selected for at least 99 % of samples, gaps at most 0.1 %. Not clean means no tag and a report to the owner.
+- Release notes in `docs/releases/v1.4.0-rc.11.md`. `deploy/upgrade-1.4-station.md` goes to rc.11 from rc.8, rc.9 or rc.10, says the start-up event is expected, and has checks for the rc.11 items. The other checklists, README, START-HERE and `ROADMAP.md` target rc.11.
+- The annotated tag `v1.4.0-rc.11` goes on this PR's merge commit, with a GitHub pre-release using the same notes.

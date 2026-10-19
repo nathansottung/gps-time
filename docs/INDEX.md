@@ -62,7 +62,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 ## Development
 - `development/windows-demo.md`
 - `deploy/fresh-pi-install.md` — checklist for a newly flashed Raspberry Pi OS Lite: SSH key, packages, UART/PPS configuration, deploy, reboot, chrony refclocks, checks
-- `deploy/upgrade-1.4-station.md` — checklist for upgrading a station that already runs a 1.4 release candidate (rc.8 or rc.9 → rc.10): what changes, the deploy command, checks, the soak run before v1.4.0
+- `deploy/upgrade-1.4-station.md` — checklist for upgrading a station that already runs a 1.4 release candidate (rc.8, rc.9 or rc.10 → rc.11): what changes, the deploy command, checks, the soak run before v1.4.0
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
@@ -84,7 +84,8 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
-- `releases/v1.4.0-rc.10.md` — sunset as prominent as sunrise, screenshot mode, outside-reader docs (roadmap page, public release checklist); web UI only over rc.9; the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.11.md` — chrony history semantics fixed (GPS-003/007), the legacy pages' features in `/app/`, TypeScript 7; the soak candidate, and the commit v1.4.0 is to be tagged on (pre-release)
+- `releases/v1.4.0-rc.10.md` — sunset as prominent as sunrise, screenshot mode, outside-reader docs (roadmap page, public release checklist); web UI only over rc.9 (pre-release)
 - `releases/v1.4.0-rc.9.md` — fixes from the rc.8 soak run (log flush with caps, outage evidence on SD, PPS poller thread, browser round trip), oscillator log, Earth shadow and satellites (pre-release)
 - `releases/v1.4.0-rc.8.md` — timing metrology: stability analysis, time scales, independent references, NTP service counters (pre-release)
 - `releases/v1.4.0-rc.7.md` — fixes from the first Pi build, local-time clock, self-source handling, installer disables DHCP NTP servers (pre-release)
