@@ -742,14 +742,50 @@ export interface Almanac {
   delta_yesterday: number | null;
   delta_tomorrow: number | null;
   neighbors: Record<'yesterday' | 'tomorrow', { sunrise?: string | null; sunset?: string | null; noon?: string | null; daylight_s?: number | null }>;
-  sky: Record<string, unknown>;
+  sky: SkySnapshot | Unavailable | Record<string, never>;
   sky_when: string;
   position_provenance: string;
   position_age: string | null;
   location_display?: LocationMode;   // the privacy mode the values were computed under
 }
 
-export interface AlmanacQuery { date?: string; tz?: string; at?: string }
+export interface AlmanacQuery { date?: string; tz?: string; at?: string; /** /api/object's q, marked on the sky map */ target?: string }
+
+/** astro.sky_snapshot: [alt°, az°] pairs; stars carry their magnitude. Only what is above −1°. */
+export interface SkySnapshot {
+  available: true;
+  demo?: boolean;
+  stars: [number, number, number][];
+  lines: [number, number][][];
+  bodies: Record<string, [number, number]>;
+  target: [number, number] | null;
+}
+
+// ─── GET /api/object ─────────────────────────────────────────────────────────
+
+export interface ObjectWindow { start: string; end: string; dur_s: number }
+export interface ObjectReport {
+  available: true;
+  demo?: boolean;
+  name: string;
+  meta: string;
+  emphasis: 'dark' | 'moonless' | 'both';
+  at_label: string;
+  now_alt: number;
+  now_az: number;
+  rise: string | null;
+  transit: string | null;
+  transit_alt: number | null;
+  set: string | null;
+  circumpolar: boolean;
+  never_up: boolean;
+  dark_windows: ObjectWindow[];
+  moonless_windows: ObjectWindow[];
+  min_alt_deg: number;
+  tz: string;
+  location_display?: LocationMode;
+}
+export type ObjectResult = ObjectReport | Unavailable | { error: 'unparsed' };
 
 // ─── GET /api/ping ───────────────────────────────────────────────────────────
 

@@ -105,6 +105,83 @@ def _demo_date(qs):
         return datetime.now().astimezone().date()
 
 
+# Demo sky: the bundled chart stars and constellation lines placed with a plain
+# equatorial-to-horizontal conversion for the example site (US Naval Observatory). No
+# precession, nutation or refraction: shapes for the sky map, not positions to observe by.
+_DEMO_LAT, _DEMO_LON = 38.9217, -77.0669
+_DEMO_BODIES = {"Moon": (250.0, -20.0), "Jupiter": (110.0, 22.5), "Saturn": (350.0, -6.0)}   # RA, Dec (degrees)
+
+
+def _altaz(ra, dec, lst_deg):
+    h = math.radians((lst_deg - ra) % 360)
+    lat, d = math.radians(_DEMO_LAT), math.radians(dec)
+    alt = math.asin(math.sin(lat) * math.sin(d) + math.cos(lat) * math.cos(d) * math.cos(h))
+    az = math.atan2(-math.cos(d) * math.sin(h), math.sin(d) * math.cos(lat) - math.cos(d) * math.cos(h) * math.sin(lat))
+    return round(math.degrees(alt), 1), round(math.degrees(az) % 360, 1)
+
+
+def _lst_deg(when):
+    jd = when.timestamp() / 86400.0 + 2440587.5
+    return (280.46061837 + 360.98564736629 * (jd - 2451545.0) + _DEMO_LON) % 360
+
+
+def _target_radec(target):
+    if not target:
+        return None
+    if target["kind"] == "planet":
+        return _DEMO_BODIES.get(target["name"], (200.0, -10.0))
+    return target["ra"], target["dec"]
+
+
+def sky_api(when, target=None) -> dict:
+    import json as _json
+    here = os.path.join(os.path.dirname(__file__), "data")
+    lst = _lst_deg(when)
+    with open(os.path.join(here, "stars.json")) as f:
+        stars = [[*_altaz(ra, dec, lst), mag] for ra, dec, mag in _json.load(f)]
+    with open(os.path.join(here, "constellations.json")) as f:
+        lines = [[list(_altaz(ra, dec, lst)) for ra, dec in line] for c in _json.load(f) for line in c["lines"]]
+    bodies = {k: list(_altaz(ra, dec, lst)) for k, (ra, dec) in _DEMO_BODIES.items()}
+    rd = _target_radec(target)
+    return {"available": True, "demo": True,
+            "stars": [x for x in stars if x[0] > -1], "lines": lines,
+            "bodies": {k: v for k, v in bodies.items() if v[0] > -1},
+            "target": list(_altaz(rd[0], rd[1], lst)) if rd else None}
+
+
+def object_api(target, day, when) -> dict:
+    """Synthetic object card in astro.object_report's shape (demo only)."""
+    rd = _target_radec(target)
+    alt, az = _altaz(rd[0], rd[1], _lst_deg(when))
+    tz = datetime.now().astimezone().tzinfo
+    base = datetime(day.year, day.month, day.day, tzinfo=tz)
+
+    def at(h, m, d=0):
+        return (base + timedelta(days=d, hours=h, minutes=m)).isoformat(timespec="minutes")
+    never_up = rd[1] < _DEMO_LAT - 90
+    circumpolar = rd[1] > 90 - _DEMO_LAT
+    return {"available": True, "demo": True, "now_alt": alt, "now_az": round(az),
+            "rise": None if never_up or circumpolar else at(17, 40),
+            "transit": None if never_up else at(23, 55),
+            "transit_alt": round(90 - abs(_DEMO_LAT - rd[1]), 1) if not never_up else None,
+            "set": None if never_up or circumpolar else at(6, 10, 1),
+            "circumpolar": circumpolar, "never_up": never_up,
+            "dark_windows": [] if never_up else [{"start": at(20, 53), "end": at(5, 18, 1), "dur_s": 30300.0}],
+            "moonless_windows": [] if never_up else [{"start": at(23, 10), "end": at(5, 18, 1), "dur_s": 22080.0}],
+            "min_alt_deg": 15, "tz": str(tz)}
+
+
+def _demo_when(qs, day, tz):
+    """?at=HH:MM on the requested day, else now (today) or 22:00 (another day)."""
+    raw = (qs or {}).get("at", ["now"])[0]
+    try:
+        hh, mm = (int(x) for x in raw.split(":"))
+        return datetime(day.year, day.month, day.day, hh, mm, tzinfo=tz)
+    except (ValueError, TypeError):
+        now = datetime.now().astimezone()
+        return now if now.date() == day else datetime(day.year, day.month, day.day, 22, 0, tzinfo=tz)
+
+
 def almanac_api(qs=None) -> dict:
     """Synthetic almanac for the desktop demo: fixed clock times on the requested date,
     with the day bar, the night bar and moon details in the shapes astro.py returns."""
@@ -127,6 +204,11 @@ def almanac_api(qs=None) -> dict:
         t1 = order[i + 1][1] if i + 1 < len(order) else at(0, 0, d=1)
         bar.append({"state": state, "start": t0.isoformat(timespec="seconds"),
                     "frac": (t1 - t0).total_seconds() / 86400})
+
+    when = _demo_when(qs, day, tz)
+    from . import catalog
+    tq = (qs or {}).get("target", [""])[0].strip()
+    target = catalog.lookup(tq) if tq else None
 
     n0, n1 = end, at(6, 48, 12, d=1)                 # sunset to next sunrise
     span = (n1 - n0).total_seconds()
@@ -166,8 +248,8 @@ def almanac_api(qs=None) -> dict:
                  "rise": at(13, 2).isoformat(), "transit": at(18, 4).isoformat(), "transit_alt": 31.6,
                  "set": moonset.isoformat(), "age_days": 5.2, "up_s": (moonset - at(13, 2)).total_seconds()},
         "night": nb,
-        "sky": {},
-        "sky_when": at(22, 0).strftime("%Y-%m-%d %H:%M %Z"),
+        "sky": sky_api(when, target),
+        "sky_when": when.strftime("%Y-%m-%d %H:%M %Z"),
         "position_provenance": "demo",
         "position_age": None,
         "neighbors": {

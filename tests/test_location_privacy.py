@@ -161,12 +161,10 @@ class TestHidden(PrivacyBase):
         for leak in ("sun", "moon", "night", "sky", "neighbors", "delta_yesterday"):
             self.assertNotIn(leak, d)
 
-    def test_object_refuses_and_sets_no_target(self):
-        server._LAST_TARGET.clear()
+    def test_object_refuses_and_computes_nothing(self):
         d = self.obj()
         self.assertFalse(d["available"])
         self.assertEqual(self.sites, [])
-        self.assertNotIn("t", server._LAST_TARGET)
 
     def test_unparsed_object_still_reports_unparsed(self):
         self.assertEqual(server.object_api({"q": [""]}), {"error": "unparsed"})
@@ -264,3 +262,40 @@ class TestSatAnglesExact(SatAnglesBase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSkyTargetPerRequest(PrivacyBase):
+    """GPS-030: the sky map marks only the target the request names; a lookup by one
+    client never changes another client's sky map (there is no server-global target)."""
+    mode = "exact"
+
+    def setUp(self):
+        super().setUp()
+        self.targets = []
+        p = mock.patch.object(astro, "sky_snapshot",
+                              lambda site, when, target=None: self.targets.append(target) or
+                              {"available": True, "stars": [], "lines": [], "bodies": {}, "target": None})
+        p.start()
+        self.addCleanup(p.stop)
+
+    def almanac_with(self, target):
+        qs = {"date": ["2026-10-01"], "tz": ["UTC"], "at": ["22:00"]}
+        if target is not None:
+            qs["target"] = [target]
+        return server.almanac_api(qs)
+
+    def test_named_target_is_marked(self):
+        self.assertTrue(self.almanac_with("jupiter")["available"])
+        self.assertEqual(self.targets, [{"kind": "planet", "name": "Jupiter"}])
+
+    def test_a_lookup_does_not_mark_anyone_elses_sky(self):
+        self.assertTrue(self.obj()["available"])            # another client looks up Jupiter
+        server._MEMO.clear()
+        self.almanac_with(None)
+        server._MEMO.clear()
+        self.almanac_with("")
+        self.assertEqual(self.targets, [None, None])
+
+    def test_no_global_target_exists(self):
+        self.assertFalse(hasattr(server, "_LAST_TARGET"))
+
