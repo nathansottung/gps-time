@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/release-v1.4.0-rc.9, #76). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/roadmap-public, #77). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -66,9 +66,9 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 | Review | `review/GPS-Time-Independent-Review-2026-09-27.md` |
 | Repo | repository tooling, CI and releases (owner requests) |
 
-Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
+Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 429 rows: 230 done, 0 in progress, 28 next, 171 planned.
+**Totals:** 431 rows: 232 done, 0 in progress, 28 next, 171 planned.
 
 ## Status table
 
@@ -503,3 +503,5 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Sunrise, noon and sunset shifts shown in h/m/s | done | was signed whole seconds | [#75](https://github.com/nathansottung/gps-time/pull/75) |
 | Repo |  | Tag v1.4.0-rc.9 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#76](https://github.com/nathansottung/gps-time/pull/76) |
 | Repo |  | Dependabot: setup-node 7.1.0, tzfpy 2.1.1, 11 web minor/patch updates | done | merged when green; TypeScript 7 (#65) and @types/node 26 (#64) held for the owner | [#66](https://github.com/nathansottung/gps-time/pull/66) [#67](https://github.com/nathansottung/gps-time/pull/67) [#68](https://github.com/nathansottung/gps-time/pull/68) |
+| Repo |  | One-page roadmap for outside readers (`ROADMAP.md`), README vision, geophysics roadmap imported | done | every spec and roadmap by phase, with status counts from this file | [#77](https://github.com/nathansottung/gps-time/pull/77) |
+| Repo |  | Public release checklist (draft) | done | `public-release-checklist.md`; nothing on it run yet except the commit-identity check; going public is the owner's step | [#77](https://github.com/nathansottung/gps-time/pull/77) |
