@@ -76,6 +76,13 @@
   --pred-text:  #c07898;   --pred-bg:  rgba(192,120,152,0.07); --pred-border:rgba(192,120,152,0.18);
   --ext-text:   #9aa0ae;   --ext-bg:   rgba(154,160,174,0.06); --ext-border: rgba(154,160,174,0.22);
 
+  /* Sky states for the day and night bars (lib/almanac.ts), darkest to brightest */
+  --sky-night: #1a2130;
+  --sky-astro: #2f3c55;
+  --sky-naut:  #46597f;
+  --sky-civil: #6b86ad;
+  --sky-day:   #b08a3a;
+
   /* Fonts */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;

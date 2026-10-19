@@ -694,9 +694,32 @@ export interface SolarDay {
   events: Record<string, string | null>;   // sunrise, sunset, civil/nautical/astro dawn & dusk (ISO with offset)
   noon: string | null;
   daylight_s: number | null;
-  bar: unknown[];
+  bar: SunBarSegment[];
   notes: string[];
 }
+
+/** One stretch of the local day in one sky state (astro.solar_day). frac = share of the 24 h day. */
+export interface SunBarSegment {
+  state: number;   // 0 night, 1 astronomical, 2 nautical, 3 civil twilight, 4 day
+  start: string;   // ISO, local offset
+  frac: number;
+}
+
+/** Sunset to next sunrise (astro.night). Fractions are of the elapsed night (DST-safe). */
+export type NightBar =
+  | { available: true; defined: false; note?: string }
+  | {
+      available: true; defined: true;
+      sunset: string; sunrise: string; span_s: number;
+      sun_segments: { stage: number; f0: number; f1: number }[];   // 0 dark (sun < −18°), 1 astro, 2 nautical, 3 civil
+      moon_up: { f0: number; f1: number }[];
+      dark: { f0: number; f1: number; start: string; end: string }[];   // moonless astronomical darkness
+      dark_total_s: number;
+      midnight: { f: number; label: string } | null;
+      astro_note: string | null;
+      tz: string;
+    }
+  | Unavailable;
 
 export interface LunarDay {
   available: true;
@@ -715,7 +738,7 @@ export interface Almanac {
   demo?: boolean;
   sun: SolarDay | Unavailable;
   moon: LunarDay | Unavailable;
-  night: { available: boolean; defined?: boolean; [k: string]: unknown };
+  night: NightBar;
   delta_yesterday: number | null;
   delta_tomorrow: number | null;
   neighbors: Record<'yesterday' | 'tomorrow', { sunrise?: string | null; sunset?: string | null; noon?: string | null; daylight_s?: number | null }>;

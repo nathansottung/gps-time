@@ -930,3 +930,15 @@ Owner's request, after the two blockers landed (#81, #82). `STATUS.md` has a new
 ## 2026-10-19 — legacy parity decisions (#86)
 
 Owner's decisions for removal step 1, recorded in `STATUS.md` → Decisions and in `dashboard/web-ui-parity.md`: keep dark and red night themes, drop light (1); replace the saved-layout editor with show/hide modules (4, 5); drop `custom.css` (18), `/zones` (19) and the 1/|ppm| holdover figure (20). Items 2 and 21 were not decided and stay as a planned "owner confirms" row. Step 5 is now the night theme and show/hide modules.
+
+## 2026-10-19 — almanac in /app/: date navigation, day and night bars, moon details (#87)
+
+Legacy removal step 2 (parity 8, 9, 10; `STATUS.md` → "Legacy removal: queue").
+
+- **Date navigation** on Sun & Astronomy → Sun & Moon: ← date → and Today, limited to the station's ephemeris range (1850–2149). Every card on the tab follows the date; the three-day columns read "Day before / <date> / Day after" when it isn't today. The "Sky at" time belongs with the sky map (step 3).
+- **Day bar** (midnight to midnight) and **night bar** (sunset to sunrise): night, astronomical, nautical and civil twilight and day; the moon above the horizon as a strip below; moonless astronomical darkness outlined, with its total and windows; the local-midnight tick. Laid out from `sun.bar` and `night` in `/api/almanac`; the page computes no astronomy. Colors are new `--sky-*` tokens.
+- **Moon:** transit altitude and time above the horizon. Times that fall on another calendar day carry the date ("01:33 · 20 Oct"). A moonrise or moonset that doesn't happen that day reads "none this day", not UNKNOWN; UNKNOWN stays for values the station didn't send.
+- Twilight card adds nautical dawn and dusk.
+- `api/types.ts` now types `sun.bar` and `night` (they were `unknown`).
+- Both demos (`gps_time_pi/demo.py` and `web/src/api/demo.ts`) return a synthetic day bar, night bar and moon details for the requested date, marked demo.
+- Tests: `web/src/lib/almanac.test.ts` (10), `tests/test_demo_almanac.py` (5). Checked in the desktop demo (date navigation sends `?date=`). Not run on a Pi.

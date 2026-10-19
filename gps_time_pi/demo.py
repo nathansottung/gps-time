@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from . import __version__
 
@@ -97,30 +97,77 @@ def core_api() -> dict:
     }
 
 
-def almanac_api(_qs=None) -> dict:
-    now = datetime.now().astimezone()
-    start = now.replace(hour=6, minute=47, second=15, microsecond=0)
-    noon = now.replace(hour=13, minute=6, second=43, microsecond=0)
-    end = now.replace(hour=19, minute=24, second=17, microsecond=0)
+def _demo_date(qs):
+    """The requested ?date=YYYY-MM-DD, else today (local)."""
+    try:
+        return date.fromisoformat((qs or {}).get("date", [""])[0])
+    except (ValueError, TypeError, IndexError):
+        return datetime.now().astimezone().date()
+
+
+def almanac_api(qs=None) -> dict:
+    """Synthetic almanac for the desktop demo: fixed clock times on the requested date,
+    with the day bar, the night bar and moon details in the shapes astro.py returns."""
+    tz = datetime.now().astimezone().tzinfo
+    day = _demo_date(qs)
+    base = datetime(day.year, day.month, day.day, tzinfo=tz)
+
+    def at(h, m, s=0, d=0):
+        return base + timedelta(days=d, hours=h, minutes=m, seconds=s)
+
+    ev = {"astro_dawn": at(5, 18, 40), "naut_dawn": at(5, 49, 2), "civil_dawn": at(6, 19, 31),
+          "sunrise": at(6, 47, 15), "sunset": at(19, 24, 17), "civil_dusk": at(19, 51, 59),
+          "naut_dusk": at(20, 22, 30), "astro_dusk": at(20, 52, 51)}
+    start, noon, end = ev["sunrise"], at(13, 6, 43), ev["sunset"]
     daylight = (end - start).total_seconds()
+    order = [(0, base), (1, ev["astro_dawn"]), (2, ev["naut_dawn"]), (3, ev["civil_dawn"]), (4, ev["sunrise"]),
+             (3, ev["sunset"]), (2, ev["civil_dusk"]), (1, ev["naut_dusk"]), (0, ev["astro_dusk"])]
+    bar = []
+    for i, (state, t0) in enumerate(order):
+        t1 = order[i + 1][1] if i + 1 < len(order) else at(0, 0, d=1)
+        bar.append({"state": state, "start": t0.isoformat(timespec="seconds"),
+                    "frac": (t1 - t0).total_seconds() / 86400})
+
+    n0, n1 = end, at(6, 48, 12, d=1)                 # sunset to next sunrise
+    span = (n1 - n0).total_seconds()
+
+    def f(t):
+        return (t - n0).total_seconds() / span
+
+    moonset = at(23, 10, d=0)
+    dark0, dark1 = moonset, at(5, 19, 30, d=1)
+    nb = {"available": True, "defined": True, "sunset": n0.isoformat(), "sunrise": n1.isoformat(), "span_s": span,
+          "sun_segments": [{"stage": 3, "f0": 0.0, "f1": f(ev["civil_dusk"])},
+                           {"stage": 2, "f0": f(ev["civil_dusk"]), "f1": f(ev["naut_dusk"])},
+                           {"stage": 1, "f0": f(ev["naut_dusk"]), "f1": f(ev["astro_dusk"])},
+                           {"stage": 0, "f0": f(ev["astro_dusk"]), "f1": f(at(5, 19, 30, d=1))},
+                           {"stage": 1, "f0": f(at(5, 19, 30, d=1)), "f1": f(at(5, 50, d=1))},
+                           {"stage": 2, "f0": f(at(5, 50, d=1)), "f1": f(at(6, 20, d=1))},
+                           {"stage": 3, "f0": f(at(6, 20, d=1)), "f1": 1.0}],
+          "moon_up": [{"f0": 0.0, "f1": f(moonset)}],
+          "dark": [{"f0": f(dark0), "f1": f(dark1), "start": dark0.isoformat(timespec="minutes"),
+                    "end": dark1.isoformat(timespec="minutes")}],
+          "dark_total_s": (dark1 - dark0).total_seconds(),
+          "midnight": {"f": f(at(0, 0, d=1)), "label": "midnight · " + at(0, 0, d=1).strftime("%a %d")},
+          "astro_note": None, "tz": str(tz)}
     return {
         "available": True,
         "demo": True,
         "sun": {
             "available": True,
-            "date": now.date().isoformat(),
-            "tz": str(now.tzinfo),
-            "events": {"sunrise": start.isoformat(), "sunset": end.isoformat()},
-            "noon": noon.isoformat(), "daylight_s": daylight, "bar": [], "notes": [],
+            "date": day.isoformat(),
+            "tz": str(tz),
+            "events": {k: v.isoformat() for k, v in ev.items()},
+            "noon": noon.isoformat(), "daylight_s": daylight, "bar": bar, "notes": [],
         },
         "delta_yesterday": -182.8,
         "delta_tomorrow": -181.7,
         "moon": {"available": True, "phase": "Waxing crescent", "illum": 28.4,
-                 "rise": (start + timedelta(hours=3)).isoformat(),
-                 "set": (end + timedelta(hours=3)).isoformat()},
-        "night": {"available": True},
+                 "rise": at(13, 2).isoformat(), "transit": at(18, 4).isoformat(), "transit_alt": 31.6,
+                 "set": moonset.isoformat(), "age_days": 5.2, "up_s": (moonset - at(13, 2)).total_seconds()},
+        "night": nb,
         "sky": {},
-        "sky_when": now.strftime("%Y-%m-%d %H:%M %Z"),
+        "sky_when": at(22, 0).strftime("%Y-%m-%d %H:%M %Z"),
         "position_provenance": "demo",
         "position_age": None,
         "neighbors": {

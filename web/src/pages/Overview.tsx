@@ -154,13 +154,14 @@ function HoldoverWidget() {
 }
 
 // ─── Sun ──────────────────────────────────────────────────────────────────────
-export function SunDays({ almanac }: { almanac: Almanac | null }) {
+/** labels: the three columns; the middle one is the selected day (default: yesterday / today / tomorrow). */
+export function SunDays({ almanac, labels = ['Yesterday', 'Today', 'Tomorrow'] }: { almanac: Almanac | null; labels?: [string, string, string] }) {
   const sun = sunOf(almanac);
   const nb = almanac?.available ? almanac.neighbors : null;
   const cols = [
-    { label:'Yesterday', rise: nb?.yesterday.sunrise, noon: undefined, set: nb?.yesterday.sunset, dur: nb?.yesterday.daylight_s, chg: null },
-    { label:'Today',     rise: sun?.events.sunrise,   noon: sun?.noon,  set: sun?.events.sunset,   dur: sun?.daylight_s,          chg: almanac?.available ? almanac.delta_yesterday : null },
-    { label:'Tomorrow',  rise: nb?.tomorrow.sunrise,  noon: undefined, set: nb?.tomorrow.sunset,  dur: nb?.tomorrow.daylight_s,  chg: almanac?.available ? almanac.delta_tomorrow : null },
+    { label:labels[0], mid:false, rise: nb?.yesterday.sunrise, noon: undefined, set: nb?.yesterday.sunset, dur: nb?.yesterday.daylight_s, chg: null },
+    { label:labels[1], mid:true,  rise: sun?.events.sunrise,   noon: sun?.noon,  set: sun?.events.sunset,   dur: sun?.daylight_s,          chg: almanac?.available ? almanac.delta_yesterday : null },
+    { label:labels[2], mid:false, rise: nb?.tomorrow.sunrise,  noon: undefined, set: nb?.tomorrow.sunset,  dur: nb?.tomorrow.daylight_s,  chg: almanac?.available ? almanac.delta_tomorrow : null },
   ];
   return (
     <div>
@@ -169,13 +170,13 @@ export function SunDays({ almanac }: { almanac: Almanac | null }) {
         const chg = fmtDelta(c.chg);   // daylight change vs the prior day (astro.daylight_deltas)
         return (
           <div key={c.label} className="rounded-[2px] p-2.5"
-            style={c.label==='Today'
+            style={c.mid
               ? { background:'rgba(176,120,16,0.05)', border:'1px solid rgba(176,120,16,0.14)' }
               : { background:'rgba(255,255,255,0.015)', border:'1px solid var(--border-dim)' }}>
             <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2"
-              style={{ color: c.label==='Today' ? 'var(--warn-text)' : 'var(--t4)' }}>{c.label}</div>
+              style={{ color: c.mid ? 'var(--warn-text)' : 'var(--t4)' }}>{c.label}</div>
             {([['Sunrise', c.rise], ['Solar noon', c.noon], ['Sunset', c.set]] as const).map(([k, v]) => (
-              c.label !== 'Today' && k === 'Solar noon' ? null :
+              !c.mid && k === 'Solar noon' ? null :
               <div key={k} className="flex justify-between py-[3px]">
                 <span style={{ color:'var(--t3)' }}>{k}</span>
                 <span className="mono" style={{ color:'var(--t1)' }}>{fmtClock(v, TZ) ?? '—'}</span>

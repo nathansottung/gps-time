@@ -55,6 +55,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/components/clock.tsx` — the big Overview clock and the header clock: station time (`useStationTime`), local zone, UTC beneath; `clockDiscipline()` in `lib/banner.ts` decides whether it may say GPS/PPS
 - `src/lib/admin.ts` — Administration → Station actions: one entry per `/api/admin` action (label, effect, confirmation text; everything but the log flush asks first) and `actionOutcome()`, the line shown afterwards (the station's answer; no answer may still mean it ran) (tested in `admin.test.ts`)
 - `src/lib/survey.ts` — Administration → Position survey: the typed confirmation (`RESET`), what a reset would discard from the station's counts (UNKNOWN when not reported), and the outcome line (tested in `survey.test.ts`)
+- `src/lib/almanac.ts` — Sun & Moon tab: date navigation within the ephemeris range (calendar arithmetic at noon UTC), the 24 h day bar and the night bar laid out from `/api/almanac` (`sun.bar`, `night`) without computing any astronomy, times that fall on another day labeled with it (tested in `almanac.test.ts`); the cards are `src/components/almanac.tsx`; sky colors are the `--sky-*` tokens
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling

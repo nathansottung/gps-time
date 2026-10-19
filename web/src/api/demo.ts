@@ -99,7 +99,7 @@ export function demoApi(): StationApi {
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
     almanac: (q) => delay(locationMode === 'hidden'
       ? { available: false as const, reason: "Location is hidden by the station's privacy setting. Sun, moon and sky times would reveal the station's position, so they are not computed.", location_display: 'hidden' as const }
-      : { ...almanac(q?.tz), location_display: locationMode }),
+      : { ...almanac(q?.tz, q?.date), location_display: locationMode }),
     ping: () => {
       const t = Date.now();
       return delay({ server_receive_epoch_ms: t + 1.2, server_send_epoch_ms: t + 1.3 });
@@ -686,27 +686,43 @@ function system(): SystemDiagnostics {
   };
 }
 
-function almanac(tz = 'UTC'): Almanac {
-  // Fixed sample times for the demo site, expressed as UTC instants (EDT = UTC−4).
-  const today = new Date();
-  const ymd = (off: number) => {
-    const d = new Date(today.getTime() + off * 86400000);
-    return d.toISOString().slice(0, 10);
-  };
+function almanac(tz = 'UTC', date?: string): Almanac {
+  // Fixed sample times for the demo site on the requested date (default today), as UTC−4 instants.
+  const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
+  const base = Date.parse(`${day}T00:00:00-04:00`);
+  const ymd = (off: number) => new Date(base + 12 * 3600e3 + off * 86400e3).toISOString().slice(0, 10);
   const at = (off: number, hhmmss: string) => `${ymd(off)}T${hhmmss}-04:00`;
+  const ms = (iso: string) => Date.parse(iso);
+  const ev = { astro_dawn: at(0, '05:21:10'), naut_dawn: at(0, '05:51:40'), civil_dawn: at(0, '06:21:02'), sunrise: at(0, '06:48:04'),
+               sunset: at(0, '18:48:24'), civil_dusk: at(0, '19:15:30'), naut_dusk: at(0, '19:44:58'), astro_dusk: at(0, '20:15:20') };
+  const order: [number, string][] = [[0, at(0, '00:00:00')], [1, ev.astro_dawn], [2, ev.naut_dawn], [3, ev.civil_dawn], [4, ev.sunrise],
+                                     [3, ev.sunset], [2, ev.civil_dusk], [1, ev.naut_dusk], [0, ev.astro_dusk], [-1, at(1, '00:00:00')]];
+  const bar = order.slice(0, -1).map(([state, t0], i) => ({ state, start: t0, frac: (ms(order[i + 1][1]) - ms(t0)) / 86400e3 }));
+  const n0 = ms(ev.sunset), n1 = ms(at(1, '06:49:00')), span = (n1 - n0) / 1000;
+  const f = (iso: string) => (ms(iso) - n0) / (n1 - n0);
+  const moonset = at(1, '01:33:00'), darkEnd = at(1, '05:22:00');
   return {
     available: true, demo: true,
-    sun: { available: true, date: ymd(0), tz, events: { sunrise: at(0, '06:48:04'), sunset: at(0, '18:48:24') },
-           noon: at(0, '12:48:19'), daylight_s: 43220, bar: [], notes: [] },
-    moon: { available: true, phase: 'Waxing gibbous', illum: 71, rise: at(0, '14:22:00'), set: at(1, '01:33:00'),
-            transit: at(0, '19:51:00'), transit_alt: 48.0, age_days: 10.3 },
-    night: { available: true, defined: false },
+    sun: { available: true, date: day, tz, events: ev, noon: at(0, '12:48:19'), daylight_s: 43220, bar, notes: [] },
+    moon: { available: true, phase: 'Waxing gibbous', illum: 71, rise: at(0, '14:22:00'), set: moonset,
+            transit: at(0, '19:51:00'), transit_alt: 48.0, age_days: 10.3, up_s: (ms(moonset) - ms(at(0, '14:22:00'))) / 1000 },
+    night: {
+      available: true, defined: true, sunset: ev.sunset, sunrise: at(1, '06:49:00'), span_s: span,
+      sun_segments: [{ stage: 3, f0: 0, f1: f(ev.civil_dusk) }, { stage: 2, f0: f(ev.civil_dusk), f1: f(ev.naut_dusk) },
+                     { stage: 1, f0: f(ev.naut_dusk), f1: f(ev.astro_dusk) }, { stage: 0, f0: f(ev.astro_dusk), f1: f(darkEnd) },
+                     { stage: 1, f0: f(darkEnd), f1: f(at(1, '05:52:00')) }, { stage: 2, f0: f(at(1, '05:52:00')), f1: f(at(1, '06:22:00')) },
+                     { stage: 3, f0: f(at(1, '06:22:00')), f1: 1 }],
+      moon_up: [{ f0: 0, f1: f(moonset) }],
+      dark: [{ f0: f(moonset), f1: f(darkEnd), start: moonset.slice(0, 16) + '-04:00', end: darkEnd.slice(0, 16) + '-04:00' }],
+      dark_total_s: (ms(darkEnd) - ms(moonset)) / 1000,
+      midnight: { f: f(at(1, '00:00:00')), label: `midnight · ${ymd(1).slice(8)}` }, astro_note: null, tz,
+    },
     delta_yesterday: -131.3, delta_tomorrow: -132.1,
     neighbors: {
       yesterday: { sunrise: at(-1, '06:47:12'), sunset: at(-1, '18:49:43'), noon: at(-1, '12:48:33'), daylight_s: 43351 },
       tomorrow:  { sunrise: at(1, '06:48:57'), sunset: at(1, '18:47:05'), noon: at(1, '12:48:05'), daylight_s: 43088 },
     },
-    sky: {}, sky_when: `${ymd(0)} 22:00 ${tz}`, position_provenance: 'demo', position_age: null,
+    sky: {}, sky_when: `${day} 22:00 ${tz}`, position_provenance: 'demo', position_age: null,
   };
 }
 

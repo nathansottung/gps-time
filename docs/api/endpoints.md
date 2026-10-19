@@ -362,7 +362,8 @@ Available responses include `location_display`.
 **Available** (all times are ISO 8601 with offset, in `tz`):
 - `sun`: `{date, tz, events{astro_dawn, naut_dawn, civil_dawn, sunrise, sunset, civil_dusk, naut_dusk, astro_dusk}, noon, daylight_s, bar[], notes[]}`.
 - `moon`: `{rise, set, transit, transit_alt, phase, illum (%), age_days, up_s}`.
-- `night`: `{defined, sunset, sunrise, span_s, sun_segments, moon_up[], dark[]}`, or `{defined: false, note}`.
+- `night`: `{defined, sunset, sunrise, span_s, sun_segments, moon_up[], dark[], dark_total_s, midnight, astro_note, tz}`, or `{defined: false, note}`. Fractions are of the elapsed night.
+- `/app/` Sun & Moon draws `sun.bar` and `night` and passes `date` from its date navigation.
 - `delta_yesterday`: today − yesterday daylight, in s.
 - `delta_tomorrow`: tomorrow − today daylight, in s.
 - `neighbors.{yesterday,tomorrow}.{sunrise, sunset, noon, daylight_s}` (predicted, like `sun`). The web UI shows the day-to-day shifts from these.
