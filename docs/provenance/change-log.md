@@ -915,3 +915,7 @@ The second legacy-removal blocker (parity item 7).
 - The outcome is the station's answer; no answer is reported as "may or may not have been reset", with the count to check.
 - The legacy `/admin` page keeps its button; nothing is removed.
 - Tests: `web/src/lib/survey.test.ts` (7). Checked in the desktop demo. Not run on a Pi.
+
+## 2026-10-19 — TypeScript 7 (#65)
+
+Dependabot's TypeScript 5.9 → 7.0.2, held for the owner on 2026-10-19 and merged after review. Its CI had failed on one error: TS 7 removed `baseUrl` (TS5102). The line is removed from `web/tsconfig.json`; `paths` (`@/*` → `./src/*`) now resolve relative to the file, and the `@/` imports still type-check. With main merged in: type check, 161 web tests and the build pass, and a deliberate type error is still reported. TypeScript is only the type check; Vite builds the bundle without it, so the shipped UI is unchanged.

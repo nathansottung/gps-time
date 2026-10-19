@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/app-survey-reset, #82). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (Dependabot TypeScript 7, #65). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 436 rows: 237 done, 0 in progress, 28 next, 171 planned.
+**Totals:** 437 rows: 238 done, 0 in progress, 28 next, 171 planned.
 
 ## Status table
 
@@ -510,3 +510,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Tag v1.4.0-rc.10 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#80](https://github.com/nathansottung/gps-time/pull/80) |
 | Web UI |  | Station actions in `/app/` Administration: flush logs, restart gpsd/chrony/web, reboot | done | legacy-removal blocker (parity #6). Confirmation step for all but the flush; shows the station's answer. Checked in the demo (simulated); not yet run on a Pi | [#81](https://github.com/nathansottung/gps-time/pull/81) |
 | Web UI |  | Position survey reset in `/app/` Administration | done | legacy-removal blocker (parity #7). Shows what would be discarded; typed confirmation (RESET). Checked in the demo; not yet run on a Pi | [#82](https://github.com/nathansottung/gps-time/pull/82) |
+| Repo |  | TypeScript 5.9 → 7.0 for the web type check | done | `baseUrl` removed from `web/tsconfig.json` (TS 7 dropped it; `paths` resolve from the file). Type check only: Vite builds without tsc, so the bundle is unchanged | [#65](https://github.com/nathansottung/gps-time/pull/65) |
