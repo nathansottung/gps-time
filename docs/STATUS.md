@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-05 (docs/legacy-removal-plan, #62). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/oct17-outages-rc9-list, #63). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -15,12 +15,22 @@ Last updated: 2026-10-05 (docs/legacy-removal-plan, #62). Built from the specs, 
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **Soak run of v1.4.0-rc.8 on the Pi** (owner): upgrade with `deploy/upgrade-1.4-station.md`, run for 3 days, then v1.4.0.
+5. **v1.4.0-rc.9** (list below): the soak run found real outages on 2026-10-17, so v1.4.0 was not tagged. rc.9 fixes what the run exposed, then another soak.
+
+## v1.4.0-rc.9: to do
+
+From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.8"). Owner, 2026-10-19: yes to the first two; don't weaken outage detection.
+
+1. **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
+2. **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
+3. **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
+4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode.
 
 ## Decisions
 
 - **2026-10-02, location privacy, `hidden` mode:** the station drops satellite azimuth and elevation, sun/moon/sky times and sidereal time. It **keeps** satellite IDs, constellation, C/N₀ and used flags, so GNSS health stays visible. The residual (which satellites are tracked) narrows position only coarsely. Owner decision; see `api/endpoints.md` privacy notes.
 - **2026-10-02, order:** administrative security before shipping `web/dist` to the Pi. Administrative security was done in #24.
+- **2026-10-19, v1.4.0 not tagged:** the rc.8 soak run (14 days) had real PPS/GNSS outages on 2026-10-17 (owner confirms; outage detection must not be weakened). chrony coasted through a 56-minute gap and was 1.7 µs off afterwards. rc.9 comes first (list above).
 - **2026-10-05, legacy pages:** a removal plan is written; nothing is removed. The owner asked for a report before any deletion. Open decisions are listed in the plan (themes, the saved-layout model, `custom.css`, `/zones`, dropping the 1/ppm holdover figure).
 - **2026-10-05, merged rows:** three feature-registry rows (Feature E "ADS-B 1090 adapter" and "Fox-hunt TOA/TDoA research", Feature F "MLAT metadata/solver") described the same work as three RF-spec rows. Each pair is now one row, in the RF block, with both sources named in the Area column. Owner's request.
 - **2026-10-05, RF nodes and TDOA:** `specs/SPEC-RF-NODE-AND-TDOA.md` added as PLANNED. It builds on `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` and starts after v1.4.0. Nothing is scheduled; the next-5 list is unchanged.
@@ -58,7 +68,7 @@ Last updated: 2026-10-05 (docs/legacy-removal-plan, #62). Built from the specs, 
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 421 rows: 216 done, 0 in progress, 30 next, 175 planned.
+**Totals:** 425 rows: 217 done, 0 in progress, 33 next, 175 planned.
 
 ## Status table
 
@@ -211,7 +221,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | §11 | GNSS↔PPS correlation | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §12a | Generic event schema | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §12b | Fifteen event types | planned | partial: PPS_OUTAGE only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §13 | ±5 min forensic evidence window | planned |  |  |
+| OBS | §13 | ±5 min forensic evidence window | next | rc.9 item 2 (evidence on SD under a size cap) | [#63](https://github.com/nathansottung/gps-time/pull/63) |
 | OBS | §14 | Multi-station event format | planned |  |  |
 | OBS | §15 | Receiver upgrade-path doc | planned | partial |  |
 | OBS | §16 | Immediate diagnostic doc | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -464,7 +474,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | done | Network page; chrony counts received and dropped, not replies, so "served" is shown as received − dropped. Not yet run on a Pi | [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4, §6 done; §2 and §5 not started | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | Repo |  | Tag v1.4.0-rc.8 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#59](https://github.com/nathansottung/gps-time/pull/59) |
-| Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | next | owner's step: upgrade with `deploy/upgrade-1.4-station.md` and run it for 3 days | [#59](https://github.com/nathansottung/gps-time/pull/59) |
+| Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | done | 14 days 20 h, 2026-10-04 to 2026-10-19; real PPS/GNSS outages on 2026-10-17 (about 71 min, one 56-min holdover ending +1.7 µs); v1.4.0 not tagged | [#59](https://github.com/nathansottung/gps-time/pull/59) [#63](https://github.com/nathansottung/gps-time/pull/63) |
 | RF | Architecture | RF node (`rf-node/` in this repo): SDR on its own machine, chrony client of the station, SoapySDR, OpenWebRX, GNU Radio, agent | planned |  |  |
 | RF | Architecture | Agent: short IQ snippets around detections, tagged with UTC, the node's chrony offset and uncertainty, and frequency reference state; sends events | planned |  |  |
 | RF | Architecture | Coordinator on a stronger machine (not the station Pi): calibration and position solving; offline-capable, no cloud | planned |  |  |
@@ -485,3 +495,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Rules | Node positions follow the station's privacy modes | planned |  |  |
 | RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |
 | Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
+| Repo |  | Log flush without write amplification; capped RAM log and SD copy | next | rc.9 item 1; the hourly flush copies the whole RAM log (about 240 MB a day at the check) | [#63](https://github.com/nathansottung/gps-time/pull/63) |
+| Repo |  | Outage evidence kept on the SD card under a size cap | next | rc.9 item 2; with OBS §13 | [#63](https://github.com/nathansottung/gps-time/pull/63) |
+| Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | next | rc.9 item 3; the rc.8 run counted 112,588 missed pulses (about 9 %) | [#63](https://github.com/nathansottung/gps-time/pull/63) |
+| Repo |  | Second soak run (rc.9) before v1.4.0 | planned | owner's step |  |

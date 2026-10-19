@@ -129,6 +129,10 @@ Remove them again with `GTP_INDEPENDENT_REFS=0`. Details: `../architecture/indep
   So a 3-day run ends just as the 1-day ADEV point appears, and without its MDEV or TDEV.
 - Worth recording at the end, for the v1.4.0 notes: the key-point table, "Seconds without a sample", the share of time PPS was selected, any PPS outage events, the references outcome, and `journalctl -u gps-time-pi -u gps-time-pi-chrony-clients --since "3 days ago" -p warning --no-pager`.
 
+## What the first soak run found (2026-10-04 to 2026-10-19)
+
+Fourteen days on rc.8 without a restart, with real PPS/GNSS outages on 2026-10-17 and a 56-minute holdover that ended about 1.7 µs off. Details and numbers: `../development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.8". To keep evidence of an outage before anything restarts, copy `/run/chrony-log/tracking.log` off the station (it is readable without sudo) into a folder outside the repository.
+
 ## Rollback
 
 - Previous release: check out `v1.4.0-rc.6` and run the same deploy command. The rc.6 installer doesn't touch the DHCP line, so it stays commented out. The helper service stays installed, which rc.6 ignores.
