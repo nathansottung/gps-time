@@ -915,3 +915,7 @@ The second legacy-removal blocker (parity item 7).
 - The outcome is the station's answer; no answer is reported as "may or may not have been reset", with the count to check.
 - The legacy `/admin` page keeps its button; nothing is removed.
 - Tests: `web/src/lib/survey.test.ts` (7). Checked in the desktop demo. Not run on a Pi.
+
+## 2026-10-19 — Dependabot: @types/node majors ignored; #64 closed (#83)
+
+Owner's decision after review. #64 offered `@types/node` 22 → 26, but the web toolchain runs on Node 22 (`web/.mise.toml`, `.github/workflows/web.yml`). Types for Node 26 would let code use APIs Node 22 doesn't have and still pass the type check; #64's CI was green only because nothing uses them yet. #64 is closed, and `.github/dependabot.yml` now ignores semver-major `@types/node` updates (minor and patch still come). Raise the major by hand when the toolchain's Node changes (next LTS: 24).
