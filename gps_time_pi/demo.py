@@ -12,7 +12,7 @@ import os
 import time
 from datetime import date, datetime, timedelta, timezone
 
-from . import __version__, system
+from . import __version__, system, units
 
 
 def _satellite(i: int, now: float) -> dict:
@@ -53,6 +53,7 @@ def core_api() -> dict:
             "rms_offset_s": rms,
             "root_delay_s": 0.0,
             "root_dispersion_s": dispersion,
+            "max_error_bound_s": abs(system_s) + dispersion,      # + ½ root delay (0 here); chrony.max_error_bound
             "frequency": f"{freq_ppm:.3f} ppm fast",
             "frequency_ppm": freq_ppm,
             "residual_freq": "-0.003 ppm",
@@ -64,7 +65,8 @@ def core_api() -> dict:
             "ref_time": now.strftime("%a %b %d %H:%M:%S %Y"),
         },
         "fmt": {
-            "system_pair": "145 ns fast ± 485 ns",
+            "system_pair": units.fmt_offset(system_s),
+            "error_bound": units.fmt_seconds(abs(system_s) + dispersion),
             "rms": "312 ns",
             "root_dispersion": "485 ns",
             "root_delay": "0 ns",
@@ -271,8 +273,14 @@ def history() -> dict:
     for i in range(180):
         age = (179 - i) * 60
         off = (260e-9 * math.sin(i / 11.0)) + (80e-9 * math.sin(i / 3.1))
-        points.append({"t": now - age, "offset_s": off, "err_s": 500e-9})
-    return {"available": True, "points": points, "note": "sample data"}
+        sd = 90e-9 + 40e-9 * abs(math.sin(i / 7.0))
+        # chrony 4.x tracking.log columns by name (chrony.TRACKING_COLUMNS); sample values
+        points.append({"t": now - age, "offset_s": off, "offset_sd_s": sd, "remaining_correction_s": off / 4,
+                       "root_delay_s": 1e-9, "root_dispersion_s": 6e-6 + sd, "max_error_s": 2.4e-5 + 3 * sd,
+                       "freq_ppm": 10.3, "skew_ppm": 0.009, "leap": "N", "n_combined": 1, "stratum": 1, "source": "PPS"})
+    return {"available": True, "points": points, "note": "sample data", "skipped_lines": 0,
+            "columns": ["date", "time", "ip", "stratum", "freq_ppm", "skew_ppm", "offset_s", "leap", "n_combined",
+                        "offset_sd_s", "remaining_correction_s", "root_delay_s", "root_dispersion_s", "max_error_s"]}
 
 
 _STABILITY = None

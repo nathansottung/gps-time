@@ -41,8 +41,9 @@ function useTiming() {
   return {
     core, chain,
     dt,
-    err: fmtSeconds(q?.root_dispersion_s),
-    light: lightDistance(q?.system_time_s),
+    // chronyc's bound |System time| + root dispersion + ½ root delay, if the reference is right (GPS-007)
+    bound: fmtSeconds(q?.max_error_bound_s),
+    light: lightDistance(q?.max_error_bound_s),
     rms: fmtSeconds(q?.rms_offset_s),
     frac: fracFreq(core.data),
     ref: q?.reference ?? null,
@@ -72,7 +73,7 @@ function TimingWidget() {
           {/* Primary reading — the one place we use the brightest live color */}
           <div className="flex-shrink-0">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-[9px] mono uppercase tracking-[0.15em]" style={{ color:'var(--t3)' }}>System clock Δt (chrony)</span>
+              <span className="text-[9px] mono uppercase tracking-[0.15em]" style={{ color:'var(--t3)' }}>Remaining correction (chrony)</span>
               <ProvenanceTag type="observed" />
             </div>
             {t.dt ? (
@@ -80,12 +81,12 @@ function TimingWidget() {
                 <span className="mono tabular font-semibold" style={{ fontSize:36, lineHeight:1, color:'var(--live-bright)', letterSpacing:'-0.01em' }}>{t.dt.value}</span>
                 <div className="flex flex-col">
                   <span className="mono text-base" style={{ color:'var(--t2)' }}>{t.dt.unit}</span>
-                  {t.err && <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>± {t.err}</span>}
+                  {t.bound && <span className="mono text-[10px]" style={{ color:'var(--t3)' }} title="chrony's error bound: |System time| + root dispersion + ½ root delay, if the reference is right">bound ≤ {t.bound}</span>}
                 </div>
               </div>
             ) : <StatusBadge variant="muted" label="UNKNOWN" dot={false} />}
-            {t.light && <div className="text-[10px] mono mt-1" style={{ color:'var(--t4)' }}>≡ {t.light} light-equivalent</div>}
-            <ELI5 text="chrony's estimate of how far the system clock is from its reference right now (positive = fast). The ± is chrony's root dispersion. It is not an independent measurement against GPS." />
+            {t.light && <div className="text-[10px] mono mt-1" style={{ color:'var(--t4)' }}>bound ≡ {t.light} light-distance</div>}
+            <ELI5 text="The big number is chrony's 'System time': the correction chrony is still slewing out of the clock (positive = fast). It is not the clock's error against UTC. The bound under it is chrony's own limit on that error, |System time| + root dispersion + half the root delay, and it only holds if the reference itself is right. Neither is an independent measurement against GPS." />
           </div>
 
           {/* Offset history chart */}
@@ -446,10 +447,11 @@ function VariantB() {
   const s1h = toOffsetSeries(hist.data?.points, 3600);
   const events = allEvents(t.chain.data?.events.open, t.chain.data?.events.recent).slice(0, 5);
   const rows: [string, string | null, string?][] = [
-    ['Δt (chrony)',         t.dt ? `${t.dt.value} ${t.dt.unit}` : null, t.err ? `± ${t.err}` : undefined],
+    ['Remaining correction', t.dt ? `${t.dt.value} ${t.dt.unit}` : null, 'chrony System time'],
+    ['chrony error bound',  t.bound ? `≤ ${t.bound}` : null, 'if the reference is right'],
     ['RMS offset',          t.rms],
     ['Δf/f',                t.frac === null ? null : fmtSci(t.frac)],
-    ['Light-dist. equiv.',  t.light],
+    ['Bound, light-dist.',  t.light],
     ['PPS state',           t.ppsState],
     ['Timing status',       t.status?.code ?? null],
     ['Stratum',             t.stratum],
@@ -519,16 +521,16 @@ function VariantC() {
   return (
     <div className="page-enter" style={{ maxWidth:640, margin:'0 auto', paddingTop:'2rem' }}>
       <div className="text-center mb-10">
-        <div className="mono text-[9px] uppercase tracking-[0.22em] mb-3" style={{ color:'var(--t4)' }}>System clock offset (chrony)</div>
+        <div className="mono text-[9px] uppercase tracking-[0.22em] mb-3" style={{ color:'var(--t4)' }}>Remaining correction (chrony)</div>
         <div className="flex items-baseline justify-center gap-3">
           <span className="mono tabular font-light" style={{ fontSize:72, lineHeight:1, color:'var(--live-bright)', letterSpacing:'-0.02em' }}>{t.dt?.value ?? '—'}</span>
           <div className="flex flex-col items-start gap-1">
             <span className="mono text-2xl font-light" style={{ color:'var(--t2)' }}>{t.dt?.unit ?? ''}</span>
-            {t.err && <span className="mono text-sm" style={{ color:'var(--t4)' }}>± {t.err}</span>}
+            {t.bound && <span className="mono text-sm" style={{ color:'var(--t4)' }}>bound ≤ {t.bound}</span>}
           </div>
         </div>
         <div className="mono text-[10px] mt-2" style={{ color:'var(--t4)' }}>
-          {[t.light && `≡ ${t.light}`, t.status?.banner].filter(Boolean).join(' · ') || 'UNKNOWN'}
+          {[t.light && `bound ≡ ${t.light}`, t.status?.banner].filter(Boolean).join(' · ') || 'UNKNOWN'}
         </div>
       </div>
 
