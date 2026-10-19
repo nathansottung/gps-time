@@ -10,6 +10,7 @@ Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-in
 |---|---|---|
 | 2026-10-04 | v1.4.0-rc.6 | First deploy of the 1.4 line to the Pi. chrony selected the PPS refclock; stratum 1; system clock offset about 300 ns (owner's report). |
 | 2026-10-04 to 2026-10-19 | v1.4.0-rc.8 | Soak run, 14 days 20 h without a restart. Real PPS/GNSS outages on 2026-10-17 (below), so **v1.4.0 was not tagged**. Otherwise GPS was chrony's reference throughout. |
+| 2026-10-19 | v1.4.0-rc.10 | Deployed (service start 18:10 UTC). Read-only check after 2 h 17 min (below): four outage events, three of them real loss of PPS with weak GNSS signal. Replaced by rc.11 for the soak, which carries the chrony-history fix (#93). |
 
 Found on that build and fixed since:
 
@@ -43,6 +44,17 @@ Also seen and not yet explained: the PPS monitor counted 112,588 missed pulses o
 **Log flushing on rc.8 works** (hourly timer, every run successful; the SD copy was 15 minutes old at the check), but it copies the whole RAM log to the SD card every hour (10 MB at the check, about 240 MB a day and growing), and Debian's weekly logrotate keeps rotated full copies. Fixed in rc.9 (#72): append-only, with caps ("chrony's tracking log" below).
 
 Not recorded: which checklist was followed, and the result of each individual check (polkit, admin token, vcgencmd values). Nothing merged after rc.6 has run on a Pi yet; v1.4.0-rc.8 is the next deploy.
+
+### First hours of v1.4.0-rc.10 (read-only check, 2026-10-19 20:27 UTC)
+
+Read over HTTP and SSH, nothing changed. The service started at 18:10:03 UTC (no restarts); the Pi has been up since 2026-10-04. At the check: GPS/PPS selected, stratum 1, the PPS interval over the last 600 pulses 1.000 000 s ± 1.3 µs (kernel timestamps).
+
+- **Four outage events in 2 h 17 min.** The first, 18:10:07 for 32 s, PPS NOT USED BY CHRONY: the installer restarts chrony and PPS selection takes a moment to return; pulses were healthy throughout. Expected on every upgrade. The other three were real loss of kernel PPS: 19:35:51 (41 s, GNSS RECEPTION ANOMALY), 19:37:35 (231 s, PPS PATH ANOMALY), 19:53:11 (493 s, PPS AND GNSS TELEMETRY UNAVAILABLE). At their start the receiver used 0 satellites with the best C/N₀ 20–28 dB-Hz. The classifications are the station's (`inferred`) and name a boundary in the signal path, not a cause.
+- **Weak GNSS signal at the check:** 8 of 23 satellites used, best C/N₀ 25 dB-Hz, median of those used 15 dB-Hz. That is `observed`; what makes it weak is not established. The 2026-10-17 events on rc.8 also started with 0 used and C/N₀ about 22–23 dB-Hz.
+- **Missed pulses are real absences, not a polling artifact:** 812 missed (9.9 % of 8199 reads), 0 unread, 0 late reads, longest gap between reads 1.049 s. The station read every second and the kernel's own sequence number skipped those pulses. The three real outages cover 765 s of the 812. This answers the question rc.9's poller was built for (the rc.8 run's 9 %), for this window; whether rc.8's 14-day count had the same make-up is not known.
+- **Browser round trip is fixed:** `/api/ping` median 16 ms (max 32 ms) from the LAN, 24 ms (max 60 ms) while `/api/almanac` was requested continuously. On rc.8 it was seconds.
+- **Stability over this short window is dominated by the outages:** ADEV 2.1 × 10⁻⁵ at 1 s, 1.1 × 10⁻⁵ at 10 s, 1.4 × 10⁻⁶ at 100 s, 1.7 × 10⁻⁷ at 1000 s, with 812 gaps in 7387 samples (PPS selected 99.6 %). rc.8's 1 s value over two weeks was 1.7 × 10⁻⁶. Why the short window is this much higher is not established.
+- No warnings from the service in the journal. Network sources sit 4–8 ms from the station's clock, as on rc.8.
 
 ## Build archives
 
