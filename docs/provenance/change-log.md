@@ -906,3 +906,12 @@ Owner's request: port the legacy-removal blockers into `/app/`, one PR each. Thi
 - Afterwards the page shows the station's own answer. A request with no answer (timeout or network) is reported as "may still have run", not as a failure. Restart and reboot say the station will be unreachable for a while; the page's polling reconnects.
 - The legacy `/admin` page keeps its buttons; nothing is removed.
 - Tests: `web/src/lib/admin.test.ts` (8). Checked in the desktop demo (simulated: "demo, not executed"). Not run on a Pi.
+## 2026-10-19 — survey reset in /app/ (#82)
+
+The second legacy-removal blocker (parity item 7).
+
+- Administration → **Position survey**: the accepted-fix count and horizontal standard error, and "Reset position survey…". Same `POST /api/setting {"reset_site": true}` and admin token as the legacy `/admin` page; the station side is unchanged.
+- The reset can't be undone from the UI, so one click isn't enough: the page states what would be discarded, from the station's own counts ("Discards 18,432 accepted fixes, …"; UNKNOWN when the station hasn't reported), and the operator types RESET. Escape or Cancel closes it.
+- The outcome is the station's answer; no answer is reported as "may or may not have been reset", with the count to check.
+- The legacy `/admin` page keeps its button; nothing is removed.
+- Tests: `web/src/lib/survey.test.ts` (7). Checked in the desktop demo. Not run on a Pi.

@@ -457,7 +457,7 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
 | anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone or reset_site"}` |
 
-The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). Survey reset remains on the legacy `/admin` page.
+The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation), and still on the legacy `/admin` page.
 
 ## POST /api/admin
 

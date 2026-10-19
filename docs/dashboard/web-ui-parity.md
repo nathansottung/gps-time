@@ -14,7 +14,7 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 | 4 | **Layout editor that saves** to the station: pages, per-widget visible/size, add/rename/remove page, save, restore defaults, export/import JSON (`/configure`, `POST /api/dashboard`) | The new Configure page is a non-saving preview with a different widget model. The client already has `dashboard()`, `saveDashboard()` and `resetDashboard()`. |
 | 5 | **Layout-driven pages:** `/` renders whatever `/api/dashboard` says | New pages have a fixed layout. |
 | 6 | **Admin actions:** flush logs, restart gpsd/chrony/web, reboot (`/admin`, `/api/admin`) | **Done** (#81): Administration → Station actions, with a confirmation step for everything except the log flush. |
-| 7 | **Survey reset** (`/admin`, `POST /api/setting {"reset_site": true}`) | Unblocked as #6; destructive, needs a confirmation step. |
+| 7 | **Survey reset** (`/admin`, `POST /api/setting {"reset_site": true}`) | **Done** (#82): Administration → Position survey. Shows what would be discarded; the operator types RESET to confirm. |
 | 8 | **Almanac date navigation:** date picker with ←/→, "Sky at" time, Now (`/almanac`) | The new UI shows today only. |
 | 9 | **Twilight bar** (24 h) and **night bar:** twilight stages, moon-up strip, moonless-dark windows, total moonless astronomical darkness (`/almanac`) | Data is already in `/api/almanac` → `sun.bar`, `night`. |
 | 10 | **Moon details:** time above horizon, transit altitude (`/almanac`) | Data in `moon.up_s`, `moon.transit_alt`. |
