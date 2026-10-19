@@ -896,3 +896,13 @@ From the owner's list: a way to take screenshots of the station UI without showi
 - `deploy/upgrade-1.4-station.md` now goes to rc.10 from rc.8 or rc.9 (the Pi's last recorded release is rc.8), with a check for each UI change; rollback is rc.9. The other checklists, README, START-HERE and `ROADMAP.md` target rc.10.
 - `STATUS.md`: rc.10 replaces rc.9 as the soak-run candidate; all four queued UI fixes are done.
 - The annotated tag `v1.4.0-rc.10` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+
+## 2026-10-19 — survey reset in /app/ (#82)
+
+The second legacy-removal blocker (parity item 7).
+
+- Administration → **Position survey**: the accepted-fix count and horizontal standard error, and "Reset position survey…". Same `POST /api/setting {"reset_site": true}` and admin token as the legacy `/admin` page; the station side is unchanged.
+- The reset can't be undone from the UI, so one click isn't enough: the page states what would be discarded, from the station's own counts ("Discards 18,432 accepted fixes, …"; UNKNOWN when the station hasn't reported), and the operator types RESET. Escape or Cancel closes it.
+- The outcome is the station's answer; no answer is reported as "may or may not have been reset", with the count to check.
+- The legacy `/admin` page keeps its button; nothing is removed.
+- Tests: `web/src/lib/survey.test.ts` (7). Checked in the desktop demo. Not run on a Pi.

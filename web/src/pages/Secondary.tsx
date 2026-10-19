@@ -7,7 +7,9 @@ import { Planned, ApiErrorNote } from '../components/planned';
 import { Sensitive } from '../components/screenshot';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
-import type { AuthState, LocationMode, LunarDay, SolarDay } from '../api/types';
+import type { AuthState, LocationMode, LunarDay, SolarDay, SurveyStats } from '../api/types';
+import { ApiError } from '../api/client';
+import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome } from '../lib/survey';
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
@@ -685,6 +687,9 @@ export function Admin() {
         </CardBody>
       </Card>
 
+      <SurveyReset survey={core.data?.survey} canWrite={canWrite} authKnown={!!auth.data}
+        onDone={core.refresh} onAuthError={auth.refresh} />
+
       <Planned title="Services & Network" needs="service and interface status endpoints">
       <Card>
         <CardHeader title="Services" />
@@ -755,8 +760,69 @@ function AdminAccess({ auth }: { auth: Polled<AuthState> }) {
           </div>
         )}
         <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
-          Service actions (flush logs, restart gpsd/chrony/web, reboot) and survey reset are on the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page, which uses the same token.
+          Service actions (flush logs, restart gpsd/chrony/web, reboot) are on the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page, which uses the same token.
         </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ─── Position survey reset (POST /api/setting {reset_site}; lib/survey.ts) ───
+const RESET_COLOR: Record<ResetOutcome['variant'], string> = { good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)' };
+
+function SurveyReset({ survey, canWrite, authKnown, onDone, onAuthError }: {
+  survey: SurveyStats | undefined; canWrite: boolean; authKnown: boolean; onDone: () => void; onAuthError: () => void;
+}) {
+  const { api } = useStation();
+  const [open, setOpen] = useState(false);
+  const [word, setWord] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<ResetOutcome | null>(null);
+  const close = () => { setOpen(false); setWord(''); };
+  const reset = async () => {
+    if (!resetConfirmed(word)) return;
+    setBusy(true); setOutcome(null);
+    try {
+      setOutcome(resetOutcome(await api.resetSite()));
+    } catch (e) {
+      const status = e instanceof ApiError ? e.status : null;
+      setOutcome(resetOutcome(null, { message: (e as Error).message, status }));
+      if (status === 401 || status === 403) onAuthError();
+    } finally { setBusy(false); close(); onDone(); }
+  };
+  const btn = { border:'1px solid var(--border)', color:'var(--t2)' };
+  return (
+    <Card>
+      <CardHeader title="Position survey" />
+      <CardBody>
+        <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+          The station averages its fixes into one surveyed position. Reset it only if the antenna has moved: the averaged fixes are discarded and cannot be restored from here.
+        </div>
+        <MetricRow label="Accepted fixes" value={survey ? survey.n.toLocaleString() : null} provenance="observed" />
+        <MetricRow label="Horizontal SE of mean" value={survey?.se_horiz_m == null ? null : `±${survey.se_horiz_m.toFixed(2)} m`} provenance="calculated" />
+        {!open && (
+          <button onClick={() => { setOpen(true); setOutcome(null); }} disabled={!canWrite || busy}
+            className="mt-3 px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Reset position survey…</button>
+        )}
+        {open && (
+          <div role="alertdialog" aria-label="Confirm survey reset" className="mt-3 rounded-[2px] p-3"
+            style={{ background:'var(--err-bg)', border:'1px solid var(--err-border)' }}>
+            <div className="text-[11px] mb-2" style={{ color:'var(--t1)' }}>{surveyLoss(survey)}</div>
+            <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Type <span className="mono" style={{ color:'var(--t1)' }}>{RESET_WORD}</span> to confirm.</div>
+            <div className="flex gap-1.5 items-center">
+              <input value={word} onChange={e => setWord(e.target.value)} autoFocus autoComplete="off" spellCheck={false}
+                aria-label={`Type ${RESET_WORD} to confirm`} onKeyDown={e => { if (e.key === 'Enter') reset(); if (e.key === 'Escape') close(); }}
+                className="mono text-[11px] px-2 py-1 rounded-[2px] w-28" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t1)' }} />
+              <button onClick={reset} disabled={!resetConfirmed(word) || busy} className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
+                style={{ border:'1px solid var(--err-border)', color:'var(--err-text)' }}>{busy ? 'Resetting…' : 'Reset survey'}</button>
+              <button onClick={close} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: RESET_COLOR[outcome.variant] }}>{outcome.text}</div>}
+        {!canWrite && authKnown && (
+          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>This needs the admin token (Admin access, above).</div>
+        )}
       </CardBody>
     </Card>
   );
