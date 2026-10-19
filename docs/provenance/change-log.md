@@ -916,6 +916,9 @@ The second legacy-removal blocker (parity item 7).
 - The legacy `/admin` page keeps its button; nothing is removed.
 - Tests: `web/src/lib/survey.test.ts` (7). Checked in the desktop demo. Not run on a Pi.
 
+## 2026-10-19 — TypeScript 7 (#65)
+
+Dependabot's TypeScript 5.9 → 7.0.2, held for the owner on 2026-10-19 and merged after review. Its CI had failed on one error: TS 7 removed `baseUrl` (TS5102). The line is removed from `web/tsconfig.json`; `paths` (`@/*` → `./src/*`) now resolve relative to the file, and the `@/` imports still type-check. With main merged in: type check, 161 web tests and the build pass, and a deliberate type error is still reported. TypeScript is only the type check; Vite builds the bundle without it, so the shipped UI is unchanged.
 ## 2026-10-19 — Dependabot: @types/node majors ignored; #64 closed (#83)
 
 Owner's decision after review. #64 offered `@types/node` 22 → 26, but the web toolchain runs on Node 22 (`web/.mise.toml`, `.github/workflows/web.yml`). Types for Node 26 would let code use APIs Node 22 doesn't have and still pass the type check; #64's CI was green only because nothing uses them yet. #64 is closed, and `.github/dependabot.yml` now ignores semver-major `@types/node` updates (minor and patch still come). Raise the major by hand when the toolchain's Node changes (next LTS: 24).
