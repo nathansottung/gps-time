@@ -9,7 +9,7 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 | # | Feature (legacy location) | Notes |
 |---|---|---|
 | 1 | **Theme switching:** Light / Dark / Night (red-on-black), `?theme=`, remembered in `gtp-theme` (all pages) | **Done** (#90), as decided 2026-10-19: dark and the red night theme (header "Night", Configure → Theme, `?theme=night`); light dropped. Night is a multiplied red overlay, so only red light leaves the screen. Shares `gtp-theme` with the legacy pages. |
-| 2 | **Time-zone picker** remembered in `gtp-tz` (all pages) | The new UI always uses the browser's zone. |
+| 2 | **Time-zone picker** remembered in `gtp-tz` (all pages) | **Dropped 2026-10-19** (owner): the station-wide time-zone override in Administration covers it. `gtp-tz` goes with the legacy pages. |
 | 3 | **Station-corrected clock:** the big clock ticks on the server time estimated from `/api` `epoch_ms` + RTT (`/legacy`) | The new header shows the browser clock. The browser-offset estimate exists (Network page) but does not drive the clock yet. |
 | 4 | **Layout editor that saves** to the station: pages, per-widget visible/size, add/rename/remove page, save, restore defaults, export/import JSON (`/configure`, `POST /api/dashboard`) | **Done** (#90), as decided 2026-10-19: replaced by Configure → Pages and Overview cards (show/hide, per browser). The legacy saved-layout editor stays at `/configure` until the legacy pages go. |
 | 5 | **Layout-driven pages:** `/` renders whatever `/api/dashboard` says | **Decided 2026-10-19:** not ported; `/app/` has fixed pages with modules shown or hidden (#90). |
@@ -28,7 +28,7 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 | 18 | **`custom.css` site override** (all legacy pages link `/static/custom.css`) | The new UI does not load it. **Dropped 2026-10-19** (owner). |
 | 19 | **Time-zone table** (`/zones`) | No link or equivalent in the new UI (the route still works). **Dropped 2026-10-19** (owner); the route goes with the legacy pages. |
 | 20 | **"Projected 1 s holdover" = 1 / \|ppm\|** (`/` timing_quality widget) | Deliberately not ported. It extrapolates from a single frequency value. The new UI's holdover panel is `Planned` until there is a validated model. **Dropped 2026-10-19** (owner's explicit yes, per ADR-0004). |
-| 21 | **Throttle flags shown individually** (`/admin`) | The new Admin page lists active flags only. |
+| 21 | **Throttle flags shown individually** (`/admin`) | **Done** (#91): Administration → Power shows every get_throttled condition (under-voltage, frequency capped, throttled, soft temperature limit), now and since boot, with the raw value; under-voltage gets a warning, because an unsteady supply can disturb timing. |
 
 ## New UI features the legacy pages lack
 

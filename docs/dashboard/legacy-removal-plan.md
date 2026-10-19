@@ -74,9 +74,9 @@ The legacy pages are still the only place for several things an operator needs. 
 | 4, 5 | Saved layout editor and layout-driven pages | no; `/app/` has fixed pages and a non-saving preview | owner decides: port, or drop the saved-layout model |
 | 18 | `custom.css` site override | no | owner decides |
 | 19 | `/zones` time-zone table | no link | owner decides: keep the route, link it, or drop |
-| 21 | Throttle flags individually | partly (active flags, now and since boot) | probably enough; owner confirms |
+| 21 | Throttle flags individually | **yes** (#91) | done |
 | 16 | chrony detail (residual frequency, update interval, raw sourcestats) | **yes** (#89) | done |
-| 2 | Per-browser time-zone picker | partly: a station-wide override in Administration (#45) | probably enough; owner confirms |
+| 2 | Per-browser time-zone picker | station-wide override in Administration (#45) | **dropped** (owner, 2026-10-19) |
 | 20 | "Projected 1 s holdover" = 1/\\|ppm\\| | deliberately not ported | **drop** (needs the owner's explicit yes, per ADR-0004) |
 | 3 | Station-corrected clock | **yes** (#47) | done |
 | 17 | Satellite table TDOP | **yes** (GNSS page) | done |

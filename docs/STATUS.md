@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/app-night-theme-modules, #90). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/app-throttle-flags, #91). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -30,7 +30,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be retired after v1.4.0. Plan and reasons: `dashboard/legacy-removal-plan.md`; items by number: `dashboard/web-ui-parity.md`. Nothing is deployed while the Pi soaks rc.10; steps 2–4 only add to `/app/` and can be built before v1.4.0, but ship after it.
 
-1. *Decided 2026-10-19 ([#86](https://github.com/nathansottung/gps-time/pull/86)), except items 2 and 21; see Decisions.* **Owner decisions** (blocks steps 5 and 9): themes incl. red night mode (1); saved layout editor and layout-driven pages, port or drop (4, 5); `custom.css` (18); `/zones` (19); throttle flags (21) and the station-wide zone override (2) as enough; dropping the 1/|ppm| holdover figure (20, needs an explicit yes per ADR-0004).
+1. *Decided 2026-10-19 ([#86](https://github.com/nathansottung/gps-time/pull/86); items 2 and 21 in [#91](https://github.com/nathansottung/gps-time/pull/91)); see Decisions.* **Owner decisions** (blocks steps 5 and 9): themes incl. red night mode (1); saved layout editor and layout-driven pages, port or drop (4, 5); `custom.css` (18); `/zones` (19); throttle flags (21) and the station-wide zone override (2) as enough; dropping the 1/|ppm| holdover figure (20, needs an explicit yes per ADR-0004).
 2. *Done in [#87](https://github.com/nathansottung/gps-time/pull/87).* **Almanac:** date navigation, twilight and night bars, moon details (8, 9, 10). Data already in `/api/almanac`.
 3. *Done in [#88](https://github.com/nathansottung/gps-time/pull/88).* **Sky map and object lookup** (11, 12), with the object target made per-request instead of server-global (GPS-030).
 4. *Done in [#89](https://github.com/nathansottung/gps-time/pull/89).* **Survey convergence and ingest counters** (14, 15); the remaining chrony detail (16).
@@ -41,6 +41,8 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 9. **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
+
+- **2026-10-19, legacy parity items 2 and 21, and module storage:** owner decisions. **Per-browser time-zone picker (2):** dropped; the station-wide override covers it. **Throttle flags (21):** kept, decoded per condition (under-voltage, frequency capped, throttled, soft temperature limit), now and since boot; under-voltage is worth showing because it can upset timing. Done in [#91](https://github.com/nathansottung/gps-time/pull/91). **Module visibility** (Configure, #90) stays per browser.
 
 - **2026-10-19, legacy parity (removal step 1):** owner decisions. **Themes (1):** keep dark and the red night theme; drop light. **Saved layout editor and layout-driven pages (4, 5):** replaced by show/hide modules in `/app/`; the saved-layout model (`/api/dashboard*`, `dashboard.py`, `dashboard.default.json`, `tools/promote_dashboard.py`, `-UseDemoLayout`) goes with the legacy pages (step 8). **`custom.css` (18) and `/zones` (19):** dropped. **The 1/|ppm| "projected 1 s holdover" figure (20):** dropped (the explicit yes ADR-0004 asks for). Not decided: the per-browser zone picker (2; `/app/` has the station-wide override) and individual throttle flags (21; `/app/` lists active flags); they stay as they are until the owner confirms.
 
@@ -84,7 +86,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 448 rows: 245 done, 0 in progress, 28 next, 175 planned.
+**Totals:** 449 rows: 247 done, 0 in progress, 28 next, 174 planned.
 
 ## Status table
 
@@ -537,4 +539,5 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Legacy removal 7: `/` → `/app/`, legacy pages under `/legacy/` with a notice | planned | first release after v1.4.0; run on the Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy removal 8: remove the legacy pages and their code | planned | after a release with step 7 in use; owner's go-ahead | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy removal 9: close GPS-016, GPS-027, GPS-029, legacy halves of GPS-004/009; update ADR-0004 | planned | with step 8 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
-| Web UI |  | Legacy parity items 2 (per-browser zone picker) and 21 (individual throttle flags): enough as they are? | planned | owner confirms; `/app/` has the station-wide zone override and the active flags | [#86](https://github.com/nathansottung/gps-time/pull/86) |
+| Web UI |  | Legacy parity items 2 (per-browser zone picker) and 21 (individual throttle flags) | done | 2 dropped (the station-wide override covers it); 21 ported: every condition now and since boot, under-voltage warned | [#86](https://github.com/nathansottung/gps-time/pull/86) [#91](https://github.com/nathansottung/gps-time/pull/91) |
+| Repo |  | Dependabot: 5 web minor/patch updates (React 19.3.1, Vitest 5.0.5, lucide-react 1.58, @types/node 22.20.5) | done | merged when green, after a local check against current main | [#85](https://github.com/nathansottung/gps-time/pull/85) |
