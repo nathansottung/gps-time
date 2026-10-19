@@ -817,3 +817,16 @@ rc.9 item 1, with next-5 item 3 (GPS-011, GPS-012). Found on the rc.8 soak run: 
 - `/api/system` → `ramlog` gains `sd_copy` and `sd_size_kb`; `size_kb` includes `.1`.
 - Units and timer unchanged.
 - Tests: `tests/test_logsync.py` (16; 11 run the script and are POSIX-only, also run locally under Git Bash). Not yet run on a Pi.
+
+## 2026-10-19 — outage evidence on the SD card (#73)
+
+rc.9 item 2; OBS §13. On the rc.8 soak run the 2026-10-17 outages left nothing in the system journal; the evidence was the event list and the RAM tracking log, which a reboot would have lost.
+
+- **`gps_time_pi/evidence.py`:** for each outage event, one JSON file in `evidence/` next to `config.json` with the event, a 10 s timeline of the station's view (status, PPS state and counters, chrony's view, selected source, offset, GNSS counts and best C/N₀) from a 2-hour RAM ring, chrony's tracking lines from 5 minutes before to 5 minutes after, and chrony's output when written.
+- **When:** 5 minutes after the outage opens, and 5 minutes after it closes (replacing the first). A quiet station writes nothing; nothing at 1 Hz.
+- **Cap:** 20 MiB (`GTP_EVIDENCE_MAX_BYTES`) and 200 files, oldest first; one file's tracking lines at most 2 MiB.
+- **Privacy:** no position is stored.
+- **Not captured:** kernel messages, gpsd output or raw NMEA. These would need privileges or another process; the journal had nothing for Oct 17 anyway.
+- `/api/evidence` (index, or one file by `id`); Timing → PPS Events lists the files.
+- Outage detection unchanged.
+- Tests: `tests/test_evidence.py` (14), using the timing-chain rig to produce real events. Not yet run on a Pi.

@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/log-flush-caps, #72). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/outage-evidence, #73). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -22,7 +22,7 @@ Last updated: 2026-10-19 (feat/log-flush-caps, #72). Built from the specs, `road
 From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.8"). Owner, 2026-10-19: yes to the first two; don't weaken outage detection.
 
 1. *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).* **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
-2. **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
+2. *Done in [#73](https://github.com/nathansottung/gps-time/pull/73).* **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
 3. *Done in [#70](https://github.com/nathansottung/gps-time/pull/70).* **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
 4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode.
 
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 425 rows: 224 done, 0 in progress, 29 next, 172 planned.
+**Totals:** 425 rows: 226 done, 0 in progress, 27 next, 172 planned.
 
 ## Status table
 
@@ -221,7 +221,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | §11 | GNSS↔PPS correlation | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §12a | Generic event schema | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §12b | Fifteen event types | planned | partial: PPS_OUTAGE only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §13 | ±5 min forensic evidence window | next | rc.9 item 2 (evidence on SD under a size cap) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
+| OBS | §13 | ±5 min forensic evidence window | done | station view every 10 s and chrony's tracking lines; no kernel, gpsd or raw NMEA capture | [#73](https://github.com/nathansottung/gps-time/pull/73) |
 | OBS | §14 | Multi-station event format | planned |  |  |
 | OBS | §15 | Receiver upgrade-path doc | planned | partial |  |
 | OBS | §16 | Immediate diagnostic doc | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -496,6 +496,6 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |
 | Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
 | Repo |  | Log flush without write amplification; capped RAM log and SD copy | done | appends new lines only; RAM 8 MiB and SD 16 MiB caps, one previous file each; SD copy outside logrotate. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#72](https://github.com/nathansottung/gps-time/pull/72) |
-| Repo |  | Outage evidence kept on the SD card under a size cap | next | rc.9 item 2; with OBS §13 | [#69](https://github.com/nathansottung/gps-time/pull/69) |
+| Repo |  | Outage evidence kept on the SD card under a size cap | done | one file per outage: event, 10 s timeline, chrony lines ±5 min; 20 MiB / 200 files; no position. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#73](https://github.com/nathansottung/gps-time/pull/73) |
 | Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | done | `pps-poller` thread; no HTTP request polls; poll statistics reported; outage detection unchanged. Whether the rc.8 run's 9 % was real absence or slow polling shows on the next run. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#70](https://github.com/nathansottung/gps-time/pull/70) |
 | Repo |  | Second soak run (rc.9) before v1.4.0 | planned | owner's step |  |

@@ -48,6 +48,7 @@ CI (`.github/workflows/`):
 ## Where things are
 
 - **Timing chain** (GNSS → PPS → chrony stages, PPS state machine, status banner, outage events, boot rule): `gps_time_pi/timing_chain.py`, `gps_time_pi/pps.py`. Architecture doc: `docs/architecture/timing-chain.md`.
+- **Outage evidence on the SD card** (one file per outage event: the event, a 10 s timeline, chrony lines ±5 min; 20 MiB cap; no position): `gps_time_pi/evidence.py`, `/api/evidence`.
 - **Oscillator log** (SoC temperature with chrony's frequency; 10-minute bins appended hourly to `oscillator-log.csv`, capped, board-bound by a serial hash): `gps_time_pi/oscillator.py`, `/api/oscillator`. Architecture doc: `docs/architecture/oscillator-log.md`.
 - **Stability analysis** (ADEV, MDEV, TDEV from kernel PPS timestamps; RAM only): `gps_time_pi/stability.py`, `/api/stability`. Architecture doc: `docs/architecture/stability-analysis.md`.
 - **Earth shadow and satellites** (umbra/penumbra model needing no ephemeris; satellites from an offline TLE cache; the web service never fetches): `gps_time_pi/shadow.py`, `gps_time_pi/satellites.py`, `gps_time_pi/tle_fetch.py`, `/api/shadow`, `/api/satellites`. Architecture doc: `docs/architecture/earth-shadow-and-satellites.md`.
