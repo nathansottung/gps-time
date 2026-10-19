@@ -1025,3 +1025,16 @@ The decision logic is a pure function (`evaluate`), tested with fixture answers.
 ## 2026-10-19 — deploy log: the station is a development unit (#97)
 
 Owner's statement, recorded in `development/raspberry-pi-deploy.md` ("The current station") and `STATUS.md` → Decisions: the Pi is a development unit, and its weak C/N₀ (best about 25 dB-Hz) is an antenna and site limit. It is attributed to the owner; the station's own classifications are unchanged and still name boundaries, not causes. The soak criteria (#95) are unchanged, and a run that fails only on outages is reported rather than tagged.
+
+## 2026-10-19 — dual-band receiver profile scoped; next-5 re-ordered (#98)
+
+Owner's request: scope a hardware profile for a dual-band u-blox receiver, the ZED-F9T (timing) or ZED-F9P (positioning). Plan only, marked next. The plan is `hardware/zed-f9-dual-band.md`:
+
+- the choice between the two (recommendation: F9T, if its variant outputs raw observations);
+- what it will and won't improve on a Pi: the GPIO timestamp spread measured on this Pi (1.3 µs) hides nanosecond PPS, so the gain is fewer outages and better tracking;
+- wiring and PPS, the one-time receiver configuration (by the operator; the station never changes it), gpsd and chrony, raw data for PPP (volume, storage off the SD card, coordinator-tier processing, privacy as for coordinates);
+- the code changes in order. One finding for later: gpsd reports a dual-band receiver's satellites once per signal, which `gps.py` would count twice today.
+
+Figures not yet checked against the u-blox data sheets are marked "to confirm".
+
+`STATUS.md`: the next-5 list drops the two done items and takes in the profile as item 2; ten Hardware rows (six next, four planned); a decision entry. Index, hardware README, HARDWARE-PROFILES.md and ROADMAP.md link the plan.

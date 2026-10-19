@@ -7,15 +7,17 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/deploy-log-dev-unit, #97). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/zed-f9-profile-plan, #98). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-1. *Done in [#93](https://github.com/nathansottung/gps-time/pull/93).* **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
-2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
-3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence"). *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).*
+Re-ordered 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
+
+1. **Soak run of v1.4.0-rc.11 on the Pi** (owner deploys; read-only check after 3 days): upgrade with `deploy/upgrade-1.4-station.md`; v1.4.0 is tagged on the rc.11 commit if three days are clean. rc.11 is tagged ([#95](https://github.com/nathansottung/gps-time/pull/95)). rc.10 was checked after 2 h 17 min and replaced (`development/raspberry-pi-deploy.md` → "First hours of v1.4.0-rc.10").
+2. **Dual-band receiver profile** (ZED-F9T or ZED-F9P; owner, 2026-10-19): plan in `hardware/zed-f9-dual-band.md`. First the owner's choices (module and band variant, board, antenna and site), then profiles and docs, per-signal satellites, the `/app/` satellite views, receiver identity, and hardware validation, one PR each. Raw-data collection and PPP come after.
+3. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **Soak run of v1.4.0-rc.11 on the Pi** (owner deploys; read-only check after 3 days): upgrade with `deploy/upgrade-1.4-station.md`; v1.4.0 is tagged on the rc.11 commit if three days are clean. rc.11 is tagged ([#95](https://github.com/nathansottung/gps-time/pull/95)). rc.10 was checked after 2 h 17 min and replaced (`development/raspberry-pi-deploy.md` → "First hours of v1.4.0-rc.10").
+5. **Legacy removal step 7** (after v1.4.0): `/` → `/app/`, the legacy pages under `/legacy/` with a notice; first release after v1.4.0 (queue below).
 
 ## v1.4.0-rc.9: to do
 
@@ -41,6 +43,8 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 9. **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
+
+- **2026-10-19, next hardware:** owner asked for a dual-band u-blox receiver profile (ZED-F9T for timing or ZED-F9P for positioning), scoped as a plan and marked next. Plan: `hardware/zed-f9-dual-band.md`. On this Pi the GPIO timestamp spread (1.3 µs) hides the F9T's nanosecond PPS; the gain here is fewer outages and better tracking, and nanosecond timestamps need the PTP work (TM §5).
 
 - **2026-10-19, the current station:** owner: it is a development unit (Pi 4, Uputronics MAX-M8Q, current antenna and site), and its weak C/N₀ (best about 25 dB-Hz) is an antenna and site limit. Recorded in `development/raspberry-pi-deploy.md`. The soak criteria are unchanged; a run that fails only on outages is reported, not tagged.
 
@@ -87,10 +91,11 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 | Web UI | the React port (`web/`, ADR-0004) |
 | Review | `review/GPS-Time-Independent-Review-2026-09-27.md` |
 | Repo | repository tooling, CI and releases (owner requests) |
+| Hardware | `hardware/` scopes and profiles (owner requests) |
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 452 rows: 253 done, 0 in progress, 26 next, 173 planned.
+**Totals:** 462 rows: 253 done, 0 in progress, 32 next, 177 planned.
 
 ## Status table
 
@@ -548,3 +553,13 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Legacy almanac sky map: E and W labels were swapped | done | east-azimuth objects were drawn on the left under a right-hand "E"; labels now match the projection (N up, E left, as seen looking up). Found while porting the map (#88) | [#92](https://github.com/nathansottung/gps-time/pull/92) |
 | Repo |  | Tag v1.4.0-rc.11 with release notes | done | pre-release; tag on this PR's merge commit; the soak candidate and the commit v1.4.0 is to be tagged on | [#95](https://github.com/nathansottung/gps-time/pull/95) |
 | Repo |  | `tools/soak_check.py`: read-only pre-release soak check | done | HTTP GETs only; the criteria fixed in #95; exit 0 clean / 1 not / 2 unreadable. Run against rc.10 on 2026-10-19 (not clean, as expected after 2 h) | [#96](https://github.com/nathansottung/gps-time/pull/96) |
+| Hardware |  | Dual-band receiver: owner's choices (F9T or F9P, band variant, board, antenna, site, raw-data destination) | next | plan lists them | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: `zed-f9t` / `zed-f9p` profiles in `generate_config.py` (gpsd speed) and HARDWARE-PROFILES.md | next |  | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: per-signal satellites in `gps.py` (group by gnssid/svid; count satellites, not signals) | next | today a dual-band receiver would double-count used/visible and C/N₀ | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: band column and C/N₀ per band in `/app/` satellite views | next |  | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: receiver identity (module, firmware, protocol) from gpsd | next |  | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: hardware validation and soak run (deploy log, `tools/soak_check.py`) | next | needs the hardware | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: error budget with receiver PPS vs the Pi's timestamp spread; TIM-TP qErr logged as research | planned | after the profile | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: F9T survey-in / fixed-mode state, read-only | planned | if gpsd exposes it | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: optional raw-data collector (RAWX/SFRBX; RAM ring, 30 s chunks off the SD card, privacy as coordinates) | planned | off by default | [#98](https://github.com/nathansottung/gps-time/pull/98) |
+| Hardware |  | Dual-band receiver: coordinator-tier PPP (RTKLIB / PRIDE PPP-AR, IGS products) | planned | with the geophysics roadmap Tier 2 | [#98](https://github.com/nathansottung/gps-time/pull/98) |

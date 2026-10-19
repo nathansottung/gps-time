@@ -71,6 +71,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Hardware
 - `hardware/README.md`
+- `hardware/zed-f9-dual-band.md` — PLAN, next: a dual-band u-blox receiver profile (ZED-F9T timing or ZED-F9P positioning): what it improves on a Pi and what it can't, wiring, PPS, receiver configuration, gpsd/chrony, raw data for PPP, the changes in order
 - `HARDWARE-PROFILES.md`
 
 ## Licensing / decisions / provenance

@@ -100,6 +100,10 @@ python3 tools/generate_config.py --profile usb-gps
 
 If a USB receiver exposes a real Linux PPS device, create a dedicated profile for that receiver instead of using this generic one.
 
+### Planned: `zed-f9t` / `zed-f9p`
+
+Dual-band u-blox receivers. Not a profile yet: scoped in [`hardware/zed-f9-dual-band.md`](hardware/zed-f9-dual-band.md) (wiring, PPS, receiver configuration, gpsd/chrony, raw data). It becomes a profile only with the evidence listed under "Adding profiles".
+
 ## Custom hardware
 
 For any UART GNSS receiver with a PPS wire:
