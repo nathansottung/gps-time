@@ -65,8 +65,8 @@ The legacy pages are still the only place for several things an operator needs. 
 | 8 | Almanac date navigation | **yes** (#87) | done |
 | 9 | Twilight bar and night bar | **yes** (#87) | done |
 | 10 | Moon details (time up, transit altitude) | **yes** (#87) | done |
-| 11 | Sky map (stars, constellations, planets) | no (data already there) | port |
-| 12 | Object lookup | no | port, and fix the server-global target while doing it |
+| 11 | Sky map (stars, constellations, planets) | **yes** (#88) | done |
+| 12 | Object lookup | **yes** (#88) | done |
 | 14 | Survey convergence charts | no | port |
 | 15 | Survey ingest counters | no | port |
 | 13 | Offset chart uncertainty band, symlog axis | no | port **after** GPS-003/GPS-007 (the band's meaning is wrong today) |

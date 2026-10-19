@@ -364,6 +364,7 @@ Available responses include `location_display`.
 - `moon`: `{rise, set, transit, transit_alt, phase, illum (%), age_days, up_s}`.
 - `night`: `{defined, sunset, sunrise, span_s, sun_segments, moon_up[], dark[], dark_total_s, midnight, astro_note, tz}`, or `{defined: false, note}`. Fractions are of the elapsed night.
 - `/app/` Sun & Moon draws `sun.bar` and `night` and passes `date` from its date navigation.
+- `target` (optional): an object query as `/api/object` reads `q`; `sky.target` is its `[alt, az]`, else `null`. Only the requesting client's target is marked.
 - `delta_yesterday`: today − yesterday daylight, in s.
 - `delta_tomorrow`: tomorrow − today daylight, in s.
 - `neighbors.{yesterday,tomorrow}.{sunrise, sunset, noon, daylight_s}` (predicted, like `sun`). The web UI shows the day-to-day shifts from these.
@@ -390,9 +391,9 @@ Look up one object for the almanac's object card. `q` accepts a Messier number, 
   - `dark_windows[]`, `moonless_windows[]`, `min_alt_deg`, `tz`
   - `name`, `meta`, `emphasis` (`dark` / `moonless` / `both`), `at_label`
 
-**Privacy mode:** as for `/api/almanac`. Rounded mode computes from the rounded site. Hidden mode returns `available: false` with the privacy reason, computes nothing and does not set the target. Available responses include `location_display`.
+**Privacy mode:** as for `/api/almanac`. Rounded mode computes from the rounded site. Hidden mode returns `available: false` with the privacy reason, computes nothing and computes nothing. Available responses include `location_display`.
 
-**Side effect:** the target is stored in a server-global (`_LAST_TARGET`) that `/api/almanac` uses to mark the sky map. It is shared by all clients. Not exposed in the new UI client.
+**No side effect** (since #88; GPS-030): the station keeps no target. To mark the object on the sky map, pass the same text as `target=` to `/api/almanac`. The new UI's Sky & Objects tab and the legacy almanac page both do.
 
 ## GET /api/ping
 

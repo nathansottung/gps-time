@@ -282,7 +282,10 @@ def _almanac_api(qs):
     dy, dt_ = day("deltas", astro.daylight_deltas, d)
     moon = day("moon", astro.lunar_day, d)
     nite = day("night", astro.night, d)
-    target = _LAST_TARGET.get("t")
+    # The sky map marks the target this request names (?target=, as /api/object reads q), never
+    # another client's lookup: no server-global target (review GPS-030).
+    tq = qs.get("target", [""])[0].strip()
+    target = catalog.lookup(tq) if tq else None
     sky = memo(("almanac", "sky", obs_dt.strftime("%Y-%m-%dT%H:%M"), where, repr(target)), ALMANAC_SKY_TTL_S,
                lambda: astro.sky_snapshot(site, obs_dt, target))
 
@@ -303,9 +306,6 @@ def _almanac_api(qs):
             "location_display": mode}
 
 
-_LAST_TARGET = {}
-
-
 def object_api(qs):
     try:
         return _object_api(qs)
@@ -321,8 +321,6 @@ def _object_api(qs):
     cfg = config.load()
     if cfg.get("location_display") == "hidden":
         return {"available": False, "reason": PRIVACY_HIDDEN_REASON, "location_display": "hidden"}
-    if not astro.STATUS["available"]:
-        return {"available": False, "reason": astro.STATUS["reason"]}
     try:
         d = _date.fromisoformat(qs.get("date", [""])[0])
     except ValueError:
@@ -330,16 +328,24 @@ def _object_api(qs):
     tzname = qs.get("tz", ["UTC"])[0]
     if tzname not in available_timezones():
         tzname = "UTC"
+    if DEMO_MODE:   # synthetic; the demo's own clock (no IANA database needed on the desktop)
+        when = demo._demo_when(qs, d, datetime.now().astimezone().tzinfo)
+        return _object_labels(demo.object_api(target, d, when), target, when, cfg.get("location_display", "exact"))
+    if not astro.STATUS["available"]:
+        return {"available": False, "reason": astro.STATUS["reason"]}
     site, _prov = gps.observing_site()
     if site is None:
         return {"available": False, "reason": "No valid location is available."}
     site, mode = config.privacy_site(cfg, site)
     obs_dt = _obs_datetime(d, tzname, qs.get("at", ["now"])[0])
-    _LAST_TARGET["t"] = target
 
     rep = astro.object_report(target, d, site, tzname, obs_dt)
     if not rep.get("available"):
         return rep
+    return _object_labels(rep, target, obs_dt, mode)
+
+
+def _object_labels(rep, target, obs_dt, mode):
     if target["kind"] == "planet":
         rep["name"], rep["meta"], rep["emphasis"] = target["name"], "planet", "dark"
     elif target["kind"] == "fixed":

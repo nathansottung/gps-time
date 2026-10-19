@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
-  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, EvidenceIndex, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DashboardConfig, DashboardLayout, DisplayZone, EvidenceIndex, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -99,7 +99,10 @@ export function demoApi(): StationApi {
     // Mirrors the server: sun/moon/sky times reveal the position, so hidden mode computes none.
     almanac: (q) => delay(locationMode === 'hidden'
       ? { available: false as const, reason: "Location is hidden by the station's privacy setting. Sun, moon and sky times would reveal the station's position, so they are not computed.", location_display: 'hidden' as const }
-      : { ...almanac(q?.tz, q?.date), location_display: locationMode }),
+      : { ...almanac(q?.tz, q?.date, q?.target), location_display: locationMode }),
+    object: (q, o) => delay(!q.trim() ? { error: 'unparsed' as const }
+      : locationMode === 'hidden' ? { available: false as const, reason: "Location is hidden by the station's privacy setting.", location_display: locationMode }
+      : demoObject(q, o?.date)),
     ping: () => {
       const t = Date.now();
       return delay({ server_receive_epoch_ms: t + 1.2, server_send_epoch_ms: t + 1.3 });
@@ -686,7 +689,7 @@ function system(): SystemDiagnostics {
   };
 }
 
-function almanac(tz = 'UTC', date?: string): Almanac {
+function almanac(tz = 'UTC', date?: string, target?: string): Almanac {
   // Fixed sample times for the demo site on the requested date (default today), as UTC−4 instants.
   const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
   const base = Date.parse(`${day}T00:00:00-04:00`);
@@ -722,7 +725,32 @@ function almanac(tz = 'UTC', date?: string): Almanac {
       yesterday: { sunrise: at(-1, '06:47:12'), sunset: at(-1, '18:49:43'), noon: at(-1, '12:48:33'), daylight_s: 43351 },
       tomorrow:  { sunrise: at(1, '06:48:57'), sunset: at(1, '18:47:05'), noon: at(1, '12:48:05'), daylight_s: 43088 },
     },
-    sky: {}, sky_when: `${day} 22:00 ${tz}`, position_provenance: 'demo', position_age: null,
+    sky: demoSky(target), sky_when: `${day} 22:00 ${tz}`, position_provenance: 'demo', position_age: null,
+  };
+}
+
+// A small fixed sky for the client-side demo: a few bright stars (alt, az, mag), one
+// asterism, two bodies, and the looked-up target at a fixed point. Shapes only.
+function demoSky(target?: string): SkySnapshot {
+  return {
+    available: true, demo: true,
+    stars: [[62, 300, 0.0], [48, 75, 1.3], [35, 230, 0.8], [70, 20, 2.1], [25, 120, 1.6], [55, 160, 2.4], [15, 330, 3.0], [40, 10, 3.5]],
+    lines: [[[70, 20], [62, 300], [48, 75], [70, 20]]],
+    bodies: { Moon: [22, 210], Jupiter: [30, 95] },
+    target: target?.trim() ? [44, 60] : null,
+  };
+}
+
+function demoObject(q: string, date?: string): ObjectReport {
+  const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
+  const at = (off: number, hm: string) => `${new Date(Date.parse(`${day}T12:00:00Z`) + off * 86400e3).toISOString().slice(0, 10)}T${hm}-04:00`;
+  return {
+    available: true, demo: true, name: q.trim(), meta: 'demo object', emphasis: 'moonless', at_label: '22:00',
+    now_alt: 44, now_az: 60, rise: at(0, '17:40'), transit: at(0, '23:55'), transit_alt: 72.3, set: at(1, '06:10'),
+    circumpolar: false, never_up: false,
+    dark_windows: [{ start: at(0, '20:15'), end: at(1, '05:21'), dur_s: 32760 }],
+    moonless_windows: [{ start: at(1, '01:33'), end: at(1, '05:21'), dur_s: 13680 }],
+    min_alt_deg: 15, tz: 'America/New_York',
   };
 }
 

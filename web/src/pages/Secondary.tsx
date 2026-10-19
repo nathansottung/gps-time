@@ -16,6 +16,8 @@ import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { DateNav, DayBarCard, NightCard } from '../components/almanac';
 import { timeOnDay, todayIn } from '../lib/almanac';
+import { ObjectLookupCard, SkyMapCard } from '../components/sky';
+import { atParam } from '../lib/sky';
 import { browserTimeZone, fmtClock, fmtDuration, fmtUtc } from '../lib/format';
 import { isValidZone, resolveZone, zoneNames } from '../lib/localtime';
 
@@ -29,8 +31,16 @@ export function SunAstronomy() {
   // Date navigation (parity 8): any date the ephemeris covers; times in the browser's zone.
   const today = todayIn(TZ);
   const [date, setDate] = useState(today);
-  const alm = usePoll(() => api.almanac({ tz: TZ, date }), 10 * 60_000, [api, date]);
   const isToday = date === today;
+  // Sky map time (parity 11): now on today's date, else a chosen time (22:00 by default). The target is
+  // this page's own lookup, sent with each request; the station keeps none (parity 12, GPS-030).
+  const [useNow, setUseNow] = useState(true);
+  const [skyTime, setSkyTime] = useState('22:00');
+  const [target, setTarget] = useState('');
+  const at = atParam(useNow && isToday, skyTime);
+  const skyTab = tab === 'Sky & Objects';
+  const alm = usePoll(() => api.almanac({ tz: TZ, date, at, target: target || undefined }),
+    skyTab && at === 'now' ? 60_000 : 10 * 60_000, [api, date, at, target]);
   const a = alm.data && alm.data.available ? alm.data : null;
   const sun = a && a.sun.available ? a.sun as SolarDay : null;
   const moon = a && a.moon.available ? a.moon as LunarDay : null;
@@ -43,8 +53,28 @@ export function SunAstronomy() {
   return (
     <div className="space-y-4 page-enter">
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Sun & Astronomy</h1>
-      <Tabs tabs={['Sun & Moon', 'Earth Shadow', 'Satellites']} active={tab} onChange={setTab} />
+      <Tabs tabs={['Sun & Moon', 'Sky & Objects', 'Earth Shadow', 'Satellites']} active={tab} onChange={setTab} />
 
+      {skyTab && <>
+        <div className="flex items-center gap-3 flex-wrap">
+          <DateNav date={date} today={today} onChange={setDate} />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px]" style={{ color:'var(--t3)' }}>Sky at</span>
+            <input type="time" step={60} value={at === 'now' ? '' : skyTime} aria-label="Sky map time"
+              onChange={e => { setSkyTime(e.target.value); setUseNow(false); }}
+              className="mono tabular text-[11px] px-2 py-1 rounded-[2px]" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t1)', colorScheme:'dark' }} />
+            <button onClick={() => { setDate(today); setUseNow(true); }} disabled={at === 'now'}
+              className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={{ border:'1px solid var(--border)', color:'var(--t2)' }}>Now</button>
+          </div>
+        </div>
+        <ApiErrorNote error={alm.error} />
+        {unavailable && <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>}
+        <div className="grid grid-cols-2 gap-4">
+          <SkyMapCard sky={a?.sky} when={a?.sky_when ?? null} demo={a?.demo} />
+          <ObjectLookupCard date={date} tz={TZ} at={at} onTarget={setTarget} />
+        </div>
+        {a?.location_display === 'rounded' && <div className="text-[9px]" style={{ color:'var(--t4)' }}>Computed for the rounded site (~11 km), per the privacy setting.</div>}
+      </>}
       {tab === 'Earth Shadow' && <ShadowPanel />}
       {tab === 'Satellites' && <SatellitesPanel />}
 

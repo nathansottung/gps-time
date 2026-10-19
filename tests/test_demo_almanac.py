@@ -32,6 +32,21 @@ class DemoAlmanacTest(unittest.TestCase):
     def test_marked_as_demo(self):
         self.assertTrue(demo.almanac_api(None)["demo"])
 
+    def test_sky_marks_only_the_named_target(self):
+        with_t = demo.almanac_api({"date": ["2026-10-19"], "at": ["22:00"], "target": ["M31"]})["sky"]
+        without = demo.almanac_api({"date": ["2026-10-19"], "at": ["22:00"]})["sky"]
+        self.assertIsNotNone(with_t["target"])
+        self.assertIsNone(without["target"])
+        self.assertTrue(with_t["stars"] and with_t["lines"])
+
+    def test_object_transit_altitude_is_at_most_90(self):
+        from datetime import date, datetime
+        from gps_time_pi import catalog
+        for q in ("M31", "Vega", "Polaris", "Jupiter"):
+            r = demo.object_api(catalog.lookup(q), date(2026, 10, 19), datetime.now().astimezone())
+            if r["transit_alt"] is not None:
+                self.assertLessEqual(r["transit_alt"], 90.0, q)
+
 
 if __name__ == "__main__":
     unittest.main()

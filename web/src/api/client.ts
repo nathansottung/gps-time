@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
-  DashboardWriteResult, EvidenceIndex, History, LocationMode, NtpService, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
+  DashboardWriteResult, EvidenceIndex, History, LocationMode, NtpService, ObjectResult, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -40,6 +40,8 @@ export interface StationApi {
   survey(): Promise<Survey>;
   system(): Promise<SystemDiagnostics>;
   almanac(q?: AlmanacQuery): Promise<Almanac | Unavailable>;
+  /** One object for the lookup card; no side effect on the station. */
+  object(q: string, o?: AlmanacQuery): Promise<ObjectResult>;
   ping(): Promise<Ping>;
   diagnostics(opts?: { scenario?: string }): Promise<string>;
   dashboard(): Promise<DashboardConfig>;
@@ -130,7 +132,16 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     satellites: (o) => json('/api/satellites' + query({ sat: o?.sat?.toString(), q: o?.q })),
     survey: () => json('/api/survey'),
     system: () => json('/api/system'),
-    almanac: (q) => json('/api/almanac' + query({ date: q?.date, tz: q?.tz, at: q?.at })),
+    almanac: (q) => json('/api/almanac' + query({ date: q?.date, tz: q?.tz, at: q?.at, target: q?.target })),
+    object: async (q, o) => {
+      try {
+        return await json<ObjectResult>('/api/object' + query({ q, date: o?.date, tz: o?.tz, at: o?.at }));
+      } catch (e) {
+        // {"error": "unparsed"} is an answer (the query wasn't understood), not a server failure.
+        if (e instanceof ApiError && e.status === 200 && e.message === 'unparsed') return { error: 'unparsed' as const };
+        throw e;
+      }
+    },
     ping: () => json('/api/ping' + query({ n: String(Math.random()).slice(2, 10) })),
     diagnostics: async (o) => (await request('/api/diagnostics' + query({ scenario: o?.scenario }))).text(),
     dashboard: () => json('/api/dashboard'),

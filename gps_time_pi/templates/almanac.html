@@ -130,9 +130,10 @@ function delta(s){
 const STAGE = {0:"#252E3D",1:"#41537A",2:"#5B7BA6",3:"#8FA6C4",4:"#F2C14E"};
 const NIGHTSTAGE = {0:"transparent",1:"#41537A",2:"#5B7BA6",3:"#8FA6C4"};
 
+let target = "";   /* this page's own lookup; the station keeps no shared target */
 async function load(){
   const at = useNow ? "now" : (timeEl.value||"22:00");
-  const r = await fetch(`/api/almanac?date=${dateEl.value}&tz=${encodeURIComponent(tz)}&at=${at}`);
+  const r = await fetch(`/api/almanac?date=${dateEl.value}&tz=${encodeURIComponent(tz)}&at=${at}&target=${encodeURIComponent(target)}`);
   const d = await r.json();
   const err = document.getElementById("err");
   if(!d.available){ err.style.display="block"; err.textContent="Astronomy unavailable — "+d.reason; return; }
@@ -233,6 +234,7 @@ async function lookup(){
       <i>and moon below the horizon</i></div>`;
   rows += d.emphasis==="moonless" ? ml+dk : dk+ml;
   box.innerHTML = rows;
+  target = q;
   load();  /* re-draw sky with the target marked */
 }
 document.getElementById("go").onclick = lookup;
