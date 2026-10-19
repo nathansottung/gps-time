@@ -2,6 +2,8 @@
 
 Start with [`README.md`](README.md). It defines the repo documentation contract and non-negotiable architecture rules.
 
+**For outside readers:** [`ROADMAP.md`](ROADMAP.md). Every spec and roadmap by phase, with status, on one page.
+
 **Where things stand:** [`STATUS.md`](STATUS.md). Every spec item, roadmap feature and review finding, with its status and PR links, plus the next 5 tasks. It is updated in every PR.
 
 ## Specifications (owner-provided, imported 2026-10-01)
@@ -30,6 +32,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` — SCOPING, not scheduled: SDR and RF observatory (hardware tiers, GNU Radio/SoapySDR, candidate observations, grid frequency); Pi timing work and the first Pi deploy come first. Earlier SDR notes: `sdr/overview.md`, `sdr/timing-model.md`
 - `roadmap/ROADMAP-WEB-UPDATES.md` — FUTURE, low priority: software updates and config upload from the web UI (LAN only, signed releases, separate privileged installer, automatic rollback); not before the station has run stably on v1.4.0
 - `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` — FUTURE, none blocks v1.4.0: trained oscillator profile (board-bound, export/import), networked SDR, assisted network deploys, PPS evidence capture script, smaller items (DHCP self-source, NMEA offset calibration, bundle split, downstream NTP)
+- `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` — FUTURE, research; after v1.4.0 and the oscillator profile: a network of timed stations measuring geophysical effects (interference maps, site stability; Earth tides, ionosphere, water vapor with dual-frequency receivers), and what no tier can measure
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
 
 ## Science
@@ -63,6 +66,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
+- `public-release-checklist.md` — DRAFT: what to check before the repository goes public (history scan, release blockers, licensing, outside-reader docs, GitHub settings)
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
 ## Hardware
