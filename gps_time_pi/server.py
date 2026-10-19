@@ -440,6 +440,12 @@ def satellites_payload(qs):
     return {**rep, "location_display": mode}
 
 
+def oscillator_payload():
+    if DEMO_MODE:
+        return demo.oscillator()
+    return timing_chain.service().oscillator.report()
+
+
 def ntp_service_payload():
     if DEMO_MODE:
         return demo.ntp_service()
@@ -660,6 +666,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(shadow_payload(qs))
             elif p == "/api/satellites":
                 self._json(satellites_payload(qs))
+            elif p == "/api/oscillator":
+                self._json(oscillator_payload())
             elif p == "/api/ntp-service":
                 self._json(ntp_service_payload())
             elif p == "/api/references":
