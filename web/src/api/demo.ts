@@ -85,7 +85,7 @@ export function demoApi(): StationApi {
     history: () => delay(history()),
     stability: () => delay(stability()),
     timescales: () => delay(timescales()),
-    references: (o) => delay(references(o?.scenario)),
+    references: (o) => delay(references(o?.scenario, o?.history)),
     ntpService: () => delay(ntpService()),
     oscillator: () => delay(oscillator()),
     evidence: () => delay(evidenceIndex()),
@@ -584,7 +584,7 @@ function ntpService(): NtpService {
   };
 }
 
-function references(scenario: string = 'agree'): References {
+function references(scenario: string = 'agree', historyFor?: string): References {
   // Mirrors gps_time_pi/demo.py: three noselect servers, 15 h of history.
   const now = Date.now() / 1000;
   const shift = scenario === 'disagree' ? 0.180 : 0;
@@ -603,7 +603,8 @@ function references(scenario: string = 'agree'): References {
       delay_s: reachable ? del : null, root_delay_s: reachable ? 0.0004 : null,
       assessment: !reachable ? 'not usable' : Math.abs(offset) <= threshold ? 'agrees' : 'disagrees',
       provenance: 'external',
-      history: reachable ? Array.from({ length: 181 }, (_, i) => ({ t: now - (180 - i) * 300 - 30, offset_s: at(i), error_bound_s: err, delay_s: del })) : [],
+      history: reachable && name === (historyFor ?? servers[0][0]) ? Array.from({ length: 181 }, (_, i) => ({ t: now - (180 - i) * 300 - 30, offset_s: at(i), error_bound_s: err, delay_s: del })) : [],
+      history_points: reachable ? 181 : 0,
     };
   });
   const usable = refs.filter(r => r.usable).length;

@@ -567,7 +567,8 @@ export interface ReferenceServer {
   root_delay_s: number | null;
   assessment: 'agrees' | 'disagrees' | 'inconclusive' | 'not usable';
   provenance: Provenance;                // external
-  history: ReferencePoint[];
+  history: ReferencePoint[];            // only for the server asked for (?history=), else the first with history
+  history_points: number;
 }
 export interface ReferenceVerdict {
   code: 'AGREE' | 'DISAGREE' | 'ONE_REFERENCE' | 'NONE_REACHABLE' | 'NONE_CONFIGURED' | 'UNKNOWN';

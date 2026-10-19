@@ -26,7 +26,7 @@ export interface StationApi {
   /** TAI, GPS time, MJD/JD offsets, the leap-second table and UT1 − UTC from a cached file. */
   timescales(): Promise<TimeScales>;
   /** The station compared with NTP servers that are not steering its clock (external). */
-  references(opts?: { scenario?: string }): Promise<References>;
+  references(opts?: { scenario?: string; history?: string }): Promise<References>;
   /** chrony's NTP server counters (packets received and dropped) with rates. */
   ntpService(): Promise<NtpService>;
   /** SoC temperature logged with chrony's frequency, 10-minute bins (input for the oscillator profile). */
@@ -122,7 +122,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     history: () => json('/api/history'),
     stability: () => json('/api/stability'),
     timescales: () => json('/api/timescales'),
-    references: (o) => json('/api/references' + query({ scenario: o?.scenario })),
+    references: (o) => json('/api/references' + query({ scenario: o?.scenario, history: o?.history })),
     ntpService: () => json('/api/ntp-service'),
     oscillator: () => json('/api/oscillator'),
     evidence: () => json('/api/evidence'),

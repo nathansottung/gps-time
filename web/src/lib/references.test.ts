@@ -68,7 +68,10 @@ describe('demo adapter', () => {
     const agree = await api.references();
     expect(agree.verdict.code).toBe('AGREE');
     expect(agree.provenance).toBe('external');
-    expect(agree.references.every(r => r.provenance === 'external' && r.history.length > 0)).toBe(true);
+    expect(agree.references.every(r => r.provenance === 'external' && r.history_points > 0)).toBe(true);
+    expect(agree.references.filter(r => r.history.length > 0).map(r => r.name)).toEqual(['192.0.2.10']);
+    const second = await api.references({ history: '192.0.2.20' });
+    expect(second.references.filter(r => r.history.length > 0).map(r => r.name)).toEqual(['192.0.2.20']);
     const dis = await api.references({ scenario: 'disagree' });
     expect(dis.verdict.code).toBe('DISAGREE');
     expect(dis.verdict.detail).toMatch(/does not say which clock is wrong or why/);
