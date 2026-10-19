@@ -60,6 +60,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/lib/survey.ts` also lays out GNSS & Site → Survey: the convergence series (log axis; zero or missing values are gaps), the session bullseye (north up, east right, 3σ fills the plot), rejected-fix rows and small-metre formatting (tested in `survey.test.ts`); the cards are `src/components/survey.tsx`
 - `src/lib/prefs.ts` — per-browser display preferences: the theme (dark or red night; `gtp-theme`, shared with the legacy pages; `?theme=`) and the shown modules (`gtp-modules`: hidden pages and Overview cards, sanitized so Overview, Configure and Administration can't be hidden) (tested in `prefs.test.ts`); `src/components/prefs.tsx` has the stores, the header Night toggle and the night overlay; Configure is the modules page
 - `src/lib/throttle.ts` — Administration → Power: the station's decoded get_throttled flags as one row per condition (now, since boot), and whether under-voltage occurred (tested in `throttle.test.ts`)
+- `src/lib/offset.ts` — Timing → offset history: symmetric-log axis (linear within ±1 µs), rows from `/api/history` with the ± offset-SD band only where chrony reported it and the ± max-error bound, domain and decade ticks (tested in `offset.test.ts`); the chart is `OffsetHistoryChart` in `src/components/charts.tsx`
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling
