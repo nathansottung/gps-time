@@ -98,7 +98,12 @@ Kernel pulse health thresholds are set by `GTP_PPS_DEGRADED_S` and `GTP_PPS_LOST
 
 **Measurement layer.** Every PPS figure is Linux's kernel CLOCK_REALTIME timestamp of the interrupt. Interval statistics include interrupt latency and the effect of the clock being disciplined. **They are not the receiver's or the electrical PPS jitter**, and the API says so in `pps.measurement_layer`.
 
-Missed pulses are counted when the time between two observed events exceeds the number of sequence increments. All of this lives in a RAM ring (600 events), and nothing is written to disk at 1 Hz.
+Two counters, both from the kernel's own sequence number, between two events the station read:
+
+- **Missed pulses**: the pulses the elapsed kernel time calls for, minus the ones the kernel counted. These never reached Linux.
+- **Unread pulses** (since rc.9): pulses the kernel counted that the station didn't read one by one, because two or more arrived between its polls. They were not lost.
+
+The monitor also counts its own polls, the late ones (more than 1.5 s apart) and the longest gap, so a slow poller can be told apart from missing pulses. All of this lives in a RAM ring (600 events), and nothing is written to disk at 1 Hz.
 
 ## Status banner (replaces `sync_state()`)
 
@@ -181,16 +186,16 @@ Each runs the real pipeline on synthetic inputs and is marked as synthetic data.
 
 ## Collection and resources
 
-`TimingChainService` starts with the web server, outside demo mode. On each 1 Hz tick it:
-1. reads the PPS sysfs file;
-2. runs three `chronyc -n` calls every 5 s;
-3. reads the GNSS cache, which never polls gpsd;
-4. evaluates the chain;
-5. hands the newest PPS timestamp to the stability recorder (`architecture/stability-analysis.md`).
+`TimingChainService` starts with the web server, outside demo mode, with two threads (since rc.9):
 
-Ticks run on a fixed grid, 0.25 s after each whole second, so the read doesn't drift across the pulse and skip one.
+- **`pps-poller`**, every second, 0.25 s after the whole second: reads the PPS sysfs file and hands the newest PPS timestamp to the stability recorder (`architecture/stability-analysis.md`). It does nothing else, so nothing slow can delay reading a pulse.
+- **`timing-chain`**, every second, 0.45 s after the whole second: runs three `chronyc -n` calls every 5 s, reads the GNSS cache (which never polls gpsd), evaluates the chain, updates the outage events, and feeds the references and NTP-service trackers.
 
-It doesn't depend on browser traffic. A tick failure never stops the server. It does **not** change chrony, gpsd or PPS configuration.
+Before rc.9 one thread did both, so a slow evaluation (a `chronyc` call, an event checkpoint) postponed the next PPS read. Both threads run on a fixed grid, so their reads don't drift across the pulse.
+
+`start()` evaluates the chain once before the server takes requests. No HTTP request ever reads the PPS or evaluates the chain: they all return the latest evaluation. Outage detection is unchanged: it still works from the age of the newest kernel event, every second.
+
+It doesn't depend on browser traffic. A failure in either thread never stops the server. It does **not** change chrony, gpsd or PPS configuration.
 
 ## Web UI (`/app/`)
 

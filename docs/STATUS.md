@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/oct17-outages-rc9-list, #69). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/pps-poller-thread, #70). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -23,7 +23,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 1. **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
 2. **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
-3. **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
+3. *Done in [#70](https://github.com/nathansottung/gps-time/pull/70).* **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
 4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode.
 
 ## Decisions
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 425 rows: 217 done, 0 in progress, 33 next, 175 planned.
+**Totals:** 425 rows: 218 done, 0 in progress, 32 next, 175 planned.
 
 ## Status table
 
@@ -497,5 +497,5 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
 | Repo |  | Log flush without write amplification; capped RAM log and SD copy | next | rc.9 item 1; the hourly flush copies the whole RAM log (about 240 MB a day at the check) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
 | Repo |  | Outage evidence kept on the SD card under a size cap | next | rc.9 item 2; with OBS §13 | [#69](https://github.com/nathansottung/gps-time/pull/69) |
-| Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | next | rc.9 item 3; the rc.8 run counted 112,588 missed pulses (about 9 %) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
+| Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | done | `pps-poller` thread; no HTTP request polls; poll statistics reported; outage detection unchanged. Whether the rc.8 run's 9 % was real absence or slow polling shows on the next run. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#70](https://github.com/nathansottung/gps-time/pull/70) |
 | Repo |  | Second soak run (rc.9) before v1.4.0 | planned | owner's step |  |

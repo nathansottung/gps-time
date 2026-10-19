@@ -775,3 +775,17 @@ Docs only. Read-only checks of the Pi on 2026-10-19; nothing on the station was 
 - **Log flush checked:** it works on rc.8, but copies the whole RAM log to the SD card every hour (about 240 MB a day at the check) and logrotate keeps rotated full copies.
 - **`STATUS.md`:** a "v1.4.0-rc.9: to do" list (flush fix with caps; outage evidence on the SD card under a size cap; PPS polling on its own thread with missed and unread pulses counted separately; the queued UI fixes). The rc.8 soak row is done with its result; next-5 item 5 is rc.9; OBS §13 moves to next.
 - `deploy/upgrade-1.4-station.md` points to the result and says how to keep the RAM log before a restart.
+
+## 2026-10-19 — PPS reads on their own thread; missed and unread pulses (#70)
+
+rc.9 item 3. The rc.8 soak run counted 112,588 missed pulses (about 9 % of the run), while the real outages on 2026-10-17 account for about 4,300 s. Owner, 2026-10-19: keep counting missed pulses from the kernel's sequence number, move polling off the request thread, and don't weaken outage detection.
+
+- **A dedicated `pps-poller` thread** reads the kernel PPS every second (0.25 s after the second) and records the newest event for the stability history. It does nothing else.
+- **The chain evaluation** (chronyc calls, GNSS, outage events, references, NTP counters) runs on its own `timing-chain` thread, 0.45 s after the second. Before, one thread did both, so a slow evaluation postponed the next PPS read.
+- **No HTTP request polls or evaluates any more.** `start()` evaluates once before the server takes requests; requests return the latest evaluation. Before, a request that arrived before the first evaluation ran one itself.
+- **Missed pulses are still counted from the kernel's sequence number:** the pulses the elapsed kernel time calls for, minus the ones the kernel counted. Unchanged.
+- **New: unread pulses** — pulses the kernel counted that the station didn't read one by one (two or more arrived between polls). Not lost; previously not shown at all.
+- **New: poll statistics** — polls, late polls (more than 1.5 s apart), longest gap. With the two counters, the next run shows whether a high count is pulses that never reached Linux or the station reading late.
+- **Outage detection is unchanged:** it still works from the age of the newest kernel event, every second. A test checks that a loss still opens an outage with the poller doing the reading.
+- `/api/timing-chain` → `pps.unread_pulses`, `pps.poller`; the PPS page and the diagnostics snapshot show them.
+- Tests: `tests/test_pps_poller.py` (16). Not yet run on a Pi.
