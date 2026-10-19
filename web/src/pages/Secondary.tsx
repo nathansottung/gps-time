@@ -4,6 +4,7 @@ import { OffsetChart, SolarCurve } from '../components/charts';
 import { ShadowPanel, SatellitesPanel } from '../components/shadow';
 import { fmtCount, fmtPerMin, fmtShare, requestSeries, serviceLabel, serviceVariant } from '../lib/ntpservice';
 import { Planned, ApiErrorNote } from '../components/planned';
+import { Sensitive } from '../components/screenshot';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
 import type { AuthState, LocationMode, LunarDay, SolarDay } from '../api/types';
@@ -286,7 +287,7 @@ export function Network() {
             <tbody>
               {clients.map(c => (
                 <tr key={c.host} style={{ borderBottom:'1px solid var(--border-dim)' }}>
-                  <td className="px-4 py-2 mono" style={{ color:'var(--t2)' }}>{c.host}</td>
+                  <td className="px-4 py-2 mono" style={{ color:'var(--t2)' }}><Sensitive>{c.host}</Sensitive></td>
                   <td className="px-4 py-2 mono tabular" style={{ color:'var(--t2)' }}>{c.ntp_packets.toLocaleString()}</td>
                   <td className="px-4 py-2 mono tabular" style={{ color:'var(--t3)' }}>{c.dropped}</td>
                   <td className="px-4 py-2 mono" style={{ color:'var(--t3)' }}>{/^\d+$/.test(c.last) ? `${fmtDuration(Number(c.last))} ago` : c.last}</td>
@@ -312,7 +313,7 @@ export function Network() {
               {(core.data?.sources ?? []).map(s => (
                 <tr key={s.name} style={{ borderBottom:'1px solid var(--border-dim)' }}>
                   <td className="px-4 py-2 mono" style={{ color:'var(--t2)' }}>
-                    {s.name}
+                    {s.is_self ? <Sensitive>{s.name}</Sensitive> : s.name}
                     {s.is_self && <span style={{ color:'var(--warn-text)' }} title="chrony is polling this station's own address (usually from DHCP). It is not an external reference."> · THIS STATION</span>}
                   </td>
                   <td className="px-4 py-2 mono" style={{ color: s.state === '*' && !s.is_self ? 'var(--good-text)' : s.is_self ? 'var(--warn-text)' : 'var(--t3)' }}>{s.state} {s.state_label}</td>

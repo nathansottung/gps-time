@@ -867,3 +867,14 @@ From the owner's list. The Overview's day-to-day shifts of sunrise, solar noon a
 - `deploy/upgrade-1.4-station.md` is now the rc.8 → rc.9 checklist, with checks for the PPS counters, the new flush, the oscillator log, the evidence files and the round trip. The other checklists, README and START-HERE target rc.9.
 - Not in rc.9: "sunset prominence" and "screenshot mode" (owner's list), which need the owner's description.
 - The annotated tag `v1.4.0-rc.9` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+
+## 2026-10-19 — screenshot mode (#79)
+
+From the owner's list: a way to take screenshots of the station UI without showing where it is or who uses it.
+
+- **What it hides, in `/app/`:** latitude and longitude, heights (h, H and the geoid undulation N = h − H, which is derived from them), NTP client addresses, the hostname (header and the Overview's engineering console), and the station's own address when chrony polls it.
+- **How:** each hidden value is replaced by a mask of the same shape (digits → 0, letters → x: `38.9217°` → `00.0000°`), blurred. The real value is not drawn at all, because blurred digits in a known font can be recovered.
+- **Display only.** Nothing changes on the station, in the API or in exports, and the station's location privacy mode is unaffected; the toggle says "display only" and its tooltip points to Location privacy. Values it does not hide: sun and moon times, sidereal time and the local zone, which narrow the position only coarsely; for those, use the station's rounded or hidden mode.
+- **Toggle:** in the header; Alt+Shift+S (by key position, so it also works on macOS). Remembered per browser in `localStorage` (`gtp-screenshot-mode`); if storage is blocked it lasts for the page.
+- The legacy pages are not changed (they are not restyled; noted in `dashboard/web-ui-parity.md`).
+- Tests: `web/src/lib/screenshot.test.ts` (6). Checked in the desktop demo: the toggle, the shortcut, the setting surviving a reload, and no client address left in the page text.

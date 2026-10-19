@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatUtc, unixSeconds } from './lib/localtime';
 import { HourToggle, useStationTime } from './components/clock';
 import { DemoBanner } from './components/ui';
+import { ScreenshotToggle, Sensitive } from './components/screenshot';
 import Overview from './pages/Overview';
 import Timing from './pages/Timing';
 import GNSS from './pages/GNSS';
@@ -72,7 +73,7 @@ function Header() {
         </svg>
         <span className="mono text-[12px] font-semibold tracking-tight" style={{ color:'var(--t1)' }}>GPS Time</span>
         <span className="text-[9px] mono" style={{ color:'var(--t4)' }}>|</span>
-        <span className="text-[11px]" style={{ color:'var(--t3)' }}>{stationName}</span>
+        <span className="text-[11px]" style={{ color:'var(--t3)' }}><Sensitive>{stationName}</Sensitive></span>
       </div>
 
       {/* Centre — station state chips */}
@@ -109,6 +110,7 @@ function Header() {
           </div>
         </div>
         <HourToggle t={time} />
+        <ScreenshotToggle />
       </div>
     </header>
   );

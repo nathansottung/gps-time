@@ -126,6 +126,9 @@ b, strong { font-weight: 600; }
 .row-sep { border-bottom: 1px solid var(--border-dim); }
 .row-sep:last-child { border-bottom: none; }
 
+/* Screenshot mode (components/screenshot.tsx): a blurred mask stands in for the value */
+.sensitive { filter: blur(4px); user-select: none; }
+
 /* ─── Navigation ─────────────────────────────────────────────────────────────── */
 .nav-item {
   border-left: 2px solid transparent;
