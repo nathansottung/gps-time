@@ -19,6 +19,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `architecture/timing-core-boundaries.md`
 - `architecture/earth-shadow-and-satellites.md` — umbra/penumbra model, zenith shadow height, illumination sky map, contamination summary, satellites from an offline TLE cache; limits, privacy, validation
 - `architecture/independent-references.md` — comparing the station with NTP servers that don't steer it: which servers count, the agree/disagree rule, delay through the helper, the optional `noselect` installer step
+- `architecture/oscillator-log.md` — temperature with chrony's frequency in 10-minute bins: storage on the SD card (hourly, capped, board-bound), the slope it reports, what the oscillator profile still needs
 - `architecture/stability-analysis.md` — ADEV/MDEV/TDEV: what is measured, confidence bars, RAM storage, validation against NIST SP 1065
 - `architecture/timing-chain.md` — GNSS → PPS → chrony stages, PPS state machine, status banner, outage events, `/api/timing-chain`
 

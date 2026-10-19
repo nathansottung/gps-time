@@ -181,6 +181,31 @@ Query: `sat` (NORAD catalogue number) selects the satellite for `satellite` and 
 - Up to 10 passes in the next 24 h. Answers are kept for 20 s.
 - Demo mode returns a hand-written sample (`demo.note`); it needs no elements.
 
+## GET /api/oscillator
+
+SoC temperature logged with chrony's frequency estimate, in 10-minute bins. Type: `Oscillator`. Background: `architecture/oscillator-log.md`.
+
+```json
+{"available": true, "reason": null, "provenance": "observed", "sensor": "SoC temperature sensor ... not the crystal ...",
+ "frequency_note": "...", "bin_s": 600, "sample_interval_s": 60.0,
+ "bins": [{"t": "2026-10-19T15:30:00+00:00", "samples": 10, "pps_samples": 10, "temp_mean_c": 53.4, "temp_min_c": 53.1,
+           "temp_max_c": 53.8, "freq_mean_ppm": 10.345, "freq_min_ppm": 10.343, "freq_max_ppm": 10.347,
+           "skew_mean_ppm": 0.008, "residual_mean_ppm": -0.0}],
+ "latest": {"temp_c": {"value": 53.4, "unit": "°C", "provenance": "observed"}, "freq_ppm": {"value": 10.345, "unit": "ppm", "provenance": "observed"},
+            "bin_start_utc": "2026-10-19T15:30:00+00:00"},
+ "fit": {"bins_used": 288, "slope_ppm_per_c": -0.031, "intercept_ppm": 12.0, "r": -0.82, "temp_span_c": 6.1, "reason": null, "provenance": "calculated"},
+ "fit_note": "... not the oscillator profile and not a holdover prediction.",
+ "storage": {"path": "/opt/gps-time-pi/oscillator-log.csv", "bytes": 24727, "max_bytes": 4194304, "pending_bins": 3, "flush_interval_s": 3600.0, "note": "..."},
+ "board": {"serial_sha256": "a1b2c3d4e5f60718", "model": "Raspberry Pi 4 Model B Rev 1.2"},
+ "problems": []}
+```
+
+- `freq_*_ppm`: chrony's `Frequency`, + = fast. A bin with `pps_samples < samples` was not under PPS throughout and is not used for `fit`.
+- `fit.slope_ppm_per_c` is null with a `reason` until there are 36 PPS bins and a 2 °C temperature range.
+- `bins` holds up to 7 days (RAM); the file holds more.
+- `board.serial_sha256` is a hash; the serial number itself is never exposed.
+- `available: false` until the first 10-minute bin is finished.
+
 ## GET /api/ntp-service
 
 chrony's NTP server counters (`chronyc -n serverstats`) with rates and a short history. Type: `NtpService`. Code: `gps_time_pi/ntpservice.py`.

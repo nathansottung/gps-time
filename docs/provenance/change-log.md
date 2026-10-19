@@ -789,3 +789,16 @@ rc.9 item 3. The rc.8 soak run counted 112,588 missed pulses (about 9 % of the r
 - **Outage detection is unchanged:** it still works from the age of the newest kernel event, every second. A test checks that a loss still opens an outage with the poller doing the reading.
 - `/api/timing-chain` → `pps.unread_pulses`, `pps.poller`; the PPS page and the diagnostics snapshot show them.
 - Tests: `tests/test_pps_poller.py` (16). Not yet run on a Pi.
+
+## 2026-10-19 — oscillator log: temperature with chrony's frequency (#71)
+
+Owner's request: "temperature logging alongside chrony frequency, to feed the oscillator profile" (`roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1). Architecture: `docs/architecture/oscillator-log.md`.
+
+- **Recorded once a minute:** chrony's `Frequency`, `Skew` and `Residual freq` (observed) and the SoC temperature from `/sys/class/thermal` (observed; the processor's sensor, not the crystal's, and the page says so), with whether chrony had PPS selected.
+- **Storage:** 10-minute bins in RAM; finished bins appended to `oscillator-log.csv` next to `config.json` once an hour and on a clean stop (fsync). About six short lines an hour; never a write per sample. Capped at 4 MB (`GTP_OSCILLATOR_LOG_MAX_BYTES`); past the cap the oldest quarter goes in one atomic rewrite. The last 7 days are read back into RAM on start.
+- **Board-bound:** the file starts with a hash of the board's serial number (never the serial) and the model. A file from another board is set aside, not mixed in.
+- **Slope:** a straight line of frequency against temperature over bins with PPS selected throughout, `calculated`, once there are 36 such bins and 2 °C of range. Labeled as not the oscillator profile and not a holdover prediction.
+- **Timing → Oscillator** in `/app/`: scatter with the fit, temperature and frequency over time, the log's state.
+- Tests and standalone timing-chain evaluations write no log file; only the running service does.
+- Not done: the profile itself (fitted model, holdover projection, export/import).
+- Tests: `tests/test_oscillator.py` (23), `web/src/lib/oscillator.test.ts` (5). Checked in the demo. Not yet run on a Pi.
