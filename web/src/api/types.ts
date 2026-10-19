@@ -261,7 +261,9 @@ export interface TimingChain {
     age_s?: Measured;
     last_interval_s?: Measured;
     rate_hz?: Measured;
-    missed_pulses?: Measured;
+    missed_pulses?: Measured;       // pulses the kernel never counted (from its sequence number)
+    unread_pulses?: Measured;       // pulses the kernel counted that no poll read on its own; not lost
+    poller?: { polls: number; late_polls: number; max_poll_gap_s: number | null; late_after_s: number; note: string };
     consecutive_pulses?: Measured;
     sequence_resets?: number;
     interval_stats?: Measured<{ count: number; mean: number; min: number; max: number; stdev: number | null }> | null;
