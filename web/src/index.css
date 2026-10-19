@@ -136,6 +136,17 @@ b, strong { font-weight: 600; }
 /* Screenshot mode (components/screenshot.tsx): a blurred mask stands in for the value */
 .sensitive { filter: blur(4px); user-select: none; }
 
+/* Red night theme (components/prefs.tsx): multiplying by red removes all green and blue light */
+/* Only the red channel survives the overlay, so the dim text and rule tokens are lifted to stay legible. */
+:root[data-theme="night"] {
+  --t2: #c4c4c4;
+  --t3: #9c9c9c;
+  --t4: #747474;
+  --border:     rgba(255,255,255,0.16);
+  --border-dim: rgba(255,255,255,0.10);
+}
+.night-overlay { position: fixed; inset: 0; background: rgb(190, 0, 0); mix-blend-mode: multiply; pointer-events: none; z-index: 2147483647; }
+
 /* ─── Navigation ─────────────────────────────────────────────────────────────── */
 .nav-item {
   border-left: 2px solid transparent;

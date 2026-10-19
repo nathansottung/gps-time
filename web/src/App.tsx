@@ -3,6 +3,8 @@ import { formatUtc, unixSeconds } from './lib/localtime';
 import { HourToggle, useStationTime } from './components/clock';
 import { DemoBanner } from './components/ui';
 import { ScreenshotToggle, Sensitive } from './components/screenshot';
+import { NightOverlay, ThemeToggle, useModules } from './components/prefs';
+import { visiblePage } from './lib/prefs';
 import Overview from './pages/Overview';
 import Timing from './pages/Timing';
 import GNSS from './pages/GNSS';
@@ -110,6 +112,7 @@ function Header() {
           </div>
         </div>
         <HourToggle t={time} />
+        <ThemeToggle />
         <ScreenshotToggle />
       </div>
     </header>
@@ -129,6 +132,7 @@ function Chip({ label, value }: { label: string; value?: string }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: string) => void }) {
   const { core } = useStation();
+  const [modules] = useModules();
   return (
     <nav
       className="w-[188px] flex-shrink-0 flex flex-col overflow-y-auto"
@@ -136,7 +140,7 @@ function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: stri
     >
       <div className="flex-1 py-2">
         {GROUPS.map(group => {
-          const items = NAV.filter(n => (n.group||'') === group);
+          const items = NAV.filter(n => (n.group||'') === group && !modules.hiddenPages.includes(n.id));
           if (!items.length) return null;
           return (
             <div key={group} className={group ? 'mt-1' : ''}>
@@ -200,11 +204,14 @@ function PageContent({ page, onNavigate }: { page: string; onNavigate: (id: stri
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage] = useState('overview');
+  const [chosen, setPage] = useState('overview');
   const { isDemo } = useStation();
+  const [modules] = useModules();
+  const page = visiblePage(chosen, modules);   // a page hidden on Configure falls back to the Overview
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background:'var(--bg)' }}>
+      <NightOverlay />
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar active={page} onNavigate={setPage} />

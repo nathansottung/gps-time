@@ -194,9 +194,9 @@ export function RangeSelector({ ranges, active, onChange }: { ranges: string[]; 
 }
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
-export function Toggle({ on, onChange }: { on: boolean; onChange: (v:boolean)=>void }) {
+export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v:boolean)=>void; label?: string }) {
   return (
-    <button onClick={() => onChange(!on)}
+    <button onClick={() => onChange(!on)} role="switch" aria-checked={on} aria-label={label}
       className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${on ? 'toggle-on' : 'toggle-off'}`}>
       <span className={`absolute top-[2px] h-4 w-4 rounded-full transition-transform ${on ? 'toggle-thumb-on' : 'toggle-thumb-off'}`}/>
     </button>
