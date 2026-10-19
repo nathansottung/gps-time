@@ -765,7 +765,7 @@ Owner decision, 2026-10-04: the installer makes the change that #48 left as an o
 - **Found:** `gps_time_pi/templates/index.html` is not served by any route. It was left in place; deleting it is listed as the one thing that could be done now, for the owner to decide.
 - `STATUS.md`: the parity row's note updated; a new planned row "Retire the legacy pages".
 
-## 2026-10-19 — rc.8 soak run: outages, holdover, rc.9 list (#63)
+## 2026-10-19 — rc.8 soak run: outages, holdover, rc.9 list (#69)
 
 Docs only. Read-only checks of the Pi on 2026-10-19; nothing on the station was changed.
 

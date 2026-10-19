@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/oct17-outages-rc9-list, #63). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/oct17-outages-rc9-list, #69). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -221,7 +221,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | §11 | GNSS↔PPS correlation | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §12a | Generic event schema | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §12b | Fifteen event types | planned | partial: PPS_OUTAGE only | [#4](https://github.com/nathansottung/gps-time/pull/4) |
-| OBS | §13 | ±5 min forensic evidence window | next | rc.9 item 2 (evidence on SD under a size cap) | [#63](https://github.com/nathansottung/gps-time/pull/63) |
+| OBS | §13 | ±5 min forensic evidence window | next | rc.9 item 2 (evidence on SD under a size cap) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
 | OBS | §14 | Multi-station event format | planned |  |  |
 | OBS | §15 | Receiver upgrade-path doc | planned | partial |  |
 | OBS | §16 | Immediate diagnostic doc | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
@@ -474,7 +474,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | done | Network page; chrony counts received and dropped, not replies, so "served" is shown as received − dropped. Not yet run on a Pi | [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4, §6 done; §2 and §5 not started | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | Repo |  | Tag v1.4.0-rc.8 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#59](https://github.com/nathansottung/gps-time/pull/59) |
-| Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | done | 14 days 20 h, 2026-10-04 to 2026-10-19; real PPS/GNSS outages on 2026-10-17 (about 71 min, one 56-min holdover ending +1.7 µs); v1.4.0 not tagged | [#59](https://github.com/nathansottung/gps-time/pull/59) [#63](https://github.com/nathansottung/gps-time/pull/63) |
+| Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | done | 14 days 20 h, 2026-10-04 to 2026-10-19; real PPS/GNSS outages on 2026-10-17 (about 71 min, one 56-min holdover ending +1.7 µs); v1.4.0 not tagged | [#59](https://github.com/nathansottung/gps-time/pull/59) [#69](https://github.com/nathansottung/gps-time/pull/69) |
 | RF | Architecture | RF node (`rf-node/` in this repo): SDR on its own machine, chrony client of the station, SoapySDR, OpenWebRX, GNU Radio, agent | planned |  |  |
 | RF | Architecture | Agent: short IQ snippets around detections, tagged with UTC, the node's chrony offset and uncertainty, and frequency reference state; sends events | planned |  |  |
 | RF | Architecture | Coordinator on a stronger machine (not the station Pi): calibration and position solving; offline-capable, no cloud | planned |  |  |
@@ -495,7 +495,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Rules | Node positions follow the station's privacy modes | planned |  |  |
 | RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |
 | Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
-| Repo |  | Log flush without write amplification; capped RAM log and SD copy | next | rc.9 item 1; the hourly flush copies the whole RAM log (about 240 MB a day at the check) | [#63](https://github.com/nathansottung/gps-time/pull/63) |
-| Repo |  | Outage evidence kept on the SD card under a size cap | next | rc.9 item 2; with OBS §13 | [#63](https://github.com/nathansottung/gps-time/pull/63) |
-| Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | next | rc.9 item 3; the rc.8 run counted 112,588 missed pulses (about 9 %) | [#63](https://github.com/nathansottung/gps-time/pull/63) |
+| Repo |  | Log flush without write amplification; capped RAM log and SD copy | next | rc.9 item 1; the hourly flush copies the whole RAM log (about 240 MB a day at the check) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
+| Repo |  | Outage evidence kept on the SD card under a size cap | next | rc.9 item 2; with OBS §13 | [#69](https://github.com/nathansottung/gps-time/pull/69) |
+| Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | next | rc.9 item 3; the rc.8 run counted 112,588 missed pulses (about 9 %) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
 | Repo |  | Second soak run (rc.9) before v1.4.0 | planned | owner's step |  |
