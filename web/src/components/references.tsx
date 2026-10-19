@@ -18,12 +18,12 @@ function demoScenario(): string | undefined {
 export function ReferencesPanel() {
   const { api } = useStation();
   const scenario = demoScenario();
-  const rf = usePoll(() => api.references({ scenario }), 15_000, [api, scenario]);
   const [picked, setPicked] = useState<string | null>(null);
+  const rf = usePoll(() => api.references({ scenario, history: picked ?? undefined }), 15_000, [api, scenario, picked]);
   const d = rf.data;
   const v = d?.verdict;
   const refs = d?.references ?? [];
-  const shown = refs.find(r => r.name === picked) ?? refs.find(r => r.history.length > 0) ?? null;
+  const shown = refs.find(r => r.history.length > 0) ?? refs.find(r => r.name === picked) ?? null;
   const hist = historySeries(shown?.history);
   const limit = v ? fmtSpan(v.threshold_s) : null;
 

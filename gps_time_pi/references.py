@@ -153,12 +153,16 @@ class Tracker:
         d = (self._ntpdata or {}).get(name.lower())
         return d.get("peer_delay_s") if d else None
 
-    def report(self):
-        """The /api/references payload."""
+    def report(self, history_for=None):
+        """The /api/references payload. Each server's history is included only
+        for `history_for` (a server name), or for the first independent server
+        with history when it is None: all of them at once was about 1 MB."""
         with self._lock:
             rows, ok, at = list(self._rows), self._ok, self._at
             history = {k: list(v) for k, v in self._history.items()}
         refs, excluded = [], []
+        if history_for is None:
+            history_for = next((r["name"] for r in rows if role(r) == "independent" and history.get(r["name"])), None)
         for row in rows:
             kind = role(row)
             if kind is None:
@@ -182,7 +186,8 @@ class Tracker:
                 "root_delay_s": nd.get("root_delay_s") if good else None,
                 "assessment": assess_one(row["offset_s"], row["error_bound_s"], self.threshold_s) if good else "not usable",
                 "provenance": "external",
-                "history": history.get(row["name"], []),
+                "history": history.get(row["name"], []) if row["name"] == history_for else [],
+                "history_points": len(history.get(row["name"], [])),
             })
         return {
             "available": ok,

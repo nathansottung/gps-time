@@ -24,6 +24,8 @@ import math
 import os
 import re
 import sys
+import threading
+import time
 import traceback
 from datetime import date as _date
 from datetime import datetime, timezone
@@ -192,6 +194,51 @@ def _astro_failure(e):
                       "See journalctl -u gps-time-pi."}
 
 
+# The almanac is the station's most expensive answer: on a Raspberry Pi 4 a full
+# /api/almanac took about 15 s of CPU, and the legacy dashboard asks for it on
+# every 5 s refresh. While it runs, every other request (including /api/ping,
+# which the browser uses to measure its round trip) waits behind it in the same
+# Python process. The day-level parts depend only on the date, the zone and the
+# (privacy-reduced) site, so they are computed once and kept; the sky snapshot
+# is kept for a minute. Identical requests that arrive while one is being
+# computed wait for that result instead of starting their own.
+ALMANAC_DAY_TTL_S = 6 * 3600.0
+ALMANAC_SKY_TTL_S = 60.0
+_MEMO = {}
+_MEMO_LOCK = threading.Lock()
+_MEMO_INFLIGHT = {}
+MEMO_MAX = 64
+
+
+def memo(key, ttl_s, build):
+    """build() once per key per ttl_s; concurrent callers of the same key share one build."""
+    while True:
+        now = time.monotonic()
+        with _MEMO_LOCK:
+            hit = _MEMO.get(key)
+            if hit and now - hit[0] < ttl_s:
+                return hit[1]
+            waiting = _MEMO_INFLIGHT.get(key)
+            if waiting is None:
+                done = threading.Event()
+                _MEMO_INFLIGHT[key] = done
+                break
+        if not waiting.wait(120):
+            return build()                           # the other build hung: don't wait forever
+    try:
+        value = build()
+        with _MEMO_LOCK:
+            if len(_MEMO) >= MEMO_MAX:
+                oldest = min(_MEMO, key=lambda k: _MEMO[k][0])
+                _MEMO.pop(oldest, None)
+            _MEMO[key] = (time.monotonic(), value)
+        return value
+    finally:
+        with _MEMO_LOCK:
+            _MEMO_INFLIGHT.pop(key, None)
+        done.set()
+
+
 def almanac_api(qs):
     try:
         return _almanac_api(qs)
@@ -224,13 +271,20 @@ def _almanac_api(qs):
     site, mode = config.privacy_site(cfg, site)     # rounded mode: compute from the rounded site only
     obs_dt = _obs_datetime(d, tzname, qs.get("at", ["now"])[0])
 
-    sun = astro.solar_day(d, site, tzname)
-    sun_y = astro.solar_day(d - __import__("datetime").timedelta(days=1), site, tzname)
-    sun_t = astro.solar_day(d + __import__("datetime").timedelta(days=1), site, tzname)
-    dy, dt_ = astro.daylight_deltas(d, site, tzname)
-    moon = astro.lunar_day(d, site, tzname)
-    nite = astro.night(d, site, tzname)
-    sky = astro.sky_snapshot(site, obs_dt, _LAST_TARGET.get("t"))
+    one_day = __import__("datetime").timedelta(days=1)
+    where = (round(site["lat"], 5), round(site["lon"], 5), site.get("alt_msl"), mode, tzname)
+
+    def day(name, fn, dd):
+        return memo(("almanac", name, dd.isoformat(), where), ALMANAC_DAY_TTL_S, lambda: fn(dd, site, tzname))
+    sun = day("sun", astro.solar_day, d)
+    sun_y = day("sun", astro.solar_day, d - one_day)
+    sun_t = day("sun", astro.solar_day, d + one_day)
+    dy, dt_ = day("deltas", astro.daylight_deltas, d)
+    moon = day("moon", astro.lunar_day, d)
+    nite = day("night", astro.night, d)
+    target = _LAST_TARGET.get("t")
+    sky = memo(("almanac", "sky", obs_dt.strftime("%Y-%m-%dT%H:%M"), where, repr(target)), ALMANAC_SKY_TTL_S,
+               lambda: astro.sky_snapshot(site, obs_dt, target))
 
     age = None
     if provenance == "stored" and site.get("updated"):
@@ -470,7 +524,7 @@ def references_payload(qs):
         return demo.references(qs.get("scenario", ["agree"])[0])
     svc = timing_chain.service()
     svc.latest()                      # make sure chrony has been read at least once
-    return svc.references.report()
+    return svc.references.report(qs.get("history", [None])[0])
 
 
 def timescales_payload():
@@ -668,7 +722,8 @@ class Handler(BaseHTTPRequestHandler):
             elif p == "/api/object":
                 self._json(object_api(qs))
             elif p == "/api/history":
-                self._json(demo.history() if DEMO_MODE else chrony.history())
+                # The whole tracking log is parsed for this; once a minute is enough.
+                self._json(demo.history() if DEMO_MODE else memo(("history",), 60.0, chrony.history))
             elif p == "/api/timing-chain":
                 self._json(timing_chain_payload(qs))
             elif p == "/api/stability":

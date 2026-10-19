@@ -34,6 +34,7 @@ class PrivacyBase(unittest.TestCase):
     mode = "exact"
 
     def setUp(self):
+        server._MEMO.clear()     # the almanac cache must not carry results from one test into another
         tmp = tempfile.mkdtemp(prefix="gps-time-privacy-")
         cfg_path = os.path.join(tmp, "config.json")
         Path(cfg_path).write_text(json.dumps({"location_display": self.mode}))
