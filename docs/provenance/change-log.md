@@ -897,6 +897,15 @@ From the owner's list: a way to take screenshots of the station UI without showi
 - `STATUS.md`: rc.10 replaces rc.9 as the soak-run candidate; all four queued UI fixes are done.
 - The annotated tag `v1.4.0-rc.10` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
 
+## 2026-10-19 — station actions in /app/ (#81)
+
+Owner's request: port the legacy-removal blockers into `/app/`, one PR each. This is the first (parity item 6; `dashboard/legacy-removal-plan.md`).
+
+- Administration → **Station actions**: flush logs to SD, restart gpsd, restart chrony, restart the web service, reboot. Same `POST /api/admin` and admin token as the legacy `/admin` page; the station side (fixed commands, polkit) is unchanged.
+- Every action except the log flush asks first, inline, saying what it interrupts. The confirmation never claims timing is unaffected.
+- Afterwards the page shows the station's own answer. A request with no answer (timeout or network) is reported as "may still have run", not as a failure. Restart and reboot say the station will be unreachable for a while; the page's polling reconnects.
+- The legacy `/admin` page keeps its buttons; nothing is removed.
+- Tests: `web/src/lib/admin.test.ts` (8). Checked in the desktop demo (simulated: "demo, not executed"). Not run on a Pi.
 ## 2026-10-19 — survey reset in /app/ (#82)
 
 The second legacy-removal blocker (parity item 7).

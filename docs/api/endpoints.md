@@ -472,7 +472,7 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
 | other | nothing | `unknown action` (`ok: false`) |
 
-Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The new UI's client has `admin()`; its buttons are still only on the legacy `/admin` page.
+Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The new UI has the same actions on Administration → Station actions (`/app/`); the legacy `/admin` page keeps its buttons.
 
 ---
 
