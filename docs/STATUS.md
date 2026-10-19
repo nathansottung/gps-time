@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/release-v1.4.0-rc.11, #95). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (tools/soak-check, #96). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -88,7 +88,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 451 rows: 252 done, 0 in progress, 26 next, 173 planned.
+**Totals:** 452 rows: 253 done, 0 in progress, 26 next, 173 planned.
 
 ## Status table
 
@@ -545,3 +545,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Dependabot: 5 web minor/patch updates (React 19.3.1, Vitest 5.0.5, lucide-react 1.58, @types/node 22.20.5) | done | merged when green, after a local check against current main | [#85](https://github.com/nathansottung/gps-time/pull/85) |
 | Web UI |  | Legacy almanac sky map: E and W labels were swapped | done | east-azimuth objects were drawn on the left under a right-hand "E"; labels now match the projection (N up, E left, as seen looking up). Found while porting the map (#88) | [#92](https://github.com/nathansottung/gps-time/pull/92) |
 | Repo |  | Tag v1.4.0-rc.11 with release notes | done | pre-release; tag on this PR's merge commit; the soak candidate and the commit v1.4.0 is to be tagged on | [#95](https://github.com/nathansottung/gps-time/pull/95) |
+| Repo |  | `tools/soak_check.py`: read-only pre-release soak check | done | HTTP GETs only; the criteria fixed in #95; exit 0 clean / 1 not / 2 unreadable. Run against rc.10 on 2026-10-19 (not clean, as expected after 2 h) | [#96](https://github.com/nathansottung/gps-time/pull/96) |

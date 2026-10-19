@@ -137,6 +137,7 @@ Remove them again with `GTP_INDEPENDENT_REFS=0`. Details: `../architecture/indep
 
 ## 5. The soak run before v1.4.0
 
+- At the end, run the read-only check from Windows (HTTP GETs only; it changes nothing): `python tools/soak_check.py http://<station> --expect 1.4.0-rc.11`. It prints each criterion and `CLEAN` or `NOT CLEAN` (exit 0 / 1; 2 if the station can't be read). The criteria are in its docstring and in the change log entry for #95.
 - The stability history is kept in RAM and starts again whenever the web service restarts. For the longest averaging times, don't restart `gps-time-pi` or reboot during the run.
 - What appears when, counted from the service start:
 
