@@ -4,6 +4,7 @@ import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { TimingChainCard } from '../components/timing';
 import { StationClockCard } from '../components/clock';
+import { useModules } from '../components/prefs';
 import { Sensitive } from '../components/screenshot';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { toSkySats, plottable, cn0Stats, toOffsetSeries, fracFreq, allEvents, satCounts, ntpClientCount } from '../api/view';
@@ -404,22 +405,30 @@ function MoonWidget() {
 
 // ─── Variant A: Scientific Observatory (default) ──────────────────────────────
 function VariantA() {
+  // Cards hidden on Configure → Modules (lib/prefs.ts). Timing quality always shows.
+  const [{ hiddenCards }] = useModules();
+  const show = (id: string) => !hiddenCards.includes(id);
+  const right = show('network') || show('datapacks');
   return (
     <div className="space-y-3 page-enter">
       <TimingWidget />
-      <HoldoverWidget />
-      <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-5"><SunWidget /></div>
-        <div className="col-span-3"><GNSSWidget /></div>
-        <div className="col-span-4 space-y-3">
-          <NetworkWidget />
-          <DataPackWidget />
+      {show('holdover') && <HoldoverWidget />}
+      {(show('sun') || show('gnss') || right) && (
+        <div className="grid grid-cols-12 gap-3">
+          {show('sun') && <div className="col-span-5"><SunWidget /></div>}
+          {show('gnss') && <div className="col-span-3"><GNSSWidget /></div>}
+          {right && <div className="col-span-4 space-y-3">
+            {show('network') && <NetworkWidget />}
+            {show('datapacks') && <DataPackWidget />}
+          </div>}
         </div>
-      </div>
-      <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-4"><SolarWidget /></div>
-        <div className="col-span-8"><MoonWidget /></div>
-      </div>
+      )}
+      {(show('solar') || show('moon')) && (
+        <div className="grid grid-cols-12 gap-3">
+          {show('solar') && <div className="col-span-4"><SolarWidget /></div>}
+          {show('moon') && <div className="col-span-8"><MoonWidget /></div>}
+        </div>
+      )}
     </div>
   );
 }
