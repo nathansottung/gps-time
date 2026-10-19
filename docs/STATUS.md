@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (tools/soak-check, #96). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/deploy-log-dev-unit, #97). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -41,6 +41,8 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 9. **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
+
+- **2026-10-19, the current station:** owner: it is a development unit (Pi 4, Uputronics MAX-M8Q, current antenna and site), and its weak C/N₀ (best about 25 dB-Hz) is an antenna and site limit. Recorded in `development/raspberry-pi-deploy.md`. The soak criteria are unchanged; a run that fails only on outages is reported, not tagged.
 
 - **2026-10-19, release route:** owner chose rc.11 from main (with #93's release-blocker fix and the `/app/` port) over tagging v1.4.0 on rc.10. v1.4.0 goes on the rc.11 commit after three clean days. Removal step 7 stays out of rc.11.
 

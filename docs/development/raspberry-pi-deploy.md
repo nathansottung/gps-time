@@ -45,12 +45,19 @@ Also seen and not yet explained: the PPS monitor counted 112,588 missed pulses o
 
 Not recorded: which checklist was followed, and the result of each individual check (polkit, admin token, vcgencmd values). Nothing merged after rc.6 has run on a Pi yet; v1.4.0-rc.8 is the next deploy.
 
+### The current station (owner, 2026-10-19)
+
+- **It is a development unit,** not a reference installation: a Raspberry Pi 4 with the Uputronics MAX-M8Q board (`uputronics` profile) and its current antenna, where it is now.
+- **Its weak C/N₀ (best about 25 dB-Hz) is an antenna and site limit.** That is the owner's assessment of this installation. The station itself only observes the signal levels and the outages; it does not name their cause, and its event classifications stay `inferred` boundaries. A well-sited active antenna with a clear sky usually reports best C/N₀ in the 40s to about 50 dB-Hz.
+- What this means for the soak runs: PPS outages on this unit can come from the antenna and site, so an outage alone doesn't show a software fault. The v1.4.0 criteria (#95) still count every outage except the installer's; a run that fails only on outages is reported to the owner rather than tagged. Outage detection is not weakened (owner, 2026-10-19).
+- The next hardware tier, a dual-band u-blox receiver, is scoped in `../hardware/zed-f9-dual-band.md`.
+
 ### First hours of v1.4.0-rc.10 (read-only check, 2026-10-19 20:27 UTC)
 
 Read over HTTP and SSH, nothing changed. The service started at 18:10:03 UTC (no restarts); the Pi has been up since 2026-10-04. At the check: GPS/PPS selected, stratum 1, the PPS interval over the last 600 pulses 1.000 000 s ± 1.3 µs (kernel timestamps).
 
 - **Four outage events in 2 h 17 min.** The first, 18:10:07 for 32 s, PPS NOT USED BY CHRONY: the installer restarts chrony and PPS selection takes a moment to return; pulses were healthy throughout. Expected on every upgrade. The other three were real loss of kernel PPS: 19:35:51 (41 s, GNSS RECEPTION ANOMALY), 19:37:35 (231 s, PPS PATH ANOMALY), 19:53:11 (493 s, PPS AND GNSS TELEMETRY UNAVAILABLE). At their start the receiver used 0 satellites with the best C/N₀ 20–28 dB-Hz. The classifications are the station's (`inferred`) and name a boundary in the signal path, not a cause.
-- **Weak GNSS signal at the check:** 8 of 23 satellites used, best C/N₀ 25 dB-Hz, median of those used 15 dB-Hz. That is `observed`; what makes it weak is not established. The 2026-10-17 events on rc.8 also started with 0 used and C/N₀ about 22–23 dB-Hz.
+- **Weak GNSS signal at the check:** 8 of 23 satellites used, best C/N₀ 25 dB-Hz, median of those used 15 dB-Hz (`observed`). The 2026-10-17 events on rc.8 also started with 0 used and C/N₀ about 22–23 dB-Hz. **Owner, 2026-10-19:** the weak signal is a limit of this antenna and site, not of the software (see "The current station" below).
 - **Missed pulses are real absences, not a polling artifact:** 812 missed (9.9 % of 8199 reads), 0 unread, 0 late reads, longest gap between reads 1.049 s. The station read every second and the kernel's own sequence number skipped those pulses. The three real outages cover 765 s of the 812. This answers the question rc.9's poller was built for (the rc.8 run's 9 %), for this window; whether rc.8's 14-day count had the same make-up is not known.
 - **Browser round trip is fixed:** `/api/ping` median 16 ms (max 32 ms) from the LAN, 24 ms (max 60 ms) while `/api/almanac` was requested continuously. On rc.8 it was seconds.
 - **Stability over this short window is dominated by the outages:** ADEV 2.1 × 10⁻⁵ at 1 s, 1.1 × 10⁻⁵ at 10 s, 1.4 × 10⁻⁶ at 100 s, 1.7 × 10⁻⁷ at 1000 s, with 812 gaps in 7387 samples (PPS selected 99.6 %). rc.8's 1 s value over two weeks was 1.7 × 10⁻⁶. Why the short window is this much higher is not established.
