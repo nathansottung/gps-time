@@ -89,7 +89,7 @@ Each step is its own PR. Steps 1 to 3 delete nothing.
 
 1. **Owner decisions** on the rows marked "owner decides" and on dropping item 20. Record them in `web-ui-parity.md`.
 2. **Port the blockers**, in this order:
-   1. Admin actions and survey reset in `/app/` Administration (items 6, 7).
+   1. *Done in #81 and #82.* Admin actions and survey reset in `/app/` Administration (items 6, 7).
    2. Almanac: date navigation, twilight and night bars, moon details (8, 9, 10).
    3. Sky map and object lookup (11, 12), with the object target made per-request.
    4. Survey convergence and ingest counters (14, 15); remaining chrony detail (16).
@@ -108,7 +108,8 @@ Each step is its own PR. Steps 1 to 3 delete nothing.
 
 ## 4. Timing
 
-- **Not before v1.4.0.** The Pi runs the legacy pages today, rc.8 is about to start its soak run, and the fixes found on the first Pi build were found *through* the legacy pages. Removing them now would change what is being soaked.
+- **Not before v1.4.0.** The Pi runs the legacy pages today and is soaking v1.4.0-rc.10 (from 2026-10-19), and the fixes found on the first Pi build were found *through* the legacy pages. Removing them now would change what is being soaked.
+- The queue, as numbered steps with a status row each, is in `../STATUS.md` → "Legacy removal: queue (after v1.4.0)" (#84).
 - Steps 1 and 2 can proceed at any time: they only add to `/app/`.
 - Step 3 fits the first release after v1.4.0; step 4 the one after that.
 

@@ -922,3 +922,7 @@ Dependabot's TypeScript 5.9 → 7.0.2, held for the owner on 2026-10-19 and merg
 ## 2026-10-19 — Dependabot: @types/node majors ignored; #64 closed (#83)
 
 Owner's decision after review. #64 offered `@types/node` 22 → 26, but the web toolchain runs on Node 22 (`web/.mise.toml`, `.github/workflows/web.yml`). Types for Node 26 would let code use APIs Node 22 doesn't have and still pass the type check; #64's CI was green only because nothing uses them yet. #64 is closed, and `.github/dependabot.yml` now ignores semver-major `@types/node` updates (minor and patch still come). Raise the major by hand when the toolchain's Node changes (next LTS: 24).
+
+## 2026-10-19 — legacy removal queued after v1.4.0 (#84)
+
+Owner's request, after the two blockers landed (#81, #82). `STATUS.md` has a new section, "Legacy removal: queue (after v1.4.0)": nine steps in the plan's order (owner decisions; almanac; sky map and object lookup; survey charts and chrony detail; kept items; the uncertainty band after GPS-003/007; front-door switch; removal; closing the findings), with one planned row each. `dashboard/legacy-removal-plan.md` marks step 2.1 done and its timing note now names the rc.10 soak. No code changed; nothing is deployed while the Pi soaks.
