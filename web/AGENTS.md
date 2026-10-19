@@ -53,6 +53,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/lib/localtime.ts` — main-clock local time: zone choice (station override, zone from station position, else the browser's), offset, DST, UTC and Unix epoch, and the 12/24-hour preference in `localStorage` (tested in `localtime.test.ts`)
 - `src/lib/screenshot.ts` — screenshot mode: per-browser setting in `localStorage` (guarded), the Alt+Shift+S shortcut, `maskText()` (digits → 0, letters → x; the real value is never drawn) (tested in `screenshot.test.ts`); `src/components/screenshot.tsx` has the header toggle and `<Sensitive>`, and `MetricRow` takes `sensitive`
 - `src/components/clock.tsx` — the big Overview clock and the header clock: station time (`useStationTime`), local zone, UTC beneath; `clockDiscipline()` in `lib/banner.ts` decides whether it may say GPS/PPS
+- `src/lib/admin.ts` — Administration → Station actions: one entry per `/api/admin` action (label, effect, confirmation text; everything but the log flush asks first) and `actionOutcome()`, the line shown afterwards (the station's answer; no answer may still mean it ran) (tested in `admin.test.ts`)
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling

@@ -7,7 +7,9 @@ import { Planned, ApiErrorNote } from '../components/planned';
 import { Sensitive } from '../components/screenshot';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
-import type { AuthState, LocationMode, LunarDay, SolarDay } from '../api/types';
+import type { AdminAction, AdminResult, AuthState, LocationMode, LunarDay, SolarDay } from '../api/types';
+import { ApiError } from '../api/client';
+import { STATION_ACTIONS, actionInfo, actionOutcome, type ActionOutcome } from '../lib/admin';
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
@@ -624,6 +626,8 @@ export function Admin() {
 
       <AdminAccess auth={auth} />
 
+      <StationActions canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
+
       <Card>
         <CardHeader title="Location privacy" />
         <CardBody>
@@ -755,7 +759,75 @@ function AdminAccess({ auth }: { auth: Polled<AuthState> }) {
           </div>
         )}
         <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
-          Service actions (flush logs, restart gpsd/chrony/web, reboot) and survey reset are on the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page, which uses the same token.
+          Survey reset is on the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page, which uses the same token.
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ─── Station actions (POST /api/admin; lib/admin.ts) ──────────────────────────
+const OUTCOME_COLOR: Record<ActionOutcome['variant'], string> = {
+  good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)',
+};
+
+function StationActions({ canWrite, authKnown, onAuthError }: { canWrite: boolean; authKnown: boolean; onAuthError: () => void }) {
+  const { api } = useStation();
+  const [pending, setPending] = useState<AdminAction | null>(null);   // waiting for confirmation
+  const [busy, setBusy] = useState<AdminAction | null>(null);
+  const [outcome, setOutcome] = useState<ActionOutcome | null>(null);
+  const run = async (a: AdminAction) => {
+    setPending(null); setBusy(a); setOutcome(null);
+    try {
+      const r: AdminResult = await api.admin(a);
+      setOutcome(actionOutcome(a, r));
+    } catch (e) {
+      const status = e instanceof ApiError ? e.status : null;
+      setOutcome(actionOutcome(a, null, { message: (e as Error).message, status }));
+      if (status === 401 || status === 403) onAuthError();
+    } finally { setBusy(null); }
+  };
+  const click = (a: AdminAction) => { if (actionInfo(a).confirm) { setPending(a); setOutcome(null); } else run(a); };
+  const btn = (active: boolean) => active
+    ? { border:'1px solid var(--accent)', color:'var(--accent)', background:'var(--accent-dim)' }
+    : { border:'1px solid var(--border)', color:'var(--t2)' };
+  const p = pending ? actionInfo(pending) : null;
+  return (
+    <Card>
+      <CardHeader title="Station actions" />
+      <CardBody>
+        <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+          These run on the station immediately. Each is a fixed command; nothing typed here is passed to it.
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {STATION_ACTIONS.map(a => (
+            <button key={a.action} onClick={() => click(a.action)} disabled={!canWrite || busy !== null}
+              title={a.effect} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn(pending === a.action || busy === a.action)}>
+              {busy === a.action ? `${a.label}…` : a.label}
+            </button>
+          ))}
+        </div>
+        {p && (
+          <div role="alertdialog" aria-label={`Confirm: ${p.label}`} className="mt-3 rounded-[2px] p-3"
+            style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)' }}>
+            <div className="text-[11px] mb-2" style={{ color:'var(--t1)' }}>{p.confirm}</div>
+            <div className="flex gap-1.5">
+              <button onClick={() => run(p.action)} className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
+                style={{ border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>Confirm: {p.label}</button>
+              <button onClick={() => setPending(null)} autoFocus className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: OUTCOME_COLOR[outcome.variant] }}>{outcome.text}</div>}
+        {!canWrite && authKnown && (
+          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>These need the admin token (Admin access, above).</div>
+        )}
+        <div className="mt-3 space-y-[2px]">
+          {STATION_ACTIONS.map(a => (
+            <div key={a.action} className="text-[10px]" style={{ color:'var(--t4)' }}>
+              <span style={{ color:'var(--t3)' }}>{a.label}:</span> {a.effect}
+            </div>
+          ))}
         </div>
       </CardBody>
     </Card>
