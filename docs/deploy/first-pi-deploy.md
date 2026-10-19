@@ -1,8 +1,8 @@
 # First Pi deploy of the 1.4 line: checklist
 
-For upgrading a working v1.3 station to **v1.4.0-rc.9**. For a newly flashed Pi, use [`fresh-pi-install.md`](fresh-pi-install.md) instead; for a station that already runs a 1.4 release candidate, use [`upgrade-1.4-station.md`](upgrade-1.4-station.md). Work top to bottom and stop at any step that doesn't match what's written.
+For upgrading a working v1.3 station to **v1.4.0-rc.10**. For a newly flashed Pi, use [`fresh-pi-install.md`](fresh-pi-install.md) instead; for a station that already runs a 1.4 release candidate, use [`upgrade-1.4-station.md`](upgrade-1.4-station.md). Work top to bottom and stop at any step that doesn't match what's written.
 
-**v1.4.0-rc.6 was deployed to the Pi on 2026-10-04.** chrony selected the PPS refclock, the station reported stratum 1, and the system clock offset was about 300 ns (owner's report). So the venv installer, the deploy script and the unprivileged service have run on a Pi once. Upgrading a working v1.3 station with this checklist has not been recorded as done, and the result of each individual check was not recorded. Background: `docs/development/raspberry-pi-deploy.md`, `docs/releases/v1.4.0-rc.9.md`, ADR-0005.
+**v1.4.0-rc.6 was deployed to the Pi on 2026-10-04.** chrony selected the PPS refclock, the station reported stratum 1, and the system clock offset was about 300 ns (owner's report). So the venv installer, the deploy script and the unprivileged service have run on a Pi once. Upgrading a working v1.3 station with this checklist has not been recorded as done, and the result of each individual check was not recorded. Background: `docs/development/raspberry-pi-deploy.md`, `docs/releases/v1.4.0-rc.10.md`, ADR-0005.
 
 **What will happen to the station**
 
@@ -137,12 +137,12 @@ Still on the Pi. Everything goes into one directory in your home.
 
 - [ ] Open a normal PowerShell or Windows Terminal window. It must be an interactive terminal, with no output redirection and not a VS Code task: the admin token is shown on the terminal only, and sudo may need to prompt. Set `$PiHost` and `$PiUser` again if it's a new window.
 
-- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.9`, and `git status` must list nothing.
+- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.10`, and `git status` must list nothing.
 
   ```powershell
   cd <repository folder>
   git fetch --tags
-  git checkout v1.4.0-rc.9
+  git checkout v1.4.0-rc.10
   git status --short
   git describe --tags --dirty
   ```
@@ -195,7 +195,7 @@ ssh $Pi
   journalctl -u gps-time-pi -b --no-pager -n 40
   ```
 
-- [ ] The version is `1.4.0-rc.9`.
+- [ ] The version is `1.4.0-rc.10`.
 
   ```sh
   curl -s localhost/api | python3 -c "import sys,json; print(json.load(sys.stdin)['versions']['app'])"

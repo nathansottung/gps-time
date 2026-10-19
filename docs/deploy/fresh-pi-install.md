@@ -1,6 +1,6 @@
 # Fresh Pi install: checklist
 
-For a newly flashed **Raspberry Pi OS Lite** with nothing on it yet, ending with a station running **v1.4.0-rc.9**. To upgrade a station that already runs v1.3, use [`first-pi-deploy.md`](first-pi-deploy.md) instead; for one that already runs a 1.4 release candidate, use [`upgrade-1.4-station.md`](upgrade-1.4-station.md).
+For a newly flashed **Raspberry Pi OS Lite** with nothing on it yet, ending with a station running **v1.4.0-rc.10**. To upgrade a station that already runs v1.3, use [`first-pi-deploy.md`](first-pi-deploy.md) instead; for one that already runs a 1.4 release candidate, use [`upgrade-1.4-station.md`](upgrade-1.4-station.md).
 
 Work top to bottom and stop at any step that doesn't match what's written. **v1.4.0-rc.6 was deployed to the Pi on 2026-10-04.** chrony selected the PPS refclock, the station reported stratum 1, and the system clock offset was about 300 ns (owner's report). The result of each individual check in this list was not recorded, and the steps added since rc.6 (the installer's DHCP change, the newer checks) have not run on a Pi.
 
@@ -116,12 +116,12 @@ At this point chrony still has its default configuration (network time only), so
 
 - [ ] Open a normal PowerShell or Windows Terminal window: interactive, no output redirection, not a VS Code task. The admin token is shown on the terminal only.
 
-- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.9`.
+- [ ] Check out the release with a clean working tree. `git describe` must print exactly `v1.4.0-rc.10`.
 
   ```powershell
   cd <repository folder>
   git fetch --tags
-  git checkout v1.4.0-rc.9
+  git checkout v1.4.0-rc.10
   git status --short
   git describe --tags --dirty
   ```
@@ -137,7 +137,7 @@ At this point chrony still has its default configuration (network time only), so
   1. the web UI build, then `Built ...gps-time-pi-deploy.tar.gz (SHA-256 ...)`
   2. `gps-time-pi-deploy.tar.gz: OK`, the checksum verified on the Pi
   3. `== Preflight ==` with no "Cannot install" message and no warnings
-  4. the install sections, including the venv, the ephemeris download (about 32 MB) and `Installed web UI 1.4.0-rc.9`
+  4. the install sections, including the venv, the ephemeris download (about 32 MB) and `Installed web UI 1.4.0-rc.10`
   5. `== Admin token ==` followed by the token, **shown once**
   6. `Open http://gpstime.local/`
 
@@ -241,7 +241,7 @@ ssh $Pi
   curl -s localhost/api | python3 -c "import sys,json; print(json.load(sys.stdin)['versions']['app'])"
   ```
 
-  Expect `active`, `User=gps-time`, `/opt/gps-time-pi/venv/bin/python`, no tracebacks, and `1.4.0-rc.9`.
+  Expect `active`, `User=gps-time`, `/opt/gps-time-pi/venv/bin/python`, no tracebacks, and `1.4.0-rc.10`.
 
 - [ ] The timing chain agrees with chrony: a GPS/PPS status once chrony has selected PPS, and no stage UNKNOWN that the commands above showed working.
 
@@ -277,7 +277,7 @@ ssh $Pi
   curl -s localhost/api/almanac | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('available'), d.get('reason') or d['sun']['events'].get('sunrise'))"
   ```
 
-- [ ] Both UIs load: `200` twice, then `1.4.0-rc.9`.
+- [ ] Both UIs load: `200` twice, then `1.4.0-rc.10`.
 
   ```sh
   curl -s -o /dev/null -w "%{http_code}\n" localhost/

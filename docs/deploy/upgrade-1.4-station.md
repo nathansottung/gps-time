@@ -1,6 +1,6 @@
 # Upgrading a station that already runs 1.4: checklist
 
-For a station on a v1.4.0 release candidate (the Pi has run **v1.4.0-rc.8** since 2026-10-04), going to **v1.4.0-rc.9**. For a newly flashed Pi use [`fresh-pi-install.md`](fresh-pi-install.md); for a v1.3 station use [`first-pi-deploy.md`](first-pi-deploy.md).
+For a station on a v1.4.0 release candidate, going to **v1.4.0-rc.10**. The Pi's last recorded release is **v1.4.0-rc.8** (since 2026-10-04); whether rc.9 was installed has not been recorded. The steps are the same from either. For a newly flashed Pi use [`fresh-pi-install.md`](fresh-pi-install.md); for a v1.3 station use [`first-pi-deploy.md`](first-pi-deploy.md).
 
 PowerShell blocks run on Windows, `sh` blocks on the Pi. Set these once per PowerShell window, with your own values. Don't commit them.
 
@@ -10,7 +10,14 @@ $PiUser = '<pi user>'
 $Pi = "$PiUser@$PiHost"
 ```
 
-## What the upgrade from rc.8 changes on the station
+## What the upgrade changes on the station
+
+**New in rc.10** (web UI only; nothing on the station's timing, files or services changes beyond the restart):
+
+- The legacy dashboard's Sun & daylight widget shows sunset as large as sunrise.
+- `/app/` has a screenshot mode: a header toggle (Alt+Shift+S) that hides coordinates, heights, NTP client addresses and the hostname on screen. Display only; remembered in each browser.
+
+**From rc.8, also everything rc.9 brought:**
 
 - `install.sh` **restarts chrony**, as on every run. PPS selection takes a few minutes to come back.
 - `chrony.conf` is not changed further (the DHCP line was commented out by rc.7 or rc.8; the installer says "nothing changed").
@@ -29,17 +36,17 @@ $Pi = "$PiUser@$PiHost"
 - [ ] Keep a copy of chrony's configuration and of the RAM log: the restart is fine for both, but the RAM log is your only copy of the last weeks' tracking data until the new flush has written its own.
 
   ```powershell
-  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc9"
-  scp "${Pi}:/run/chrony-log/tracking.log" "$HOME\gps-time-logs\tracking-before-rc9.log"
+  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc10"
+  scp "${Pi}:/run/chrony-log/tracking.log" "$HOME\gps-time-logs\tracking-before-rc10.log"
   ```
 
 ## 2. Upgrade
 
-- [ ] In a normal, interactive PowerShell window (not a VS Code task), from the repository folder, with a clean working tree. `git describe` must print exactly `v1.4.0-rc.9`.
+- [ ] In a normal, interactive PowerShell window (not a VS Code task), from the repository folder, with a clean working tree. `git describe` must print exactly `v1.4.0-rc.10`.
 
   ```powershell
   git fetch --tags
-  git checkout v1.4.0-rc.9
+  git checkout v1.4.0-rc.10
   git status --short
   git describe --tags --dirty
   ```
@@ -50,7 +57,7 @@ $Pi = "$PiUser@$PiHost"
   powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiHost -PiUser $PiUser
   ```
 
-  Expect, among the installer's sections: "chrony is not using NTP servers from DHCP ... nothing changed", `Independent references: none added` (or "kept as it is"), `Installed web UI 1.4.0-rc.9`, `Existing admin token kept`, and a last line `Astronomy: available` or `Astronomy: UNAVAILABLE - <reason>`.
+  Expect, among the installer's sections: "chrony is not using NTP servers from DHCP ... nothing changed", `Independent references: none added` (or "kept as it is"), `Installed web UI 1.4.0-rc.10`, `Existing admin token kept`, and a last line `Astronomy: available` or `Astronomy: UNAVAILABLE - <reason>`.
 
 - [ ] If the script stops with `... failed (exit N); deploy stopped.`, nothing after that step ran. Fix what it names and run it again.
 
@@ -62,7 +69,7 @@ $Pi = "$PiUser@$PiHost"
 ssh $Pi
 ```
 
-- [ ] The version is `1.4.0-rc.9` and the services are active.
+- [ ] The version is `1.4.0-rc.10` and the services are active.
 
   ```sh
   systemctl is-active gps-time-pi gps-time-pi-chrony-clients
@@ -102,7 +109,11 @@ ssh $Pi
   - Evidence: `0` files until an outage happens.
   - Ping: a few milliseconds.
 
-- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.9`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab.
+- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.10`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab.
+
+- [ ] The two UI changes (rc.10):
+  - Legacy dashboard (`http://<station>/`), Sun & daylight: each day shows a sunrise and a sunset figure of the same size.
+  - `/app/`: press Alt+Shift+S (or click **Screenshot off · display only** in the header). The hostname, the coordinates and heights (GNSS & Site → Position and Geodesy) and the client addresses (Network & Devices) turn into blurred masks. Reload: it stays on. Press it again to turn it off.
 
 ## 4. Optional: independent `noselect` references
 
@@ -136,6 +147,6 @@ Fourteen days on rc.8 without a restart, with real PPS/GNSS outages on 2026-10-1
 
 ## Rollback
 
-- Previous release: check out `v1.4.0-rc.8` and run the same deploy command. rc.8's flush copies the whole RAM log again; the files rc.9 added (`oscillator-log.csv`, `evidence/`, `/var/log/chrony/station-tracking.txt`) stay and are ignored.
-- chrony configuration: `sudo cp -a ~/chrony.conf.before-rc9 /etc/chrony/chrony.conf && sudo systemctl restart chrony` (or restore `/etc/chrony/chrony.conf.before-gps-time-pi`).
+- Previous release: check out `v1.4.0-rc.9` and run the same deploy command (rc.10 changed only the web UI). To go back to `v1.4.0-rc.8`: same command; rc.8's flush copies the whole RAM log again, and the files rc.9 added (`oscillator-log.csv`, `evidence/`, `/var/log/chrony/station-tracking.txt`) stay and are ignored.
+- chrony configuration: `sudo cp -a ~/chrony.conf.before-rc10 /etc/chrony/chrony.conf && sudo systemctl restart chrony` (or restore `/etc/chrony/chrony.conf.before-gps-time-pi`).
 - Root-service rollback and other levels: `../development/raspberry-pi-deploy.md` → "Rollback".
