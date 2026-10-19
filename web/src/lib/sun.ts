@@ -66,10 +66,18 @@ export function sunShifts(almanac: Almanac): SunShifts | null {
   };
 }
 
-/** Signed whole seconds: "+56 s", "−131 s" (U+2212 minus), "0 s"; null stays null (UNKNOWN). */
+/**
+ * Signed shift in hours, minutes and seconds, whole seconds:
+ * "+56 s", "−2 m 11 s", "+1 h 00 m 05 s" (U+2212 minus), "0 s". null stays null (UNKNOWN).
+ */
 export function fmtShift(s: number | null | undefined): string | null {
   if (s === null || s === undefined || !Number.isFinite(s)) return null;
   const r = Math.round(s);
   if (r === 0) return '0 s';
-  return `${r > 0 ? '+' : '−'}${Math.abs(r)} s`;
+  const sign = r > 0 ? '+' : '−';
+  const a = Math.abs(r), h = Math.floor(a / 3600), m = Math.floor((a % 3600) / 60), sec = a % 60;
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  if (h) return `${sign}${h} h ${p2(m)} m ${p2(sec)} s`;
+  if (m) return `${sign}${m} m ${p2(sec)} s`;
+  return `${sign}${sec} s`;
 }

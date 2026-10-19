@@ -851,3 +851,7 @@ So the network and `/api/ping` were fine. All requests share one Python process,
 - The legacy dashboard's request pattern is unchanged (it isn't restyled or reworked); the cache makes its requests cheap.
 - Not changed: `/api/stability` (1.7 s at most once a minute, only while the page is open).
 - Tests: `tests/test_rtt.py` (10), one more web test. Not yet measured on a Pi after the change.
+
+## 2026-10-19 — sunrise and sunset shifts in h/m/s (#75)
+
+From the owner's list. The Overview's day-to-day shifts of sunrise, solar noon and sunset (#31) were signed whole seconds ("−131 s"). They are now hours, minutes and seconds: "+56 s", "−2 m 11 s", "+1 h 00 m 05 s" (a clock change). Same values, same rounding to the second. The daylight-length change keeps its existing "−2m 11.3s" form. Tests: `web/src/lib/sun.test.ts`.
