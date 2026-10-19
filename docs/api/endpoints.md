@@ -181,6 +181,15 @@ Query: `sat` (NORAD catalogue number) selects the satellite for `satellite` and 
 - Up to 10 passes in the next 24 h. Answers are kept for 20 s.
 - Demo mode returns a hand-written sample (`demo.note`); it needs no elements.
 
+## GET /api/evidence
+
+Outage evidence files kept on the SD card. Background: `architecture/timing-chain.md` → "Outage evidence on the SD card".
+
+- Without `id`: the index, newest first: `{"available": true, "dir": "...", "files": [{"id": "pps-outage-1792418236", "phase": "closed", "written_utc": "...", "start_utc": "...", "end_utc": "...", "duration_s": 3363, "classification": "GNSS RECEPTION ANOMALY", "bytes": 48213, "tracking_lines": 141, "timeline_points": 397}], "total_bytes": 48213, "max_bytes": 20971520, "max_files": 200, "removed_for_space": 0, "problems": [], "note": "..."}`.
+- With `id=<event id>`: the file: `{"schema": "gps-time.evidence/1", "event_id": ..., "phase": "open" | "closed", "written_utc": ..., "window_utc": [from, to], "event": {...}, "timeline_step_s": 10.0, "timeline": [{"t", "status", "pps_state", "pulse_health", "pps_age_s", "missed_pulses", "unread_pulses", "chrony_pps_status", "nmea_status", "selected_source", "system_time_s", "gnss_healthy", "satellites_used", "satellites_visible", "best_cn0"}], "chrony_tracking_lines": ["..."], "chrony_now": {"tracking", "sources", "sourcestats"}, "notes": [...], "privacy": "..."}`. An unknown or invalid id gives `{"available": false, "reason": ...}`.
+- `phase: "open"` was written while the outage was still open.
+- No position is stored in any file.
+
 ## GET /api/oscillator
 
 SoC temperature logged with chrony's frequency estimate, in 10-minute bins. Type: `Oscillator`. Background: `architecture/oscillator-log.md`.

@@ -117,6 +117,10 @@ chrony writes its tracking log to RAM (`/run/chrony-log/tracking.log`). `scripts
 - The pre-rc.9 full copy `/var/log/chrony/tracking.log` and its rotated versions are no longer written. They are left in place and age out under logrotate within about five weeks; the first boot after the upgrade restores from them if there is no new copy yet.
 - To keep evidence before a restart, copy `/run/chrony-log/tracking.log` (and `.1`) off the station; they are readable without sudo.
 
+## Outage evidence (rc.9)
+
+For every PPS outage the station keeps one file in `/opt/gps-time-pi/evidence/` (the event, a 10 s timeline and chrony's tracking lines from 5 minutes before to 5 minutes after), capped at 20 MiB in all. It survives a reboot, unlike the RAM log. Copy the directory off the station to keep it; Timing → PPS Events lists the files.
+
 ## Oscillator log
 
 The station logs the SoC temperature with chrony's frequency, in 10-minute bins appended to `/opt/gps-time-pi/oscillator-log.csv` once an hour (about six short lines an hour; capped at 4 MB). It is the data for the trained oscillator profile and needs nothing from you. The file is bound to the board by a hash of its serial number: if the SD card moves to another Pi, the old file is set aside rather than mixed in. Copy it off the station like the chrony log if you want to keep it.

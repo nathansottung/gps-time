@@ -197,6 +197,19 @@ Before rc.9 one thread did both, so a slow evaluation (a `chronyc` call, an even
 
 It doesn't depend on browser traffic. A failure in either thread never stops the server. It does **not** change chrony, gpsd or PPS configuration.
 
+## Outage evidence on the SD card (rc.9)
+
+The rc.8 soak run had real outages that left nothing in the system journal; the only evidence was the event list and chrony's tracking log in RAM, which a reboot would have lost. `gps_time_pi/evidence.py` now keeps, for each outage event, one file in `evidence/` next to `config.json`:
+
+- the event as recorded;
+- a timeline of the station's view every 10 s (status, PPS state, pulse age and counters, chrony's PPS and NMEA view, selected source, system time offset, GNSS satellite counts and best C/N₀) from a 2-hour RAM ring;
+- chrony's tracking-log lines from 5 minutes before the start to 5 minutes after the end (at most 2 MiB; the middle is cut if there are more);
+- chrony's tracking, sources and sourcestats output at the time of writing.
+
+It is written 5 minutes after an outage opens, so a reboot during a long outage still leaves its start, and again 5 minutes after it closes, replacing the first. A quiet station writes nothing. The directory is capped at 20 MiB (`GTP_EVIDENCE_MAX_BYTES`) and 200 files; the oldest go first. No position is stored. `/api/evidence` lists the files; `/api/evidence?id=<event id>` returns one. The Timing → PPS Events tab lists them with a link to each.
+
+Outage detection itself is unchanged; this only records what detection found.
+
 ## Web UI (`/app/`)
 
 The new UI shows the chain from `/api/timing-chain` in three places.
