@@ -919,3 +919,7 @@ The second legacy-removal blocker (parity item 7).
 ## 2026-10-19 — TypeScript 7 (#65)
 
 Dependabot's TypeScript 5.9 → 7.0.2, held for the owner on 2026-10-19 and merged after review. Its CI had failed on one error: TS 7 removed `baseUrl` (TS5102). The line is removed from `web/tsconfig.json`; `paths` (`@/*` → `./src/*`) now resolve relative to the file, and the `@/` imports still type-check. With main merged in: type check, 161 web tests and the build pass, and a deliberate type error is still reported. TypeScript is only the type check; Vite builds the bundle without it, so the shipped UI is unchanged.
+
+## 2026-10-19 — legacy removal queued after v1.4.0 (#84)
+
+Owner's request, after the two blockers landed (#81, #82). `STATUS.md` has a new section, "Legacy removal: queue (after v1.4.0)": nine steps in the plan's order (owner decisions; almanac; sky map and object lookup; survey charts and chrony detail; kept items; the uncertainty band after GPS-003/007; front-door switch; removal; closing the findings), with one planned row each. `dashboard/legacy-removal-plan.md` marks step 2.1 done and its timing note now names the rc.10 soak. No code changed; nothing is deployed while the Pi soaks.

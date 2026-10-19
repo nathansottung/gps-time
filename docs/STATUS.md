@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (Dependabot TypeScript 7, #65). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/legacy-removal-queue, #84). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -25,6 +25,20 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 2. *Done in [#73](https://github.com/nathansottung/gps-time/pull/73).* **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
 3. *Done in [#70](https://github.com/nathansottung/gps-time/pull/70).* **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
 4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode. The ~3 s round trip: done in [#74](https://github.com/nathansottung/gps-time/pull/74). Shifts in h/m/s: done in [#75](https://github.com/nathansottung/gps-time/pull/75). Sunset prominence: done in [#78](https://github.com/nathansottung/gps-time/pull/78). Screenshot mode: done in [#79](https://github.com/nathansottung/gps-time/pull/79).
+
+## Legacy removal: queue (after v1.4.0)
+
+Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be retired after v1.4.0. Plan and reasons: `dashboard/legacy-removal-plan.md`; items by number: `dashboard/web-ui-parity.md`. Nothing is deployed while the Pi soaks rc.10; steps 2–4 only add to `/app/` and can be built before v1.4.0, but ship after it.
+
+1. **Owner decisions** (blocks steps 5 and 9): themes incl. red night mode (1); saved layout editor and layout-driven pages, port or drop (4, 5); `custom.css` (18); `/zones` (19); throttle flags (21) and the station-wide zone override (2) as enough; dropping the 1/|ppm| holdover figure (20, needs an explicit yes per ADR-0004).
+2. **Almanac:** date navigation, twilight and night bars, moon details (8, 9, 10). Data already in `/api/almanac`.
+3. **Sky map and object lookup** (11, 12), with the object target made per-request instead of server-global (GPS-030).
+4. **Survey convergence and ingest counters** (14, 15); the remaining chrony detail (16).
+5. Whatever the owner keeps from step 1.
+6. **Offset chart uncertainty band and symlog axis** (13), only after chrony history semantics (GPS-003, GPS-007; next-5 item 1).
+7. **Switch the front door:** `/` → `/app/`, legacy pages under `/legacy/…` with a going-away notice. First release after v1.4.0; run on the Pi.
+8. **Remove** the legacy pages and the code only they use, after at least one release with step 7 in use and the owner's go-ahead.
+9. **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
 
@@ -68,7 +82,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 437 rows: 238 done, 0 in progress, 28 next, 171 planned.
+**Totals:** 446 rows: 238 done, 0 in progress, 28 next, 180 planned.
 
 ## Status table
 
@@ -511,3 +525,12 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Station actions in `/app/` Administration: flush logs, restart gpsd/chrony/web, reboot | done | legacy-removal blocker (parity #6). Confirmation step for all but the flush; shows the station's answer. Checked in the demo (simulated); not yet run on a Pi | [#81](https://github.com/nathansottung/gps-time/pull/81) |
 | Web UI |  | Position survey reset in `/app/` Administration | done | legacy-removal blocker (parity #7). Shows what would be discarded; typed confirmation (RESET). Checked in the demo; not yet run on a Pi | [#82](https://github.com/nathansottung/gps-time/pull/82) |
 | Repo |  | TypeScript 5.9 → 7.0 for the web type check | done | `baseUrl` removed from `web/tsconfig.json` (TS 7 dropped it; `paths` resolve from the file). Type check only: Vite builds without tsc, so the bundle is unchanged | [#65](https://github.com/nathansottung/gps-time/pull/65) |
+| Web UI |  | Legacy removal 1: owner decisions on parity items 1, 2, 4/5, 18, 19, 20, 21 | planned | owner's step; recorded in `dashboard/web-ui-parity.md` | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 2: almanac date navigation, twilight/night bars, moon details (parity 8, 9, 10) | planned | data already in `/api/almanac` | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 3: sky map and object lookup (parity 11, 12) | planned | object target per-request (GPS-030) | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 4: survey convergence, ingest counters, remaining chrony detail (parity 14, 15, 16) | planned |  | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 5: the parity items the owner keeps | planned | after step 1 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 6: offset chart uncertainty band and symlog axis (parity 13) | planned | after GPS-003/GPS-007 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 7: `/` → `/app/`, legacy pages under `/legacy/` with a notice | planned | first release after v1.4.0; run on the Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 8: remove the legacy pages and their code | planned | after a release with step 7 in use; owner's go-ahead | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 9: close GPS-016, GPS-027, GPS-029, legacy halves of GPS-004/009; update ADR-0004 | planned | with step 8 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
