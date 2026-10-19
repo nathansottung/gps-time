@@ -855,3 +855,15 @@ So the network and `/api/ping` were fine. All requests share one Python process,
 ## 2026-10-19 — sunrise and sunset shifts in h/m/s (#75)
 
 From the owner's list. The Overview's day-to-day shifts of sunrise, solar noon and sunset (#31) were signed whole seconds ("−131 s"). They are now hours, minutes and seconds: "+56 s", "−2 m 11 s", "+1 h 00 m 05 s" (a clock change). Same values, same rounding to the second. The daylight-length change keeps its existing "−2m 11.3s" form. Tests: `web/src/lib/sun.test.ts`.
+
+## 2026-10-19 — Dependabot updates (#66, #67, #68)
+
+- Merged after green CI: `actions/setup-node` 7.0.0 → 7.1.0 (#66), `tzfpy` 2.1.0 → 2.1.1 (#67), and the web minor-and-patch group (#68: React and React DOM 19.3, Vite 8.3, Tailwind 4.3, `@vitejs/plugin-react` 6.1, Vitest 5.0.4, `lucide-react` 1.56, `oxfmt` 0.73, matching type packages). Type check, tests and build pass on `main` with them.
+- Held for the owner: TypeScript 5.9 → 7.0 (#65) and `@types/node` 22 → 26 (#64); both are major updates.
+
+## 2026-10-19 — v1.4.0-rc.9 (#76)
+
+- Release notes in `docs/releases/v1.4.0-rc.9.md`: the fixes from the rc.8 soak run (#70, #72, #73, #74), the oscillator log (#71), Earth shadow and satellites (#61), the h/m/s shifts (#75), the dependency updates.
+- `deploy/upgrade-1.4-station.md` is now the rc.8 → rc.9 checklist, with checks for the PPS counters, the new flush, the oscillator log, the evidence files and the round trip. The other checklists, README and START-HERE target rc.9.
+- Not in rc.9: "sunset prominence" and "screenshot mode" (owner's list), which need the owner's description.
+- The annotated tag `v1.4.0-rc.9` goes on this PR's merge commit, with a GitHub pre-release using the same notes.

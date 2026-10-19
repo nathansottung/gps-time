@@ -80,7 +80,8 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
-- `releases/v1.4.0-rc.8.md` — timing metrology: stability analysis, time scales, independent references, NTP service counters; the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.9.md` — fixes from the rc.8 soak run (log flush with caps, outage evidence on SD, PPS poller thread, browser round trip), oscillator log, Earth shadow and satellites; the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.8.md` — timing metrology: stability analysis, time scales, independent references, NTP service counters (pre-release)
 - `releases/v1.4.0-rc.7.md` — fixes from the first Pi build, local-time clock, self-source handling, installer disables DHCP NTP servers (pre-release)
 - `releases/v1.4.0-rc.6.md` — Windows deploy script fix (ssh `-t`) (pre-release)
 - `releases/v1.4.0-rc.5.md` — Debian 13 / Python 3.13 tested in CI (pre-release)
