@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/screenshot-mode, #79). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (docs/release-v1.4.0-rc.10, #80). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -15,7 +15,7 @@ Last updated: 2026-10-19 (feat/screenshot-mode, #79). Built from the specs, `roa
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence"). *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).*
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **Soak run of v1.4.0-rc.9 on the Pi** (owner): upgrade with `deploy/upgrade-1.4-station.md`, then v1.4.0 if it holds. rc.9 is tagged ([#76](https://github.com/nathansottung/gps-time/pull/76)); two queued UI fixes wait for the owner's description.
+5. **Soak run of v1.4.0-rc.10 on the Pi** (owner): upgrade with `deploy/upgrade-1.4-station.md`, then v1.4.0 if it holds. rc.10 is tagged ([#80](https://github.com/nathansottung/gps-time/pull/80)) and has all four queued UI fixes.
 
 ## v1.4.0-rc.9: to do
 
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 433 rows: 234 done, 0 in progress, 28 next, 171 planned.
+**Totals:** 434 rows: 235 done, 0 in progress, 28 next, 171 planned.
 
 ## Status table
 
@@ -498,7 +498,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Log flush without write amplification; capped RAM log and SD copy | done | appends new lines only; RAM 8 MiB and SD 16 MiB caps, one previous file each; SD copy outside logrotate. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Repo |  | Outage evidence kept on the SD card under a size cap | done | one file per outage: event, 10 s timeline, chrony lines ±5 min; 20 MiB / 200 files; no position. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#73](https://github.com/nathansottung/gps-time/pull/73) |
 | Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | done | `pps-poller` thread; no HTTP request polls; poll statistics reported; outage detection unchanged. Whether the rc.8 run's 9 % was real absence or slow polling shows on the next run. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#70](https://github.com/nathansottung/gps-time/pull/70) |
-| Repo |  | Second soak run (rc.9) before v1.4.0 | next | owner's step: upgrade with `deploy/upgrade-1.4-station.md` | [#76](https://github.com/nathansottung/gps-time/pull/76) |
+| Repo |  | Second soak run (rc.10) before v1.4.0 | next | owner's step: upgrade with `deploy/upgrade-1.4-station.md`; rc.10 replaces rc.9 as the soak candidate | [#76](https://github.com/nathansottung/gps-time/pull/76) [#80](https://github.com/nathansottung/gps-time/pull/80) |
 | Web UI |  | Browser round trip of about 3 s on the Pi | done | server-side: the almanac (about 15 s of CPU, requested every 5 s by the legacy dashboard) now cached and shared; one server's history in `/api/references`; history parsed once a minute. Not yet run on a Pi | [#74](https://github.com/nathansottung/gps-time/pull/74) |
 | Web UI |  | Sunrise, noon and sunset shifts shown in h/m/s | done | was signed whole seconds | [#75](https://github.com/nathansottung/gps-time/pull/75) |
 | Repo |  | Tag v1.4.0-rc.9 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#76](https://github.com/nathansottung/gps-time/pull/76) |
@@ -507,3 +507,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Public release checklist (draft) | done | `public-release-checklist.md`; nothing on it run yet except the commit-identity check; going public is the owner's step | [#77](https://github.com/nathansottung/gps-time/pull/77) |
 | Web UI |  | Sunset times as large as sunrise (legacy Sun & daylight widget) | done | sunset was small print under sunrise; now its own bold line, both labeled. `/app/` already showed them at the same size | [#78](https://github.com/nathansottung/gps-time/pull/78) |
 | Web UI |  | Screenshot mode: hides coordinates, heights, NTP client addresses and the hostname on screen | done | `/app/` only; header toggle labeled "display only", Alt+Shift+S, remembered per browser. A blurred mask is drawn, never the value. API, exports and the legacy pages unchanged | [#79](https://github.com/nathansottung/gps-time/pull/79) |
+| Repo |  | Tag v1.4.0-rc.10 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#80](https://github.com/nathansottung/gps-time/pull/80) |
