@@ -2,6 +2,8 @@
 
 Start with [`README.md`](README.md). It defines the repo documentation contract and non-negotiable architecture rules.
 
+**For outside readers:** [`ROADMAP.md`](ROADMAP.md). Every spec and roadmap by phase, with status, on one page.
+
 **Where things stand:** [`STATUS.md`](STATUS.md). Every spec item, roadmap feature and review finding, with its status and PR links, plus the next 5 tasks. It is updated in every PR.
 
 ## Specifications (owner-provided, imported 2026-10-01)
@@ -30,6 +32,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` — SCOPING, not scheduled: SDR and RF observatory (hardware tiers, GNU Radio/SoapySDR, candidate observations, grid frequency); Pi timing work and the first Pi deploy come first. Earlier SDR notes: `sdr/overview.md`, `sdr/timing-model.md`
 - `roadmap/ROADMAP-WEB-UPDATES.md` — FUTURE, low priority: software updates and config upload from the web UI (LAN only, signed releases, separate privileged installer, automatic rollback); not before the station has run stably on v1.4.0
 - `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` — FUTURE, none blocks v1.4.0: trained oscillator profile (board-bound, export/import), networked SDR, assisted network deploys, PPS evidence capture script, smaller items (DHCP self-source, NMEA offset calibration, bundle split, downstream NTP)
+- `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` — FUTURE, research; after v1.4.0 and the oscillator profile: a network of timed stations measuring geophysical effects (interference maps, site stability; Earth tides, ionosphere, water vapor with dual-frequency receivers), and what no tier can measure
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
 
 ## Science
@@ -59,10 +62,11 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 ## Development
 - `development/windows-demo.md`
 - `deploy/fresh-pi-install.md` — checklist for a newly flashed Raspberry Pi OS Lite: SSH key, packages, UART/PPS configuration, deploy, reboot, chrony refclocks, checks
-- `deploy/upgrade-1.4-station.md` — checklist for upgrading a station that already runs a 1.4 release candidate (rc.6 → rc.8): what changes, the deploy command, checks, the soak run before v1.4.0
+- `deploy/upgrade-1.4-station.md` — checklist for upgrading a station that already runs a 1.4 release candidate (rc.8 or rc.9 → rc.10): what changes, the deploy command, checks, the soak run before v1.4.0
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
+- `public-release-checklist.md` — DRAFT: what to check before the repository goes public (history scan, release blockers, licensing, outside-reader docs, GitHub settings)
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
 ## Hardware
@@ -80,7 +84,9 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
-- `releases/v1.4.0-rc.8.md` — timing metrology: stability analysis, time scales, independent references, NTP service counters; the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.10.md` — sunset as prominent as sunrise, screenshot mode, outside-reader docs (roadmap page, public release checklist); web UI only over rc.9; the bundle the deploy checklists target (pre-release)
+- `releases/v1.4.0-rc.9.md` — fixes from the rc.8 soak run (log flush with caps, outage evidence on SD, PPS poller thread, browser round trip), oscillator log, Earth shadow and satellites (pre-release)
+- `releases/v1.4.0-rc.8.md` — timing metrology: stability analysis, time scales, independent references, NTP service counters (pre-release)
 - `releases/v1.4.0-rc.7.md` — fixes from the first Pi build, local-time clock, self-source handling, installer disables DHCP NTP servers (pre-release)
 - `releases/v1.4.0-rc.6.md` — Windows deploy script fix (ssh `-t`) (pre-release)
 - `releases/v1.4.0-rc.5.md` — Debian 13 / Python 3.13 tested in CI (pre-release)

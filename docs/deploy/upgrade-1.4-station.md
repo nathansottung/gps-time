@@ -1,6 +1,6 @@
 # Upgrading a station that already runs 1.4: checklist
 
-For a station on a v1.4.0 release candidate (the Pi has run **v1.4.0-rc.6** since 2026-10-04), going to **v1.4.0-rc.8**. For a newly flashed Pi use [`fresh-pi-install.md`](fresh-pi-install.md); for a v1.3 station use [`first-pi-deploy.md`](first-pi-deploy.md).
+For a station on a v1.4.0 release candidate, going to **v1.4.0-rc.10**. The Pi's last recorded release is **v1.4.0-rc.8** (since 2026-10-04); whether rc.9 was installed has not been recorded. The steps are the same from either. For a newly flashed Pi use [`fresh-pi-install.md`](fresh-pi-install.md); for a v1.3 station use [`first-pi-deploy.md`](first-pi-deploy.md).
 
 PowerShell blocks run on Windows, `sh` blocks on the Pi. Set these once per PowerShell window, with your own values. Don't commit them.
 
@@ -12,30 +12,41 @@ $Pi = "$PiUser@$PiHost"
 
 ## What the upgrade changes on the station
 
+**New in rc.10** (web UI only; nothing on the station's timing, files or services changes beyond the restart):
+
+- The legacy dashboard's Sun & daylight widget shows sunset as large as sunrise.
+- `/app/` has a screenshot mode: a header toggle (Alt+Shift+S) that hides coordinates, heights, NTP client addresses and the hostname on screen. Display only; remembered in each browser.
+
+**From rc.8, also everything rc.9 brought:**
+
 - `install.sh` **restarts chrony**, as on every run. PPS selection takes a few minutes to come back.
-- **One line of `chrony.conf` changes** (new since rc.6): `sourcedir /run/chrony-dhcp` is commented out, so chrony stops taking NTP servers from DHCP and can't poll the station itself. The file as it was is kept as `/etc/chrony/chrony.conf.before-gps-time-pi`. If DHCP was the station's only network fallback, add a `server` or `pool` line afterwards.
-- The chrony helper service (`gps-time-pi-chrony-clients`) is restarted and now publishes three reports: `clients`, `ntpdata`, `serverstats`.
-- The web service is restarted. Its RAM histories (stability, references, NTP service) start empty.
-- New pages: Timing → Stability, Time Scales, References; an NTP service card on Network & Devices; the NMEA offsets side by side on PPS Diagnostics.
+- `chrony.conf` is not changed further (the DHCP line was commented out by rc.7 or rc.8; the installer says "nothing changed").
+- The web service is restarted. Its RAM histories (stability, references, NTP service, PPS counters) start empty.
+- **New files written by the station** in `/opt/gps-time-pi/`:
+  - `oscillator-log.csv`: the SoC temperature with chrony's frequency, 10-minute bins appended once an hour (capped at 4 MB).
+  - `evidence/`: one file per PPS outage (event, 10 s timeline, chrony lines ±5 min), only when an outage happens (capped at 20 MiB).
+- **Log flush:** the hourly flush appends only new lines to `/var/log/chrony/station-tracking.txt` and caps the RAM log (8 MiB) and the SD copy (16 MiB). The old full copy `/var/log/chrony/tracking.log` is no longer written; it and its rotated copies age out under logrotate.
+- **PPS reads** run on their own thread; the PPS page shows missed and unread pulses and the station's poll statistics.
+- The almanac is cached (the browser's round trip should no longer climb to seconds while the legacy dashboard is open).
 - The admin token, `config.json`, the survey and the event history are kept.
-- From rc.9 the hourly log flush appends only new lines to `/var/log/chrony/station-tracking.txt` and caps the RAM log (8 MiB) and the SD copy (16 MiB). The old full copy `/var/log/chrony/tracking.log` is no longer written and ages out under logrotate.
 - Not changed: gpsd, the PPS setup, the refclock lines, and everything else in `chrony.conf`. Independent `noselect` servers are **not** added unless you ask (step 4).
 
 ## 1. Before
 
-- [ ] Note what chrony has selected now, and keep a copy of its configuration.
+- [ ] Keep a copy of chrony's configuration and of the RAM log: the restart is fine for both, but the RAM log is your only copy of the last weeks' tracking data until the new flush has written its own.
 
   ```powershell
-  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc8"
+  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc10"
+  scp "${Pi}:/run/chrony-log/tracking.log" "$HOME\gps-time-logs\tracking-before-rc10.log"
   ```
 
 ## 2. Upgrade
 
-- [ ] In a normal, interactive PowerShell window (not a VS Code task), from the repository folder, with a clean working tree. `git describe` must print exactly `v1.4.0-rc.8`.
+- [ ] In a normal, interactive PowerShell window (not a VS Code task), from the repository folder, with a clean working tree. `git describe` must print exactly `v1.4.0-rc.10`.
 
   ```powershell
   git fetch --tags
-  git checkout v1.4.0-rc.8
+  git checkout v1.4.0-rc.10
   git status --short
   git describe --tags --dirty
   ```
@@ -46,7 +57,7 @@ $Pi = "$PiUser@$PiHost"
   powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiHost -PiUser $PiUser
   ```
 
-  Expect, among the installer's sections: `Disabled 'sourcedir /run/chrony-dhcp'` (or "nothing changed" if the line wasn't there), `Independent references: none added`, `Installed web UI 1.4.0-rc.8`, `Existing admin token kept`, and a last line `Astronomy: available` or `Astronomy: UNAVAILABLE - <reason>` (note the reason; it doesn't affect timing).
+  Expect, among the installer's sections: "chrony is not using NTP servers from DHCP ... nothing changed", `Independent references: none added` (or "kept as it is"), `Installed web UI 1.4.0-rc.10`, `Existing admin token kept`, and a last line `Astronomy: available` or `Astronomy: UNAVAILABLE - <reason>`.
 
 - [ ] If the script stops with `... failed (exit N); deploy stopped.`, nothing after that step ran. Fix what it names and run it again.
 
@@ -58,7 +69,7 @@ $Pi = "$PiUser@$PiHost"
 ssh $Pi
 ```
 
-- [ ] The version is `1.4.0-rc.8` and the service is active.
+- [ ] The version is `1.4.0-rc.10` and the services are active.
 
   ```sh
   systemctl is-active gps-time-pi gps-time-pi-chrony-clients
@@ -72,37 +83,37 @@ ssh $Pi
   chronyc tracking | head -4
   ```
 
-- [ ] The DHCP line is commented out, and chrony isn't polling the station. The second command prints nothing when all is well.
+- [ ] The PPS reader and its counters. Run it twice a minute apart: polls rise by about 60, late polls stay at or near 0.
 
   ```sh
-  grep -n "chrony-dhcp" /etc/chrony/chrony.conf
-  for a in $(hostname -I); do chronyc -n sources | grep -F " $a "; done
+  curl -s localhost/api/timing-chain | python3 -c "import sys,json; p=json.load(sys.stdin)['pps']; v=lambda x: x and x.get('value'); print('missed', v(p.get('missed_pulses')), '| unread', v(p.get('unread_pulses')), '| poller', p.get('poller'))"
   ```
 
-- [ ] The helper publishes all three reports.
+- [ ] The log flush. After the first hourly run (or start it now with `sudo systemctl start gps-time-pi-logflush.service`), the station reports the new SD copy:
 
   ```sh
-  sudo ls -l /run/gps-time-pi/
-  journalctl -u gps-time-pi-chrony-clients -n 10 --no-pager
+  curl -s localhost/api/system | python3 -c "import sys,json; print(json.load(sys.stdin)['ramlog'])"
   ```
 
-  Expect `chrony-clients.txt`, `chrony-ntpdata.txt` and `chrony-serverstats.txt`, and no "failed" lines. This is the first time `ntpdata` and `serverstats` are read as `_chrony` on a Pi; if one is missing, the journal line says what chronyd answered, and the page that needs it reads UNKNOWN. Timing isn't affected.
+  Expect `sd_copy` ending in `station-tracking.txt` and a small `flushed_age_s`. Before the first flush it may still name the old `tracking.log`.
 
 - [ ] The new endpoints answer.
 
   ```sh
-  curl -s localhost/api/stability   | python3 -c "import sys,json; d=json.load(sys.stdin); print('stability:', d['available'], d['series']['seconds']['samples'], 'samples,', d['series']['seconds']['gaps'], 'gaps')"
-  curl -s localhost/api/timescales  | python3 -c "import sys,json; d=json.load(sys.stdin); l=d['leap_seconds']; print('TAI-UTC:', d['tai_utc_s']['value'], '| leap table:', l['source'], l['status'], l['expires_utc'])"
-  curl -s localhost/api/references  | python3 -c "import sys,json; d=json.load(sys.stdin); print('references:', d['verdict']['code'], '| delay available:', d['delay_available'])"
-  curl -s localhost/api/ntp-service | python3 -c "import sys,json; d=json.load(sys.stdin); print('ntp service:', d['state'], d['ntp'] and d['ntp']['received']['value'])"
+  curl -s localhost/api/oscillator | python3 -c "import sys,json; d=json.load(sys.stdin); print('oscillator:', d['available'], d['reason'] or len(d['bins']), d['storage']['bytes'], d['problems'])"
+  curl -s localhost/api/evidence   | python3 -c "import sys,json; d=json.load(sys.stdin); print('evidence files:', len(d['files']), d['total_bytes'], d['problems'])"
+  curl -s -o /dev/null -w "ping %{time_total}s\n" "localhost/api/ping?n=1"
   ```
 
-  - Stability: `True` after a few seconds, with the sample count rising by about one a second and few or no gaps.
-  - Time scales: `37`, source `file`, status `OK` with an expiry date. Source `builtin` means tzdata's `leap-seconds.list` isn't where the code looks; note it.
-  - References: `AGREE`, `ONE_REFERENCE`, `NONE_CONFIGURED` or `NONE_REACHABLE` are all valid answers; which one depends on the servers chrony polls.
-  - NTP service: a state other than `UNKNOWN` and a packet count.
+  - Oscillator: `False` with "No 10-minute bin..." for the first ten minutes, then `True`. No problems listed.
+  - Evidence: `0` files until an outage happens.
+  - Ping: a few milliseconds.
 
-- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.8`, and Timing → Stability, Time Scales and References load.
+- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.10`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab.
+
+- [ ] The two UI changes (rc.10):
+  - Legacy dashboard (`http://<station>/`), Sun & daylight: each day shows a sunrise and a sunset figure of the same size.
+  - `/app/`: press Alt+Shift+S (or click **Screenshot off · display only** in the header). The hostname, the coordinates and heights (GNSS & Site → Position and Geodesy) and the client addresses (Network & Devices) turn into blurred masks. Reload: it stays on. Press it again to turn it off.
 
 ## 4. Optional: independent `noselect` references
 
@@ -128,14 +139,14 @@ Remove them again with `GTP_INDEPENDENT_REFS=0`. Details: `../architecture/indep
   | 4 days | MDEV and TDEV at 1 day |
 
   So a 3-day run ends just as the 1-day ADEV point appears, and without its MDEV or TDEV.
-- Worth recording at the end, for the v1.4.0 notes: the key-point table, "Seconds without a sample", the share of time PPS was selected, any PPS outage events, the references outcome, and `journalctl -u gps-time-pi -u gps-time-pi-chrony-clients --since "3 days ago" -p warning --no-pager`.
+- Worth recording at the end, for the v1.4.0 notes: the key-point table, missed and unread pulses with the poll statistics (this settles whether the rc.8 run's 9 % was real), any PPS outage events and their evidence files, the references outcome, the oscillator slope if there is one, and `journalctl -u gps-time-pi -u gps-time-pi-chrony-clients --since "3 days ago" -p warning --no-pager`.
 
 ## What the first soak run found (2026-10-04 to 2026-10-19)
 
-Fourteen days on rc.8 without a restart, with real PPS/GNSS outages on 2026-10-17 and a 56-minute holdover that ended about 1.7 µs off. Details and numbers: `../development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.8". To keep evidence of an outage before anything restarts, copy `/run/chrony-log/tracking.log` off the station (it is readable without sudo) into a folder outside the repository.
+Fourteen days on rc.8 without a restart, with real PPS/GNSS outages on 2026-10-17 and a 56-minute holdover that ended about 1.7 µs off. Details and numbers: `../development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.8". From rc.9 the station keeps each outage's evidence on the SD card itself.
 
 ## Rollback
 
-- Previous release: check out `v1.4.0-rc.6` and run the same deploy command. The rc.6 installer doesn't touch the DHCP line, so it stays commented out. The helper service stays installed, which rc.6 ignores.
-- chrony configuration: `sudo cp -a ~/chrony.conf.before-rc8 /etc/chrony/chrony.conf && sudo systemctl restart chrony` (or restore `/etc/chrony/chrony.conf.before-gps-time-pi`).
+- Previous release: check out `v1.4.0-rc.9` and run the same deploy command (rc.10 changed only the web UI). To go back to `v1.4.0-rc.8`: same command; rc.8's flush copies the whole RAM log again, and the files rc.9 added (`oscillator-log.csv`, `evidence/`, `/var/log/chrony/station-tracking.txt`) stay and are ignored.
+- chrony configuration: `sudo cp -a ~/chrony.conf.before-rc10 /etc/chrony/chrony.conf && sudo systemctl restart chrony` (or restore `/etc/chrony/chrony.conf.before-gps-time-pi`).
 - Root-service rollback and other levels: `../development/raspberry-pi-deploy.md` → "Rollback".

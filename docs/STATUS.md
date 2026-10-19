@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (fix/sun-shifts-hms, #75). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/app-survey-reset, #82). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -15,7 +15,7 @@ Last updated: 2026-10-19 (fix/sun-shifts-hms, #75). Built from the specs, `roadm
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence"). *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).*
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **v1.4.0-rc.9** (list below): the soak run found real outages on 2026-10-17, so v1.4.0 was not tagged. rc.9 fixes what the run exposed, then another soak.
+5. **Soak run of v1.4.0-rc.10 on the Pi** (owner): upgrade with `deploy/upgrade-1.4-station.md`, then v1.4.0 if it holds. rc.10 is tagged ([#80](https://github.com/nathansottung/gps-time/pull/80)) and has all four queued UI fixes.
 
 ## v1.4.0-rc.9: to do
 
@@ -24,7 +24,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 1. *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).* **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
 2. *Done in [#73](https://github.com/nathansottung/gps-time/pull/73).* **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
 3. *Done in [#70](https://github.com/nathansottung/gps-time/pull/70).* **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
-4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode. The ~3 s round trip: done in [#74](https://github.com/nathansottung/gps-time/pull/74). Shifts in h/m/s: done in [#75](https://github.com/nathansottung/gps-time/pull/75).
+4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode. The ~3 s round trip: done in [#74](https://github.com/nathansottung/gps-time/pull/74). Shifts in h/m/s: done in [#75](https://github.com/nathansottung/gps-time/pull/75). Sunset prominence: done in [#78](https://github.com/nathansottung/gps-time/pull/78). Screenshot mode: done in [#79](https://github.com/nathansottung/gps-time/pull/79).
 
 ## Decisions
 
@@ -66,9 +66,9 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 | Review | `review/GPS-Time-Independent-Review-2026-09-27.md` |
 | Repo | repository tooling, CI and releases (owner requests) |
 
-Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
+Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 427 rows: 228 done, 0 in progress, 27 next, 172 planned.
+**Totals:** 436 rows: 237 done, 0 in progress, 28 next, 171 planned.
 
 ## Status table
 
@@ -389,7 +389,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | done | built on the deploying machine; a UI from another version is refused; not yet run on a Pi | [#35](https://github.com/nathansottung/gps-time/pull/35) |
-| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned | partial: 2 done (#3 station clock, #17 TDOP), 3 partly covered; admin actions and survey reset (#6, #7) are not in `/app/` yet | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) |
+| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned | partial: 2 done (#3 station clock, #17 TDOP), 3 partly covered; admin actions (#6) and survey reset (#7) done in #81 and #82; no legacy-removal blocker remains | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) [#81](https://github.com/nathansottung/gps-time/pull/81) [#82](https://github.com/nathansottung/gps-time/pull/82) |
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
@@ -473,7 +473,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | TM | §6 | Configured and suggested NMEA offset side by side | done | PPS diagnostics page; the suggestion reads UNKNOWN with the reason when it can't be measured | [#49](https://github.com/nathansottung/gps-time/pull/49) [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | TM | §6 | chrony `serverstats` (packets served, dropped) as a service-health view | done | Network page; chrony counts received and dropped, not replies, so "served" is shown as received − dropped. Not yet run on a Pi | [#58](https://github.com/nathansottung/gps-time/pull/58) |
 | TM | Tests | Fixture-based tests per item; §1 against known reference values; no live Internet or GNSS | next | partial: §1, §3, §4, §6 done; §2 and §5 not started | [#55](https://github.com/nathansottung/gps-time/pull/55) [#56](https://github.com/nathansottung/gps-time/pull/56) [#57](https://github.com/nathansottung/gps-time/pull/57) [#58](https://github.com/nathansottung/gps-time/pull/58) |
-| Repo |  | Tag v1.4.0-rc.8 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#59](https://github.com/nathansottung/gps-time/pull/59) |
+| Repo |  | Tag v1.4.0-rc.8 with release notes | done | pre-release; tag on this PR's merge commit | [#59](https://github.com/nathansottung/gps-time/pull/59) |
 | Repo |  | Soak run of v1.4.0-rc.8 on the Pi before v1.4.0 | done | 14 days 20 h, 2026-10-04 to 2026-10-19; real PPS/GNSS outages on 2026-10-17 (about 71 min, one 56-min holdover ending +1.7 µs); v1.4.0 not tagged | [#59](https://github.com/nathansottung/gps-time/pull/59) [#69](https://github.com/nathansottung/gps-time/pull/69) |
 | RF | Architecture | RF node (`rf-node/` in this repo): SDR on its own machine, chrony client of the station, SoapySDR, OpenWebRX, GNU Radio, agent | planned |  |  |
 | RF | Architecture | Agent: short IQ snippets around detections, tagged with UTC, the node's chrony offset and uncertainty, and frequency reference state; sends events | planned |  |  |
@@ -498,6 +498,15 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Log flush without write amplification; capped RAM log and SD copy | done | appends new lines only; RAM 8 MiB and SD 16 MiB caps, one previous file each; SD copy outside logrotate. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Repo |  | Outage evidence kept on the SD card under a size cap | done | one file per outage: event, 10 s timeline, chrony lines ±5 min; 20 MiB / 200 files; no position. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#73](https://github.com/nathansottung/gps-time/pull/73) |
 | Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | done | `pps-poller` thread; no HTTP request polls; poll statistics reported; outage detection unchanged. Whether the rc.8 run's 9 % was real absence or slow polling shows on the next run. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#70](https://github.com/nathansottung/gps-time/pull/70) |
-| Repo |  | Second soak run (rc.9) before v1.4.0 | planned | owner's step |  |
+| Repo |  | Second soak run (rc.10) before v1.4.0 | next | owner's step: upgrade with `deploy/upgrade-1.4-station.md`; rc.10 replaces rc.9 as the soak candidate | [#76](https://github.com/nathansottung/gps-time/pull/76) [#80](https://github.com/nathansottung/gps-time/pull/80) |
 | Web UI |  | Browser round trip of about 3 s on the Pi | done | server-side: the almanac (about 15 s of CPU, requested every 5 s by the legacy dashboard) now cached and shared; one server's history in `/api/references`; history parsed once a minute. Not yet run on a Pi | [#74](https://github.com/nathansottung/gps-time/pull/74) |
 | Web UI |  | Sunrise, noon and sunset shifts shown in h/m/s | done | was signed whole seconds | [#75](https://github.com/nathansottung/gps-time/pull/75) |
+| Repo |  | Tag v1.4.0-rc.9 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#76](https://github.com/nathansottung/gps-time/pull/76) |
+| Repo |  | Dependabot: setup-node 7.1.0, tzfpy 2.1.1, 11 web minor/patch updates | done | merged when green; TypeScript 7 (#65) and @types/node 26 (#64) held for the owner | [#66](https://github.com/nathansottung/gps-time/pull/66) [#67](https://github.com/nathansottung/gps-time/pull/67) [#68](https://github.com/nathansottung/gps-time/pull/68) |
+| Repo |  | One-page roadmap for outside readers (`ROADMAP.md`), README vision, geophysics roadmap imported | done | every spec and roadmap by phase, with status counts from this file | [#77](https://github.com/nathansottung/gps-time/pull/77) |
+| Repo |  | Public release checklist (draft) | done | `public-release-checklist.md`; nothing on it run yet except the commit-identity check; going public is the owner's step | [#77](https://github.com/nathansottung/gps-time/pull/77) |
+| Web UI |  | Sunset times as large as sunrise (legacy Sun & daylight widget) | done | sunset was small print under sunrise; now its own bold line, both labeled. `/app/` already showed them at the same size | [#78](https://github.com/nathansottung/gps-time/pull/78) |
+| Web UI |  | Screenshot mode: hides coordinates, heights, NTP client addresses and the hostname on screen | done | `/app/` only; header toggle labeled "display only", Alt+Shift+S, remembered per browser. A blurred mask is drawn, never the value. API, exports and the legacy pages unchanged | [#79](https://github.com/nathansottung/gps-time/pull/79) |
+| Repo |  | Tag v1.4.0-rc.10 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#80](https://github.com/nathansottung/gps-time/pull/80) |
+| Web UI |  | Station actions in `/app/` Administration: flush logs, restart gpsd/chrony/web, reboot | done | legacy-removal blocker (parity #6). Confirmation step for all but the flush; shows the station's answer. Checked in the demo (simulated); not yet run on a Pi | [#81](https://github.com/nathansottung/gps-time/pull/81) |
+| Web UI |  | Position survey reset in `/app/` Administration | done | legacy-removal blocker (parity #7). Shows what would be discarded; typed confirmation (RESET). Checked in the demo; not yet run on a Pi | [#82](https://github.com/nathansottung/gps-time/pull/82) |

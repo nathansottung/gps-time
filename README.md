@@ -1,8 +1,14 @@
 # GPS Time
 
-**Development status: v1.4.0-rc.8 (pre-release).** GPS Time began as a Raspberry Pi GPS/PPS Stratum-1 NTP appliance and is being structured as an **open-source, timing-first, offline-capable measurement platform**.
+**Development status: v1.4.0-rc.10 (pre-release).** GPS Time began as a Raspberry Pi GPS/PPS Stratum-1 NTP appliance and is being structured as an **open-source, timing-first, offline-capable measurement platform**.
 
 GNSS establishes *when* and *where*. The platform then layers on local astronomy/solar/geodesy, network metrology, sensors, SDR/RF observation, ADS-B/UAT, and eventually opt-in distributed science—without making any of those optional capabilities dependencies of the timing core.
+
+## Vision
+
+A small, offline station that keeps exact time and shows honestly how good that time is.
+On that timing core: measurement, sky and radio science, each value labeled with where it came from.
+Later, a network of such stations doing opt-in distributed science. Phases and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 > The historical v1.3.0 timing appliance works as a development baseline, but a source review identified measurement-freshness, chrony-history semantics, persistence and administrative-security work that must be resolved/dispositioned before a stable public release. See [`docs/review/source-review-2026-09-07.md`](docs/review/source-review-2026-09-07.md).
 

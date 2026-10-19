@@ -56,4 +56,4 @@ Add `-UseDemoLayout` if you intentionally want to promote `.dev/dashboard.json` 
 
 Read [`docs/README.md`](docs/README.md), then [`docs/roadmap/feature-registry.md`](docs/roadmap/feature-registry.md).
 
-The current version is **v1.4.0-rc.8**, a pre-release. `/api` and the web UI footer report the version read from the tag. The deployed historical baseline was v1.3.0. The 2026-09-07 source review still contains unresolved blockers; this bundle is a development starting point, not a claim of stable/hardened timing appliance status.
+The current version is **v1.4.0-rc.10**, a pre-release. `/api` and the web UI footer report the version read from the tag. The deployed historical baseline was v1.3.0. The 2026-09-07 source review still contains unresolved blockers; this bundle is a development starting point, not a claim of stable/hardened timing appliance status.

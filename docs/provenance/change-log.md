@@ -855,3 +855,63 @@ So the network and `/api/ping` were fine. All requests share one Python process,
 ## 2026-10-19 — sunrise and sunset shifts in h/m/s (#75)
 
 From the owner's list. The Overview's day-to-day shifts of sunrise, solar noon and sunset (#31) were signed whole seconds ("−131 s"). They are now hours, minutes and seconds: "+56 s", "−2 m 11 s", "+1 h 00 m 05 s" (a clock change). Same values, same rounding to the second. The daylight-length change keeps its existing "−2m 11.3s" form. Tests: `web/src/lib/sun.test.ts`.
+
+## 2026-10-19 — Dependabot updates (#66, #67, #68)
+
+- Merged after green CI: `actions/setup-node` 7.0.0 → 7.1.0 (#66), `tzfpy` 2.1.0 → 2.1.1 (#67), and the web minor-and-patch group (#68: React and React DOM 19.3, Vite 8.3, Tailwind 4.3, `@vitejs/plugin-react` 6.1, Vitest 5.0.4, `lucide-react` 1.56, `oxfmt` 0.73, matching type packages). Type check, tests and build pass on `main` with them.
+- Held for the owner: TypeScript 5.9 → 7.0 (#65) and `@types/node` 22 → 26 (#64); both are major updates.
+
+## 2026-10-19 — v1.4.0-rc.9 (#76)
+
+- Release notes in `docs/releases/v1.4.0-rc.9.md`: the fixes from the rc.8 soak run (#70, #72, #73, #74), the oscillator log (#71), Earth shadow and satellites (#61), the h/m/s shifts (#75), the dependency updates.
+- `deploy/upgrade-1.4-station.md` is now the rc.8 → rc.9 checklist, with checks for the PPS counters, the new flush, the oscillator log, the evidence files and the round trip. The other checklists, README and START-HERE target rc.9.
+- Not in rc.9: "sunset prominence" and "screenshot mode" (owner's list), which need the owner's description.
+- The annotated tag `v1.4.0-rc.9` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+
+## 2026-10-19 — roadmap page, README vision, public release checklist (#77)
+
+From the owner's list.
+
+- `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` added as the owner wrote it (FUTURE, research). It also lists what no tier of this project can measure (gravity or Earth's mass from clock comparisons).
+- `ROADMAP.md`: one page for outside readers. Every spec and roadmap in five phases, each with its status and the done / scheduled / planned counts from `STATUS.md` on 2026-10-19; `STATUS.md` stays authoritative.
+- `README.md`: a three-line vision linking `ROADMAP.md`.
+- `public-release-checklist.md`: DRAFT. History scan (secrets, coordinates, personal infrastructure, archives), current tree, release blockers, licensing, outside-reader docs, GitHub settings. Only the commit-identity check has been run (all noreply). Going public stays the owner's decision.
+## 2026-10-19 — sunset as prominent as sunrise (#78)
+
+From the owner's list ("sunset prominence"). In the legacy dashboard's Sun & daylight widget, each day showed sunrise as the large figure and sunset in the small grey line under it ("Sunrise · 6:24:12 PM sunset"). Each day now has two figures of the same size, sunrise then sunset, each labeled. A content fix in one widget, not a restyle: no CSS changed. The `/app/` Overview already gave both the same size; unchanged. Tests: `web/src/lib/legacy-dashboard.test.ts` (3).
+## 2026-10-19 — screenshot mode (#79)
+
+From the owner's list: a way to take screenshots of the station UI without showing where it is or who uses it.
+
+- **What it hides, in `/app/`:** latitude and longitude, heights (h, H and the geoid undulation N = h − H, which is derived from them), NTP client addresses, the hostname (header and the Overview's engineering console), and the station's own address when chrony polls it.
+- **How:** each hidden value is replaced by a mask of the same shape (digits → 0, letters → x: `38.9217°` → `00.0000°`), blurred. The real value is not drawn at all, because blurred digits in a known font can be recovered.
+- **Display only.** Nothing changes on the station, in the API or in exports, and the station's location privacy mode is unaffected; the toggle says "display only" and its tooltip points to Location privacy. Values it does not hide: sun and moon times, sidereal time and the local zone, which narrow the position only coarsely; for those, use the station's rounded or hidden mode.
+- **Toggle:** in the header; Alt+Shift+S (by key position, so it also works on macOS). Remembered per browser in `localStorage` (`gtp-screenshot-mode`); if storage is blocked it lasts for the page.
+- The legacy pages are not changed (they are not restyled; noted in `dashboard/web-ui-parity.md`).
+- Tests: `web/src/lib/screenshot.test.ts` (6). Checked in the desktop demo: the toggle, the shortcut, the setting surviving a reload, and no client address left in the page text.
+
+## 2026-10-19 — v1.4.0-rc.10 (#80)
+
+- Release notes in `docs/releases/v1.4.0-rc.10.md`: sunset as prominent as sunrise (#78), screenshot mode (#79), the roadmap page, README vision, geophysics roadmap and draft public release checklist (#77). Over rc.9 only the web UI changed (`gps_time_pi/static/dashboard.js` and `web/`).
+- `deploy/upgrade-1.4-station.md` now goes to rc.10 from rc.8 or rc.9 (the Pi's last recorded release is rc.8), with a check for each UI change; rollback is rc.9. The other checklists, README, START-HERE and `ROADMAP.md` target rc.10.
+- `STATUS.md`: rc.10 replaces rc.9 as the soak-run candidate; all four queued UI fixes are done.
+- The annotated tag `v1.4.0-rc.10` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+
+## 2026-10-19 — station actions in /app/ (#81)
+
+Owner's request: port the legacy-removal blockers into `/app/`, one PR each. This is the first (parity item 6; `dashboard/legacy-removal-plan.md`).
+
+- Administration → **Station actions**: flush logs to SD, restart gpsd, restart chrony, restart the web service, reboot. Same `POST /api/admin` and admin token as the legacy `/admin` page; the station side (fixed commands, polkit) is unchanged.
+- Every action except the log flush asks first, inline, saying what it interrupts. The confirmation never claims timing is unaffected.
+- Afterwards the page shows the station's own answer. A request with no answer (timeout or network) is reported as "may still have run", not as a failure. Restart and reboot say the station will be unreachable for a while; the page's polling reconnects.
+- The legacy `/admin` page keeps its buttons; nothing is removed.
+- Tests: `web/src/lib/admin.test.ts` (8). Checked in the desktop demo (simulated: "demo, not executed"). Not run on a Pi.
+## 2026-10-19 — survey reset in /app/ (#82)
+
+The second legacy-removal blocker (parity item 7).
+
+- Administration → **Position survey**: the accepted-fix count and horizontal standard error, and "Reset position survey…". Same `POST /api/setting {"reset_site": true}` and admin token as the legacy `/admin` page; the station side is unchanged.
+- The reset can't be undone from the UI, so one click isn't enough: the page states what would be discarded, from the station's own counts ("Discards 18,432 accepted fixes, …"; UNKNOWN when the station hasn't reported), and the operator types RESET. Escape or Cancel closes it.
+- The outcome is the station's answer; no answer is reported as "may or may not have been reset", with the count to check.
+- The legacy `/admin` page keeps its button; nothing is removed.
+- Tests: `web/src/lib/survey.test.ts` (7). Checked in the desktop demo. Not run on a Pi.

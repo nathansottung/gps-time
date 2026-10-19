@@ -457,7 +457,7 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
 | anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone or reset_site"}` |
 
-The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). Survey reset remains on the legacy `/admin` page.
+The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation), and still on the legacy `/admin` page.
 
 ## POST /api/admin
 
@@ -472,7 +472,7 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
 | other | nothing | `unknown action` (`ok: false`) |
 
-Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The new UI's client has `admin()`; its buttons are still only on the legacy `/admin` page.
+Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The new UI has the same actions on Administration → Station actions (`/app/`); the legacy `/admin` page keeps its buttons.
 
 ---
 

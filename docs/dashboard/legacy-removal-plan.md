@@ -60,8 +60,8 @@ The legacy pages are still the only place for several things an operator needs. 
 
 | # | Legacy feature | In `/app/` now | Suggested |
 |---|---|---|---|
-| 6 | Admin actions: flush logs, restart gpsd/chrony/web, reboot | **no** (client has `admin()`, no buttons) | **port: blocker** |
-| 7 | Survey reset | **no** | **port: blocker** (with a confirmation step) |
+| 6 | Admin actions: flush logs, restart gpsd/chrony/web, reboot | **yes** (#81: Administration → Station actions, confirmation for all but the flush) | done |
+| 7 | Survey reset | **yes** (#82: Administration → Position survey, typed confirmation) | done |
 | 8 | Almanac date navigation | no | port |
 | 9 | Twilight bar and night bar | no (data already in `/api/almanac`) | port |
 | 10 | Moon details (time up, transit altitude) | no (data already there) | port |
@@ -81,7 +81,7 @@ The legacy pages are still the only place for several things an operator needs. 
 | 3 | Station-corrected clock | **yes** (#47) | done |
 | 17 | Satellite table TDOP | **yes** (GNSS page) | done |
 
-Two of 21 are done, about four are partly covered, and the rest are open. **Items 6 and 7 are the hard blockers:** without them, removing `/admin` leaves no way to restart a service or reset the survey from a browser.
+Four of 21 are done (items 6 and 7 in #81 and #82), about four are partly covered, and the rest are open. **No hard blocker remains:** everything `/admin` does can now be done from `/app/` Administration.
 
 ## 3. Proposed order
 
