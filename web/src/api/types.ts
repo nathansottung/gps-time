@@ -465,6 +465,43 @@ export interface SatelliteReport {
 }
 export type Satellites = SatelliteReport | Unavailable;
 
+// ─── GET /api/oscillator ─────────────────────────────────────────────────────
+
+export interface OscillatorBin {
+  t: string;                         // bin start, UTC (10 minutes)
+  samples: number;
+  pps_samples: number;               // samples taken while chrony had PPS selected
+  temp_mean_c: number | null; temp_min_c: number | null; temp_max_c: number | null;
+  freq_mean_ppm: number | null; freq_min_ppm: number | null; freq_max_ppm: number | null;   // + = fast
+  skew_mean_ppm: number | null;
+  residual_mean_ppm: number | null;
+}
+export interface OscillatorFit {
+  bins_used: number;
+  slope_ppm_per_c: number | null;
+  intercept_ppm: number | null;
+  r: number | null;
+  temp_span_c: number | null;
+  reason: string | null;
+  provenance: Provenance;            // calculated
+}
+export interface Oscillator {
+  available: boolean;
+  reason: string | null;
+  provenance: Provenance;            // observed
+  sensor: string;
+  frequency_note: string;
+  bin_s: number;
+  sample_interval_s: number;
+  bins: OscillatorBin[];
+  latest: { temp_c: Measured; freq_ppm: Measured; bin_start_utc: string } | null;
+  fit: OscillatorFit;
+  fit_note: string;
+  storage: { path: string; bytes: number; max_bytes: number; pending_bins: number; flush_interval_s: number; note: string };
+  board: { serial_sha256: string | null; model: string | null };
+  problems: string[];
+}
+
 // ─── GET /api/ntp-service ────────────────────────────────────────────────────
 
 export interface NtpRate { received_per_s: Measured; dropped_per_s: Measured }

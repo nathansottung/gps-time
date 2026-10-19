@@ -19,7 +19,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from . import chrony, ntpservice, references, stability
+from . import chrony, ntpservice, oscillator, references, stability
 from .labels import q
 from .pps import PPSMonitor
 
@@ -782,7 +782,8 @@ class TimingChainService:
 
     def __init__(self, monitor=None, tracker=None, chrony_reader=read_chrony_inputs,
                  gnss_reader=None, refclock_reader=chrony.refclock_config,
-                 boot_config_reader=None, clock=time.time, ntpdata_reader=None, serverstats_reader=None):
+                 boot_config_reader=None, clock=time.time, ntpdata_reader=None, serverstats_reader=None,
+                 oscillator_log=None):
         from . import gps, pps
         self.monitor = monitor or PPSMonitor()
         self.tracker = tracker if tracker is not None else EventTracker(default_events_path(), boot=read_boot())
@@ -795,6 +796,7 @@ class TimingChainService:
         self.stability = stability.Recorder(clock=clock)   # RAM-only phase history for /api/stability
         self.references = references.Tracker(clock=clock, ntpdata_reader=ntpdata_reader)   # /api/references
         self.ntp_service = ntpservice.Tracker(clock=clock, reader=serverstats_reader)        # /api/ntp-service
+        self._oscillator = oscillator_log      # created on first use: it reads the board identity and the log file
         self._chrony_inputs, self._chrony_at = None, None
         self._refcfg = None
         self._boot = None
@@ -847,6 +849,8 @@ class TimingChainService:
         chain["raw"] = {k: self._chrony_inputs.get(f"{k}_text") if self._chrony_inputs.get(f"{k}_ok") else None
                         for k in ("tracking", "sources", "sourcestats")}
         self._pps_selected = status.get("code") == "GPS_PPS"
+        if self._oscillator is not None:
+            self._oscillator.add(trk, self._pps_selected)
         with self._lock:
             self._latest = chain
         return chain
@@ -884,9 +888,18 @@ class TimingChainService:
                 pass
             stop.wait(next_tick_delay(self.clock(), interval, POLL_PHASE_S))
 
+    @property
+    def oscillator(self):
+        """Temperature and chrony frequency log (/api/oscillator); one per service."""
+        if self._oscillator is None:
+            self._oscillator = oscillator.Log(clock=self.clock)
+        return self._oscillator
+
     def start(self, interval=1.0):
         if self._thread and self._thread.is_alive():
             return self._thread
+        import atexit
+        atexit.register(self.oscillator.flush)      # a clean stop (SIGTERM) writes the unsaved bins
         self.tick()                    # the first evaluation, before any request can ask for one
         self._stop = threading.Event()
         self._poller = threading.Thread(target=self._poll_loop, args=(self._stop, interval),

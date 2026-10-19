@@ -105,6 +105,10 @@ If the router's DHCP names the station as the LAN's NTP server (option 42), the 
 
 The main clock shows local time; the station itself stays on UTC. Don't change the Pi's system time zone for this (`timedatectl` is not used anywhere). The zone is found offline from the station's position with `tzfpy` (in the venv), or set in Administration → Local time zone. With the location hidden, the zone is not derived from the position.
 
+## Oscillator log
+
+The station logs the SoC temperature with chrony's frequency, in 10-minute bins appended to `/opt/gps-time-pi/oscillator-log.csv` once an hour (about six short lines an hour; capped at 4 MB). It is the data for the trained oscillator profile and needs nothing from you. The file is bound to the board by a hash of its serial number: if the SD card moves to another Pi, the old file is set aside rather than mixed in. Copy it off the station like the chrony log if you want to keep it.
+
 ## Satellite orbital elements (optional)
 
 Sun & Astronomy → Earth Shadow needs nothing. Sun & Astronomy → Satellites needs orbital elements (TLEs), which come from the Internet and go out of date in days. The web service never fetches them; run this on the station when you want them refreshed:

@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/pps-poller-thread, #70). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/oscillator-log, #71). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 425 rows: 218 done, 0 in progress, 32 next, 175 planned.
+**Totals:** 425 rows: 219 done, 0 in progress, 32 next, 174 planned.
 
 ## Status table
 
@@ -277,7 +277,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature A |  | Browser RTT + clock estimate | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | RAM-first bounded telemetry + checkpoints | planned | partial: tracking log unbounded (GPS-011) | [#4](https://github.com/nathansottung/gps-time/pull/4) [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Feature A |  | Source-loss / fallback / reacquisition timeline | next | partial: backend + event list | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| Feature A |  | Oscillator fractional-frequency history | planned |  |  |
+| Feature A |  | Oscillator fractional-frequency history | done | chrony's frequency with the SoC temperature, 10-minute bins on the SD card (hourly, capped, board-bound); a straight-line slope. The trained profile (roadmap) is not built. Not yet run on a Pi | [#71](https://github.com/nathansottung/gps-time/pull/71) |
 | Feature A |  | Time-to-1 ms…1 s holdover estimates | planned | partial: legacy raw projection |  |
 | Feature A |  | ADEV / MDEV / TDEV / TIE / MTIE | planned | partial: ADEV, MDEV, TDEV done (TM §1); TIE and MTIE not | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | Feature A |  | Error budget + light-distance | planned | partial: light-distance done | [#10](https://github.com/nathansottung/gps-time/pull/10) |

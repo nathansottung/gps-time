@@ -5,6 +5,7 @@ import { Planned, ApiErrorNote } from '../components/planned';
 import { StabilityPanel } from '../components/stability';
 import { TimeScalesPanel } from '../components/timescales';
 import { ReferencesPanel } from '../components/references';
+import { OscillatorPanel } from '../components/oscillator';
 import { useStation, usePoll } from '../api/station';
 import { toOffsetSeries, allEvents } from '../api/view';
 import type { StageStatus } from '../api/types';
@@ -167,7 +168,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
         <StatusBadge variant={statusVariant(status?.code)} label={status?.banner ?? 'UNKNOWN'} pulse={status?.code === 'GPS_PPS'} />
       </div>
 
-      <Tabs tabs={['Overview','Stability','Time Scales','References','Timing Chain','PPS Events','Error Budget','Light Distance']} active={tab} onChange={setTab} />
+      <Tabs tabs={['Overview','Stability','Oscillator','Time Scales','References','Timing Chain','PPS Events','Error Budget','Light Distance']} active={tab} onChange={setTab} />
 
       {tab === 'Overview' && (
         <div className="space-y-4">
@@ -283,6 +284,8 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
       )}
 
       {tab === 'Stability' && <StabilityPanel />}
+
+      {tab === 'Oscillator' && <OscillatorPanel />}
 
       {tab === 'Time Scales' && <TimeScalesPanel />}
 

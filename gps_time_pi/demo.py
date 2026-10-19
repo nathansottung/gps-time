@@ -226,6 +226,33 @@ def satellites() -> dict:
     }
 
 
+def oscillator() -> dict:
+    """Sample /api/oscillator payload: the real log fed a synthetic day (a
+    crystal at about -0.3 ppm per degree C with the SoC warming by day)."""
+    import tempfile
+    from . import oscillator as osc
+    now = time.time()
+    clock = [now - 2 * 86400]
+    temp = [50.0]
+    path = os.path.join(tempfile.gettempdir(), "gtp-demo-oscillator.csv")
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+    log = osc.Log(path=path, clock=lambda: clock[0], temp_reader=lambda: temp[0],
+                  identity={"serial_sha256": "demo", "model": "demo board"})
+    for i in range(2 * 1440):
+        clock[0] = now - 2 * 86400 + i * 60
+        temp[0] = 50.0 + 6.0 * math.sin(2 * math.pi * (i / 1440.0 - 0.3)) + 0.3 * math.sin(i / 7.0)
+        freq = 10.9 - 0.3 * (temp[0] - 50.0) + 0.002 * math.sin(i / 3.0)
+        log.add({"Frequency": f"{abs(freq):.3f} ppm {'fast' if freq >= 0 else 'slow'}",
+                 "Skew": "0.008 ppm", "Residual freq": "-0.000 ppm"}, True)
+    out = log.report()
+    out["storage"] = {**out["storage"], "path": "(sample data)"}
+    out["problems"] = ["sample data"]
+    return out
+
+
 def ntp_service() -> dict:
     """Sample /api/ntp-service payload: the real tracker fed synthetic counters
     (about 14 requests a minute, a few dropped), two hours of history."""
