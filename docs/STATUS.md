@@ -7,13 +7,13 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/oscillator-log, #71). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/log-flush-caps, #72). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
 1. **chrony history semantics** (GPS-003, GPS-007): correct tracking-log columns; label ± honestly (root dispersion is not total uncertainty). Pre-release blocker.
 2. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
-3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence").
+3. **Bounded tracking log** (GPS-011, GPS-012): cap the RAM chrony tracking log with atomic rotation; resolve its path at runtime, not at import. Pre-release blocker ("Bounded persistence"). *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).*
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
 5. **v1.4.0-rc.9** (list below): the soak run found real outages on 2026-10-17, so v1.4.0 was not tagged. rc.9 fixes what the run exposed, then another soak.
 
@@ -21,7 +21,7 @@ Last updated: 2026-10-19 (feat/oscillator-log, #71). Built from the specs, `road
 
 From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.8"). Owner, 2026-10-19: yes to the first two; don't weaken outage detection.
 
-1. **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
+1. *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).* **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
 2. **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
 3. *Done in [#70](https://github.com/nathansottung/gps-time/pull/70).* **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
 4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode.
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0).
 
-**Totals:** 425 rows: 219 done, 0 in progress, 32 next, 174 planned.
+**Totals:** 425 rows: 224 done, 0 in progress, 29 next, 172 planned.
 
 ## Status table
 
@@ -275,7 +275,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature A |  | Internet NTP fallback, honest source/stratum | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Feature A |  | NTP client IP activity | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Browser RTT + clock estimate | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| Feature A |  | RAM-first bounded telemetry + checkpoints | planned | partial: tracking log unbounded (GPS-011) | [#4](https://github.com/nathansottung/gps-time/pull/4) [#5](https://github.com/nathansottung/gps-time/pull/5) |
+| Feature A |  | RAM-first bounded telemetry + checkpoints | done | tracking log capped in RAM and on SD ([#72](https://github.com/nathansottung/gps-time/pull/72)) | [#4](https://github.com/nathansottung/gps-time/pull/4) [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Feature A |  | Source-loss / fallback / reacquisition timeline | next | partial: backend + event list | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Oscillator fractional-frequency history | done | chrony's frequency with the SoC temperature, 10-minute bins on the SD card (hourly, capped, board-bound); a straight-line slope. The trained profile (roadmap) is not built. Not yet run on a Pi | [#71](https://github.com/nathansottung/gps-time/pull/71) |
 | Feature A |  | Time-to-1 ms…1 s holdover estimates | planned | partial: legacy raw projection |  |
@@ -384,7 +384,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Pre-release | Fresh-fix survey semantics | planned | partial: collector still in web process | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Scope | Pre-release | logsync exec-bit failure | done | not yet verified on a Pi | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Scope | Pre-release | chrony history field meaning | next |  |  |
-| Scope | Pre-release | Bounded persistence | planned | partial: config/events atomic; tracking log unbounded | [#5](https://github.com/nathansottung/gps-time/pull/5) |
+| Scope | Pre-release | Bounded persistence | done | config and events atomic; tracking log capped in RAM and on SD ([#72](https://github.com/nathansottung/gps-time/pull/72)) | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Scope | Pre-release | Administrative security | done | not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
@@ -401,8 +401,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-008 | Holdover from raw frequency | planned |  |  |
 | Review | GPS-009 | Survey SE labeled repeatability | planned | partial: /app fixed; legacy not | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Review | GPS-010 | Fresh install fails (logsync mode) | done | not Pi-verified | [#1](https://github.com/nathansottung/gps-time/pull/1) |
-| Review | GPS-011 | RAM tracking log unbounded | next |  |  |
-| Review | GPS-012 | Tracking-log path fixed at import | next |  |  |
+| Review | GPS-011 | RAM tracking log unbounded | done | 8 MiB cap with rotation via `chronyc cyclelogs` | [#72](https://github.com/nathansottung/gps-time/pull/72) |
+| Review | GPS-012 | Tracking-log path fixed at import | done | resolved on every call | [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Review | GPS-013 | SIGTERM skips flush; corrupt config reset | done |  | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Review | GPS-014 | Root service; unauthenticated GET admin | done | POST-only, admin token, unprivileged service + polkit; not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-015 | Privacy hidden leaks via sidereal/almanac | done | plus satellite az/el. Decision 2026-10-02: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags (GNSS health stays visible); see Decisions | [#12](https://github.com/nathansottung/gps-time/pull/12) [#13](https://github.com/nathansottung/gps-time/pull/13) |
@@ -495,7 +495,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Rules | Node positions follow the station's privacy modes | planned |  |  |
 | RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |
 | Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
-| Repo |  | Log flush without write amplification; capped RAM log and SD copy | next | rc.9 item 1; the hourly flush copies the whole RAM log (about 240 MB a day at the check) | [#69](https://github.com/nathansottung/gps-time/pull/69) |
+| Repo |  | Log flush without write amplification; capped RAM log and SD copy | done | appends new lines only; RAM 8 MiB and SD 16 MiB caps, one previous file each; SD copy outside logrotate. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Repo |  | Outage evidence kept on the SD card under a size cap | next | rc.9 item 2; with OBS §13 | [#69](https://github.com/nathansottung/gps-time/pull/69) |
 | Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | done | `pps-poller` thread; no HTTP request polls; poll statistics reported; outage detection unchanged. Whether the rc.8 run's 9 % was real absence or slow polling shows on the next run. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#70](https://github.com/nathansottung/gps-time/pull/70) |
 | Repo |  | Second soak run (rc.9) before v1.4.0 | planned | owner's step |  |

@@ -117,18 +117,21 @@ def diagnostics():
                        "throttle flags below are the power-supply diagnostics.")
 
     # RAM-log status
-    log = chrony.TRACKING_LOG
+    log = chrony.tracking_log_path()
     d["ramlog"] = {"path": log, "in_ram": log.startswith("/run/"),
-                   "size_kb": None, "flushed_age_s": None}
+                   "size_kb": None, "flushed_age_s": None, "sd_copy": None, "sd_size_kb": None}
     try:
-        d["ramlog"]["size_kb"] = round(os.path.getsize(log) / 1024, 1)
+        d["ramlog"]["size_kb"] = round(sum(os.path.getsize(p) for p in chrony._tracking_files(log)) / 1024, 1)
     except OSError:
         pass
-    try:
-        d["ramlog"]["flushed_age_s"] = round(
-            time.time() - os.path.getmtime("/var/log/chrony/tracking.log"))
-    except OSError:
-        pass
+    for copy in chrony.SD_COPIES:          # the rc.9 append-only copy, else the older full copy
+        try:
+            d["ramlog"]["flushed_age_s"] = round(time.time() - os.path.getmtime(copy))
+            d["ramlog"]["sd_copy"] = copy
+            d["ramlog"]["sd_size_kb"] = round(os.path.getsize(copy) / 1024, 1)
+            break
+        except OSError:
+            continue
     return d
 
 
