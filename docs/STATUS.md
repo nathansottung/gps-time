@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/release-v1.4.0-rc.10, #80). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/app-admin-actions, #81). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 434 rows: 235 done, 0 in progress, 28 next, 171 planned.
+**Totals:** 435 rows: 236 done, 0 in progress, 28 next, 171 planned.
 
 ## Status table
 
@@ -389,7 +389,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | done | built on the deploying machine; a UI from another version is refused; not yet run on a Pi | [#35](https://github.com/nathansottung/gps-time/pull/35) |
-| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned | partial: 2 done (#3 station clock, #17 TDOP), 3 partly covered; admin actions and survey reset (#6, #7) are not in `/app/` yet | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) |
+| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned | partial: 2 done (#3 station clock, #17 TDOP), 3 partly covered; admin actions (#6) done in #81; survey reset (#7) is not in `/app/` yet | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) [#81](https://github.com/nathansottung/gps-time/pull/81) |
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
@@ -508,3 +508,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Sunset times as large as sunrise (legacy Sun & daylight widget) | done | sunset was small print under sunrise; now its own bold line, both labeled. `/app/` already showed them at the same size | [#78](https://github.com/nathansottung/gps-time/pull/78) |
 | Web UI |  | Screenshot mode: hides coordinates, heights, NTP client addresses and the hostname on screen | done | `/app/` only; header toggle labeled "display only", Alt+Shift+S, remembered per browser. A blurred mask is drawn, never the value. API, exports and the legacy pages unchanged | [#79](https://github.com/nathansottung/gps-time/pull/79) |
 | Repo |  | Tag v1.4.0-rc.10 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#80](https://github.com/nathansottung/gps-time/pull/80) |
+| Web UI |  | Station actions in `/app/` Administration: flush logs, restart gpsd/chrony/web, reboot | done | legacy-removal blocker (parity #6). Confirmation step for all but the flush; shows the station's answer. Checked in the demo (simulated); not yet run on a Pi | [#81](https://github.com/nathansottung/gps-time/pull/81) |
