@@ -82,7 +82,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 446 rows: 238 done, 0 in progress, 28 next, 180 planned.
+**Totals:** 447 rows: 239 done, 0 in progress, 28 next, 180 planned.
 
 ## Status table
 
@@ -525,6 +525,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Station actions in `/app/` Administration: flush logs, restart gpsd/chrony/web, reboot | done | legacy-removal blocker (parity #6). Confirmation step for all but the flush; shows the station's answer. Checked in the demo (simulated); not yet run on a Pi | [#81](https://github.com/nathansottung/gps-time/pull/81) |
 | Web UI |  | Position survey reset in `/app/` Administration | done | legacy-removal blocker (parity #7). Shows what would be discarded; typed confirmation (RESET). Checked in the demo; not yet run on a Pi | [#82](https://github.com/nathansottung/gps-time/pull/82) |
 | Repo |  | TypeScript 5.9 → 7.0 for the web type check | done | `baseUrl` removed from `web/tsconfig.json` (TS 7 dropped it; `paths` resolve from the file). Type check only: Vite builds without tsc, so the bundle is unchanged | [#65](https://github.com/nathansottung/gps-time/pull/65) |
+| Repo |  | Dependabot: no major `@types/node` updates; #64 (22 → 26) closed | done | the types follow the Node the web toolchain runs on (22); raise by hand with it | [#83](https://github.com/nathansottung/gps-time/pull/83) |
 | Web UI |  | Legacy removal 1: owner decisions on parity items 1, 2, 4/5, 18, 19, 20, 21 | planned | owner's step; recorded in `dashboard/web-ui-parity.md` | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy removal 2: almanac date navigation, twilight/night bars, moon details (parity 8, 9, 10) | planned | data already in `/api/almanac` | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy removal 3: sky map and object lookup (parity 11, 12) | planned | object target per-request (GPS-030) | [#84](https://github.com/nathansottung/gps-time/pull/84) |
