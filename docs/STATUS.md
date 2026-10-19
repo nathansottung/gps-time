@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (feat/app-sky-object, #88). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (feat/app-survey-history, #89). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -33,7 +33,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 1. *Decided 2026-10-19 ([#86](https://github.com/nathansottung/gps-time/pull/86)), except items 2 and 21; see Decisions.* **Owner decisions** (blocks steps 5 and 9): themes incl. red night mode (1); saved layout editor and layout-driven pages, port or drop (4, 5); `custom.css` (18); `/zones` (19); throttle flags (21) and the station-wide zone override (2) as enough; dropping the 1/|ppm| holdover figure (20, needs an explicit yes per ADR-0004).
 2. *Done in [#87](https://github.com/nathansottung/gps-time/pull/87).* **Almanac:** date navigation, twilight and night bars, moon details (8, 9, 10). Data already in `/api/almanac`.
 3. *Done in [#88](https://github.com/nathansottung/gps-time/pull/88).* **Sky map and object lookup** (11, 12), with the object target made per-request instead of server-global (GPS-030).
-4. **Survey convergence and ingest counters** (14, 15); the remaining chrony detail (16).
+4. *Done in [#89](https://github.com/nathansottung/gps-time/pull/89).* **Survey convergence and ingest counters** (14, 15); the remaining chrony detail (16).
 5. What the owner keeps from step 1: the red **night theme** (1), and **show/hide modules** in place of the saved-layout editor (4, 5).
 6. **Offset chart uncertainty band and symlog axis** (13), only after chrony history semantics (GPS-003, GPS-007; next-5 item 1).
 7. **Switch the front door:** `/` → `/app/`, legacy pages under `/legacy/…` with a going-away notice. First release after v1.4.0; run on the Pi.
@@ -84,7 +84,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 448 rows: 243 done, 0 in progress, 28 next, 177 planned.
+**Totals:** 448 rows: 244 done, 0 in progress, 28 next, 176 planned.
 
 ## Status table
 
@@ -531,7 +531,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Legacy removal 1: owner decisions on parity items 1, 2, 4/5, 18, 19, 20, 21 | done | 1: dark + red night, light dropped; 4/5: show/hide modules; 18, 19, 20 dropped. 2 and 21 not decided | [#84](https://github.com/nathansottung/gps-time/pull/84) [#86](https://github.com/nathansottung/gps-time/pull/86) |
 | Web UI |  | Legacy removal 2: almanac date navigation, twilight/night bars, moon details (parity 8, 9, 10) | done | Sun & Astronomy → Sun & Moon: date navigation, day and night bars, moon transit altitude and time up. Demos now return both bars. Not yet run on a Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) [#87](https://github.com/nathansottung/gps-time/pull/87) |
 | Web UI |  | Legacy removal 3: sky map and object lookup (parity 11, 12) | done | Sky & Objects tab: sky map and object lookup; the target is a request parameter, `_LAST_TARGET` removed (GPS-030); the legacy page sends its own. Not yet run on a Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) [#88](https://github.com/nathansottung/gps-time/pull/88) |
-| Web UI |  | Legacy removal 4: survey convergence, ingest counters, remaining chrony detail (parity 14, 15, 16) | planned |  | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 4: survey convergence, ingest counters, remaining chrony detail (parity 14, 15, 16) | done | GNSS & Site → Survey (convergence, session scatter, ingest); Timing → chrony tracking card. Not yet run on a Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) [#89](https://github.com/nathansottung/gps-time/pull/89) |
 | Web UI |  | Legacy removal 5: the parity items the owner keeps | planned | red night theme (1); show/hide modules replacing the layout editor (4, 5) | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy removal 6: offset chart uncertainty band and symlog axis (parity 13) | planned | after GPS-003/GPS-007 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
 | Web UI |  | Legacy removal 7: `/` → `/app/`, legacy pages under `/legacy/` with a notice | planned | first release after v1.4.0; run on the Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) |

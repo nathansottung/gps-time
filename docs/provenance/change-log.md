@@ -953,3 +953,14 @@ Legacy removal step 3 (parity 11, 12) and the remaining half of review finding G
 - `api.object()` in the typed client returns `{error: 'unparsed'}` instead of throwing, so the card can show examples.
 - Demo: `gps_time_pi/demo.py` places the bundled chart stars and constellation lines with a plain equatorial-to-horizontal conversion for the example site (no precession or refraction; labeled "demo positions, shapes only") and answers `/api/object` with a synthetic card; the client-side demo has a small fixed sky.
 - Tests: `web/src/lib/sky.test.ts` (10), `web/src/api/object.test.ts` (3), `tests/test_location_privacy.py` (3 new: the named target is marked; a lookup doesn't mark another request's sky; no global exists), `tests/test_demo_almanac.py` (2 new). Checked in the desktop demo. Not run on a Pi.
+
+## 2026-10-19 — survey convergence, ingest counters, chrony tracking detail in /app/ (#89)
+
+Legacy removal step 4 (parity 14, 15, 16).
+
+- **GNSS & Site → Survey** (fetches `/api/survey` only while the tab is open):
+  - **Survey convergence:** horizontal and vertical standard error of the mean over time, log scale. Zero or missing values are gaps, never drawn as 0. The caption says what the number is: computed as if the fixes were independent; GNSS errors are correlated, so the mean's real uncertainty is larger, and below about 1 m systematic error dominates (review GPS-009's point; the legacy page still says "±").
+  - **This session's fixes:** offsets from the mean in metres (no absolute position, so it shows in every privacy mode), north up and east right, rings at 1, 2 and 3 × per-fix scatter, the mean's standard-error ring.
+  - **Survey ingest:** collector running, accepted and rejected this session (by reason), last rejection, total accepted.
+- **Timing → Overview, chrony tracking:** frequency, residual frequency, skew, update interval, last offset and reference time, as `chronyc -n tracking` reports them. The PPS sample age and raw `sourcestats` were already on PPS Diagnostics; with this, parity item 16 is covered.
+- Tests: `web/src/lib/survey.test.ts` (7 new). Checked with the client-side demo (`?source=demo`); the station demo has no survey history until fixes arrive, and says so. Not run on a Pi.

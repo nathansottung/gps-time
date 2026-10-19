@@ -67,15 +67,15 @@ The legacy pages are still the only place for several things an operator needs. 
 | 10 | Moon details (time up, transit altitude) | **yes** (#87) | done |
 | 11 | Sky map (stars, constellations, planets) | **yes** (#88) | done |
 | 12 | Object lookup | **yes** (#88) | done |
-| 14 | Survey convergence charts | no | port |
-| 15 | Survey ingest counters | no | port |
+| 14 | Survey convergence charts | **yes** (#89) | done |
+| 15 | Survey ingest counters | **yes** (#89) | done |
 | 13 | Offset chart uncertainty band, symlog axis | no | port **after** GPS-003/GPS-007 (the band's meaning is wrong today) |
 | 1 | Themes: light, dark, night (red) | dark only | owner decides: night mode matters for observing |
 | 4, 5 | Saved layout editor and layout-driven pages | no; `/app/` has fixed pages and a non-saving preview | owner decides: port, or drop the saved-layout model |
 | 18 | `custom.css` site override | no | owner decides |
 | 19 | `/zones` time-zone table | no link | owner decides: keep the route, link it, or drop |
 | 21 | Throttle flags individually | partly (active flags, now and since boot) | probably enough; owner confirms |
-| 16 | chrony detail (residual frequency, update interval, raw sourcestats) | mostly (PPS Diagnostics) | small port |
+| 16 | chrony detail (residual frequency, update interval, raw sourcestats) | **yes** (#89) | done |
 | 2 | Per-browser time-zone picker | partly: a station-wide override in Administration (#45) | probably enough; owner confirms |
 | 20 | "Projected 1 s holdover" = 1/\\|ppm\\| | deliberately not ported | **drop** (needs the owner's explicit yes, per ADR-0004) |
 | 3 | Station-corrected clock | **yes** (#47) | done |
