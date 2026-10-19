@@ -982,3 +982,7 @@ Legacy removal step 5: what the owner kept from step 1 (#86).
 - The station side already decoded the bits; the decoding is now `system.decode_throttled()`, so the desktop demo shows a sample through the real decoder (under-voltage and throttling since boot). The client-side demo has the same sample.
 - Tests: `web/src/lib/throttle.test.ts` (3), `tests/test_throttled.py` (5; there was no test for the decoding before). Checked in the desktop demo. Not run on a Pi.
 - **Dependabot #85** (React and React DOM 19.3.1, Vitest 5.0.5, lucide-react 1.58, `@types/node` 22.20.5 — still on 22): merged when green, after checking it merged with the current main and passed the type check, tests and build.
+
+## 2026-10-19 — legacy sky map: E/W labels fixed (#92)
+
+Found while porting the sky map (#88), fixed at the owner's request. The legacy almanac page plots azimuth 90° (east) on the left (`x = cx + r·sin(az − 180°)`, the view looking up), but labeled the left edge "W" and the right "E". The two letters are swapped back; the projection is unchanged, so nothing on the map moves. The `/app/` map keeps its map-style projection (north up, east right) and its own correct labels. Test: `web/src/lib/legacy-almanac-sky.test.ts` (3) reads the projection and the labels from the template and checks they agree; it fails on the old labels.
