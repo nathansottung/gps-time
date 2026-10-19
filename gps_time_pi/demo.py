@@ -12,7 +12,7 @@ import os
 import time
 from datetime import date, datetime, timedelta, timezone
 
-from . import __version__
+from . import __version__, system
 
 
 def _satellite(i: int, now: float) -> dict:
@@ -479,7 +479,9 @@ def system_diagnostics() -> dict:
         "load": [0.08, 0.12, 0.15],
         "mem": {"total_mb": 16384, "available_mb": 11820, "used_pct": 28},
         "disk": {"total_gb": 32.0, "free_gb": 24.6, "used_pct": 23},
-        "cpu_mhz": 600, "core_volts": None, "throttled": None, "power": None,
+        "cpu_mhz": 600, "core_volts": None, "power": None,
+        # sample: under-voltage and throttling latched since boot, nothing now
+        "throttled": system.decode_throttled("0x50000"),
         "power_note": "Sample diagnostics in desktop demo mode.",
         "ramlog": {"path": "/run/chrony-log/tracking.log", "in_ram": True,
                    "size_kb": 84.2, "flushed_age_s": 723},
