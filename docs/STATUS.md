@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/roadmap-public, #77). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-19 (fix/sunset-prominence, #78). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -24,7 +24,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 1. *Done in [#72](https://github.com/nathansottung/gps-time/pull/72).* **Log flush without write amplification** (with next-5 item 3, GPS-011/012): append only new lines to the SD copy instead of copying the whole RAM log every hour; cap the RAM log and the SD copy; stop logrotate keeping rotated full copies of it.
 2. *Done in [#73](https://github.com/nathansottung/gps-time/pull/73).* **Outage evidence kept on the SD card, under a size cap** (OBS §13): when an outage event opens and closes, keep a bounded window of chrony tracking, PPS state and GNSS summary around it, so the evidence survives a reboot; oldest evidence removed first when the cap is reached.
 3. *Done in [#70](https://github.com/nathansottung/gps-time/pull/70).* **PPS polling off the request thread, and missed versus unread pulses told apart:** a dedicated poller thread reads the kernel PPS every second; no HTTP request ever polls; missed pulses keep being counted from the kernel's sequence number, and pulses the kernel counted but the station didn't read individually are counted separately. To settle whether the 9 % missed-pulse figure was an artifact.
-4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode. The ~3 s round trip: done in [#74](https://github.com/nathansottung/gps-time/pull/74). Shifts in h/m/s: done in [#75](https://github.com/nathansottung/gps-time/pull/75).
+4. Queued UI fixes (owner's list): sunset prominence, sunrise/sunset shifts in h/m/s, the ~3 s browser round trip, screenshot mode. The ~3 s round trip: done in [#74](https://github.com/nathansottung/gps-time/pull/74). Shifts in h/m/s: done in [#75](https://github.com/nathansottung/gps-time/pull/75). Sunset prominence: done in [#78](https://github.com/nathansottung/gps-time/pull/78).
 
 ## Decisions
 
@@ -68,7 +68,7 @@ From the rc.8 soak run (`development/raspberry-pi-deploy.md` → "Soak run of v1
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 431 rows: 232 done, 0 in progress, 28 next, 171 planned.
+**Totals:** 432 rows: 233 done, 0 in progress, 28 next, 171 planned.
 
 ## Status table
 
@@ -505,3 +505,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Dependabot: setup-node 7.1.0, tzfpy 2.1.1, 11 web minor/patch updates | done | merged when green; TypeScript 7 (#65) and @types/node 26 (#64) held for the owner | [#66](https://github.com/nathansottung/gps-time/pull/66) [#67](https://github.com/nathansottung/gps-time/pull/67) [#68](https://github.com/nathansottung/gps-time/pull/68) |
 | Repo |  | One-page roadmap for outside readers (`ROADMAP.md`), README vision, geophysics roadmap imported | done | every spec and roadmap by phase, with status counts from this file | [#77](https://github.com/nathansottung/gps-time/pull/77) |
 | Repo |  | Public release checklist (draft) | done | `public-release-checklist.md`; nothing on it run yet except the commit-identity check; going public is the owner's step | [#77](https://github.com/nathansottung/gps-time/pull/77) |
+| Web UI |  | Sunset times as large as sunrise (legacy Sun & daylight widget) | done | sunset was small print under sunrise; now its own bold line, both labeled. `/app/` already showed them at the same size | [#78](https://github.com/nathansottung/gps-time/pull/78) |

@@ -876,3 +876,6 @@ From the owner's list.
 - `ROADMAP.md`: one page for outside readers. Every spec and roadmap in five phases, each with its status and the done / scheduled / planned counts from `STATUS.md` on 2026-10-19; `STATUS.md` stays authoritative.
 - `README.md`: a three-line vision linking `ROADMAP.md`.
 - `public-release-checklist.md`: DRAFT. History scan (secrets, coordinates, personal infrastructure, archives), current tree, release blockers, licensing, outside-reader docs, GitHub settings. Only the commit-identity check has been run (all noreply). Going public stays the owner's decision.
+## 2026-10-19 — sunset as prominent as sunrise (#78)
+
+From the owner's list ("sunset prominence"). In the legacy dashboard's Sun & daylight widget, each day showed sunrise as the large figure and sunset in the small grey line under it ("Sunrise · 6:24:12 PM sunset"). Each day now has two figures of the same size, sunrise then sunset, each labeled. A content fix in one widget, not a restyle: no CSS changed. The `/app/` Overview already gave both the same size; unchanged. Tests: `web/src/lib/legacy-dashboard.test.ts` (3).
