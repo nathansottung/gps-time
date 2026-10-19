@@ -1021,3 +1021,7 @@ Legacy removal step 6 (parity 13), on top of the named tracking.log columns from
 The read-only check used on rc.10, committed so the rc.11 check is the same code. `python tools/soak_check.py http://<station> --expect <version> [--days 3]`: HTTP GETs of `/api`, `/api/timing-chain`, `/api/stability`, `/api/evidence` and `/api/ping` (with `/api/almanac` as load during the round-trip test); nothing on the station changes. It applies the criteria fixed in #95 and prints each with its numbers, then `CLEAN` or `NOT CLEAN`; exit 0, 1, or 2 when the station can't be read.
 
 The decision logic is a pure function (`evaluate`), tested with fixture answers. Writing the tests found one gap: a station answer without an `events` list passed the outage criterion. Missing data now fails it (UNKNOWN is not clean). Tests: `tests/test_soak_check.py` (11; one runs `main()` against a stub HTTP server on loopback and fails on any POST).
+
+## 2026-10-19 — deploy log: the station is a development unit (#97)
+
+Owner's statement, recorded in `development/raspberry-pi-deploy.md` ("The current station") and `STATUS.md` → Decisions: the Pi is a development unit, and its weak C/N₀ (best about 25 dB-Hz) is an antenna and site limit. It is attributed to the owner; the station's own classifications are unchanged and still name boundaries, not causes. The soak criteria (#95) are unchanged, and a run that fails only on outages is reported rather than tagged.
