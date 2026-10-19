@@ -8,11 +8,11 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 
 | # | Feature (legacy location) | Notes |
 |---|---|---|
-| 1 | **Theme switching:** Light / Dark / Night (red-on-black), `?theme=`, remembered in `gtp-theme` (all pages) | The new UI is dark only. Night mode matters for observing. |
+| 1 | **Theme switching:** Light / Dark / Night (red-on-black), `?theme=`, remembered in `gtp-theme` (all pages) | The new UI is dark only. Night mode matters for observing. **Decided 2026-10-19:** keep dark and the red night theme; drop light. Night theme: removal step 5. |
 | 2 | **Time-zone picker** remembered in `gtp-tz` (all pages) | The new UI always uses the browser's zone. |
 | 3 | **Station-corrected clock:** the big clock ticks on the server time estimated from `/api` `epoch_ms` + RTT (`/legacy`) | The new header shows the browser clock. The browser-offset estimate exists (Network page) but does not drive the clock yet. |
-| 4 | **Layout editor that saves** to the station: pages, per-widget visible/size, add/rename/remove page, save, restore defaults, export/import JSON (`/configure`, `POST /api/dashboard`) | The new Configure page is a non-saving preview with a different widget model. The client already has `dashboard()`, `saveDashboard()` and `resetDashboard()`. |
-| 5 | **Layout-driven pages:** `/` renders whatever `/api/dashboard` says | New pages have a fixed layout. |
+| 4 | **Layout editor that saves** to the station: pages, per-widget visible/size, add/rename/remove page, save, restore defaults, export/import JSON (`/configure`, `POST /api/dashboard`) | The new Configure page is a non-saving preview with a different widget model. The client already has `dashboard()`, `saveDashboard()` and `resetDashboard()`. **Decided 2026-10-19:** replaced by show/hide modules in `/app/` (removal step 5); the saved-layout model goes with the legacy pages. |
+| 5 | **Layout-driven pages:** `/` renders whatever `/api/dashboard` says | New pages have a fixed layout. **Decided 2026-10-19:** not ported; `/app/` keeps fixed pages, with modules shown or hidden (see 4). |
 | 6 | **Admin actions:** flush logs, restart gpsd/chrony/web, reboot (`/admin`, `/api/admin`) | **Done** (#81): Administration → Station actions, with a confirmation step for everything except the log flush. |
 | 7 | **Survey reset** (`/admin`, `POST /api/setting {"reset_site": true}`) | **Done** (#82): Administration → Position survey. Shows what would be discarded; the operator types RESET to confirm. |
 | 8 | **Almanac date navigation:** date picker with ←/→, "Sky at" time, Now (`/almanac`) | The new UI shows today only. |
@@ -25,9 +25,9 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 | 15 | **Survey ingest counters:** accepted, rejected by reason, collector running (`/api/survey` → `ingest`) | Not shown. |
 | 16 | **chrony detail:** residual frequency, skew, update interval, PPS age (`lastrx` of the PPS source), raw `sourcestats` (`/legacy`) | Partly covered by the Timing Chain tab and the Network sources table. |
 | 17 | **Satellite table TDOP column and SNR bars per row** (`/legacy`) | Covered by the GNSS page, except the TDOP column. |
-| 18 | **`custom.css` site override** (all legacy pages link `/static/custom.css`) | The new UI does not load it. |
-| 19 | **Time-zone table** (`/zones`) | No link or equivalent in the new UI (the route still works). |
-| 20 | **"Projected 1 s holdover" = 1 / \|ppm\|** (`/` timing_quality widget) | Deliberately not ported. It extrapolates from a single frequency value. The new UI's holdover panel is `Planned` until there is a validated model. |
+| 18 | **`custom.css` site override** (all legacy pages link `/static/custom.css`) | The new UI does not load it. **Dropped 2026-10-19** (owner). |
+| 19 | **Time-zone table** (`/zones`) | No link or equivalent in the new UI (the route still works). **Dropped 2026-10-19** (owner); the route goes with the legacy pages. |
+| 20 | **"Projected 1 s holdover" = 1 / \|ppm\|** (`/` timing_quality widget) | Deliberately not ported. It extrapolates from a single frequency value. The new UI's holdover panel is `Planned` until there is a validated model. **Dropped 2026-10-19** (owner's explicit yes, per ADR-0004). |
 | 21 | **Throttle flags shown individually** (`/admin`) | The new Admin page lists active flags only. |
 
 ## New UI features the legacy pages lack

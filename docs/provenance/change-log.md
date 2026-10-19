@@ -926,3 +926,7 @@ Owner's decision after review. #64 offered `@types/node` 22 → 26, but the web 
 ## 2026-10-19 — legacy removal queued after v1.4.0 (#84)
 
 Owner's request, after the two blockers landed (#81, #82). `STATUS.md` has a new section, "Legacy removal: queue (after v1.4.0)": nine steps in the plan's order (owner decisions; almanac; sky map and object lookup; survey charts and chrony detail; kept items; the uncertainty band after GPS-003/007; front-door switch; removal; closing the findings), with one planned row each. `dashboard/legacy-removal-plan.md` marks step 2.1 done and its timing note now names the rc.10 soak. No code changed; nothing is deployed while the Pi soaks.
+
+## 2026-10-19 — legacy parity decisions (#85)
+
+Owner's decisions for removal step 1, recorded in `STATUS.md` → Decisions and in `dashboard/web-ui-parity.md`: keep dark and red night themes, drop light (1); replace the saved-layout editor with show/hide modules (4, 5); drop `custom.css` (18), `/zones` (19) and the 1/|ppm| holdover figure (20). Items 2 and 21 were not decided and stay as a planned "owner confirms" row. Step 5 is now the night theme and show/hide modules.
