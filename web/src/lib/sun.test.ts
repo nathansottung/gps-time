@@ -82,9 +82,12 @@ describe('sunShifts', () => {
 });
 
 describe('fmtShift', () => {
-  it('signed whole seconds with a real minus sign', () => {
+  it('hours, minutes and seconds with a real minus sign', () => {
     expect(fmtShift(56.4)).toBe('+56 s');
-    expect(fmtShift(-131.3)).toBe('−131 s');
+    expect(fmtShift(-131.3)).toBe('−2 m 11 s');
+    expect(fmtShift(60)).toBe('+1 m 00 s');
+    expect(fmtShift(-3605)).toBe('−1 h 00 m 05 s');
+    expect(fmtShift(3600 + 59 * 60 + 59.6)).toBe('+2 h 00 m 00 s');
     expect(fmtShift(0.4)).toBe('0 s');
     expect(fmtShift(-0.4)).toBe('0 s');
   });
