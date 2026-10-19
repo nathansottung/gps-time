@@ -867,3 +867,12 @@ From the owner's list. The Overview's day-to-day shifts of sunrise, solar noon a
 - `deploy/upgrade-1.4-station.md` is now the rc.8 → rc.9 checklist, with checks for the PPS counters, the new flush, the oscillator log, the evidence files and the round trip. The other checklists, README and START-HERE target rc.9.
 - Not in rc.9: "sunset prominence" and "screenshot mode" (owner's list), which need the owner's description.
 - The annotated tag `v1.4.0-rc.9` goes on this PR's merge commit, with a GitHub pre-release using the same notes.
+
+## 2026-10-19 — roadmap page, README vision, public release checklist (#77)
+
+From the owner's list.
+
+- `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` added as the owner wrote it (FUTURE, research). It also lists what no tier of this project can measure (gravity or Earth's mass from clock comparisons).
+- `ROADMAP.md`: one page for outside readers. Every spec and roadmap in five phases, each with its status and the done / scheduled / planned counts from `STATUS.md` on 2026-10-19; `STATUS.md` stays authoritative.
+- `README.md`: a three-line vision linking `ROADMAP.md`.
+- `public-release-checklist.md`: DRAFT. History scan (secrets, coordinates, personal infrastructure, archives), current tree, release blockers, licensing, outside-reader docs, GitHub settings. Only the commit-identity check has been run (all noreply). Going public stays the owner's decision.
