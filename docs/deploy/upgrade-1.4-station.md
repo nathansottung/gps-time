@@ -1,6 +1,6 @@
 # Upgrading a station that already runs 1.4: checklist
 
-For a station on a v1.4.0 release candidate, going to **v1.4.0-rc.10**. The Pi's last recorded release is **v1.4.0-rc.8** (since 2026-10-04); whether rc.9 was installed has not been recorded. The steps are the same from either. For a newly flashed Pi use [`fresh-pi-install.md`](fresh-pi-install.md); for a v1.3 station use [`first-pi-deploy.md`](first-pi-deploy.md).
+For a station on a v1.4.0 release candidate, going to **v1.4.0-rc.11**. The Pi runs **v1.4.0-rc.10** (since 2026-10-19 18:10 UTC). The steps are the same from rc.8, rc.9 or rc.10. For a newly flashed Pi use [`fresh-pi-install.md`](fresh-pi-install.md); for a v1.3 station use [`first-pi-deploy.md`](first-pi-deploy.md).
 
 PowerShell blocks run on Windows, `sh` blocks on the Pi. Set these once per PowerShell window, with your own values. Don't commit them.
 
@@ -12,7 +12,13 @@ $Pi = "$PiUser@$PiHost"
 
 ## What the upgrade changes on the station
 
-**New in rc.10** (web UI only; nothing on the station's timing, files or services changes beyond the restart):
+**New in rc.11** (code only: no change to the installer, the services, chrony's configuration or the files the station writes):
+
+- `/api/history` reads chrony's tracking log by named column (review GPS-003); `/api` adds chrony's error bound `max_error_bound_s` (GPS-007). Both UIs label chrony's System time as the remaining correction and show the bound instead of "± root dispersion". The legacy history chart's band is now chrony's offset SD.
+- `/app/`: station actions and survey reset (Administration), decoded throttle flags with an under-voltage warning, almanac date navigation with day and night bars, the sky map and object lookup (the sky target is per request now), survey convergence and ingest counters, chrony tracking detail, the offset history with band and symmetric-log axis, the red night theme and show/hide modules (Configure).
+- The legacy almanac sky map's E and W labels are on the correct sides.
+
+**New in rc.10:**
 
 - The legacy dashboard's Sun & daylight widget shows sunset as large as sunrise.
 - `/app/` has a screenshot mode: a header toggle (Alt+Shift+S) that hides coordinates, heights, NTP client addresses and the hostname on screen. Display only; remembered in each browser.
@@ -36,17 +42,17 @@ $Pi = "$PiUser@$PiHost"
 - [ ] Keep a copy of chrony's configuration and of the RAM log: the restart is fine for both, but the RAM log is your only copy of the last weeks' tracking data until the new flush has written its own.
 
   ```powershell
-  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc10"
-  scp "${Pi}:/run/chrony-log/tracking.log" "$HOME\gps-time-logs\tracking-before-rc10.log"
+  ssh -t $Pi "chronyc -n sources; chronyc tracking | head -4; sudo cp -a /etc/chrony/chrony.conf ~/chrony.conf.before-rc11"
+  scp "${Pi}:/run/chrony-log/tracking.log" "$HOME\gps-time-logs\tracking-before-rc11.log"
   ```
 
 ## 2. Upgrade
 
-- [ ] In a normal, interactive PowerShell window (not a VS Code task), from the repository folder, with a clean working tree. `git describe` must print exactly `v1.4.0-rc.10`.
+- [ ] In a normal, interactive PowerShell window (not a VS Code task), from the repository folder, with a clean working tree. `git describe` must print exactly `v1.4.0-rc.11`.
 
   ```powershell
   git fetch --tags
-  git checkout v1.4.0-rc.10
+  git checkout v1.4.0-rc.11
   git status --short
   git describe --tags --dirty
   ```
@@ -57,7 +63,7 @@ $Pi = "$PiUser@$PiHost"
   powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiHost -PiUser $PiUser
   ```
 
-  Expect, among the installer's sections: "chrony is not using NTP servers from DHCP ... nothing changed", `Independent references: none added` (or "kept as it is"), `Installed web UI 1.4.0-rc.10`, `Existing admin token kept`, and a last line `Astronomy: available` or `Astronomy: UNAVAILABLE - <reason>`.
+  Expect, among the installer's sections: "chrony is not using NTP servers from DHCP ... nothing changed", `Independent references: none added` (or "kept as it is"), `Installed web UI 1.4.0-rc.11`, `Existing admin token kept`, and a last line `Astronomy: available` or `Astronomy: UNAVAILABLE - <reason>`.
 
 - [ ] If the script stops with `... failed (exit N); deploy stopped.`, nothing after that step ran. Fix what it names and run it again.
 
@@ -69,7 +75,7 @@ $Pi = "$PiUser@$PiHost"
 ssh $Pi
 ```
 
-- [ ] The version is `1.4.0-rc.10` and the services are active.
+- [ ] The version is `1.4.0-rc.11` and the services are active.
 
   ```sh
   systemctl is-active gps-time-pi gps-time-pi-chrony-clients
@@ -109,7 +115,11 @@ ssh $Pi
   - Evidence: `0` files until an outage happens.
   - Ping: a few milliseconds.
 
-- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.10`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab.
+- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.11`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab.
+
+- [ ] An outage event at the service start, "PPS NOT USED BY CHRONY" with healthy pulses, is expected: the installer restarts chrony and PPS selection takes a moment to return (seen on rc.10). Any other event is real.
+
+- [ ] rc.11: `/app/` Overview shows "Remaining correction (chrony)" with "bound ≤ …" beneath; Timing → Overview shows the offset history with its band; Administration shows the throttle table and Station actions (don't press them for the check).
 
 - [ ] The two UI changes (rc.10):
   - Legacy dashboard (`http://<station>/`), Sun & daylight: each day shows a sunrise and a sunset figure of the same size.
@@ -147,6 +157,6 @@ Fourteen days on rc.8 without a restart, with real PPS/GNSS outages on 2026-10-1
 
 ## Rollback
 
-- Previous release: check out `v1.4.0-rc.9` and run the same deploy command (rc.10 changed only the web UI). To go back to `v1.4.0-rc.8`: same command; rc.8's flush copies the whole RAM log again, and the files rc.9 added (`oscillator-log.csv`, `evidence/`, `/var/log/chrony/station-tracking.txt`) stay and are ignored.
-- chrony configuration: `sudo cp -a ~/chrony.conf.before-rc10 /etc/chrony/chrony.conf && sudo systemctl restart chrony` (or restore `/etc/chrony/chrony.conf.before-gps-time-pi`).
+- Previous release: check out `v1.4.0-rc.10` and run the same deploy command (rc.11 changed no installer or service). Earlier: `v1.4.0-rc.9` the same way. To go back to `v1.4.0-rc.8`: same command; rc.8's flush copies the whole RAM log again, and the files rc.9 added (`oscillator-log.csv`, `evidence/`, `/var/log/chrony/station-tracking.txt`) stay and are ignored.
+- chrony configuration: `sudo cp -a ~/chrony.conf.before-rc11 /etc/chrony/chrony.conf && sudo systemctl restart chrony` (or restore `/etc/chrony/chrony.conf.before-gps-time-pi`).
 - Root-service rollback and other levels: `../development/raspberry-pi-deploy.md` → "Rollback".
