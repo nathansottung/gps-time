@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
-  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, NtpService, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, DashboardConfig, DashboardLayout, DisplayZone, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -87,6 +87,7 @@ export function demoApi(): StationApi {
     timescales: () => delay(timescales()),
     references: (o) => delay(references(o?.scenario)),
     ntpService: () => delay(ntpService()),
+    oscillator: () => delay(oscillator()),
     // Mirrors the server: shadow geometry and passes depend on the position, so hidden mode computes none.
     shadow: (o) => delay(locationMode === 'hidden' ? { available: false as const, reason: SKY_HIDDEN, location_display: 'hidden' as const }
       : { ...shadow(o?.shell ?? 550, o?.az, o?.alt), location_display: locationMode }),
@@ -507,6 +508,32 @@ function satellites(): SatelliteReport {
         visible: null, sun_altitude_deg: -33.3, provenance: 'predicted' },
     ],
     demo: { note: 'synthetic data — not a prediction' },
+  };
+}
+
+function oscillator(): Oscillator {
+  // Mirrors gps_time_pi/demo.py: two days, the SoC warming by day, a crystal at -0.3 ppm per degree C.
+  const now = Date.now(), start = now - 2 * 86400e3;
+  const bins: OscillatorBin[] = Array.from({ length: 288 }, (_, i) => {
+    const t = start + i * 600e3;
+    const temp = 50 + 6 * Math.sin(2 * Math.PI * (i / 144 - 0.3)) + 0.3 * Math.sin(i / 2);
+    const freq = 10.9 - 0.3 * (temp - 50);
+    return { t: iso(t), samples: 10, pps_samples: 10, temp_mean_c: temp, temp_min_c: temp - 0.2, temp_max_c: temp + 0.2,
+             freq_mean_ppm: freq, freq_min_ppm: freq - 0.003, freq_max_ppm: freq + 0.003, skew_mean_ppm: 0.008, residual_mean_ppm: 0 };
+  });
+  const last = bins[bins.length - 1];
+  return {
+    available: true, reason: null, provenance: 'observed',
+    sensor: 'SoC temperature sensor (/sys/class/thermal), not the crystal: the two follow each other only roughly, and with a lag.',
+    frequency_note: "chrony's Frequency: how fast the uncorrected system clock runs; + = fast. Bins with PPS not selected throughout are kept but not used for the fit.",
+    bin_s: 600, sample_interval_s: 60, bins,
+    latest: { temp_c: m(last.temp_mean_c, '°C', 'observed'), freq_ppm: m(last.freq_mean_ppm, 'ppm', 'observed'), bin_start_utc: last.t },
+    fit: { bins_used: 288, slope_ppm_per_c: -0.3, intercept_ppm: 25.9, r: -1.0, temp_span_c: 12.5, reason: null, provenance: 'calculated' },
+    fit_note: 'A straight line through frequency against temperature over the logged bins. It is not the oscillator profile and not a holdover prediction.',
+    storage: { path: '(sample data)', bytes: 24727, max_bytes: 4194304, pending_bins: 3, flush_interval_s: 3600,
+               note: '10-minute bins appended once an hour and on a clean stop; oldest quarter dropped past the cap' },
+    board: { serial_sha256: 'demo', model: 'demo board' },
+    problems: ['sample data'],
   };
 }
 
