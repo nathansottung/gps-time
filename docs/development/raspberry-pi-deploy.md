@@ -40,7 +40,7 @@ State at the check: GPS selected, stratum 1, system time +65 ns, RMS offset 244 
 
 Also seen and not yet explained: the PPS monitor counted 112,588 missed pulses over the run (about 9 % of all seconds), and the stability history had 1,875 minutes without their usual sample, which is the same amount of time. The Oct 17 events account for about 4,300 s of it. This may be an artifact of how the station polls, separate from the real outages; rc.9 separates pulses the kernel never counted from pulses the station merely didn't read individually (STATUS "rc.9").
 
-**Log flushing on rc.8 works** (hourly timer, every run successful; the SD copy was 15 minutes old at the check), but it copies the whole RAM log to the SD card every hour (10 MB at the check, about 240 MB a day and growing), and Debian's weekly logrotate keeps rotated full copies. Fix and size cap: rc.9.
+**Log flushing on rc.8 works** (hourly timer, every run successful; the SD copy was 15 minutes old at the check), but it copies the whole RAM log to the SD card every hour (10 MB at the check, about 240 MB a day and growing), and Debian's weekly logrotate keeps rotated full copies. Fixed in rc.9 (#72): append-only, with caps ("chrony's tracking log" below).
 
 Not recorded: which checklist was followed, and the result of each individual check (polkit, admin token, vcgencmd values). Nothing merged after rc.6 has run on a Pi yet; v1.4.0-rc.8 is the next deploy.
 
@@ -104,6 +104,18 @@ If the router's DHCP names the station as the LAN's NTP server (option 42), the 
 ## Local time display
 
 The main clock shows local time; the station itself stays on UTC. Don't change the Pi's system time zone for this (`timedatectl` is not used anywhere). The zone is found offline from the station's position with `tzfpy` (in the venv), or set in Administration → Local time zone. With the location hidden, the zone is not derived from the position.
+
+## chrony's tracking log: RAM, the SD copy, and the caps (rc.9)
+
+chrony writes its tracking log to RAM (`/run/chrony-log/tracking.log`). `scripts/logsync.sh`, run as root by `gps-time-pi-logflush.timer` every hour and at shutdown:
+
+- **appends only the lines written since the last flush** to `/var/log/chrony/station-tracking.txt` (a few tens of kB an hour). Before rc.9 it copied the whole RAM log every hour: about 240 MB a day at 10 MB.
+- **RAM cap 8 MiB:** past it the log becomes `tracking.log.1` (replacing the previous one) and chrony reopens a new one (`chronyc cyclelogs`). RAM use stays under 16 MiB. The History page reads both.
+- **SD cap 16 MiB:** past it the SD copy becomes `station-tracking.txt.prev`. SD use stays under 32 MiB.
+- The SD copy is not named `*.log`, so Debian's chrony logrotate rule doesn't rotate it and keeps no rotated full copies.
+- **At boot** the newest part of the SD copy (4 MiB) goes back into RAM, so the History page has data again; those lines are not appended a second time.
+- The pre-rc.9 full copy `/var/log/chrony/tracking.log` and its rotated versions are no longer written. They are left in place and age out under logrotate within about five weeks; the first boot after the upgrade restores from them if there is no new copy yet.
+- To keep evidence before a restart, copy `/run/chrony-log/tracking.log` (and `.1`) off the station; they are readable without sudo.
 
 ## Oscillator log
 

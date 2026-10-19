@@ -18,6 +18,7 @@ $Pi = "$PiUser@$PiHost"
 - The web service is restarted. Its RAM histories (stability, references, NTP service) start empty.
 - New pages: Timing → Stability, Time Scales, References; an NTP service card on Network & Devices; the NMEA offsets side by side on PPS Diagnostics.
 - The admin token, `config.json`, the survey and the event history are kept.
+- From rc.9 the hourly log flush appends only new lines to `/var/log/chrony/station-tracking.txt` and caps the RAM log (8 MiB) and the SD copy (16 MiB). The old full copy `/var/log/chrony/tracking.log` is no longer written and ages out under logrotate.
 - Not changed: gpsd, the PPS setup, the refclock lines, and everything else in `chrony.conf`. Independent `noselect` servers are **not** added unless you ask (step 4).
 
 ## 1. Before

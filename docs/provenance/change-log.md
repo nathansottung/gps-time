@@ -802,3 +802,18 @@ Owner's request: "temperature logging alongside chrony frequency, to feed the os
 - Tests and standalone timing-chain evaluations write no log file; only the running service does.
 - Not done: the profile itself (fitted model, holdover projection, export/import).
 - Tests: `tests/test_oscillator.py` (23), `web/src/lib/oscillator.test.ts` (5). Checked in the demo. Not yet run on a Pi.
+
+## 2026-10-19 — tracking-log flush: append-only, with caps (#72)
+
+rc.9 item 1, with next-5 item 3 (GPS-011, GPS-012). Found on the rc.8 soak run: the hourly flush copied the whole RAM log (10 MB and growing) to the SD card every hour, about 240 MB a day, and Debian's logrotate kept rotated full copies.
+
+- **`scripts/logsync.sh flush`** appends only the bytes written since the last flush to `/var/log/chrony/station-tracking.txt`. It remembers the RAM file's inode and the bytes already on the SD card; a new file (rotation, reboot) or a shorter one starts from zero.
+- **RAM cap** 8 MiB: the log becomes `tracking.log.1` (replacing the previous one) and chrony reopens its logs (`chronyc cyclelogs`). Lines written in between are appended from `.1`. RAM use stays under 16 MiB.
+- **SD cap** 16 MiB: the SD copy becomes `.prev`. SD use stays under 32 MiB.
+- **Out of logrotate's reach:** the SD copy isn't `*.log`, so Debian's rule doesn't rotate it.
+- **`restore` at boot** puts the newest 4 MiB back in RAM, from the first whole line, and records them as already flushed. The first boot after the upgrade restores from the old full copy if there is no new one yet.
+- **Not deleted:** the old `/var/log/chrony/tracking.log` and its rotated copies (they may hold evidence); they age out under logrotate.
+- **GPS-012:** the tracking-log path is resolved on every call, not at import. The History page reads `tracking.log.1` and `tracking.log`, oldest first.
+- `/api/system` → `ramlog` gains `sd_copy` and `sd_size_kb`; `size_kb` includes `.1`.
+- Units and timer unchanged.
+- Tests: `tests/test_logsync.py` (16; 11 run the script and are POSIX-only, also run locally under Git Bash). Not yet run on a Pi.
