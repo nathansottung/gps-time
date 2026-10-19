@@ -15,9 +15,9 @@ A re-check of every row against the code on 2026-10-05, and the proposed order f
 | 5 | **Layout-driven pages:** `/` renders whatever `/api/dashboard` says | New pages have a fixed layout. **Decided 2026-10-19:** not ported; `/app/` keeps fixed pages, with modules shown or hidden (see 4). |
 | 6 | **Admin actions:** flush logs, restart gpsd/chrony/web, reboot (`/admin`, `/api/admin`) | **Done** (#81): Administration → Station actions, with a confirmation step for everything except the log flush. |
 | 7 | **Survey reset** (`/admin`, `POST /api/setting {"reset_site": true}`) | **Done** (#82): Administration → Position survey. Shows what would be discarded; the operator types RESET to confirm. |
-| 8 | **Almanac date navigation:** date picker with ←/→, "Sky at" time, Now (`/almanac`) | The new UI shows today only. |
-| 9 | **Twilight bar** (24 h) and **night bar:** twilight stages, moon-up strip, moonless-dark windows, total moonless astronomical darkness (`/almanac`) | Data is already in `/api/almanac` → `sun.bar`, `night`. |
-| 10 | **Moon details:** time above horizon, transit altitude (`/almanac`) | Data in `moon.up_s`, `moon.transit_alt`. |
+| 8 | **Almanac date navigation:** date picker with ←/→, "Sky at" time, Now (`/almanac`) | **Done** (#87): Sun & Astronomy → Sun & Moon, ← date → and Today (1850–2149). The "Sky at" time comes with the sky map (step 3). |
+| 9 | **Twilight bar** (24 h) and **night bar:** twilight stages, moon-up strip, moonless-dark windows, total moonless astronomical darkness (`/almanac`) | **Done** (#87): "Day, midnight to midnight" and "Night, sunset to sunrise" cards: twilight stages, moon-up strip, moonless-darkness windows and total, midnight tick. |
+| 10 | **Moon details:** time above horizon, transit altitude (`/almanac`) | **Done** (#87): Moon card adds transit altitude and time above the horizon; events on another day carry their date. |
 | 11 | **Sky map:** stars by magnitude, constellation lines, Sun/Moon/planets, target reticle (`/almanac`) | Data in `/api/almanac` → `sky`. |
 | 12 | **Object lookup:** M-numbers, star names, planets, RA/Dec; rise/transit/set, dark and moonless windows (`/almanac`, `/api/object`) | Not in the client yet. Note that `/api/object` sets a server-global target shared by all clients. |
 | 13 | **Offset chart uncertainty band** and symlog axis (linear within ±1 µs) (`/history`) | The new chart plots the offset only (`err_s` is unused) on a linear axis with automatic ns/µs/ms units. |
