@@ -39,7 +39,7 @@ Let a coding agent on the operator's machine deploy to the station and check res
 
 ## 4. PPS evidence capture script
 
-From the original incident plan, not yet built.
+From the original incident plan. *The script is built (#105); the button is not.*
 
 - `scripts/capture-pps-evidence.sh`: read-only; saves `/dev/pps*` listing, sysfs PPS state, a short `ppstest`, `chronyc` sources/sourcestats/tracking, PPS kernel messages, relevant config lines, service states, and a few seconds of gpsd output to one timestamped archive.
 - Respects privacy mode (strips coordinates).
