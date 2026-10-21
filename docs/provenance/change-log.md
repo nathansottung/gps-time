@@ -1205,7 +1205,7 @@ Owner's request: replace the README's "Where this is going" with the updated vis
 - One sentence changed: the text linked `docs/modules/README.md` and a "module idea" issue, neither of which exists yet. It now links `specs/SPEC-EXTENSIBILITY.md`, says the guide comes with the first module work, and points to the feature request template. Restore the original wording once the guide and the label exist.
 - Docs only.
 
-## 2026-10-21 — full scope review (#PR)
+## 2026-10-21 — full scope review (#113)
 
 Owner's request: add the scope review as `docs/SCOPE-REVIEW.md` and each section 7 gap to `STATUS.md` as planned.
 
