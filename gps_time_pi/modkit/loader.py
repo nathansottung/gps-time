@@ -268,6 +268,11 @@ class ModuleHost:
         rc = lm.proc.wait()
         for t in lm.threads[:2]:
             t.join(5)
+        for pipe in (lm.proc.stdin, lm.proc.stdout, lm.proc.stderr):
+            try:
+                pipe.close()
+            except (OSError, ValueError):
+                pass
         if lm.state in ("running", "starting"):
             lm.state = "failed"
             lm.reason = lm.reason or (f"exit code {rc}" if rc >= 0 else f"ended by signal {-rc}")
