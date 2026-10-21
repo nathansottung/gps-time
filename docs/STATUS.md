@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (data/sky-data-provenance, #101). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (data/m102-ngc5866, #102). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -42,6 +42,8 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 9. *Done in [#99](https://github.com/nathansottung/gps-time/pull/99).* **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
+
+- **2026-10-21, M102:** owner: map M102 to NGC 5866 (Spindle Galaxy) with a note that this departs from OpenNGC (which lists it as a duplicate of M101), and restore the "Spindle" lookup. Done in [#102](https://github.com/nathansottung/gps-time/pull/102).
 
 - **2026-10-21, sky data:** owner asked for the bundled Messier, star and constellation files to be compared with OpenNGC, the Yale BSC and d3-celestial, attributed, and regenerated where a source can't be confirmed. Done in [#101](https://github.com/nathansottung/gps-time/pull/101). M102 follows OpenNGC (a duplicate of M101), with the NGC 5866 identification in a note.
 
@@ -100,7 +102,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 464 rows: 268 done, 0 in progress, 32 next, 164 planned.
+**Totals:** 465 rows: 269 done, 0 in progress, 32 next, 164 planned.
 
 ## Status table
 
@@ -570,3 +572,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Hardware |  | Dual-band receiver: coordinator-tier PPP (RTKLIB / PRIDE PPP-AR, IGS products) | planned | with the geophysics roadmap Tier 2 | [#98](https://github.com/nathansottung/gps-time/pull/98) |
 | Repo |  | Public release checklist run: history scan, licensing, README and CONTRIBUTING for outside readers | done | no history rewrite needed; owner steps left (dataset sources, the flip, settings) in `public-release-checklist.md` §8 | [#100](https://github.com/nathansottung/gps-time/pull/100) |
 | Repo |  | Sky data provenance: Messier from OpenNGC (CC BY-SA 4.0, own file), stars and constellations from d3-celestial (BSD-3), rebuilt and checkable from source | done | stars were d3-celestial, not the Yale BSC; 3 Messier objects and 7 magnitudes replaced with OpenNGC's | [#101](https://github.com/nathansottung/gps-time/pull/101) |
+| Repo |  | M102 mapped to NGC 5866 (Spindle Galaxy), marked as departing from OpenNGC; "Spindle" lookup restored | done | owner's decision; the only override in `tools/build_sky_data.py` | [#102](https://github.com/nathansottung/gps-time/pull/102) |

@@ -1101,3 +1101,13 @@ Owner's request: compare the bundled Messier, star and constellation files with 
   - `third_party/licenses/BSD-3-Clause-d3-celestial.txt`: d3-celestial's own LICENSE.
   - `THIRD_PARTY_NOTICES.md` updated, and the correction noted in `almanac-design-scope.md`. All of these ship in the Pi bundle. Review finding GPS-023 is closed.
 - **Tests:** `tests/test_sky_data.py` (10). The builder is tested on small synthetic fixtures in the sources' formats (`tests/fixtures/sky/`): the V→B magnitude fallback, no invented magnitude, the duplicate rule, RA wrap, the magnitude limits, both Serpens parts. Also covered: the bundled files' shape, the provenance and license records, and lookups ("Spindle" finds nothing). Python 588 tests pass.
+
+## 2026-10-21 — M102 is NGC 5866 again, marked as departing from OpenNGC (#102)
+
+Owner's decision after #101.
+
+- **The override:** `tools/build_sky_data.py` has one override (`OVERRIDES`). M102 takes OpenNGC's own NGC 5866 row (position, type, magnitude 9.89, Draco) instead of following OpenNGC's listing of M102 as a duplicate of M101. The name "Spindle Galaxy" and a note are the project's additions. The note reads "departs from OpenNGC: OpenNGC lists M102 as a duplicate of M101; mapped here to NGC 5866 (Spindle Galaxy), a common identification" and is shown on the object card.
+- **Lookups:** "Spindle" and "Spindle Galaxy" find M102 at NGC 5866's position again. M101 is unchanged.
+- **Records:** the departure is recorded with the CC BY-SA attribution (`third_party/licenses/CC-BY-SA-4.0-OpenNGC.txt`, list of changes), in `gps_time_pi/data/README.md` and in `THIRD_PARTY_NOTICES.md`.
+- **Unchanged:** `catalog.json`, `stars.json` and `constellations.json` rebuild byte-identical; only `messier.json` changes.
+- **Tests:** `tests/test_sky_data.py` (12). The M102 override is tested with the departure note. The generic duplicate rule keeps its own test on a synthetic duplicate row. "Spindle" finds M102 and not M101, and the departure is recorded with the license.
