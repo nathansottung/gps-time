@@ -360,10 +360,14 @@ def evidence(eid=None) -> dict:
     import tempfile
     from . import evidence as ev
     now = time.time()
+    # The sample outage starts on the hour, so its id stays the same between the
+    # index call and the read call that names it (an id from the current second
+    # changed between the two calls when a second boundary fell in between).
+    hour = int(now // 3600) * 3600
     d = os.path.join(tempfile.gettempdir(), "gtp-demo-evidence")
     for name in (os.listdir(d) if os.path.isdir(d) else []):
         os.remove(os.path.join(d, name))
-    start, end = now - 3 * 3600, now - 3 * 3600 + 3363
+    start, end = hour - 3 * 3600, hour - 3 * 3600 + 3363
     store = ev.Store(directory=d, clock=lambda: now, tracking_files=[])
     event = {"schema": "gps-time.event/1", "id": f"pps-outage-{int(start)}", "type": "PPS_OUTAGE",
              "start_epoch": start, "start_utc": datetime.fromtimestamp(start, timezone.utc).isoformat(timespec="seconds"),

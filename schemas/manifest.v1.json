@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gps-time/manifest/1",
+  "title": "Module manifest",
+  "description": "module.toml, parsed (docs/modules/README.md). Checked by gps_time_pi/modkit/manifest.py, which adds the rules a schema can't express (name matches the folder, an entry for each code type, a known interface version).",
+  "type": "object",
+  "required": ["name", "version", "types", "maturity", "interface", "summary", "hardware", "timing", "permissions", "licence"],
+  "properties": {
+    "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "version": {"type": "string", "pattern": "^[0-9]+[.][0-9]+[.][0-9]+$"},
+    "types": {"type": "array", "items": {"enum": ["source", "reference", "analysis", "ui", "receiver"]}},
+    "maturity": {"enum": ["experimental", "supported", "research"]},
+    "interface": {"type": "string", "pattern": "^[0-9]+[.][0-9]+$"},
+    "summary": {"type": "string", "minLength": 1},
+    "entry": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$"}},
+    "hardware": {"type": "object", "required": ["required"]},
+    "timing": {"type": "object", "required": ["needed", "if_worse"]},
+    "permissions": {
+      "type": "object",
+      "required": ["network", "devices", "storage"],
+      "properties": {
+        "network": {"type": "boolean"},
+        "devices": {"type": "array", "items": {"type": "string"}},
+        "storage": {"type": "string", "pattern": "^(none|ram|disk:[0-9]+MiB)$"}
+      },
+      "additionalProperties": false
+    },
+    "licence": {"type": "object", "required": ["code"]}
+  }
+}

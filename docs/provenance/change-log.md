@@ -1245,3 +1245,24 @@ Owner's request: make the stated uncertainty conservative on short runs, and tes
 - **Stated uncertainty:** the 95 % upper confidence bound on that scatter (chi-square: exact quantiles to 10 degrees of freedom, Wilson-Hilferty above), plus 0.02 samples in quadrature for the interpolation's bias. No sample gets a time below 3 degrees of freedom. The summary reports both the estimate (`marker_position_sd_samples`, with its degrees of freedom) and the bound used (`marker_position_bound_samples`).
 - **Coverage test:** 200 seeded runs of 7–10 s with random noise, clock error (±50 ppm), drift, start phase, carrier (in 30 % of runs) and a dropped block (in 20 %), at 4 kS/s. The 95 % interval (1.96 × stated sigma) must cover the true error in at least 95 % of the runs that give a time. Result: 180 runs gave a time, all 180 covered; the median error was about a third of the stated sigma (conservative, as asked). 20 runs gave no time, mostly because a drop left blocks too short to estimate the scatter.
 - Synthetic only; the module's README is updated.
+
+## 2026-10-21 — module loader and scaffolder (#117)
+
+Owner's request: the module loader and scaffolder (SPEC-EXTENSIBILITY order of work steps 1–2), with sdr-pps-marker as the first module it loads.
+
+- **Kit `gps_time_pi/modkit/`** (standard library only):
+  - interfaces: Source, Reference, Analysis; Observation, Result, Transmitter. `INTERFACE_VERSION` is 1.0.0 (semver).
+  - manifest checks: schema plus name, entry points and a compatible interface version.
+  - a small JSON Schema checker.
+  - `ctx`: clock in ns, timing quality (UNKNOWN when the host gives none), privacy-filtered site, config, emit, log, size-capped atomic storage.
+  - the loader and host: discovery; off by default (`modules_enabled` in the station config); refusals with a reason; one thread per source; a crash is contained to its module; emitted items are checked against the schemas, and invalid ones dropped and counted.
+  - CLI: `python -m gps_time_pi.modkit list|check|demo <name>`.
+- **Schemas** `schemas/observation.v1.json`, `result.v1.json`, `manifest.v1.json`. The Pi bundle and `install.sh` now include `schemas/`; the bundle still doesn't include `modules/`.
+- **Scaffolder** `tools/new_module.py <name> --type source|reference|analysis|ui`: manifest, README, package with a working fake, fixtures, tests that pass as created, and a `web/Card.tsx` stub.
+- **First module loaded:** `modules/sdr-pps-marker` gets `interface = "1.0"`, an `[entry]` and `sdr_pps_marker/source.py`. In demo mode it emits one Observation per fixture scenario with the time model's labeled health values. Otherwise it emits nothing, since there is no SDR input until research step 2.
+- **No behaviour change:** the web service doesn't import the kit (tested).
+- **Not yet** (EXT Safety stays next): modules run in the host's process, so declared permissions are recorded but not enforced, and there are no CPU or memory caps. Own unprivileged process per module next.
+- **Docs:** `docs/modules/README.md` (guide), `interfaces.md`, `schemas.md`; ADR-0007. The README's "Build on it" now links the guide.
+- **Tests:** `tests/test_modkit.py` (manifests, interface versions, host: off by default, runs, crash containment, refusals, storage; the first module's demo; CLI; no behaviour change) and `tests/test_new_module.py` (every type's generated tests pass; a generated source runs under the loader; bad names refused).
+- **STATUS.md:** EXT order 1, order 2 and API stability done; Safety next (partial).
+- **Flaky test fixed:** `tests/test_evidence.py` `test_routes` failed once in CI. The demo's sample evidence id came from the current second, so it changed between the index call and the read when a second boundary fell between them. The sample outage now starts on the hour (`gps_time_pi/demo.py`).

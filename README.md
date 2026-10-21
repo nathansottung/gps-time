@@ -106,7 +106,7 @@ Aircraft broadcast their own GPS position over ADS-B. A station that hears one k
 
 ### Build on it
 
-Everything after step 1 is built as a **module**: a source (a sensor or receiver), a reference (signals with known positions), an analysis, or a dashboard card. Each module follows one documented pattern, ships with test data so it runs without hardware, and never touches the timing core. Start with the module spec, [docs/specs/SPEC-EXTENSIBILITY.md](docs/specs/SPEC-EXTENSIBILITY.md) (a step-by-step guide, `docs/modules/README.md`, comes with the first module work), or open a feature request with your module idea.
+Everything after step 1 is built as a **module**: a source (a sensor or receiver), a reference (signals with known positions), an analysis, or a dashboard card. Each module follows one documented pattern, ships with test data so it runs without hardware, and never touches the timing core. Start with [docs/modules/README.md](docs/modules/README.md) (`python tools/new_module.py <name> --type source` creates one), or open a feature request with your module idea.
 
 ### What we will and won't claim
 

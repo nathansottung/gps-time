@@ -1,6 +1,6 @@
-# Module manifest (format: docs/specs/SPEC-EXTENSIBILITY.md, "Manifest").
-# The module loader and interfaces don't exist yet (EXT order 1); until then
-# this module is a library with tests and is not run by the station.
+# Module manifest (format: docs/modules/README.md; schema: schemas/manifest.v1.json).
+# Loaded by gps_time_pi.modkit when the owner enables it ("modules_enabled" in
+# the station config). Off by default. Demo: python -m gps_time_pi.modkit demo sdr-pps-marker
 
 name = "sdr-pps-marker"
 version = "0.1.0"
@@ -9,6 +9,10 @@ maturity = "research"
 summary = "PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model"
 spec = "docs/specs/SPEC-SDR-PPS-MARKER.md"
 research_step = 1   # synthetic only; bench steps 2-5 not started
+interface = "1.0"
+
+[entry]
+source = "sdr_pps_marker.source:MarkerSource"
 
 [hardware]
 required = "none"   # step 1 runs on synthetic data

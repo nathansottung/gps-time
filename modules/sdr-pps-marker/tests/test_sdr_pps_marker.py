@@ -251,7 +251,7 @@ class TestManifest(unittest.TestCase):
         self.assertTrue((root / m["spec"]).is_file())
 
     def test_standard_library_only(self):
-        allowed = {"cmath", "math", "random", "dataclasses", "gps_time_pi"}
+        allowed = {"cmath", "math", "random", "dataclasses", "json", "pathlib", "gps_time_pi"}
         for f in (HERE / "sdr_pps_marker").glob("*.py"):
             for line in f.read_text(encoding="utf-8").splitlines():
                 s = line.strip()

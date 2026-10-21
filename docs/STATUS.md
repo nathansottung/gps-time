@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (fix/sdr-pps-marker-uncertainty, #116). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (feat/module-loader, #117). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -17,7 +17,7 @@ Re-ordered 2026-10-21 (#114): the trained oscillator profile came in as item 6 (
 2. **Dual-band receiver profile** (ZED-F9T or ZED-F9P; owner, 2026-10-19): plan in `hardware/zed-f9-dual-band.md`. First the owner's choices (module and band variant, board, antenna and site), then profiles and docs, per-signal satellites, the `/app/` satellite views, receiver identity, and hardware validation, one PR each. Raw-data collection and PPP come after.
 3. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **Module architecture and observation format** (owner, 2026-10-21): `specs/SPEC-EXTENSIBILITY.md`, then the format part of `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (`gpstime:` schema, writer, reader, validator, converters). Module safety and API stability go with the loader. Its order of work, one PR each: interfaces, manifest, schemas, `ctx` and loader with no behaviour change; `tools/new_module.py` and the guide; `source-weather`; `reference-adsb` and `reference-broadcast-towers`; `analysis-tower-delay-check`; moving optional features to modules where it simplifies them.
+5. **Module architecture and observation format** (owner, 2026-10-21): `specs/SPEC-EXTENSIBILITY.md`, then the format part of `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (`gpstime:` schema, writer, reader, validator, converters). Module safety and API stability go with the loader. Its order of work, one PR each: interfaces, manifest, schemas, `ctx` and loader with no behaviour change; `tools/new_module.py` and the guide; `source-weather`; `reference-adsb` and `reference-broadcast-towers`; `analysis-tower-delay-check`; moving optional features to modules where it simplifies them. Steps 1-2 (kit, loader, scaffolder, guide) done in #117.
 6. **Trained oscillator profile** (owner, 2026-10-21; `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1): fit the oscillator log (frequency vs temperature, aging), a modeled holdover projection beside the simple one (GPS-008), export/import as one JSON file, board binding by serial hash, metadata. The list has six items until the soak (item 1) is done.
 
 ## v1.4.0-rc.9: to do
@@ -110,7 +110,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 521 rows: 283 done, 0 in progress, 47 next, 191 planned.
+**Totals:** 521 rows: 286 done, 0 in progress, 44 next, 191 planned.
 
 ## Status table
 
@@ -588,15 +588,15 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#106](https://github.com/nathansottung/gps-time/pull/106) |
 | Repo |  | Desktop app decision: tray app running the Python backend (packaged per OS), UI in the default browser; Electron dropped | done | owner decision; ADR-0006; roadmap stays FUTURE | [#107](https://github.com/nathansottung/gps-time/pull/107) |
 | Repo |  | README reworked for first-time visitors: what it is, quick start, tested vs expected hardware, planned hardware, features, measured accuracy only, docs | done | owner's order; measured figures from the rc.8 and rc.10 checks; accuracy against UTC stated as not measured | [#108](https://github.com/nathansottung/gps-time/pull/108) |
-| EXT | Order 1 | Interfaces, manifest, schemas, `ctx` and the module loader, with no behaviour change to the station | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
-| EXT | Order 2 | `tools/new_module.py` and the `docs/modules/` guide | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 1 | Interfaces, manifest, schemas, `ctx` and the module loader, with no behaviour change to the station | done | `gps_time_pi/modkit/` (interfaces 1.0.0, manifest checks, ctx, loader and host, CLI), `schemas/` (observation, result, manifest v1); the web service doesn't use it yet | [#110](https://github.com/nathansottung/gps-time/pull/110) [#117](https://github.com/nathansottung/gps-time/pull/117) |
+| EXT | Order 2 | `tools/new_module.py` and the `docs/modules/` guide | done | `tools/new_module.py` (source, reference, analysis, ui; generated tests pass as created); guide `docs/modules/` | [#110](https://github.com/nathansottung/gps-time/pull/110) [#117](https://github.com/nathansottung/gps-time/pull/117) |
 | EXT | Order 3 | `source-weather` example module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | EXT | Order 4 | `reference-adsb` and `reference-broadcast-towers` modules | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | EXT | Order 5 | `analysis-tower-delay-check` module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | EXT | Order 6 | Move existing optional features (sky tools, references page) to modules where it simplifies them | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | Repo |  | Extensibility (module architecture) spec imported; README "Where this is going" section | done | owner-provided, copied verbatim | [#110](https://github.com/nathansottung/gps-time/pull/110) |
-| EXT | Safety | Module safety: off by default, own unprivileged process, declared permissions only, resource caps, never affects timing | next | with the loader (order 1) | [#111](https://github.com/nathansottung/gps-time/pull/111) |
-| EXT | API | API stability: semver for interface, manifest and schemas; loader refuses incompatible modules | next | with the interfaces (order 1) | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| EXT | Safety | Module safety: off by default, own unprivileged process, declared permissions only, resource caps, never affects timing | next | partial: off by default, crash contained per module, emitted items schema-checked, capped storage; permissions recorded, not enforced; own process and CPU/memory caps still to do | [#111](https://github.com/nathansottung/gps-time/pull/111) [#117](https://github.com/nathansottung/gps-time/pull/117) |
+| EXT | API | API stability: semver for interface, manifest and schemas; loader refuses incompatible modules | done | semver `INTERFACE_VERSION` 1.0.0; manifests state `interface = "M.m"`; the loader refuses incompatible modules with the reason | [#111](https://github.com/nathansottung/gps-time/pull/111) [#117](https://github.com/nathansottung/gps-time/pull/117) |
 | EXT | Receiver | Receiver profiles as `receiver` modules; existing hardware profiles move into this form | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | EXT | Licence | Data licence: code MIT; shared observations CC BY 4.0 by default, per station | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | EXT | Governance | `CODE_OF_CONDUCT.md`, `MAINTAINERS.md`, module maturity rule (experimental → supported) | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |

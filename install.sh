@@ -50,6 +50,10 @@ echo "== Copying application to $DEST =="
 rm -rf "$DEST/gps_time_pi/templates" "$DEST/gps_time_pi/static"
 rm -f "$DEST/gps_time_pi/dashboard.py" "$DEST/gps_time_pi/data/dashboard.default.json"
 cp -r gps_time_pi $DEST/
+# JSON schemas for module data (gps_time_pi.modkit); read-only, nothing runs from here.
+rm -rf "$DEST/schemas"
+cp -r schemas $DEST/
+chmod -R a+rX "$DEST/schemas"
 [ -f $DEST/config.json ] || echo '{}' > $DEST/config.json
 
 echo "== Web UI (/app/) =="
