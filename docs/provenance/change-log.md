@@ -1151,3 +1151,11 @@ Owner's request: merge the desktop host notes into `roadmap/ROADMAP-DESKTOP-FIEL
 - New section "Desktop host", after "Linux PPS path": the same backend and `web/` UI served on localhost from a tray app (Windows, macOS); the receiver inspector as the Receivers page; a tier and ± bound per time source (PPS, USB native, USB bridge); receiver time trusted only after leap-second data has arrived (observed: a u-blox 7 2 s off for 12 minutes); the Pi as the reference desktops learn their offsets from.
 - The rest of the roadmap is unchanged. Its Goal still names Electron and its open questions still list "Python bundled vs TypeScript port"; the notes point to the bundled backend in a tray app, which the owner settles when the work is scoped.
 - Docs only. The roadmap stays FUTURE, not scheduled.
+
+## 2026-10-21 — desktop app: tray app with the Python backend, not Electron (#PR)
+
+Owner's decision: drop Electron. A tray app runs the same Python backend, packaged per OS (e.g. PyInstaller), and opens the UI in the default browser.
+
+- `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`: Goal rewritten; receiver input via the Python backend (e.g. `pyserial`) instead of Node `serialport`; "neither the tray app nor the browser UI runs elevated"; shared code settled (bundled backend, no TypeScript port); open questions now ask about the packager, installer format, tray library and localhost port, instead of bundled-vs-port.
+- `decisions/ADR-0006-desktop-tray-app.md` records the decision; indexed in `INDEX.md`.
+- `STATUS.md`: decision entry and one done row. Docs only; the roadmap stays FUTURE, not scheduled.
