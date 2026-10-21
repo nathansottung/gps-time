@@ -1299,3 +1299,34 @@ Owner's request: the observation format's writer, reader and validator, with sdr
 ## 2026-10-21 — spec example: ci16_le for RF IQ (#119)
 
 Owner's request: fix the spec example. `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` now gives `ci16_le` for RF IQ. In SigMF `r` means real samples, so `ri16_le` was wrong for IQ. The note about the mismatch in `docs/modules/observation-format.md` is replaced by the rule. No status changed.
+
+## 2026-10-21 — module isolation: own process, unprivileged user, caps and permissions enforced (#PR)
+
+Owner's request: each module in its own unprivileged process, with permissions and CPU, memory and disk caps enforced; the station doesn't load modules until this lands.
+
+- **Own process:** `gps_time_pi/modkit/runner.py`. The host (`loader.ModuleHost`) never imports module code. It starts `python -m gps_time_pi.modkit.runner` per module and talks to it in JSON lines (spec, stop, context in; ready, emit, exit, error out). The module's own prints go to stderr, kept as a short tail in its status.
+- **Unprivileged:** the runner refuses to run a module as root and drops to the module user (no supplementary groups) before anything else.
+- **Caps:**
+  - in the module's process: address space (`[limits] memory_mib`, default 256 MiB, host maximum 512), file size (its storage cap), 64 open files, no core dumps;
+  - watched by the host: CPU share over a 60 s window (`[limits] cpu_percent`, default 25 %, maximum 50 %), resident memory, output lines (1 MiB) and items (50 per second); over a cap, the module is killed with the reason;
+  - storage: a size cap, plus a write-rate cap of 4 MiB per hour for `disk:` storage.
+- **Permissions:** a Python audit hook (`sandbox.py`), installed before the module is imported, blocks:
+  - sockets without network permission;
+  - undeclared devices;
+  - writes outside the module's storage;
+  - new processes;
+  - ctypes;
+  - signals;
+  - paths the host denies (config, admin token, station key).
+- **Station:**
+  - `system/gps-time-modules.service`: a supervisor (`gps_time_pi/modkit/supervisor.py`) as root with only CAP_SETUID/SETGID/CHOWN/DAC_READ_SEARCH, the web service's hardening plus `PrivateDevices=yes` and `IPAddressDeny=any`, and totals `MemoryMax=768M`, `CPUQuota=60%`, `TasksMax=128`.
+  - `install.sh` creates the `gps-time-mod` user and installs the unit but doesn't enable it.
+  - Modules get the site through `config.privacy_site`, and timing as UNKNOWN until the web service publishes it. Status and the latest items go to `/run/gps-time-modules/status.json` (RAM).
+- **Platforms:** where the sandbox isn't available (Windows), the host refuses modules. `python -m gps_time_pi.modkit demo` runs them unenforced and says so (desktop demo only).
+- **Not yet:** one user per module (`EXT Safety+`, planned).
+- **Manifest:** optional `[limits]` (`memory_mib`, `cpu_percent`); sdr-pps-marker asks for 50 % CPU (its demo computes in bursts).
+- **Tests:** `tests/test_module_isolation.py`.
+  - On Linux, against real processes: one process per module; memory cap; CPU share cap; network and devices only with permission; writes only in storage; disk cap; the OS file-size limit; no processes, ctypes, signals or denied reads; output flood; crash isolation; stop; site only from the host; root without a module user refused.
+  - Everywhere: the guard's rules, limits capped by the host, refusal without a sandbox, the storage write rate, the unit's hardening, installed but not enabled.
+  - `test_modkit.py` and `test_new_module.py` adapted: an entry-point failure now shows when the module starts, in its own process.
+- **STATUS.md:** EXT Safety done; one user per module added as planned.

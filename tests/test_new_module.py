@@ -2,6 +2,7 @@
 
 import importlib.util
 import io
+import os
 import shutil
 import sys
 import tempfile
@@ -64,7 +65,7 @@ class TestScaffold(unittest.TestCase):
         self.added.append("my_sensor")
         out = []
         h = loader.ModuleHost(self.dest, ["my-sensor"], configs={"my-sensor": {"demo": True}},
-                              emit=lambda name, item: out.append(item))
+                              emit=lambda name, item: out.append(item), allow_unenforced=os.name == "nt")
         h.load()
         h.start(wait=True)
         st = h.status()[0]

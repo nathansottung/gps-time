@@ -22,5 +22,5 @@ Every feature after the timing core (sensors, reference signals, analyses, cards
 ## Consequences
 
 - Contributors have one pattern, and tests that run on a laptop.
-- **Not yet:** process isolation and resource caps. Modules run in the host's process, so declared permissions (network, devices) are recorded but not enforced. Before any module runs on a station by default, each module gets its own unprivileged process (a systemd unit with the web service's hardening) and CPU and memory caps. Until then, enabling a module trusts its code.
+- **Isolation (added in #PR):** every module runs in its own process as the unprivileged `gps-time-mod` user, under a hardened supervisor service that is installed but not enabled. Per process: memory and file-size limits, CPU share, memory and output watched by the host, and a permission guard for network, devices, writes, processes and ctypes. Details: `docs/modules/README.md`, "Safety". Still open: one user per module.
 - Wiring the host into the web service (status, cards) is a later step.

@@ -6,6 +6,7 @@ except the repository's own modules/sdr-pps-marker, the first module loaded.
 
 import io
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -23,6 +24,8 @@ from gps_time_pi.modkit.manifest import interface_compatible, read
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_MODULES = ROOT / "modules"
+# Modules run sandboxed in their own process; on Windows (no sandbox) the tests run them unenforced.
+HOST_KW = {"allow_unenforced": os.name == "nt"}
 
 GOOD = """
 name = "{name}"
@@ -148,7 +151,7 @@ class TestManifest(ModuleDir):
 class TestHost(ModuleDir):
     def host(self, enabled, **kw):
         out = []
-        h = loader.ModuleHost(self.root, enabled, emit=lambda name, item: out.append((name, item)), **kw)
+        h = loader.ModuleHost(self.root, enabled, emit=lambda name, item: out.append((name, item)), **HOST_KW, **kw)
         h.load()
         return h, out
 
@@ -187,9 +190,15 @@ class TestHost(ModuleDir):
         self.make("broken-import", "import no_such_package_here\n")
         self.make("too-new", interface="2.0")
         h, _ = self.host(["not-a-source", "broken-import", "too-new", "missing"])
-        for name in ("not-a-source", "broken-import", "too-new", "missing"):
+        for name in ("too-new", "missing"):
             self.assertEqual(self.state(h, name)["state"], "refused", name)
         self.assertIn("interface", self.state(h, "too-new")["reason"])
+        # module code is only imported in the module's own process, so these fail when started
+        h.start(wait=True)
+        for name in ("not-a-source", "broken-import"):
+            self.assertEqual(self.state(h, name)["state"], "failed", name)
+            self.assertIn("entry point failed", self.state(h, name)["reason"])
+        self.assertNotIn("broken_import", sys.modules, "the host never imports module code")
 
     def test_storage_needs_a_host_root_and_is_capped(self):
         self.make("wants-disk", storage="disk:1MiB")
@@ -221,7 +230,7 @@ class TestFirstModule(unittest.TestCase):
         out = []
         h = loader.ModuleHost(REPO_MODULES, ["sdr-pps-marker"],
                               configs={"sdr-pps-marker": {"demo": True, "scenarios": ["clean", "usb-drop"]}},
-                              emit=lambda name, item: out.append(item))
+                              emit=lambda name, item: out.append(item), **HOST_KW)
         h.load()
         h.start(wait=True)
         st = next(s for s in h.status() if s["name"] == "sdr-pps-marker")
@@ -233,7 +242,7 @@ class TestFirstModule(unittest.TestCase):
 
     def test_without_demo_it_emits_nothing(self):
         out = []
-        h = loader.ModuleHost(REPO_MODULES, ["sdr-pps-marker"], emit=lambda name, item: out.append(item))
+        h = loader.ModuleHost(REPO_MODULES, ["sdr-pps-marker"], emit=lambda name, item: out.append(item), **HOST_KW)
         h.load()
         h.start(wait=True)
         self.assertEqual(out, [])

@@ -25,11 +25,16 @@ class StorageFull(Exception):
 
 
 class CappedStorage:
-    """A module's own folder with a size cap. Writes are atomic (temporary file, then rename)."""
+    """A module's own folder with a size cap and, optionally, a write-rate cap
+    (bytes per hour, to spare the SD card). Writes are atomic (temporary file,
+    then rename)."""
 
-    def __init__(self, root, cap_bytes):
+    def __init__(self, root, cap_bytes, rate_bytes_per_hour=None, clock=time.monotonic):
         self.root = Path(root)
         self.cap_bytes = int(cap_bytes)
+        self.rate = None if rate_bytes_per_hour is None else int(rate_bytes_per_hour)
+        self._clock = clock
+        self._recent = []          # (time, bytes) in the last hour
         self.root.mkdir(parents=True, exist_ok=True)
 
     def used_bytes(self):
@@ -45,6 +50,12 @@ class CappedStorage:
         old = p.stat().st_size if p.exists() else 0
         if self.used_bytes() - old + len(data) > self.cap_bytes:
             raise StorageFull(f"{name}: would exceed {self.cap_bytes} bytes")
+        if self.rate is not None:
+            now = self._clock()
+            self._recent = [(t, b) for t, b in self._recent if now - t < 3600]
+            if sum(b for _, b in self._recent) + len(data) > self.rate:
+                raise StorageFull(f"{name}: would exceed the write rate of {self.rate} bytes per hour")
+            self._recent.append((now, len(data)))
         fd, tmp = tempfile.mkstemp(dir=self.root, prefix=".tmp-")
         try:
             with os.fdopen(fd, "wb") as f:
