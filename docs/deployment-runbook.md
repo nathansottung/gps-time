@@ -75,7 +75,7 @@ manual steps above (not yet re-verified on a Pi). Re-running `install.sh` on the
 deployed Pi replaces the hand-patched units with equivalent `/bin/bash` units.
 See `provenance/CHG-001-002-foundation-correction.md`.
 
-## 3. Everyday operation (no SSH normally needed — use /admin)
+## 3. Everyday operation (no SSH normally needed — use /app/ → Administration)
 
 ```bash
 sudo systemctl restart gps-time-pi    # restart web app
@@ -91,7 +91,7 @@ restart). Verify with the version curl.
 
 - Clients: in the home router's LAN/DHCP settings, set the **NTP server**
   (DHCP option 42) to `192.168.1.10`. Propagates as
-  DHCP leases renew (hours); appears in the `/` clients table.
+  DHCP leases renew (hours); appears in the NTP Clients table (`/app/` → Network & Devices).
 - The router itself (optional): point its own NTP client at
   `192.168.1.10` as primary, with a public server as secondary.
 - Windows (ignores DHCP NTP), admin PowerShell:
@@ -108,7 +108,7 @@ restart). Verify with the version curl.
 ## 5. Current deployed state & known items
 
 - Stratum 1 on GPS/PPS; survey and history accumulating; RAM logging active
-  (verify: /admin → Logging → "RAM (tmpfs)")
+  (verify: `/app/` → Data & Logs → Buffer & Storage: Tracking log "in RAM")
 - Antenna: intermittent DC-feed fault observed; currently
   holding link (peak SNR ~36 dB — low for an active antenna, consistent
   with a marginal connection). Failure signature and diagnosis chain:

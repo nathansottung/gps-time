@@ -1,19 +1,14 @@
 """GPS Time Pi web server.
 
 Routes:
-  /            main status page
-  /almanac     sun/moon/object/sky page
-  /history     offset + uncertainty convergence chart
-  /zones       all IANA timezones with current offsets
+  /            redirects to /app/ (so do the retired legacy page paths, for old bookmarks)
   /time        plain-text UTC timestamp
   /api         core status JSON (never depends on the astronomy layer)
   /api/almanac /api/object /api/history
   /api/setting?location_display=exact|rounded|hidden
   /api/timing-chain  GNSS -> PPS -> chrony stage-by-stage status, PPS state, events (JSON)
   /api/diagnostics   copyable plain-text diagnostic snapshot (privacy mode applied)
-  /static/*    css/js
-  /app/        new web UI: the built React app from web/dist (GTP_WEB_DIST to override);
-               the legacy pages above stay until the new UI reaches parity
+  /app/        the web UI: the built React app from web/dist (GTP_WEB_DIST to override)
 
 Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
 """
@@ -35,21 +30,13 @@ from zoneinfo import ZoneInfo, available_timezones
 
 import platform
 
-from . import (__version__, astro, catalog, chrony, config, dashboard, demo, gps, localtime, satellites, security,
-               shadow, system, timescales, timing_chain, units)
+from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
+               shadow, system, timescales, timing_chain)
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
 PORT = int(os.environ.get("GTP_PORT", "8080" if DEMO_MODE else "80"))
 BIND = os.environ.get("GTP_BIND", "127.0.0.1" if DEMO_MODE else "0.0.0.0")
-
-_TPL = {}
-for name in ("dashboard", "configure", "legacy", "almanac", "history", "admin"):
-    with open(os.path.join(_HERE, "templates", name + ".html"), encoding="utf-8") as f:
-        _TPL[name] = f.read()
-# Per-page CSP: each legacy page's static inline scripts allowed by hash only.
-_TPL_CSP = {name: security.csp_for_html(html) for name, html in _TPL.items()}
-
 
 # Built web UI (cd web && corepack pnpm run build). Read per request, never written.
 WEB_DIST = os.environ.get("GTP_WEB_DIST") or os.path.join(os.path.dirname(_HERE), "web", "dist")
@@ -63,7 +50,7 @@ _WEB_TYPES = {
 WEB_NOT_BUILT = ("The new web UI has not been built on this machine.\n"
                  "Build it with:  cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build\n"
                  "or set GTP_WEB_DIST to a directory containing a built index.html.\n"
-                 "The legacy dashboard is still available at /.\n")
+                 "The JSON API under /api works without it.\n")
 
 
 def web_file(rel):
@@ -131,25 +118,14 @@ def core_api():
     status = timing_chain.timing_status(trk, srcs, gnss=snap, refclocks=chrony.refclock_config())
     if timing_chain.SERVICE is not None and timing_chain.SERVICE.running():
         status = timing_chain.SERVICE.apply_boot_phase(status)   # ACQUIRING after boot
-    state = (status["headline"], status["banner"] + (" — " + status["detail"] if status["detail"] else ""))
     cfg = config.load()
     site, provenance = (snap["live"], "live") if snap["live"] else \
         ((cfg.get("site"), "stored") if cfg.get("site") else (None, "none"))
     return {
         "epoch_ms": now.timestamp() * 1000,
         "utc": now.strftime("%Y-%m-%d %H:%M:%S.%f UTC"),
-        "state": state,
         "timing_status": status,
         "quality": q,
-        "fmt": {
-            # chronyc "System time" is the correction still being slewed out, shown alone; the
-            # bound is separate and conditional on the reference (GPS-007). No "±".
-            "system_pair": units.fmt_offset(q["system_time_s"]) if q["system_time_s"] is not None else "–",
-            "error_bound": units.fmt_seconds(q["max_error_bound_s"]),
-            "rms": units.fmt_seconds(q["rms_offset_s"]),
-            "root_dispersion": units.fmt_seconds(q["root_dispersion_s"]),
-            "root_delay": units.fmt_seconds(q["root_delay_s"]),
-        },
         "sources": srcs,
         "sourcestats": chrony.sourcestats(),
         "clients": chrony.clients(),
@@ -196,8 +172,8 @@ def _astro_failure(e):
 
 
 # The almanac is the station's most expensive answer: on a Raspberry Pi 4 a full
-# /api/almanac took about 15 s of CPU, and the legacy dashboard asks for it on
-# every 5 s refresh. While it runs, every other request (including /api/ping,
+# /api/almanac took about 15 s of CPU, and the legacy dashboard (since removed) asked
+# for it on every 5 s refresh. While it runs, every other request (including /api/ping,
 # which the browser uses to measure its round trip) waits behind it in the same
 # Python process. The day-level parts depend only on the date, the zone and the
 # (privacy-reduced) site, so they are computed once and kept; the sky snapshot
@@ -386,35 +362,6 @@ def survey_api():
                     "Survey history builds as 3D fixes arrive (about one per minute)."}
 
 
-def zones_page():
-    now = datetime.now(timezone.utc)
-    rows = []
-    for name in sorted(available_timezones()):
-        if name.startswith(("Etc/", "SystemV", "posix", "right")) or ("/" not in name and name != "UTC"):
-            continue
-        local = now.astimezone(ZoneInfo(name))
-        mins = int(local.utcoffset().total_seconds() // 60)
-        sign = "+" if mins >= 0 else "-"
-        rows.append((name, f"UTC{sign}{abs(mins) // 60:02d}:{abs(mins) % 60:02d}",
-                     local.strftime("%H:%M"), mins))
-    rows.sort(key=lambda r: (r[3], r[0]))
-    body = "".join(f"<tr><td>{n}</td><td>{o}</td><td>{t}</td></tr>" for n, o, t, _ in rows)
-    head = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            "<title>Timezones</title>"
-            "<script>(function(){var t=new URLSearchParams(location.search).get('theme')||"
-            "localStorage.getItem('gtp-theme')||'light';document.documentElement.dataset.theme=t;})();"
-            '</script><link rel="stylesheet" href="/static/style.css">'
-            '<link rel="stylesheet" href="/static/custom.css"></head><body><main>'
-            '<nav><a href="/">Time</a><a href="/almanac">Almanac</a>'
-            '<a href="/history">History</a><a class="here" href="/zones">Zones</a>'
-            '<a href="/admin">Admin</a></nav>')
-    return (head + f"<p class='dim small'>Offsets include DST where currently in effect. "
-            f"As of {now.strftime('%Y-%m-%d %H:%M UTC')}.</p>"
-            "<table><thead><tr><th>Zone</th><th>Offset</th><th>Local time</th></tr></thead>"
-            f"<tbody>{body}</tbody></table></main></body></html>")
-
-
 DEMO_SITE = {"lat": 38.9217, "lon": -77.0669, "alt_msl": 92.0, "alt_hae": 59.0}
 
 
@@ -550,18 +497,13 @@ def diagnostics_text(qs):
     return timing_chain.diagnostic_snapshot(chain, config.displayed_location(cfg, live))
 
 
-def writes_enabled():
-    """Demo mode writes only under .dev/ and never runs host actions, so it needs
-    no token. Otherwise every state-changing request needs the admin token, and
-    admin is disabled until a token exists (security.admin_configured())."""
-    return DEMO_MODE or security.admin_configured()
-
-
 HOST_REFUSED = ("Host not allowed. Use the station's IP address or hostname, or add this "
                 "name to GTP_ALLOWED_HOSTS (comma-separated) in the service environment.\n")
 ADMIN_DISABLED = ("admin is disabled: no admin token is configured on the station "
                   "(create one with: sudo python3 -m gps_time_pi.admin_token)")
-POST_ROUTES = ("/api/admin", "/api/setting", "/api/dashboard", "/api/dashboard/reset")
+POST_ROUTES = ("/api/admin", "/api/setting")
+# The retired legacy pages (removed after v1.4.0): their paths redirect to the web UI.
+LEGACY_PATHS = ("/legacy", "/almanac", "/history", "/admin", "/configure", "/zones")
 MAX_BODY = 256000
 
 
@@ -571,31 +513,20 @@ def auth_payload(authenticated):
             "authenticated": DEMO_MODE or authenticated}
 
 
-def dashboard_payload():
-    cfg = dashboard.load()
-    cfg["_meta"] = {
-        "writable": writes_enabled(),
-        "auth_required": not DEMO_MODE,
-        "demo": DEMO_MODE,
-        "path": str(dashboard.path()) if DEMO_MODE else None,
-        "known_widgets": sorted(dashboard.KNOWN_WIDGETS),
-    }
-    return cfg
-
-
 class Handler(BaseHTTPRequestHandler):
-    _csp = None      # per-response CSP override (legacy pages); reset for every request
-
     def end_headers(self):
-        # Security headers on every response, including send_error() pages.
-        self.send_header("Content-Security-Policy", self._csp or security.CSP_STRICT)
+        # Security headers on every response, including send_error() pages. One strict CSP
+        # for everything: the legacy pages and their inline-style exception are gone.
+        self.send_header("Content-Security-Policy", security.CSP_STRICT)
         for k, v in security.SECURITY_HEADERS.items():
             self.send_header(k, v)
         super().end_headers()
 
-    def _page(self, name):
-        self._csp = _TPL_CSP[name]
-        self._send(_TPL[name], "text/html")
+    def _redirect(self, location, code=302):
+        self.send_response(code)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _check_token(self, route):
         """True if the Authorization header holds the admin token. Otherwise this
@@ -675,7 +606,6 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         p = u.path
-        self._csp = None
         if not self._host_ok():
             return
         try:
@@ -693,31 +623,15 @@ class Handler(BaseHTTPRequestHandler):
                     self._json(auth_payload(False))
             elif p == WEB_PREFIX.rstrip("/") or p.startswith(WEB_PREFIX):
                 self._web(u)
-            elif p == "/":
-                self._page("dashboard")
-            elif p == "/configure":
-                self._page("configure")
-            elif p == "/legacy":
-                self._page("legacy")
-            elif p == "/almanac":
-                self._page("almanac")
-            elif p == "/history":
-                self._page("history")
-            elif p == "/admin":
-                self._page("admin")
+            elif p == "/" or p in LEGACY_PATHS:
+                self._redirect(WEB_PREFIX + (("?" + u.query) if u.query else ""))
             elif p == "/api/system":
                 self._json(demo.system_diagnostics() if DEMO_MODE else system.diagnostics())
-            elif p == "/zones":
-                html = zones_page()
-                self._csp = security.csp_for_html(html)
-                self._send(html, "text/html")
             elif p == "/time":
                 self._send(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f UTC\n"),
                            "text/plain")
             elif p == "/api":
                 self._json(core_api())
-            elif p == "/api/dashboard":
-                self._json(dashboard_payload())
             elif p == "/api/ping":
                 t2 = datetime.now(timezone.utc).timestamp() * 1000
                 # Keep the endpoint tiny: the browser uses t2/t3 as the server side
@@ -753,20 +667,6 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
                 self._json(survey_api())
-            elif p == "/static/custom.css":
-                custom = os.path.join(os.path.dirname(
-                    os.environ.get("GTP_CONFIG", "/opt/gps-time-pi/config.json")), "custom.css")
-                body = open(custom, encoding="utf-8").read() if os.path.exists(custom) else "/* create custom.css next to config.json to override styles */"
-                self._send(body, "text/css")
-            elif p.startswith("/static/"):
-                fn = os.path.basename(p)
-                full = os.path.join(_HERE, "static", fn)
-                if os.path.exists(full):
-                    ct = "text/css" if fn.endswith(".css") else "application/javascript"
-                    with open(full, "rb") as f:
-                        self._send(f.read(), ct)
-                else:
-                    self.send_error(404)
             else:
                 self.send_error(404)
         except BrokenPipeError:
@@ -782,7 +682,6 @@ class Handler(BaseHTTPRequestHandler):
         Host allowlist -> route -> Origin (same-origin or GTP_ALLOWED_ORIGINS) ->
         Content-Type application/json -> body size -> admin token (not in demo)."""
         p = urlparse(self.path).path
-        self._csp = None
         # Read (bounded) the body before any refusal, so an early error doesn't
         # leave unread request bytes on the socket (the client would see a reset).
         try:
@@ -854,11 +753,8 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"ok": True, "reset_site": True})
                 else:
                     self._json({"ok": False, "error": "expected location_display, timezone or reset_site"}, code=400)
-            elif p == "/api/dashboard/reset":
-                cfg = dashboard.save(dashboard.default_layout())
-                self._json({"ok": True, "dashboard": cfg})
             else:
-                self._json({"ok": True, "dashboard": dashboard.save(body)})
+                self.send_error(404)
         except Exception as e:  # noqa: BLE001
             self._json({"ok": False, "error": str(e)})
 

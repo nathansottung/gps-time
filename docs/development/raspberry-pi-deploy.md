@@ -229,11 +229,3 @@ The old version ignores `admin-token.sha256` and the `gps-time` user, which can 
 The current installer is still based on the historical v1.3 deployment model and may use Internet access at install time for Python dependencies/JPL ephemeris. Runtime offline operation is a design goal; a future offline dependency/data bundle remains planned.
 
 The hardware/gpsd/chrony configuration remains installation-specific. Generate and review it with `tools/generate_config.py` before applying it.
-
-To deploy the current `.dev/dashboard.json` intentionally:
-
-```powershell
-.\scripts\deploy-to-pi.ps1 -PiHost 192.168.1.50 -PiUser pi -UseDemoLayout
-```
-
-Without `-UseDemoLayout`, local demo experiments are not promoted into the deployment archive.

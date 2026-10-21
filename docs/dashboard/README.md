@@ -1,30 +1,19 @@
 # Dashboard architecture
 
-The dashboard is configuration-driven. The same renderer is used in Windows demo mode and on the Pi.
+The station UI is the React web UI in `web/`, served at `/app/` (ADR-0004). `/` and the retired legacy page paths redirect there. The same UI runs in Windows demo mode and on the Pi.
 
 ## Configuration
 
-Default: `config/dashboard.default.json` (also packaged under `gps_time_pi/data/`).
+Layout choices are per browser, not stored on the station. The Configure page shows or hides pages and Overview cards (`gtp-modules` in the browser's local storage; Overview, Configure and Administration can't be hidden) and switches the red night theme (`gtp-theme`, or `?theme=night|dark`). Code: `web/src/lib/prefs.ts`.
 
-Runtime override: set `GTP_DASHBOARD_CONFIG` or allow the server to use `dashboard.json` next to `GTP_CONFIG`.
-
-Pages contain widget records:
-
-```json
-{"id":"timing_quality","visible":true,"size":"normal"}
-```
-
-The development configuration editor is at `/configure`.
+The saved-layout model of the legacy dashboard was removed after v1.4.0: `/configure`, `/api/dashboard` (GET/POST), `/api/dashboard/reset`, `gps_time_pi/dashboard.py`, `gps_time_pi/data/dashboard.default.json`, `dashboard.json`, `GTP_DASHBOARD_CONFIG` and `tools/promote_dashboard.py` no longer exist. A `dashboard.json` left on an upgraded station is not read. Removal plan: `legacy-removal-plan.md`.
 
 ### Write safety
 
-Dashboard configuration writes (`POST /api/dashboard`, `/api/dashboard/reset`) need the station admin token, except in demo mode, where writes go to `.dev/`. The `/configure` page prompts for the token. `GTP_ALLOW_CONFIG_WRITE` and the loopback exception were removed (ADR-0005).
+The settings and actions the UI can change on the station (Administration) need the station admin token, except in demo mode (ADR-0005).
 
 ## Planned editor improvements
 
-- create/rename/delete pages from UI
 - drag/reorder widgets
 - widget-specific settings
-- import/export layouts
 - presets
-- authentication/authorization for remote administration

@@ -84,11 +84,11 @@ describe('httpApi state changes', () => {
   });
 
   it('sends no Authorization header without a token', async () => {
-    const calls = mockFetch(() => ({ body: { ok: true, dashboard: { schema_version: 1, title: 't', pages: [] } } }));
+    const calls = mockFetch(() => ({ body: { ok: true, action: 'flush_logs', detail: '' } }));
     const api = httpApi('', 8000, tokenStore(memoryStorage()));
-    await api.resetDashboard();
+    await api.admin('flush_logs');
     expect(headersOf(calls[0]).get('Authorization')).toBeNull();
-    expect(calls[0].init.body).toBe('{}');
+    expect(calls[0].init.body).toBe('{"action":"flush_logs"}');
   });
 
   it('reports the station reason on 401/403', async () => {

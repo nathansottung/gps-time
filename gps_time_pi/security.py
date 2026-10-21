@@ -14,19 +14,17 @@
   header) and throttled per client IP: after FREE_FAILURES misses, further
   attempts get 429 for an exponentially growing time, capped at MAX_BACKOFF_S.
 - Security headers: a strict Content-Security-Policy plus nosniff,
-  no-referrer and frame denial on every response (see csp_for_html()).
+  no-referrer and frame denial on every response (CSP_STRICT; no per-page exceptions).
 
 Standard library only; nothing here touches timing behavior.
 """
 
-import base64
 import collections
 import hashlib
 import hmac
 import ipaddress
 import logging
 import os
-import re
 import socket
 import threading
 import time
@@ -196,7 +194,8 @@ def note_auth_failure(ip, route, header):
 
 _CSP_BASE = ("default-src 'self'; object-src 'none'; base-uri 'none'; "
              "form-action 'self'; frame-ancestors 'none'")
-# /app/, the API, static files: everything from this station, nothing inline.
+# Every response: /app/, the API. Everything from this station, nothing inline (no exceptions
+# since the legacy pages were removed after v1.4.0).
 CSP_STRICT = _CSP_BASE + "; script-src 'self'; style-src 'self'"
 
 SECURITY_HEADERS = {
@@ -205,16 +204,3 @@ SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",          # frame-ancestors for older browsers
 }
 
-_INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.S)
-
-
-def csp_for_html(html):
-    """CSP for a legacy page: its own static inline scripts are allowed by
-    SHA-256 hash (never 'unsafe-inline' for scripts). Styles keep
-    'unsafe-inline' because the legacy pages build style="" attributes at
-    runtime; that exception ends when the legacy pages are retired."""
-    hashes = " ".join(
-        "'sha256-" + base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode() + "'"
-        for body in _INLINE_SCRIPT.findall(html))
-    return (_CSP_BASE + "; script-src 'self'" + (" " + hashes if hashes else "")
-            + "; style-src 'self' 'unsafe-inline'")

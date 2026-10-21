@@ -1038,3 +1038,20 @@ Owner's request: scope a hardware profile for a dual-band u-blox receiver, the Z
 Figures not yet checked against the u-blox data sheets are marked "to confirm".
 
 `STATUS.md`: the next-5 list drops the two done items and takes in the profile as item 2; ten Hardware rows (six next, four planned); a decision entry. Index, hardware README, HARDWARE-PROFILES.md and ROADMAP.md link the plan.
+
+## 2026-10-21 — legacy pages removed; / redirects to /app/ (#99)
+
+Legacy removal steps 7–9, done together at the owner's request while rc.11 soaks (nothing deployed). v1.4.0, to be tagged on the rc.11 commit, still has the legacy pages; this is on main for the release after it.
+
+- **Front door:** `/` and the old page paths (`/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones`) answer 302 to `/app/`, with the query string kept, so bookmarks land on the web UI. `/app/` stays the UI's prefix.
+- **Removed:**
+  - the seven templates and six static files, `/static/*` and `/static/custom.css`, the template loader and page routes, and `zones_page()`;
+  - `security.csp_for_html()`: every response now carries the one strict CSP (no `style-src 'unsafe-inline'`, no hashed inline scripts);
+  - `/api`'s `state` and `fmt` (strings pre-formatted for the legacy pages) and `gps_time_pi/units.py`;
+  - the saved-layout model: `/api/dashboard` (GET, POST), `/api/dashboard/reset`, `dashboard.py`, `data/dashboard.default.json`, `GTP_DASHBOARD_CONFIG`, `tools/promote_dashboard.py`, the deploy scripts' `-UseDemoLayout` / `--use-demo-layout`, and the VS Code task;
+  - the web client's layout calls and types, and the sidebar's "Legacy dashboard" link.
+- **Upgrades:** `install.sh` deletes the retired `templates/`, `static/`, `dashboard.py` and `dashboard.default.json` from the station (its `cp -r` would have left them), and stops changing ownership of `dashboard.json` and `custom.css`. Those files, if present, stay on the station unused.
+- **Review findings closed by the removal:** GPS-016 (unescaped `innerHTML` in the legacy view), GPS-027 (unit labels in `dashboard.js`), GPS-029 (dashboard config hardening), and the legacy halves of GPS-004 (browser clock) and GPS-009 (survey "repeatability").
+- **Docs:** ADR-0004 gains its outcome, `web-ui-parity.md` is closed, `legacy-removal-plan.md` records what was done, and `CLAUDE.md`, the API docs, the checklists, the guides and `web/AGENTS.md` are updated.
+- **Tests:** `test_inline_styles.py` and the web tests that read the legacy JavaScript are removed. New tests check that `/` and every old path redirect with the query kept; that `/static/*`, `custom.css` and `/api/dashboard` are 404; and that every kind of response carries exactly `CSP_STRICT`. Python 583 tests and web 196 pass.
+- **Rollback:** deploy v1.4.0-rc.11 (or v1.4.0) to get the legacy pages back.

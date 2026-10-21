@@ -6,15 +6,13 @@ Conventions (errors, caching, units, privacy, demo markers) are in [`README.md`]
 
 ## GET /api
 
-Core status. The legacy pages and the new UI poll it every 4–5 s. It never depends on the astronomy layer. Type: `CoreStatus`.
+Core status. The web UI polls it every 4–5 s. It never depends on the astronomy layer. Type: `CoreStatus`.
 
 | Field | Meaning |
 |---|---|
 | `epoch_ms`, `utc` | server time when the response was built |
-| `state` | `[headline, "banner — detail"]` from the timing-status logic |
 | `timing_status` | the same status as `/api/timing-chain` → `status`; **live mode only** (absent in demo) |
 | `quality` | parsed `chronyc -n tracking`: `system_time_s` (chrony's "System time": the correction still being slewed out, signed, + = fast; not the error against UTC), `last_offset_s`, `rms_offset_s`, `root_delay_s`, `root_dispersion_s`, `max_error_bound_s` (calculated: \|system time\| + root dispersion + ½ root delay, chronyc's bound, valid only if the reference is right; null unless all three are known; since #93, GPS-007), plus chrony's text for `frequency` ("x ppm fast/slow"), `residual_freq`, `skew`, `update_interval`, `leap`, `stratum`, `reference`, `ref_time`. `frequency_ppm` appears only in demo payloads. |
-| `fmt` | the server's human-readable strings for the legacy pages. `system_pair` is the remaining correction alone (no "±" since #93); `error_bound` is `max_error_bound_s` formatted |
 | `sources` | `chronyc -n sources` rows: `mode`, `state`, `state_label`, `name`, `stratum`, `poll` (log₂ s), `reach` (octal), `lastrx`, `sample`, `is_self` (the source is one of this station's own addresses, so not an external reference) |
 | `sourcestats` | raw `chronyc sourcestats` text |
 | `clients` | NTP client rows: `host`, `ntp_packets`, `dropped`, `last`; `[]` = no clients. **`null`** = UNKNOWN: the list couldn't be read. Source: the output of `chronyc -n clients` published every 15 s by `gps-time-pi-chrony-clients.service` (which also publishes `chronyc -n ntpdata` for `/api/references` and `chronyc -n serverstats` for `/api/ntp-service`) (so up to about 15 s old, and ignored after 60 s); without that file, `chronyc` run directly, which works only as root. |
@@ -396,7 +394,7 @@ Look up one object for the almanac's object card. `q` accepts a Messier number, 
 
 **Privacy mode:** as for `/api/almanac`. Rounded mode computes from the rounded site. Hidden mode returns `available: false` with the privacy reason, computes nothing and computes nothing. Available responses include `location_display`.
 
-**No side effect** (since #88; GPS-030): the station keeps no target. To mark the object on the sky map, pass the same text as `target=` to `/api/almanac`. The new UI's Sky & Objects tab and the legacy almanac page both do.
+**No side effect** (since #88; GPS-030): the station keeps no target. To mark the object on the sky map, pass the same text as `target=` to `/api/almanac`. The web UI's Sky & Objects tab does.
 
 ## GET /api/ping
 
@@ -421,36 +419,6 @@ Whether admin is enabled and whether the request's `Authorization` header is val
 - `auth_required` is false only in demo mode.
 - `authenticated` is always true in demo mode.
 
-## GET /api/dashboard
-
-The legacy dashboard layout (the widget model of `/` and `/configure`) plus metadata. Type: `DashboardConfig`.
-
-```json
-{"schema_version": 1, "title": "GPS Time",
- "pages": [{"id": "overview", "title": "Overview", "widgets": [{"id": "time", "visible": true, "size": "wide"}]}],
- "_meta": {"writable": true, "auth_required": true, "demo": false, "path": null, "known_widgets": ["adsb", "…"]}}
-```
-
-- `_meta.writable` is true in demo mode, or when an admin token is configured. Writes still need the token.
-- `_meta.path` is set only in demo mode.
-
-## POST /api/dashboard
-
-Body: a layout (`DashboardLayout`). It goes through the request checks in [README → Authentication](README.md#authentication-and-request-checks), so it needs the admin token outside demo mode.
-
-It is validated by `dashboard.validate()`:
-- at least 1 page and at most 20;
-- unique slug ids;
-- every page has a title and a widget list.
-
-On success it is saved to `dashboard.json` (`GTP_DASHBOARD_CONFIG`, or next to `GTP_CONFIG`). Response: `{"ok": true, "dashboard": <normalized>}`, or HTTP 200 `{"ok": false, "error": "..."}` on a validation error.
-
-`GTP_ALLOW_CONFIG_WRITE` and the loopback exception were removed. Behind a reverse proxy every client looked like loopback, so the token is now the only gate.
-
-## POST /api/dashboard/reset
-
-Body `{}`. Restores and saves the default layout. Same checks and response as above.
-
 ## POST /api/setting
 
 Changes a station setting. JSON body; admin token (outside demo). `GET /api/setting` returns 405.
@@ -462,7 +430,7 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
 | anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone or reset_site"}` |
 
-The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation), and still on the legacy `/admin` page.
+The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation).
 
 ## POST /api/admin
 
@@ -477,7 +445,7 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
 | other | nothing | `unknown action` (`ok: false`) |
 
-Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The new UI has the same actions on Administration → Station actions (`/app/`); the legacy `/admin` page keeps its buttons.
+Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The web UI has these actions on Administration → Station actions (`/app/`).
 
 ---
 
@@ -496,34 +464,17 @@ The new web UI: the React app built into `web/dist` (`cd web && corepack pnpm ru
 **Location.**
 - `GTP_WEB_DIST` sets the directory; the default is `<repo>/web/dist` next to the `gps_time_pi` package.
 - Files are read per request and never written.
-- `install.sh` and the deploy bundle do not yet copy `web/dist` to the Pi. Until they do, set `GTP_WEB_DIST` on the Pi or copy the build next to the package.
+- The deploy bundle ships `web/dist`, and `install.sh` copies it to `/opt/gps-time-pi/web/dist`.
 
 **Data source.** Add `?source=demo` to run the UI on the client-side demo adapter with no API calls. See [README](README.md#using-the-api-from-the-web-ui).
 
-## Legacy pages
+## GET / and the retired page paths
 
-HTML from `gps_time_pi/templates/`, served with `no-store`. They stay until the new UI reaches parity (`docs/dashboard/web-ui-parity.md`).
-
-| Path | Page | APIs used |
-|---|---|---|
-| `/` | configurable dashboard | `/api`, `/api/dashboard`, `/api/almanac`, `/api/ping` |
-| `/configure` | layout editor (admin token prompt) | `/api/dashboard` (GET/POST), `/api/dashboard/reset`, `/api/auth` |
-| `/legacy` | instrument view | `/api` |
-| `/almanac` | sun, moon, night, sky map, object lookup | `/api/almanac`, `/api/object` |
-| `/history` | offset chart, survey convergence | `/api/history`, `/api/survey` |
-| `/admin` | system diagnostics, actions, privacy, survey reset (admin token prompt) | `/api/system`, `/api/admin`, `/api/setting`, `/api/auth`, `/api` |
-| `/zones` | server-rendered IANA time-zone table (current offsets) | none |
-
-`templates/index.html` is not served; it is an older copy of `legacy.html`.
+`/` and the paths of the retired legacy pages (`/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones`) return **302** to `/app/`, keeping the query string, so old bookmarks land on the web UI. The legacy pages, `/static/*` (including `/static/custom.css`) and `/api/dashboard` were removed after v1.4.0; `/static/*` now returns 404.
 
 ## GET /time
 
 `text/plain` UTC timestamp with microseconds and a newline, e.g. `2026-10-02 02:11:15.701151 UTC`.
-
-## GET /static/*
-
-- `/static/<file>`: legacy CSS and JS from `gps_time_pi/static/`, `max-age=300`. Only the basename is used, so subdirectories and `..` are ignored.
-- `/static/custom.css`: `custom.css` from the directory holding `GTP_CONFIG`, or a placeholder comment. Every legacy page links it, so a station can restyle the legacy pages without editing the package.
 
 ---
 
@@ -535,9 +486,8 @@ HTML from `gps_time_pi/templates/`, served with `no-store`. They stay until the 
   - `/api` → `sidereal`;
   - `/api` → `gps.sats`: azimuth and elevation are null in `hidden` (`config.privacy_sats()`); kept in `exact` and `rounded`;
   - `/api/almanac` and `/api/object`: rounded site in `rounded`, nothing in `hidden`;
-  - `/api/diagnostics`;
-  - the legacy location blocks.
+  - `/api/diagnostics`.
   - Helper: `config.privacy_site()`, the same rounding as `config.displayed_location()`. Tests: `tests/test_location_privacy.py`.
 - **Not positions:** `/api/survey` → `fixes` are relative offsets; `stats` are scatter magnitudes.
 - **Residual, by design:** in `hidden` mode `/api` still lists which satellites are tracked and their C/N₀. The set of satellites above the horizon at a given time still narrows the position, but only coarsely: far more than the ~11 km of `rounded` mode. The precision has not been quantified. The list is kept so that GNSS health stays visible; drop it too if that residual is unacceptable.
-- **File paths:** `/api/survey` → `persistence.path`/`previous_checkpoint`, and `/api/dashboard` → `_meta.path` in demo mode, expose absolute paths on the station.
+- **File paths:** `/api/survey` → `persistence.path`/`previous_checkpoint` expose absolute paths on the station.

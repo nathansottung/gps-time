@@ -1,6 +1,6 @@
 # Legacy dashboard: removal plan
 
-**Status: PLAN. Nothing has been removed.** Written 2026-10-05 from the repository as it stands. Nothing is to be deleted until the owner has read this and said which steps to take.
+**Status: DONE (2026-10-21, #99).** The plan below was written 2026-10-05; the record of what was done is at the end ("7. What was done"). The owner asked for steps 7–9 together, after the v1.4.0-rc.11 tag, rather than a release apart.
 
 **Basis.** The owner asked for "the legacy-removal plan from my earlier prompt". That prompt could not be found: it is not in the repository, in the session's memory, or in the other session transcripts that could be searched. So this plan is built from what the repository already commits to: ADR-0004 ("the legacy pages are retired only when the parity list is empty or each item is explicitly dropped") and `web-ui-parity.md`. **If the earlier prompt said something different, it wins; please restate it.**
 
@@ -120,3 +120,11 @@ Each step is its own PR. Steps 1 to 3 delete nothing.
 ## 6. Rollback
 
 Until step 4, nothing is lost: every legacy page is still served. After step 4, the previous release tag has them; the bundle for that tag can be redeployed (`docs/development/raspberry-pi-deploy.md` → "Rollback").
+
+## 7. What was done (2026-10-21, #99)
+
+- **Parity:** all 21 items ported (#81–#94) or dropped by the owner (#86, #91); `web-ui-parity.md` is closed.
+- **Front door (step 3 of section 3):** `/` and `/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones` answer 302 to `/app/`, query kept. There is no `/legacy/` transition period: the owner chose to remove in the same change.
+- **Removed (step 4):** the seven templates, the six static files, `/static/*` and `custom.css`, the template loader and page routes, `zones_page()`, `security.csp_for_html()` and the `'unsafe-inline'` style exception (every page now gets the strict CSP), `/api`'s `state` and `fmt`, `units.py`, the saved-layout model (`/api/dashboard*`, `dashboard.py`, `dashboard.default.json`, `tools/promote_dashboard.py`, `-UseDemoLayout`), the legacy tests (`test_inline_styles.py`; legacy parts of `test_web_ui.py` and `test_admin_auth.py`; the web tests that read the legacy JavaScript), the web client's layout calls and the sidebar's "Legacy dashboard" link. `install.sh` removes the retired files from an upgraded station.
+- **Closed (step 5):** GPS-016 (unescaped `innerHTML`: the code is gone), GPS-027 (unit labels in `dashboard.js`: gone), GPS-029 (dashboard config hardening: the layout model is gone), and the legacy halves of GPS-004 and GPS-009. ADR-0004, the API docs, the checklists and `CLAUDE.md` updated.
+- **Rollback:** v1.4.0-rc.11 (and v1.4.0 on the same commit) still has the legacy pages; deploy that tag to get them back.

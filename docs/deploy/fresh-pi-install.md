@@ -277,7 +277,7 @@ ssh $Pi
   curl -s localhost/api/almanac | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('available'), d.get('reason') or d['sun']['events'].get('sunrise'))"
   ```
 
-- [ ] Both UIs load: `200` twice, then `1.4.0-rc.11`.
+- [ ] `/` redirects to the web UI and the web UI loads: `302`, then `200`, then the version the UI was built from. (rc.11 itself still serves the legacy dashboard at `/`: `200` there.)
 
   ```sh
   curl -s -o /dev/null -w "%{http_code}\n" localhost/
@@ -288,7 +288,7 @@ ssh $Pi
 **From Windows**
 
 - [ ] Open `http://gpstime.local/app/` in a browser. The banner names the sync source, and the footer shows one version.
-- [ ] Open `http://gpstime.local/admin`, enter the token, and run the log flush. It must succeed.
+- [ ] In the web UI, go to Administration, enter the token, and run the log flush. It must succeed.
 - [ ] The station serves time:
 
   ```powershell

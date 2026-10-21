@@ -7,17 +7,16 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-19 (docs/zed-f9-profile-plan, #98). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (feat/retire-legacy-pages, #99). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-Re-ordered 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
+Re-ordered 2026-10-21 (#99): legacy removal step 7 is done (with 8 and 9), so the list has four items until the owner picks a fifth. Earlier, 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
 
 1. **Soak run of v1.4.0-rc.11 on the Pi** (owner deploys; read-only check after 3 days): upgrade with `deploy/upgrade-1.4-station.md`; v1.4.0 is tagged on the rc.11 commit if three days are clean. rc.11 is tagged ([#95](https://github.com/nathansottung/gps-time/pull/95)). rc.10 was checked after 2 h 17 min and replaced (`development/raspberry-pi-deploy.md` → "First hours of v1.4.0-rc.10").
 2. **Dual-band receiver profile** (ZED-F9T or ZED-F9P; owner, 2026-10-19): plan in `hardware/zed-f9-dual-band.md`. First the owner's choices (module and band variant, board, antenna and site), then profiles and docs, per-signal satellites, the `/app/` satellite views, receiver identity, and hardware validation, one PR each. Raw-data collection and PPP come after.
 3. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **Legacy removal step 7** (after v1.4.0): `/` → `/app/`, the legacy pages under `/legacy/` with a notice; first release after v1.4.0 (queue below).
 
 ## v1.4.0-rc.9: to do
 
@@ -38,11 +37,13 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 4. *Done in [#89](https://github.com/nathansottung/gps-time/pull/89).* **Survey convergence and ingest counters** (14, 15); the remaining chrony detail (16).
 5. *Done in [#90](https://github.com/nathansottung/gps-time/pull/90).* What the owner keeps from step 1: the red **night theme** (1), and **show/hide modules** in place of the saved-layout editor (4, 5).
 6. *Done in [#94](https://github.com/nathansottung/gps-time/pull/94).* **Offset chart uncertainty band and symlog axis** (13), only after chrony history semantics (GPS-003, GPS-007; next-5 item 1).
-7. **Switch the front door:** `/` → `/app/`, legacy pages under `/legacy/…` with a going-away notice. First release after v1.4.0; run on the Pi.
-8. **Remove** the legacy pages and the code only they use, after at least one release with step 7 in use and the owner's go-ahead.
-9. **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
+7. *Done in [#99](https://github.com/nathansottung/gps-time/pull/99).* **Switch the front door:** `/` → `/app/`, legacy pages under `/legacy/…` with a going-away notice. First release after v1.4.0; run on the Pi.
+8. *Done in [#99](https://github.com/nathansottung/gps-time/pull/99).* **Remove** the legacy pages and the code only they use, after at least one release with step 7 in use and the owner's go-ahead.
+9. *Done in [#99](https://github.com/nathansottung/gps-time/pull/99).* **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
+
+- **2026-10-21, legacy removal:** owner asked for removal steps 7–9 together while rc.11 soaks (no deploy). Done in [#99](https://github.com/nathansottung/gps-time/pull/99): `/` and the old page paths redirect to `/app/`; the legacy pages and the code only they used are removed. v1.4.0 (on the rc.11 commit) still has them; this is on main for the next release.
 
 - **2026-10-19, next hardware:** owner asked for a dual-band u-blox receiver profile (ZED-F9T for timing or ZED-F9P for positioning), scoped as a plan and marked next. Plan: `hardware/zed-f9-dual-band.md`. On this Pi the GPIO timestamp spread (1.3 µs) hides the F9T's nanosecond PPS; the gain here is fewer outages and better tracking, and nanosecond timestamps need the PTP work (TM §5).
 
@@ -95,7 +96,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 462 rows: 253 done, 0 in progress, 32 next, 177 planned.
+**Totals:** 462 rows: 263 done, 0 in progress, 32 next, 167 planned.
 
 ## Status table
 
@@ -416,24 +417,24 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Serve web/dist at /app/; typed API client; demo adapter | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Web UI |  | Vitest harness + banner-guard tests | done | 26 tests; CI runs them | [#16](https://github.com/nathansottung/gps-time/pull/16) |
 | Web UI |  | Ship web/dist in the Pi bundle and install.sh | done | built on the deploying machine; a UI from another version is refused; not yet run on a Pi | [#35](https://github.com/nathansottung/gps-time/pull/35) |
-| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | planned | partial: 2 done (#3 station clock, #17 TDOP), 3 partly covered; admin actions (#6) and survey reset (#7) done in #81 and #82; no legacy-removal blocker remains | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) [#81](https://github.com/nathansottung/gps-time/pull/81) [#82](https://github.com/nathansottung/gps-time/pull/82) |
+| Web UI |  | Legacy parity: 21 items in dashboard/web-ui-parity.md | done | closed: every item ported (#81–#94) or dropped by the owner (#86, #91) | [#10](https://github.com/nathansottung/gps-time/pull/10) [#62](https://github.com/nathansottung/gps-time/pull/62) [#81](https://github.com/nathansottung/gps-time/pull/81) [#82](https://github.com/nathansottung/gps-time/pull/82) [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Web UI |  | Timing-chain card, source-aware banner, PPS diagnostics page | done |  | [#15](https://github.com/nathansottung/gps-time/pull/15) |
 | Review | GPS-001 | Stale TPV re-ingested | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-002 | Survey not single-writer | planned | partial | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-003 | History uncertainty mixes chrony columns | done | named tracking.log columns; offset-SD band, never synthesized; legacy history page fixed | [#93](https://github.com/nathansottung/gps-time/pull/93) |
-| Review | GPS-004 | UTC reference shows browser clock | planned | partial: the `/app/` clocks show station time (measured offset applied, labeled); the legacy dashboard's clock is unchanged | [#47](https://github.com/nathansottung/gps-time/pull/47) |
+| Review | GPS-004 | UTC reference shows browser clock | done | the `/app/` clocks show station time (#47); the legacy clock is removed | [#47](https://github.com/nathansottung/gps-time/pull/47) [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Review | GPS-005 | NMEA-only labeled GPS/PPS Stratum 1 | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-006 | Sync-state edge cases | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-007 | ± is root dispersion only | done | `max_error_bound_s` = \|sys\| + rootdisp + ½ rootdelay, labeled conditional; System time labeled remaining correction; light distance from the bound; both UIs | [#93](https://github.com/nathansottung/gps-time/pull/93) |
 | Review | GPS-008 | Holdover from raw frequency | planned |  |  |
-| Review | GPS-009 | Survey SE labeled repeatability | planned | partial: /app fixed; legacy not | [#10](https://github.com/nathansottung/gps-time/pull/10) |
+| Review | GPS-009 | Survey SE labeled repeatability | done | `/app/` labels it SE of the mean (#10, #89); the legacy label is removed | [#10](https://github.com/nathansottung/gps-time/pull/10) [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Review | GPS-010 | Fresh install fails (logsync mode) | done | not Pi-verified | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-011 | RAM tracking log unbounded | done | 8 MiB cap with rotation via `chronyc cyclelogs` | [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Review | GPS-012 | Tracking-log path fixed at import | done | resolved on every call | [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Review | GPS-013 | SIGTERM skips flush; corrupt config reset | done |  | [#5](https://github.com/nathansottung/gps-time/pull/5) |
 | Review | GPS-014 | Root service; unauthenticated GET admin | done | POST-only, admin token, unprivileged service + polkit; not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-015 | Privacy hidden leaks via sidereal/almanac | done | plus satellite az/el. Decision 2026-10-02: hidden mode keeps satellite IDs, constellation, C/N₀ and used flags (GNSS health stays visible); see Decisions | [#12](https://github.com/nathansottung/gps-time/pull/12) [#13](https://github.com/nathansottung/gps-time/pull/13) |
-| Review | GPS-016 | Unescaped innerHTML in legacy view | planned |  |  |
+| Review | GPS-016 | Unescaped innerHTML in legacy view | done | closed by removing the legacy view | [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Review | GPS-017 | No Host/Origin check | done | Host allowlist, Origin check, JSON-only; not yet verified on a Pi | [#24](https://github.com/nathansottung/gps-time/pull/24) |
 | Review | GPS-018 | Per-request fan-out; no limits | planned | partial |  |
 | Review | GPS-019 | Demo not isolated from admin | done | demo admin simulated; SAMPLE DATA banner on legacy pages; not yet verified on a Pi | [#12](https://github.com/nathansottung/gps-time/pull/12) [#24](https://github.com/nathansottung/gps-time/pull/24) |
@@ -444,9 +445,9 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-024 | Precise coordinates in docs | done |  |  |
 | Review | GPS-025 | Doc contradictions/staleness | planned |  |  |
 | Review | GPS-026 | Extension docs overclaim accuracy | planned |  |  |
-| Review | GPS-027 | Quantity/unit labels | planned | legacy dashboard.js |  |
+| Review | GPS-027 | Quantity/unit labels | done | the remaining labels were in the legacy `dashboard.js`, now removed | [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Review | GPS-028 | Browser clock estimators biased | planned | partial: /app min-RTT | [#10](https://github.com/nathansottung/gps-time/pull/10) |
-| Review | GPS-029 | Dashboard config hardening | planned |  |  |
+| Review | GPS-029 | Dashboard config hardening | done | closed by removing the saved-layout model (`/api/dashboard*`, `dashboard.py`) | [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Review | GPS-030 | Global object target; non-portable strftime | done | strftime fixed in #12; the sky target is per request and the global is removed in #88 | [#12](https://github.com/nathansottung/gps-time/pull/12) [#88](https://github.com/nathansottung/gps-time/pull/88) [#43](https://github.com/nathansottung/gps-time/pull/43) |
 | Review | GPS-031 | No automated tests | done |  | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-032 | Generator assumes Pi 4 | planned |  |  |
@@ -521,7 +522,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | RF | Rules | Never present a position as more certain than the error estimate supports | planned |  |  |
 | RF | Rules | Node positions follow the station's privacy modes | planned |  |  |
 | RF | Open | Open questions: which SDR and GPSDO; node discovery and authentication; offline map tiles or none | planned | to decide before Phase 1 |  |
-| Web UI |  | Retire the legacy pages | planned | plan written (`dashboard/legacy-removal-plan.md`); nothing removed. Blocked on parity and on the owner's decisions; not before v1.4.0 | [#62](https://github.com/nathansottung/gps-time/pull/62) |
+| Web UI |  | Retire the legacy pages | done | removed after the rc.11 tag; `/` and the old paths redirect to `/app/` | [#62](https://github.com/nathansottung/gps-time/pull/62) [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Repo |  | Log flush without write amplification; capped RAM log and SD copy | done | appends new lines only; RAM 8 MiB and SD 16 MiB caps, one previous file each; SD copy outside logrotate. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#72](https://github.com/nathansottung/gps-time/pull/72) |
 | Repo |  | Outage evidence kept on the SD card under a size cap | done | one file per outage: event, 10 s timeline, chrony lines ±5 min; 20 MiB / 200 files; no position. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#73](https://github.com/nathansottung/gps-time/pull/73) |
 | Repo |  | PPS polling on its own thread; missed and unread pulses counted separately | done | `pps-poller` thread; no HTTP request polls; poll statistics reported; outage detection unchanged. Whether the rc.8 run's 9 % was real absence or slow polling shows on the next run. Not yet run on a Pi | [#69](https://github.com/nathansottung/gps-time/pull/69) [#70](https://github.com/nathansottung/gps-time/pull/70) |
@@ -545,9 +546,9 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Web UI |  | Legacy removal 4: survey convergence, ingest counters, remaining chrony detail (parity 14, 15, 16) | done | GNSS & Site → Survey (convergence, session scatter, ingest); Timing → chrony tracking card. Not yet run on a Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) [#89](https://github.com/nathansottung/gps-time/pull/89) |
 | Web UI |  | Legacy removal 5: the parity items the owner keeps | done | red night theme (overlay; dim tokens lifted for legibility); Configure → pages and Overview cards show/hide, per browser. Not yet run on a Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) [#90](https://github.com/nathansottung/gps-time/pull/90) |
 | Web UI |  | Legacy removal 6: offset chart uncertainty band and symlog axis (parity 13) | done | Timing → Overview offset history: offset-SD band, max-error bound, symlog axis; after #93. Not yet run on a Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) [#94](https://github.com/nathansottung/gps-time/pull/94) |
-| Web UI |  | Legacy removal 7: `/` → `/app/`, legacy pages under `/legacy/` with a notice | planned | first release after v1.4.0; run on the Pi | [#84](https://github.com/nathansottung/gps-time/pull/84) |
-| Web UI |  | Legacy removal 8: remove the legacy pages and their code | planned | after a release with step 7 in use; owner's go-ahead | [#84](https://github.com/nathansottung/gps-time/pull/84) |
-| Web UI |  | Legacy removal 9: close GPS-016, GPS-027, GPS-029, legacy halves of GPS-004/009; update ADR-0004 | planned | with step 8 | [#84](https://github.com/nathansottung/gps-time/pull/84) |
+| Web UI |  | Legacy removal 7: `/` → `/app/`, legacy pages under `/legacy/` with a notice | done | 302 to `/app/` from `/` and every old page path; no `/legacy/` transition (owner: steps 7–9 together) | [#84](https://github.com/nathansottung/gps-time/pull/84) [#99](https://github.com/nathansottung/gps-time/pull/99) |
+| Web UI |  | Legacy removal 8: remove the legacy pages and their code | done | templates, static files, CSP exception, layout model, `state`/`fmt`, `units.py` removed; installer cleans upgraded stations | [#84](https://github.com/nathansottung/gps-time/pull/84) [#99](https://github.com/nathansottung/gps-time/pull/99) |
+| Web UI |  | Legacy removal 9: close GPS-016, GPS-027, GPS-029, legacy halves of GPS-004/009; update ADR-0004 | done | GPS-016, GPS-027, GPS-029 and the legacy halves of GPS-004/009 closed; ADR-0004 and docs updated | [#84](https://github.com/nathansottung/gps-time/pull/84) [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Web UI |  | Legacy parity items 2 (per-browser zone picker) and 21 (individual throttle flags) | done | 2 dropped (the station-wide override covers it); 21 ported: every condition now and since boot, under-voltage warned | [#86](https://github.com/nathansottung/gps-time/pull/86) [#91](https://github.com/nathansottung/gps-time/pull/91) |
 | Repo |  | Dependabot: 5 web minor/patch updates (React 19.3.1, Vitest 5.0.5, lucide-react 1.58, @types/node 22.20.5) | done | merged when green, after a local check against current main | [#85](https://github.com/nathansottung/gps-time/pull/85) |
 | Web UI |  | Legacy almanac sky map: E and W labels were swapped | done | east-azimuth objects were drawn on the left under a right-hand "E"; labels now match the projection (N up, E left, as seen looking up). Found while porting the map (#88) | [#92](https://github.com/nathansottung/gps-time/pull/92) |

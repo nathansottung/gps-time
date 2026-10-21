@@ -107,7 +107,7 @@ The monitor also counts its own polls, the late ones (more than 1.5 s apart) and
 
 ## Status banner (replaces `sync_state()`)
 
-`timing_chain.timing_status()` is stateless and always names what disciplines the clock. `/api` returns it as `timing_status`, and `state` remains as `[headline, banner — detail]` for the legacy pages.
+`timing_chain.timing_status()` is stateless and always names what disciplines the clock. `/api` returns it as `timing_status`. (The pre-formatted `state` field kept for the legacy pages was removed with them after v1.4.0.)
 
 | code | headline | banner |
 |---|---|---|

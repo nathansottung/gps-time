@@ -1,6 +1,6 @@
 # Station HTTP API
 
-The station's web server (`gps_time_pi/server.py`, Python standard library) serves the API, the legacy pages and the new web UI. This directory documents every route the server answers. The reference is [`endpoints.md`](endpoints.md); this page covers the conventions that apply to all of them.
+The station's web server (`gps_time_pi/server.py`, Python standard library) serves the API and the web UI. (The legacy server-rendered pages, `/static/*` and `/api/dashboard` were removed after v1.4.0.) This directory documents every route the server answers. The reference is [`endpoints.md`](endpoints.md); this page covers the conventions that apply to all of them.
 
 The TypeScript types in `web/src/api/types.ts` mirror these responses, and `web/src/api/client.ts` is the typed client. When a response changes, update the server, `endpoints.md` and `types.ts` in the same branch.
 
@@ -26,15 +26,11 @@ The TypeScript types in `web/src/api/types.ts` mirror these responses, and `web/
 | GET | `/api/object` | rise/transit/set and viewing windows for one object | **sets a server-global "last target"** | [→](endpoints.md#get-apiobject) |
 | GET | `/api/ping` | server receive/send timestamps | none | [→](endpoints.md#get-apiping) |
 | GET | `/api/auth` | whether admin is enabled and the sent token is valid | none | [→](endpoints.md#get-apiauth) |
-| GET | `/api/dashboard` | legacy dashboard layout + write permission | none | [→](endpoints.md#get-apidashboard) |
-| POST | `/api/dashboard` | save legacy dashboard layout | **writes `dashboard.json`**; admin token | [→](endpoints.md#post-apidashboard) |
-| POST | `/api/dashboard/reset` | restore default layout | **writes `dashboard.json`**; admin token | [→](endpoints.md#post-apidashboardreset) |
 | POST | `/api/setting` | change location privacy mode, or reset the survey | **writes `config.json`**; admin token | [→](endpoints.md#post-apisetting) |
 | POST | `/api/admin` | flush logs, restart gpsd/chrony/web, reboot | **runs system commands**; admin token | [→](endpoints.md#post-apiadmin) |
 | GET | `/app/…` | the built web UI (`web/dist`) | none | [→](endpoints.md#get-app) |
-| GET | `/`, `/configure`, `/legacy`, `/almanac`, `/history`, `/admin`, `/zones` | legacy HTML pages | none | [→](endpoints.md#legacy-pages) |
+| GET | `/`, `/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones` | 302 to `/app/` (query string kept) | none | [→](endpoints.md#get--and-the-retired-page-paths) |
 | GET | `/time` | plain-text UTC timestamp | none | [→](endpoints.md#get-time) |
-| GET | `/static/*`, `/static/custom.css` | legacy CSS/JS, site CSS override | none | [→](endpoints.md#get-static) |
 
 ## Conventions
 
@@ -52,7 +48,7 @@ These close review findings GPS-014, GPS-017 and GPS-019. Implementation: `gps_t
 
 Anything else gets **403** with a plain-text explanation. This defeats DNS rebinding: a page on an attacker's domain that resolves to the station sends the attacker's name as `Host`.
 
-**State changes are POST-only.** That covers `/api/admin`, `/api/setting`, `/api/dashboard` and `/api/dashboard/reset`.
+**State changes are POST-only.** That covers `/api/admin` and `/api/setting`.
 - `GET /api/admin` and `GET /api/setting` return **405** with `Allow: POST`.
 - A POST must be `Content-Type: application/json` (else **415**) with a JSON object body of 1 B–256 kB (else **400**).
 - If `Origin` is present, it must be same-origin with `Host` or listed in `GTP_ALLOWED_ORIGINS` (else **403**). Browsers always send `Origin` on POST, so cross-site forms and fetches are refused.
@@ -73,20 +69,20 @@ Anything else gets **403** with a plain-text explanation. This defeats DNS rebin
   - Without a terminal, nothing is created.
   - `install.sh` does the same on first install. The deploy scripts open a remote terminal only when they run interactively.
   - Delete the file to disable admin.
-- **In the web UI** the token is entered on the Administration page (new UI) or prompted by `/admin` and `/configure` (legacy). It is kept in `sessionStorage` for that tab only and never put in a URL.
+- **In the web UI** the token is entered on the Administration page. It is kept in `sessionStorage` for that tab only and never put in a URL.
 
 **Demo mode** (`GTP_DEMO=1`) needs no token, because writes go to `.dev/` only. `POST /api/admin` is **simulated** (`"simulated": true`) and never touches the host. Method, Origin, Content-Type and Host checks still apply.
 
 **Security headers (every response).**
-- `Content-Security-Policy`:
+- `Content-Security-Policy`, the same strict policy on every response (`security.CSP_STRICT`; no per-page exceptions):
   - `default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self'`.
-  - Legacy HTML pages differ in two ways. `script-src` adds the SHA-256 hashes of that page's own static inline scripts (never `'unsafe-inline'` for scripts). `style-src` adds `'unsafe-inline'`, because the legacy pages build `style=""` attributes at runtime. That exception ends with the legacy pages.
+  - The legacy pages' exception (hashed inline scripts, `style-src 'unsafe-inline'`) was removed with them after v1.4.0.
   - The built UI inlines no assets (`build.assetsInlineLimit: 0`). Web CI fails on `data:` fonts or images in the bundle.
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`.
 
 **Privileges.** The service runs as the unprivileged user `gps-time` (`gps-time-pi.service`). Admin actions are fixed `systemctl` commands, and a polkit rule (`system/50-gps-time-pi.rules`) allows exactly those: restart chrony/gpsd/itself, start the log flush, reboot. `ProtectClock=yes` means the web service can never set the system clock.
 
-**Content types and caching.** JSON responses are `application/json; charset=utf-8` with `Cache-Control: no-store`. HTML is `no-store`. `/static/*` is `max-age=300`. `/app/` has its own rules ([details](endpoints.md#get-app)).
+**Content types and caching.** JSON responses are `application/json; charset=utf-8` with `Cache-Control: no-store`. `/app/` has its own rules ([details](endpoints.md#get-app)).
 
 **Errors.**
 - An unknown path returns HTTP 404.
@@ -105,13 +101,12 @@ Anything else gets **403** with a plain-text explanation. This defeats DNS rebin
 - `/api/timing-chain` wraps measurements as `{"value", "unit", "provenance", "note"?}`. `provenance` is one of the six labels (observed, calculated, modeled, predicted, inferred, external); the code is in `gps_time_pi/labels.py`.
 - `null` means the station could not establish the value. Clients show UNKNOWN; they never substitute a default.
 
-**Location privacy.** `config.json` → `location_display` is `exact`, `rounded` or `hidden`. It is applied by the server in `/api` (`location`), `/api/diagnostics`, and the legacy pages. `/api/survey` → `fixes` are offsets in metres around the mean, never absolute positions. Known gaps are listed under [Privacy notes](endpoints.md#privacy-notes).
+**Location privacy.** `config.json` → `location_display` is `exact`, `rounded` or `hidden`. It is applied by the server in `/api` (`location`), and `/api/diagnostics`. `/api/survey` → `fixes` are offsets in metres around the mean, never absolute positions. Known gaps are listed under [Privacy notes](endpoints.md#privacy-notes).
 
 **Demo mode.** With `GTP_DEMO=1` the server swaps chrony/gpsd/sysfs readers for sample data. Shapes are unchanged, but some payloads carry a marker:
 - `/api` → `"demo": true`
 - `/api/timing-chain` → `"demo": {...}`
 - `/api/almanac` → `"demo": true`
-- `/api/dashboard` → `_meta.demo`
 
 The web UI shows the demo banner whenever any of these is present.
 

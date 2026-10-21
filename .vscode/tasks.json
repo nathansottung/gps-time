@@ -26,14 +26,6 @@
       ]
     },
     {
-      "label": "GPS Time: Promote demo layout",
-      "type": "shell",
-      "command": "python",
-      "args": [
-        "tools/promote_dashboard.py"
-      ]
-    },
-    {
       "label": "GPS Time: Build bundles",
       "type": "shell",
       "command": "python",

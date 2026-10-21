@@ -15,7 +15,7 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DashboardConfig, DashboardLayout, DisplayZone, EvidenceIndex, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -51,7 +51,6 @@ function iso(ms: number) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/
 export function demoApi(): StationApi {
   let locationMode: LocationMode = 'exact';
   let tzOverride: string | null = null;
-  let layout: DashboardLayout = defaultLayout();
   const delay = <T,>(v: T) => new Promise<T>(res => setTimeout(() => res(v), 60));
 
   function displayed() {
@@ -114,9 +113,6 @@ export function demoApi(): StationApi {
         `Generated: ${c.generated_utc}\n\nSTATUS: ${c.status.banner}\n  ${c.status.detail}\n` +
         `PPS state: ${c.pps_state.value}\nSelected source: ${c.chrony.selected?.name ?? 'none'}\n`);
     },
-    dashboard: () => delay({ ...layout, _meta: { writable: true, auth_required: false, demo: true, path: null, known_widgets: KNOWN_WIDGETS } } as DashboardConfig),
-    saveDashboard: (l) => { layout = l; return delay({ ok: true as const, dashboard: l }); },
-    resetDashboard: () => { layout = defaultLayout(); return delay({ ok: true as const, dashboard: layout }); },
     setLocationDisplay: (mode) => { locationMode = mode; return delay({ ok: true as const, location_display: mode }); },
     setTimezone: (tz) => { tzOverride = tz || null; return delay({ ok: true as const, timezone: tzOverride }); },
     resetSite: () => delay({ ok: true as const, reset_site: true as const }),
@@ -135,14 +131,12 @@ function core(location: CoreStatus['location']): CoreStatus {
     demo: true,
     epoch_ms: now,
     utc: new Date(now).toISOString().replace('T', ' ').replace('Z', ' UTC'),
-    state: ['SYNCHRONIZED', 'SYNCHRONIZED · GPS/PPS · STRATUM 1 — PPS refclock GPS selected by chrony.'],
     quality: {
       system_time_s: sys, last_offset_s: 1.18e-8, rms_offset_s: 1.87e-8, root_delay_s: 1e-9, max_error_bound_s: Math.abs(sys) + 4.1e-9 + 0.5e-9,
       root_dispersion_s: 4.1e-9, frequency: '1.240 ppm slow', frequency_ppm: -1.24,
       residual_freq: '-0.003 ppm', skew: '0.018 ppm', update_interval: '16.0 seconds',
       leap: 'Normal', stratum: '1', reference: 'GPS', ref_time: new Date(now).toUTCString(),
     },
-    fmt: { system_pair: '12 ns fast ± 4 ns', rms: '19 ns', root_dispersion: '4 ns', root_delay: '1 ns' },
     sources: [
       { mode: '#', state: '*', state_label: 'selected', name: 'GPS', stratum: 0, poll: 4, reach: '377', lastrx: '13', sample: '+12ns[ +14ns] +/- 30ns' },
       { mode: '#', state: '-', state_label: 'not combined', name: 'NMEA', stratum: 0, poll: 4, reach: '377', lastrx: '14', sample: '+35ms[ +35ms] +/- 100ms' },
@@ -768,15 +762,3 @@ function demoObject(q: string, date?: string): ObjectReport {
   };
 }
 
-const KNOWN_WIDGETS = ['adsb', 'distributed', 'gnss', 'network', 'ntp_clients', 'satellites', 'sdr', 'sources',
-                       'sun', 'time', 'timing_quality', 'transits'];
-
-function defaultLayout(): DashboardLayout {
-  return {
-    schema_version: 1, title: 'GPS Time (demo)',
-    pages: [{ id: 'overview', title: 'Overview', widgets: [
-      { id: 'time', visible: true, size: 'wide' }, { id: 'timing_quality', visible: true, size: 'normal' },
-      { id: 'sun', visible: true, size: 'normal' }, { id: 'gnss', visible: true, size: 'normal' },
-    ] }],
-  };
-}

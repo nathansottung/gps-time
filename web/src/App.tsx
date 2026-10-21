@@ -175,8 +175,7 @@ function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: stri
       {/* Build info */}
       <div className="px-4 py-3" style={{ borderTop:'1px solid var(--border-dim)' }}>
         <div className="text-[8px] mono leading-relaxed" style={{ color:'var(--t4)' }}>
-          {versionLine(UI_VERSION, core.data ? core.data.versions.app : core.error ? null : undefined)} · MIT License<br/>
-          <a href="../" style={{ color:'var(--t3)' }}>Legacy dashboard</a>
+          {versionLine(UI_VERSION, core.data ? core.data.versions.app : core.error ? null : undefined)} · MIT License
         </div>
       </div>
     </nav>

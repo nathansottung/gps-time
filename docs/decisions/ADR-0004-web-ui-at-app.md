@@ -1,6 +1,6 @@
 # ADR-0004: Serve the React web UI from the station at /app/, beside the legacy pages
 
-**Status:** Accepted (feat/web-dashboard, 2026-10-01)
+**Status:** Accepted (feat/web-dashboard, 2026-10-01). **Outcome 2026-10-21 (#99): the legacy pages are retired; `/` redirects to `/app/`.**
 
 ## Context
 
@@ -29,4 +29,13 @@ The React/Vite UI in `web/` is being ported to become the Pi UI (CLAUDE.md). Unt
 - ADR-0002 still holds. The server's demo mode (`GTP_DEMO=1`) remains the primary demo, and the new UI renders it through the same live client. The client-side adapter is a provider swap for front-end development, not a separate mockup.
 - The new UI can be tried on any station at `/app/` without affecting the legacy pages. The parity gap list is `docs/dashboard/web-ui-parity.md`. The legacy pages are retired only when that list is empty or each item is explicitly dropped.
 - Update 2026-10-04: the deploy bundle ships `web/dist` and `install.sh` installs it to `/opt/gps-time-pi/web/dist`. The UI is built on the deploying machine; the Pi needs no Node. (Before that, a station returned 503 at `/app/`.)
-- The API has no authentication. Exposing more write actions in the new UI (admin actions, survey reset) waits on the administrative-security item in the independent review.
+- The API has no authentication. Exposing more write actions in the new UI (admin actions, survey reset) waits on the administrative-security item in the independent review. (Superseded: ADR-0005 added the admin token in #24, and the write actions came to `/app/` in #81 and #82.)
+
+## Outcome (2026-10-21)
+
+The parity list (`docs/dashboard/web-ui-parity.md`) was closed: every item ported (#81–#94) or dropped by the owner (#86, #91). After the v1.4.0-rc.11 tag, at the owner's request, removal steps 7–9 were done together in #99 rather than a release apart:
+
+- `/` and the old page paths (`/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones`) answer 302 to `/app/`, query kept, so bookmarks still land somewhere useful. `/app/` stays the UI's prefix; the build is unchanged.
+- The templates, `/static/*`, `custom.css`, the saved-layout API (`/api/dashboard*`, `dashboard.py`), `/api`'s `state` and `fmt`, `units.py` and `tools/promote_dashboard.py` are gone. `install.sh` removes the retired files from an upgraded station.
+- One strict CSP for every response; the legacy exception (`style-src 'unsafe-inline'`, hashed inline scripts) is gone with `security.csp_for_html()`.
+- Rollback: the v1.4.0-rc.11 tag (and v1.4.0, which is to be tagged on the same commit) still has the legacy pages.

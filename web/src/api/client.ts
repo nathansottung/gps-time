@@ -9,8 +9,8 @@
 
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
-  AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus, DashboardConfig, DashboardLayout,
-  DashboardWriteResult, EvidenceIndex, History, LocationMode, NtpService, ObjectResult, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
+  AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
+  EvidenceIndex, History, LocationMode, NtpService, ObjectResult, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -44,9 +44,6 @@ export interface StationApi {
   object(q: string, o?: AlmanacQuery): Promise<ObjectResult>;
   ping(): Promise<Ping>;
   diagnostics(opts?: { scenario?: string }): Promise<string>;
-  dashboard(): Promise<DashboardConfig>;
-  saveDashboard(layout: DashboardLayout): Promise<DashboardWriteResult>;
-  resetDashboard(): Promise<DashboardWriteResult>;
   setLocationDisplay(mode: LocationMode): Promise<SettingResult>;
   /** Local-time display zone override (IANA name); null = automatic. Display only. */
   setTimezone(tz: string | null): Promise<SettingResult>;
@@ -144,9 +141,6 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     },
     ping: () => json('/api/ping' + query({ n: String(Math.random()).slice(2, 10) })),
     diagnostics: async (o) => (await request('/api/diagnostics' + query({ scenario: o?.scenario }))).text(),
-    dashboard: () => json('/api/dashboard'),
-    saveDashboard: (layout) => json('/api/dashboard', post(layout)),
-    resetDashboard: () => json('/api/dashboard/reset', post()),
     setLocationDisplay: (mode) => json('/api/setting', post({ location_display: mode })),
     setTimezone: (tz) => json('/api/setting', post({ timezone: tz })),
     resetSite: () => json('/api/setting', post({ reset_site: true })),

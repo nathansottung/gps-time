@@ -1,6 +1,6 @@
 # GPS Time web UI
 
-React 19 + Vite 8 + Tailwind CSS v4 + TypeScript. Originally generated in Figma Make; this copy builds standalone and is being ported to become the Raspberry Pi station UI.
+React 19 + Vite 8 + Tailwind CSS v4 + TypeScript. Originally generated in Figma Make; this copy builds standalone and is the Raspberry Pi station UI (the legacy server-rendered pages were removed after v1.4.0).
 
 **All UI work must follow [`guidelines/Guidelines.md`](guidelines/Guidelines.md) exactly.** Repository-wide rules live in [`../docs/README.md`](../docs/README.md).
 
@@ -18,7 +18,7 @@ corepack pnpm run build                   # output: dist/
 
 The dev server is not started for you. It binds to 127.0.0.1 by default; set `GTP_WEB_HOST=0.0.0.0` only to deliberately expose it on a LAN. `PORT` overrides the port. It proxies `/api` to `GTP_API_TARGET` (default `http://127.0.0.1:8080`, the desktop demo from `scripts/run-demo.ps1`). Open `http://127.0.0.1:5173/?source=demo` to use the client-side demo adapter with no backend.
 
-The built app is served by the station at `/app/` (`gps_time_pi/server.py`, ADR-0004).
+The built app is served by the station at `/app/` (`gps_time_pi/server.py`, ADR-0004); `/` and the retired legacy page paths redirect there with a 302.
 
 ## Offline-first
 
@@ -58,7 +58,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/lib/almanac.ts` — Sun & Moon tab: date navigation within the ephemeris range (calendar arithmetic at noon UTC), the 24 h day bar and the night bar laid out from `/api/almanac` (`sun.bar`, `night`) without computing any astronomy, times that fall on another day labeled with it (tested in `almanac.test.ts`); the cards are `src/components/almanac.tsx`; sky colors are the `--sky-*` tokens
 - `src/lib/sky.ts` — Sky & Objects tab: sky-map layout from `/api/almanac` → `sky` (stars by magnitude, constellation lines split at the horizon, bodies, target or "below"; projection from `lib/shadow.ts`), the `at=` value, and the object card's rows in the legacy order (tested in `sky.test.ts`); the cards are `src/components/sky.tsx`. `api.object()` returns `{error: 'unparsed'}` instead of throwing (tested in `src/api/object.test.ts`)
 - `src/lib/survey.ts` also lays out GNSS & Site → Survey: the convergence series (log axis; zero or missing values are gaps), the session bullseye (north up, east right, 3σ fills the plot), rejected-fix rows and small-metre formatting (tested in `survey.test.ts`); the cards are `src/components/survey.tsx`
-- `src/lib/prefs.ts` — per-browser display preferences: the theme (dark or red night; `gtp-theme`, shared with the legacy pages; `?theme=`) and the shown modules (`gtp-modules`: hidden pages and Overview cards, sanitized so Overview, Configure and Administration can't be hidden) (tested in `prefs.test.ts`); `src/components/prefs.tsx` has the stores, the header Night toggle and the night overlay; Configure is the modules page
+- `src/lib/prefs.ts` — per-browser display preferences: the theme (dark or red night; `gtp-theme`; `?theme=`) and the shown modules (`gtp-modules`: hidden pages and Overview cards, sanitized so Overview, Configure and Administration can't be hidden) (tested in `prefs.test.ts`); `src/components/prefs.tsx` has the stores, the header Night toggle and the night overlay; Configure is the modules page
 - `src/lib/throttle.ts` — Administration → Power: the station's decoded get_throttled flags as one row per condition (now, since boot), and whether under-voltage occurred (tested in `throttle.test.ts`)
 - `src/lib/offset.ts` — Timing → offset history: symmetric-log axis (linear within ±1 µs), rows from `/api/history` with the ± offset-SD band only where chrony reported it and the ± max-error bound, domain and decade ticks (tested in `offset.test.ts`); the chart is `OffsetHistoryChart` in `src/components/charts.tsx`
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)

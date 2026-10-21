@@ -116,10 +116,8 @@ export interface CoreStatus {
   demo?: boolean;                          // present (true) only in server demo mode
   epoch_ms: number;
   utc: string;
-  state: [string, string];                 // [headline, banner — detail]
   timing_status?: TimingStatus;            // live mode only
   quality: ChronyQuality;
-  fmt: { system_pair: string; rms: string; root_dispersion: string; root_delay: string };
   sources: ChronySource[];
   sourcestats: string;
   clients: NtpClient[] | null;          // null: chronyc clients failed or was refused (UNKNOWN)
@@ -807,19 +805,6 @@ export type ObjectResult = ObjectReport | Unavailable | { error: 'unparsed' };
 // ─── GET /api/ping ───────────────────────────────────────────────────────────
 
 export interface Ping { server_receive_epoch_ms: number; server_send_epoch_ms: number }
-
-// ─── GET/POST /api/dashboard ─────────────────────────────────────────────────
-
-export interface DashboardWidget { id: string; visible: boolean; size: 'normal' | 'wide' }
-export interface DashboardLayout {
-  schema_version: number;
-  title: string;
-  pages: { id: string; title: string; widgets: DashboardWidget[] }[];
-}
-export interface DashboardConfig extends DashboardLayout {
-  _meta: { writable: boolean; auth_required: boolean; demo: boolean; path: string | null; known_widgets: string[] };
-}
-export type DashboardWriteResult = { ok: true; dashboard: DashboardLayout } | { ok: false; error: string };
 
 // ─── GET /api/setting ────────────────────────────────────────────────────────
 
