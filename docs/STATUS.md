@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/desktop-tray-app-decision, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/desktop-tray-app-decision, #107). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -43,7 +43,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 ## Decisions
 
-- **2026-10-21, desktop app:** owner: drop Electron. A tray app runs the same Python backend, packaged per OS (e.g. PyInstaller), and opens the UI in the default browser; nothing is ported to TypeScript. Recorded in ADR-0006 and `roadmap/ROADMAP-DESKTOP-FIELD-APP.md` (Goal, shared code, open questions) in [#PR](https://github.com/nathansottung/gps-time/pull/PR). The roadmap stays FUTURE, not scheduled.
+- **2026-10-21, desktop app:** owner: drop Electron. A tray app runs the same Python backend, packaged per OS (e.g. PyInstaller), and opens the UI in the default browser; nothing is ported to TypeScript. Recorded in ADR-0006 and `roadmap/ROADMAP-DESKTOP-FIELD-APP.md` (Goal, shared code, open questions) in [#107](https://github.com/nathansottung/gps-time/pull/107). The roadmap stays FUTURE, not scheduled.
 
 - **2026-10-21, M102:** owner: map M102 to NGC 5866 (Spindle Galaxy) with a note that this departs from OpenNGC (which lists it as a duplicate of M101), and restore the "Spindle" lookup. Done in [#102](https://github.com/nathansottung/gps-time/pull/102).
 
@@ -580,4 +580,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | PPS evidence capture script (`scripts/capture-pps-evidence.sh`): read-only archive of PPS devices, sysfs, ppstest, chronyc, kernel messages, config lines, services and gpsd output | done | position removed from gpsd output in every privacy mode (`gps_time_pi/gpsd_redact.py`); ppstest only as root. Not yet run on a Pi | [#105](https://github.com/nathansottung/gps-time/pull/105) |
 | Repo |  | PPS evidence capture: read-only button on the PPS diagnostics page producing the same archive | planned | `ROADMAP-OSCILLATOR-AND-MISC.md` §4 | [#105](https://github.com/nathansottung/gps-time/pull/105) |
 | Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#106](https://github.com/nathansottung/gps-time/pull/106) |
-| Repo |  | Desktop app decision: tray app running the Python backend (packaged per OS), UI in the default browser; Electron dropped | done | owner decision; ADR-0006; roadmap stays FUTURE | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| Repo |  | Desktop app decision: tray app running the Python backend (packaged per OS), UI in the default browser; Electron dropped | done | owner decision; ADR-0006; roadmap stays FUTURE | [#107](https://github.com/nathansottung/gps-time/pull/107) |

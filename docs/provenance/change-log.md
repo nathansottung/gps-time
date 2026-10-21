@@ -1152,7 +1152,7 @@ Owner's request: merge the desktop host notes into `roadmap/ROADMAP-DESKTOP-FIEL
 - The rest of the roadmap is unchanged. Its Goal still names Electron and its open questions still list "Python bundled vs TypeScript port"; the notes point to the bundled backend in a tray app, which the owner settles when the work is scoped.
 - Docs only. The roadmap stays FUTURE, not scheduled.
 
-## 2026-10-21 — desktop app: tray app with the Python backend, not Electron (#PR)
+## 2026-10-21 — desktop app: tray app with the Python backend, not Electron (#107)
 
 Owner's decision: drop Electron. A tray app runs the same Python backend, packaged per OS (e.g. PyInstaller), and opens the UI in the default browser.
 
