@@ -16,12 +16,21 @@ so it must be right to better than half a second):
 - Time of a sample: straight-line interpolation between the two markers around
   it. Samples before the first marker, after the last, or in a flagged interval
   have no time (None): the model never guesses across a gap.
-- Uncertainty: the scatter of marker positions, from how far each marker sits
-  from the straight line through its two neighbours (which removes rate and
-  drift), carried through the interpolation. It needs at least MIN_CHECKS
-  such checks; until then no sample gets a time. It covers the marker fit only: PPS accuracy, the injection
-  path, the SDR's internal delay and antenna/cable delay are calibrated on the
-  bench (research steps 2-4) and are not in this number.
+- Uncertainty, conservative on short runs:
+  1. Scatter: a quadratic (rate and drift) is fitted to each block of up to
+     BLOCK good consecutive markers; the residuals give the marker position
+     scatter with a known number of degrees of freedom (markers - 3 per block).
+  2. Bound: the stated scatter is the 95 % upper confidence bound on it
+     (chi-square), so a run with few markers states a larger uncertainty
+     rather than a falsely small one.
+  3. Floor: FLOOR_SAMPLES is added in quadrature for the interpolation's own
+     bias, which the scatter can't see.
+  The stated uncertainty is 1 sigma; 1.96 times it is the 95 % interval, which
+  the tests check covers the true error in at least 95 % of seeded runs. No
+  sample gets a time until there are MIN_DOF degrees of freedom. It covers the
+  marker fit only: PPS accuracy, the injection path, the SDR's internal delay
+  and antenna/cable delay are calibrated on the bench (research steps 2-4) and
+  are not in this number.
 - Clock: the measured sample rate, its error against nominal in ppm, and its
   drift, from a straight-line fit of the per-second counts.
 
@@ -37,9 +46,42 @@ from dataclasses import dataclass
 from gps_time_pi.labels import q
 
 TIME_SOURCE = "pps_marker"
-# Checks of marker scatter needed before any sample gets a time: fewer give
-# too unreliable an uncertainty.
-MIN_CHECKS = 5
+# Degrees of freedom of the scatter estimate needed before any sample gets a time.
+MIN_DOF = 3
+# Markers per block for the quadratic fit: short enough that a crystal's drift
+# over the block is close to quadratic.
+BLOCK = 30
+# Interpolation bias bound, in samples (from the noise-free detector test).
+FLOOR_SAMPLES = 0.02
+# Lower 5 % quantiles of chi-square for 1..10 degrees of freedom; Wilson-Hilferty above.
+_CHI2_05 = (0.003932, 0.1026, 0.3518, 0.7107, 1.1455, 1.6354, 2.1673, 2.7326, 3.3251, 3.9403)
+
+
+def chi2_lower_05(dof):
+    """Lower 5 % quantile of chi-square with dof degrees of freedom."""
+    if dof <= len(_CHI2_05):
+        return _CHI2_05[dof - 1]
+    z = -1.6448536
+    return dof * (1 - 2 / (9 * dof) + z * math.sqrt(2 / (9 * dof))) ** 3
+
+
+def _quad_rss(xs, ys):
+    """Residual sum of squares of a least-squares quadratic y = a + b x + c x^2."""
+    n = len(xs)
+    mx = sum(xs) / n
+    u = [x - mx for x in xs]
+    s = [sum(v ** k for v in u) for k in range(5)]
+    t = [sum(y * v ** k for y, v in zip(ys, u)) for k in range(3)]
+    m = [[s[0], s[1], s[2], t[0]], [s[1], s[2], s[3], t[1]], [s[2], s[3], s[4], t[2]]]
+    for i in range(3):
+        piv = max(range(i, 3), key=lambda r: abs(m[r][i]))
+        m[i], m[piv] = m[piv], m[i]
+        for r in range(3):
+            if r != i:
+                f = m[r][i] / m[i][i]
+                m[r] = [a - f * b for a, b in zip(m[r], m[i])]
+    a, b, c = (m[i][3] / m[i][i] for i in range(3))
+    return sum((y - (a + b * v + c * v * v)) ** 2 for y, v in zip(ys, u))
 SCOPE_NOTE = ("marker fit only; PPS accuracy, injection path, SDR internal delay and "
               "antenna/cable delay are not included (bench calibration, research steps 2-4)")
 
@@ -115,16 +157,32 @@ class TimeModel:
             for iv in self.intervals:
                 self.seconds.append(self.seconds[-1] + iv.seconds)
 
-        # Each middle marker against the straight line through its two neighbours:
-        # with n1, n2 seconds either side, that residual has variance
-        # sd^2 * (1 + (n1^2 + n2^2) / (n1 + n2)^2) when every marker has sd.
-        scaled = []
-        for a, b in zip(self.intervals, self.intervals[1:]):
-            if not a.flagged and not b.flagged:
-                k, n1, n2 = a.first, a.seconds, b.seconds
-                e = kept[k + 1] - (kept[k] * n2 + kept[k + 2] * n1) / (n1 + n2)
-                scaled.append(e * e / (1 + (n1 * n1 + n2 * n2) / (n1 + n2) ** 2))
-        self.position_sd = math.sqrt(sum(scaled) / len(scaled)) if len(scaled) >= MIN_CHECKS else None
+        # Runs of markers joined by good intervals, cut into blocks; a quadratic in
+        # UTC seconds fitted to each block gives the scatter with markers - 3 dof.
+        runs, run = [], [0] if kept else []
+        for iv in self.intervals:
+            if iv.flagged:
+                runs.append(run)
+                run = [iv.first + 1]
+            else:
+                run.append(iv.first + 1)
+        if run:
+            runs.append(run)
+        rss = 0.0
+        dof = 0
+        for run in runs:
+            for b in range(0, len(run), BLOCK):
+                block = run[b:b + BLOCK]
+                if len(block) >= 4:
+                    rss += _quad_rss([self.seconds[i] - self.seconds[block[0]] for i in block],
+                                     [kept[i] for i in block])
+                    dof += len(block) - 3
+        self.dof = dof
+        self.position_sd = self.position_bound = None
+        if dof >= MIN_DOF:
+            self.position_sd = math.sqrt(rss / dof)
+            upper = self.position_sd * math.sqrt(dof / chi2_lower_05(dof))
+            self.position_bound = math.sqrt(upper ** 2 + FLOOR_SAMPLES ** 2)
 
         good = [(self.seconds[iv.first] + iv.seconds / 2, iv.count / iv.seconds)
                 for iv in self.intervals if not iv.flagged]
@@ -162,13 +220,13 @@ class TimeModel:
             else:
                 hi = mid
         iv = self.intervals[lo]
-        if iv.flagged or self.position_sd is None:
+        if iv.flagged or self.position_bound is None:
             return None
         f = (sample - m[lo]) / (m[lo + 1] - m[lo])
         t = f * iv.seconds + self.marker_delay_s
         whole = math.floor(t)
         rate = iv.count / iv.seconds
-        unc = self.position_sd / rate * math.sqrt((1 - f) ** 2 + f ** 2)
+        unc = self.position_bound / rate * math.sqrt((1 - f) ** 2 + f ** 2)
         return UtcTime(self.seconds[lo] + whole, t - whole, unc)
 
     def summary(self):
@@ -180,7 +238,7 @@ class TimeModel:
             ppm = (self.rate_hz / self.fs_nominal - 1) * 1e6
         if self.rate_slope is not None:
             drift = self.rate_slope / self.fs_nominal * 1e6 * 3600
-        unc = self.position_sd / self.rate_hz if (self.position_sd is not None and self.rate_hz) else None
+        unc = self.position_bound / self.rate_hz if (self.position_bound is not None and self.rate_hz) else None
         return {
             "state": "OK" if n >= 2 and unc is not None else "UNKNOWN",
             "time_source": TIME_SOURCE,
@@ -189,7 +247,10 @@ class TimeModel:
             "sample_rate_hz": q(self.rate_hz, "Hz", "calculated"),
             "clock_error_ppm": q(ppm, "ppm", "calculated"),
             "drift_ppm_per_hour": q(drift, "ppm/h", "calculated"),
-            "marker_position_sd_samples": q(self.position_sd, "samples", "calculated"),
+            "marker_position_sd_samples": q(self.position_sd, "samples", "calculated",
+                                            note=f"estimate from {self.dof} degrees of freedom"),
+            "marker_position_bound_samples": q(self.position_bound, "samples", "calculated",
+                                               note="95 % upper bound on the scatter, plus the interpolation floor; used for uncertainty"),
             "sample_time_uncertainty_s": q(unc, "s", "calculated", note=SCOPE_NOTE),
             "dropped_sample_events": q(len(self.events()), None, "calculated"),
             "discarded_markers": q(self.discarded, None, "observed"),
