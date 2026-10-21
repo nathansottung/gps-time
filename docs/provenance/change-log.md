@@ -1186,3 +1186,13 @@ Owner's request: add `SPEC-EXTENSIBILITY.md` to `docs/specs/`, add the vision te
 - `STATUS.md`: next-5 item 5 is the module architecture (the list had four items); new area EXT with one `next` row per step of the spec's order of work; one done row for this import.
 - Debian 13: already fixed in #109; nothing else in the repository names Debian 12 as the tested release.
 - Docs only.
+
+## 2026-10-21 — observation format and tasking spec; module spec updated (#111)
+
+Owner's request: add both new specs from 2026-10-21 to `docs/specs/`, mark them next in `STATUS.md`, link them from `ROADMAP.md`.
+
+- `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (new, copied verbatim): SigMF-based observation format with a `gpstime:` extension, converters to domain formats, capture requests across stations (scheduled and look-back), and signal-independent analyses. Its own status: NEXT for the format, PLANNED for tasking.
+- `specs/SPEC-EXTENSIBILITY.md` replaced by the owner's updated version (verbatim): adds module safety, API stability, receiver profiles as modules, data licence and governance. Order of work unchanged.
+- `STATUS.md`: next-5 item 5 now covers the module architecture and the observation format. New area OBSF: format (order 1) `next`; rolling buffers, capture requests, generic analyses and stages B/C `planned`, following the spec's own status line. Five new EXT rows: module safety and API stability `next` (they go with the loader), receiver modules, data licence and governance `planned`. One done row for the import.
+- `ROADMAP.md` (Phase 3) and `INDEX.md` list both.
+- Docs only.
