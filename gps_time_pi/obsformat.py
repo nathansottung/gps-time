@@ -14,8 +14,9 @@ with the uncertainty in gpstime:sample_time_uncertainty_s. A capture with
 "gpstime:time_valid": false marks samples that have no time (before the first
 PPS marker, or across dropped samples); it carries no core:datetime.
 
-Not yet: signatures (station keys come with the coordinator; gpstime:signature
-is null and the validator warns "unsigned"), converters to miniSEED and WAV.
+Signatures: write(..., signer=station_key.load()) signs the metadata with the
+station's Ed25519 key (gps_time_pi/station_key.py); the validator verifies any
+signature and warns about unsigned files or a station not in a trusted list.
 """
 
 import argparse
@@ -31,6 +32,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from . import station_key
 from .modkit import schema
 
 SIGMF_VERSION = "1.2.0"
@@ -116,6 +118,7 @@ def build_meta(*, datatype, sample_rate, captures, gpstime, recorder, annotation
     for k, v in gpstime.items():
         g[f"gpstime:{k}"] = v
     g.setdefault("gpstime:checksum", None)
+    g.setdefault("gpstime:public_key", None)
     g.setdefault("gpstime:signature", None)
     return {"global": g, "captures": list(captures), "annotations": list(annotations)}
 
@@ -139,17 +142,21 @@ def checksum(data):
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
 
-def to_bytes(meta, data):
-    """(data bytes, meta bytes) with the checksum set, e.g. for ctx.storage."""
+def to_bytes(meta, data, signer=None):
+    """(data bytes, meta bytes) with the checksum set and, given the station's key, signed."""
     meta = json.loads(json.dumps(meta))
     meta["global"]["gpstime:checksum"] = checksum(data)
+    meta["global"]["gpstime:signature"] = None
+    if signer is not None:
+        station_key.sign_meta(meta, signer)
     return data, (json.dumps(meta, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
-def write(base, meta, data):
-    """Write <base>.sigmf-data then <base>.sigmf-meta (each atomically). Returns the two paths."""
+def write(base, meta, data, signer=None):
+    """Write <base>.sigmf-data then <base>.sigmf-meta (each atomically), signed when given
+    the station's key. Returns the two paths."""
     base = Path(base)
-    data_b, meta_b = to_bytes(meta, data)
+    data_b, meta_b = to_bytes(meta, data, signer)
     dp, mp = base.with_name(base.name + ".sigmf-data"), base.with_name(base.name + ".sigmf-meta")
     _atomic_write(dp, data_b)
     _atomic_write(mp, meta_b)
@@ -192,8 +199,9 @@ def sample_time(meta, index):
 
 # ---------------------------------------------------------------- validation
 
-def validate_meta(meta, data=None):
-    """(errors, warnings) for a metadata document, and its data when given."""
+def validate_meta(meta, data=None, trusted=None):
+    """(errors, warnings) for a metadata document, and its data when given.
+    trusted: station IDs you accept (warning for a valid signature from another)."""
     errs, warns = [], []
     if not isinstance(meta, dict) or not isinstance(meta.get("global"), dict):
         return ["metadata has no 'global' object"], warns
@@ -269,8 +277,11 @@ def validate_meta(meta, data=None):
         if pos.get("alt_m") is not None and not math.isclose(pos["alt_m"], round(pos["alt_m"], -1), abs_tol=1e-6):
             errs.append("global: gpstime:position is rounded but alt_m isn't rounded to 10 m")
 
-    if g["gpstime:signature"] is None:
-        warns.append("unsigned (station keys are not implemented yet)")
+    ok, msg = station_key.verify_meta(meta, trusted)
+    if ok is False:
+        errs.append(f"signature: {msg}")
+    elif ok is None or "not in the trusted list" in msg:
+        warns.append(msg)
     if g["gpstime:sample_time_uncertainty_s"] is None:
         warns.append("sample time uncertainty is unknown")
     if g["gpstime:time_offset_bound_s"] is None:
@@ -278,13 +289,13 @@ def validate_meta(meta, data=None):
     return errs, warns
 
 
-def validate(base):
+def validate(base, trusted=None):
     """(errors, warnings) for the observation at <base>."""
     try:
         meta, data = read(base)
     except (OSError, ValueError) as e:
         return [f"cannot read {base}: {e}"], []
-    return validate_meta(meta, data)
+    return validate_meta(meta, data, trusted)
 
 
 def main(argv=None):

@@ -173,6 +173,11 @@ else
   echo "Existing admin token kept ($DEST/admin-token.sha256)."
 fi
 
+echo "== Station key (signs observation files) =="
+# Ed25519, made once and never replaced: the station's identity in observation
+# files. Private key 0600, owned by gps-time; the module user can't read it.
+(cd "$DEST" && "$VENV/bin/python" -m gps_time_pi.station_key --path "$DEST/station-key" generate --owner gps-time)   || echo "Warning: the station key could not be created; observation files will be unsigned."
+
 echo "== Installing service =="
 cp gps-time-pi.service /etc/systemd/system/
 systemctl daemon-reload

@@ -1330,3 +1330,22 @@ Owner's request: each module in its own unprivileged process, with permissions a
   - Everywhere: the guard's rules, limits capped by the host, refusal without a sandbox, the storage write rate, the unit's hardening, installed but not enabled.
   - `test_modkit.py` and `test_new_module.py` adapted: an entry-point failure now shows when the module starts, in its own process.
 - **STATUS.md:** EXT Safety done; one user per module added as planned.
+
+## 2026-10-21 — station key pair; observation files signed and verified (#121)
+
+Owner's request: generate a station key pair at install, sign observation files, verify in the validator.
+
+- **`gps_time_pi/station_key.py`:**
+  - Ed25519 through the `cryptography` package (new dependency, pinned 50.0.2; CI checks its aarch64 wheels, as for the others).
+  - The private key is `/opt/gps-time-pi/station-key` (PKCS#8 PEM, 0600, owned by gps-time); the public key is `station-key.pub`. The station ID is `ed25519:<SHA-256 of the public key>`. `generate` never overwrites an existing key.
+  - CLI: `generate | show | sign <base> | verify <base> [--trust ID]`.
+- **Signing:** `obsformat.write(..., signer=station_key.load())` and `to_bytes(..., signer=...)` set `gpstime:station_id`, `gpstime:public_key` and `gpstime:signature`. The signature is over the canonical metadata JSON with the signature cleared; the metadata holds the data's SHA-256, so the samples are covered too.
+- **Verification in the validator:**
+  - error: any change after signing, a public key that doesn't match the station ID;
+  - warning: unsigned files, a valid signature from a station not in the trusted list, or no `cryptography` package to check with. A signature that can't be checked is never reported as valid.
+- **Install:** `install.sh` creates the key once, with the venv's Python, owned by gps-time. The module user can't read it, and the module guard denies the path (#120).
+- **Schema:** `gpstime:public_key` added; `gpstime:signature` must start with `ed25519:` when present.
+- **CI:** the plain test run has no third-party packages, so `tests/test_station_key.py` also runs in the station venv, which fails if any of it is skipped.
+- **Notices:** `THIRD_PARTY_NOTICES.md` lists cryptography (Apache 2.0 or BSD 3-Clause; its wheels bundle OpenSSL) and its dependencies cffi and pycparser.
+- **Not yet:** who signs on the station. Modules don't get the key; signing their files will go through the supervisor or the web service when module output is wired in. The `sign` CLI covers files by hand.
+- **Tests:** `tests/test_station_key.py`: generation (0600, once), signed files verify, tampering with time, uncertainty or annotations is caught, changed samples, a swapped public key, a re-signed file against a trusted list, CLI, sign needs the checksum, no library means "not checked", installer and deny list.

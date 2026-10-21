@@ -26,3 +26,7 @@ gps_time_pi/VERSION
 
 # tools/generate_config.py output: holds your LAN subnet and hardware choices
 generated/
+
+# Station signing key (made on the station by install.sh; never committed)
+station-key
+station-key.pub

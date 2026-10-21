@@ -75,13 +75,37 @@ In SigMF, `c` means complex and `r` means real: use `ci16_le` (or `cf32_le`, `cu
 | `gpstime:request_id` | The capture request it answers, or null |
 | `gpstime:licence` | Default `CC-BY-4.0` |
 | `gpstime:checksum` | `sha256:<hex>` of the data file (set by `write`) |
-| `gpstime:signature` | Null until station keys exist: the validator warns "unsigned" |
+| `gpstime:public_key` | The signing station's Ed25519 public key (base64), or null |
+| `gpstime:signature` | `ed25519:<base64>` over the metadata, or null (the validator warns "unsigned") |
 
 RF observations need `core:frequency` on every capture.
 
+## Signing
+
+Each station has an Ed25519 key pair, made once at install (`gps_time_pi/station_key.py`):
+- **Private key:** `/opt/gps-time-pi/station-key`, 0600, owned by `gps-time`. The module user can't read it.
+- **Public key:** `station-key.pub`.
+- **Station ID:** `ed25519:<SHA-256 of the public key>`.
+
+```python
+from gps_time_pi import station_key
+of.write(base, meta, data, signer=station_key.load())     # sets station_id, public_key, signature
+of.validate(base, trusted=["ed25519:..."])                # verifies; warns if the station isn't trusted
+```
+
+```bash
+python -m gps_time_pi.station_key show                     # this station's ID and public key
+python -m gps_time_pi.station_key sign <base>              # sign an existing file (as gps-time)
+python -m gps_time_pi.station_key verify <base> --trust ed25519:...
+```
+
+- **What is signed:** the canonical JSON of the metadata (sorted keys, no spaces) with the signature set to null. The metadata includes `gpstime:checksum`, so the signature covers the samples too.
+- **What the validator reports:**
+  - errors: any change after signing, a public key that doesn't match the station ID, or changed samples;
+  - warnings: unsigned files, a valid signature from a station not in the trusted list, and signatures it can't check (no `cryptography` package).
+
 ## Not yet
 
-- Signatures: they need station keys, which come with the coordinator spec.
 - Converters to miniSEED and WAV.
 - Rolling buffers and capture requests (Part 2 of the spec).
 
