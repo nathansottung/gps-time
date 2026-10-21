@@ -1266,3 +1266,32 @@ Owner's request: the module loader and scaffolder (SPEC-EXTENSIBILITY order of w
 - **Tests:** `tests/test_modkit.py` (manifests, interface versions, host: off by default, runs, crash containment, refusals, storage; the first module's demo; CLI; no behaviour change) and `tests/test_new_module.py` (every type's generated tests pass; a generated source runs under the loader; bad names refused).
 - **STATUS.md:** EXT order 1, order 2 and API stability done; Safety next (partial).
 - **Flaky test fixed:** `tests/test_evidence.py` `test_routes` failed once in CI. The demo's sample evidence id came from the current second, so it changed between the index call and the read when a second boundary fell between them. The sample outage now starts on the hour (`gps_time_pi/demo.py`).
+
+## 2026-10-21 — observation files: writer, reader, validator; sdr-pps-marker writes pps_marker (#PR)
+
+Owner's request: the observation format's writer, reader and validator, with sdr-pps-marker outputting time_source pps_marker.
+
+- **`gps_time_pi/obsformat.py`** (standard library only):
+  - SigMF 1.2.0 with the `gpstime:` extension; datatypes `cf32_le`, `ci16_le`, `cu8`, `rf32_le`, `ri16_le`.
+  - `build_meta`, `encode`/`decode`, `write` (data, then metadata with its SHA-256; each atomic), `read`, `validate`, `sample_time`, `filename`, and ISO 8601 times to the nanosecond.
+  - CLI: `python -m gps_time_pi.obsformat validate|info <base>`.
+- **Schema** `schemas/sigmf-gpstime.v1.json` for the global object. The validator adds:
+  - the checksum and data size;
+  - captures in order, each with a parseable UTC time unless marked `gpstime:time_valid: false`;
+  - consecutive timed captures that agree with their sample rates;
+  - `core:frequency` on RF captures;
+  - annotations within the data;
+  - the privacy rule: hidden carries no position; rounded carries at most 1 decimal and the altitude to 10 m.
+  - Warnings: unsigned; unknown uncertainty; unknown station bound.
+- **Rule enforced:** the time of every sample that claims one is computable from its capture's datetime, start and rate (`gpstime:sample_rate` on the capture when present).
+- **sdr-pps-marker:**
+  - `sdr_pps_marker/observation.py` writes a capture with `gpstime:time_source = pps_marker`: one capture per marker interval (UTC time and measured rate), captures without time where the model has none, the model's stated uncertainty, the SDR clock's measured error (`frequency_reference` calibrated, `source: pps_marker`), and the marker windows and dropped-sample intervals as annotations.
+  - `ci16_le` output is scaled to full range, with the scale in `gpstime:calibration`.
+  - Its demo observations now carry `time_source`.
+- **Not yet:** signatures (they wait for station keys; the field is null and the validator warns); converters to miniSEED and WAV (next); rolling buffers and capture requests.
+- **Spec note:** the spec's example names `ri16_le` for RF IQ, but in SigMF `r` means real samples; the guide says to use `ci16_le` for IQ.
+- **Docs:** `docs/modules/observation-format.md`; `schemas.md`, the module guide, `INDEX.md`, `CLAUDE.md` and the module's README updated.
+- **Tests:**
+  - `tests/test_obsformat.py`: time strings to the ns, encoding, write/read, sample times with per-capture rates and captures without time, 13 rejection cases, data checks, warnings, CLI.
+  - The module: the file is valid with `pps_marker`; file times match the time model to 2 ns and the truth within 1.96 sigma; no time across a drop; `ci16_le` round trip; no file without a time model.
+- **STATUS.md:** OBSF order 1 (writer, reader, validator) done, converters as order 1b next; PPSM observation outputs done, dashboard health planned.

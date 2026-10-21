@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (feat/module-loader, #117). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (feat/observation-format, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -17,7 +17,7 @@ Re-ordered 2026-10-21 (#114): the trained oscillator profile came in as item 6 (
 2. **Dual-band receiver profile** (ZED-F9T or ZED-F9P; owner, 2026-10-19): plan in `hardware/zed-f9-dual-band.md`. First the owner's choices (module and band variant, board, antenna and site), then profiles and docs, per-signal satellites, the `/app/` satellite views, receiver identity, and hardware validation, one PR each. Raw-data collection and PPP come after.
 3. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
-5. **Module architecture and observation format** (owner, 2026-10-21): `specs/SPEC-EXTENSIBILITY.md`, then the format part of `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (`gpstime:` schema, writer, reader, validator, converters). Module safety and API stability go with the loader. Its order of work, one PR each: interfaces, manifest, schemas, `ctx` and loader with no behaviour change; `tools/new_module.py` and the guide; `source-weather`; `reference-adsb` and `reference-broadcast-towers`; `analysis-tower-delay-check`; moving optional features to modules where it simplifies them. Steps 1-2 (kit, loader, scaffolder, guide) done in #117.
+5. **Module architecture and observation format** (owner, 2026-10-21): `specs/SPEC-EXTENSIBILITY.md`, then the format part of `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (`gpstime:` schema, writer, reader, validator, converters). Module safety and API stability go with the loader. Its order of work, one PR each: interfaces, manifest, schemas, `ctx` and loader with no behaviour change; `tools/new_module.py` and the guide; `source-weather`; `reference-adsb` and `reference-broadcast-towers`; `analysis-tower-delay-check`; moving optional features to modules where it simplifies them. Steps 1-2 (kit, loader, scaffolder, guide) done in #117; the observation format's writer, reader and validator in #PR (converters next).
 6. **Trained oscillator profile** (owner, 2026-10-21; `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1): fit the oscillator log (frequency vs temperature, aging), a modeled holdover projection beside the simple one (GPS-008), export/import as one JSON file, board binding by serial hash, metadata. The list has six items until the soak (item 1) is done.
 
 ## v1.4.0-rc.9: to do
@@ -110,7 +110,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 521 rows: 286 done, 0 in progress, 44 next, 191 planned.
+**Totals:** 523 rows: 288 done, 0 in progress, 44 next, 191 planned.
 
 ## Status table
 
@@ -600,7 +600,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | EXT | Receiver | Receiver profiles as `receiver` modules; existing hardware profiles move into this form | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | EXT | Licence | Data licence: code MIT; shared observations CC BY 4.0 by default, per station | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | EXT | Governance | `CODE_OF_CONDUCT.md`, `MAINTAINERS.md`, module maturity rule (experimental → supported) | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
-| OBSF | Order 1 | Format: `gpstime:` extension schema, writer, reader, validator, converters to miniSEED and WAV | next |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| OBSF | Order 1 | Format: `gpstime:` extension schema, writer, reader, validator | done | `gps_time_pi/obsformat.py`, `schemas/sigmf-gpstime.v1.json`; signatures wait for station keys (null, validator warns) | [#111](https://github.com/nathansottung/gps-time/pull/111) [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| OBSF | Order 1b | Converters to miniSEED and WAV | next | the rest of order 1 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
 | OBSF | Order 2 | Rolling buffers on the station for enabled sensors | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | OBSF | Order 3 | Single-owner capture requests (Stage A) | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | OBSF | Order 4 | Generic pick, correlate and locate analyses | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
@@ -633,7 +634,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | PPSM | MLAT 3 | Three or more nodes: MLAT for Mode S without position; cross-check ADS-B | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | MLAT 4 | Same timing for FM/ATSC towers, the FM two-tower trial and fox hunts | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | MLAT 5 | Coordinator integration: solver module, error ellipses, optional feed to MLAT networks | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
-| PPSM | Outputs | Observation format fields (`time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows) and dashboard health (markers per minute, sample-rate error, dropped-sample events) | planned | the time model already computes the health values; the observation format comes with OBSF order 1 | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Outputs | Observation files: `time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows | done | `sdr_pps_marker/observation.py`; one capture per marker interval, file times match the time model to the ns | [#115](https://github.com/nathansottung/gps-time/pull/115) [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| PPSM | Health | Dashboard health: markers per minute, sample-rate error, dropped-sample events | planned | the time model computes them; needs the module UI hook | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
 | PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | Research 1b | Conservative uncertainty on short runs: 95 % upper bound on marker scatter (quadratic fit per block, chi-square) plus an interpolation floor; 95 % coverage tested over 200 seeded runs | done | owner; coverage 180/180 runs with a time (synthetic) | [#116](https://github.com/nathansottung/gps-time/pull/116) |

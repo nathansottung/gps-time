@@ -228,6 +228,7 @@ class TestFirstModule(unittest.TestCase):
         self.assertEqual((st["state"], st["emitted"], st["rejected"]), ("finished", 2, 0), st)
         self.assertEqual([o["values"]["scenario"]["value"] for o in out], ["clean", "usb-drop"])
         self.assertEqual(out[1]["values"]["dropped_sample_events"]["value"], 1)
+        self.assertEqual({o["values"]["time_source"]["value"] for o in out}, {"pps_marker"})
         self.assertEqual(out[0]["timing"]["state"], "UNKNOWN", "no host timing given: UNKNOWN, not invented")
 
     def test_without_demo_it_emits_nothing(self):

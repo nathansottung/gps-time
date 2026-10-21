@@ -52,5 +52,6 @@ class MarkerSource(Source):
             values["scenario"] = {"value": sc["name"], "unit": None, "provenance": "calculated",
                                   "note": "synthetic demo data, not a measurement"}
             values["state"] = {"value": summary["state"], "unit": None, "provenance": "calculated"}
+            values["time_source"] = {"value": summary["time_source"], "unit": None, "provenance": "calculated"}
             ctx.emit(Observation(time_ns=ctx.now_ns(), source=NAME, values=values,
                                  timing=ctx.timing_quality()))
