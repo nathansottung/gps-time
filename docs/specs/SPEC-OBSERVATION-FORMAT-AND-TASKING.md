@@ -32,7 +32,7 @@ Bundles of several observations, or of one event across stations, are a SigMF Co
 
 Standard SigMF fields:
 
-- `core:datatype` (e.g. `ri16_le` for RF IQ, `rf32_le` for real float samples)
+- `core:datatype` (e.g. `ci16_le` for RF IQ, `rf32_le` for real float samples)
 - `core:sample_rate` (Hz)
 - `core:version`, `core:recorder`, `core:hw`, `core:description`
 - `captures[]`: `core:sample_start`, `core:datetime` (UTC, ISO 8601 with nanoseconds), `core:frequency` (RF only)
