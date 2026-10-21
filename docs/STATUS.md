@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/readme-first-visit, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/readme-first-visit, #108). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -581,4 +581,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | PPS evidence capture: read-only button on the PPS diagnostics page producing the same archive | planned | `ROADMAP-OSCILLATOR-AND-MISC.md` §4 | [#105](https://github.com/nathansottung/gps-time/pull/105) |
 | Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#106](https://github.com/nathansottung/gps-time/pull/106) |
 | Repo |  | Desktop app decision: tray app running the Python backend (packaged per OS), UI in the default browser; Electron dropped | done | owner decision; ADR-0006; roadmap stays FUTURE | [#107](https://github.com/nathansottung/gps-time/pull/107) |
-| Repo |  | README reworked for first-time visitors: what it is, quick start, tested vs expected hardware, planned hardware, features, measured accuracy only, docs | done | owner's order; measured figures from the rc.8 and rc.10 checks; accuracy against UTC stated as not measured | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| Repo |  | README reworked for first-time visitors: what it is, quick start, tested vs expected hardware, planned hardware, features, measured accuracy only, docs | done | owner's order; measured figures from the rc.8 and rc.10 checks; accuracy against UTC stated as not measured | [#108](https://github.com/nathansottung/gps-time/pull/108) |

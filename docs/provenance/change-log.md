@@ -1160,7 +1160,7 @@ Owner's decision: drop Electron. A tray app runs the same Python backend, packag
 - `decisions/ADR-0006-desktop-tray-app.md` records the decision; indexed in `INDEX.md`.
 - `STATUS.md`: decision entry and one done row. Docs only; the roadmap stays FUTURE, not scheduled.
 
-## 2026-10-21 — README reworked for first-time visitors (#PR)
+## 2026-10-21 — README reworked for first-time visitors (#108)
 
 Owner's request: README in this order: what it is (two sentences and the screenshot), quick start (demo on a PC, install on a Pi), supported hardware (tested vs expected, with known limits), planned hardware, features now and planned, accuracy (measured figures only), docs/contributing/license. Short, linking out.
 

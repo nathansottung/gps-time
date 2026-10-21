@@ -31,7 +31,7 @@ Making the repository public publishes every commit, not only `main` as it is to
 
 - [x] chrony history semantics and the honest ± (GPS-003, GPS-007). Done in #93.
 - [ ] Soak run of rc.11 on the Pi, then v1.4.0. Running; the check is scheduled for 2026-10-22 (`tools/soak_check.py`).
-- [x] Remaining review findings: 8 open after #100: GPS-002, 008, 018, 020, 023 (partial), 025, 028, 032. The legacy removal (#99) closed GPS-016, 027, 029 and the legacy halves of 004 and 009; #100 closes GPS-022 and GPS-026. All are in `STATUS.md`, which `README.md` links as the open issues (the README no longer lists them itself, #PR).
+- [x] Remaining review findings: 8 open after #100: GPS-002, 008, 018, 020, 023 (partial), 025, 028, 032. The legacy removal (#99) closed GPS-016, 027, 029 and the legacy halves of 004 and 009; #100 closes GPS-022 and GPS-026. All are in `STATUS.md`, which `README.md` links as the open issues (the README no longer lists them itself, #108).
 - [ ] Security items verified on a Pi, not only in tests: admin token, Host/Origin checks, unprivileged service (GPS-014, GPS-017).
 
 ## 4. Licensing and provenance
@@ -43,7 +43,7 @@ Making the repository public publishes every commit, not only `main` as it is to
 
 ## 5. Documentation for outside readers
 
-- [x] `README.md` rewritten for outside readers (#100): what it does, what it won't claim, status and known limitations, demo, Pi setup, hardware, docs, contributing, license. `CONTRIBUTING.md` rewritten. Reworked for first-time visitors in #PR: what it is, quick start, supported and planned hardware, features, measured accuracy, docs.
+- [x] `README.md` rewritten for outside readers (#100): what it does, what it won't claim, status and known limitations, demo, Pi setup, hardware, docs, contributing, license. `CONTRIBUTING.md` rewritten. Reworked for first-time visitors in #108: what it is, quick start, supported and planned hardware, features, measured accuracy, docs.
 - [ ] `docs/ROADMAP.md` counts and statuses match `STATUS.md` on the release date.
 - [ ] `START-HERE.md` and the deploy checklists target the release being published.
 - [ ] Doc contradictions (GPS-025): the named stale items are fixed (runbook "idempotent", "RAM-backed history", the dashboard README, the plugin/localStorage text, the folder name); the maturity vocabulary mismatch between `docs/README.md` and the feature registry remains.
