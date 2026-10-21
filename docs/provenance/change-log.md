@@ -1196,3 +1196,11 @@ Owner's request: add both new specs from 2026-10-21 to `docs/specs/`, mark them 
 - `STATUS.md`: next-5 item 5 now covers the module architecture and the observation format. New area OBSF: format (order 1) `next`; rolling buffers, capture requests, generic analyses and stages B/C `planned`, following the spec's own status line. Five new EXT rows: module safety and API stability `next` (they go with the loader), receiver modules, data licence and governance `planned`. One done row for the import.
 - `ROADMAP.md` (Phase 3) and `INDEX.md` list both.
 - Docs only.
+
+## 2026-10-21 — README "Where this is going" updated (#112)
+
+Owner's request: replace the README's "Where this is going" with the updated vision section.
+
+- Replaced with the owner's text, which adds "Aircraft as moving references" and "Build on it".
+- One sentence changed: the text linked `docs/modules/README.md` and a "module idea" issue, neither of which exists yet. It now links `specs/SPEC-EXTENSIBILITY.md`, says the guide comes with the first module work, and points to the feature request template. Restore the original wording once the guide and the label exist.
+- Docs only.

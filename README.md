@@ -100,6 +100,14 @@ Radio travels about 300 meters per microsecond. Once a station knows its own pos
 
 Every match builds confidence in the station's clock and position. Every mismatch is something to explain. With several stations doing this together, the network calibrates itself from known transmitters and can then locate unknown ones.
 
+### Aircraft as moving references
+
+Aircraft broadcast their own GPS position over ADS-B. A station that hears one knows exactly how far away it is, and so how long its signal should take to arrive. Dozens of aircraft at once give a constant stream of checks, and several stations hearing the same aircraft can calibrate against each other. Reported positions are treated as external data, and outliers are rejected.
+
+### Build on it
+
+Everything after step 1 is built as a **module**: a source (a sensor or receiver), a reference (signals with known positions), an analysis, or a dashboard card. Each module follows one documented pattern, ships with test data so it runs without hardware, and never touches the timing core. Start with the module spec, [docs/specs/SPEC-EXTENSIBILITY.md](docs/specs/SPEC-EXTENSIBILITY.md) (a step-by-step guide, `docs/modules/README.md`, comes with the first module work), or open a feature request with your module idea.
+
 ### What we will and won't claim
 
 Every figure shown in the UI and docs says whether it was **observed**, **calculated**, **modeled**, **predicted**, **inferred** or **external**. Planned features are marked as planned until they have run on real hardware. Accuracy figures come from measurements, not datasheets.
