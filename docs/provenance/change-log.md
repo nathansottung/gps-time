@@ -1296,6 +1296,6 @@ Owner's request: the observation format's writer, reader and validator, with sdr
   - The module: the file is valid with `pps_marker`; file times match the time model to 2 ns and the truth within 1.96 sigma; no time across a drop; `ci16_le` round trip; no file without a time model.
 - **STATUS.md:** OBSF order 1 (writer, reader, validator) done, converters as order 1b next; PPSM observation outputs done, dashboard health planned.
 
-## 2026-10-21 — spec example: ci16_le for RF IQ (#PR)
+## 2026-10-21 — spec example: ci16_le for RF IQ (#119)
 
 Owner's request: fix the spec example. `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` now gives `ci16_le` for RF IQ. In SigMF `r` means real samples, so `ri16_le` was wrong for IQ. The note about the mismatch in `docs/modules/observation-format.md` is replaced by the rule. No status changed.
