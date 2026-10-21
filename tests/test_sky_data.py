@@ -30,11 +30,21 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(m["M40"]["type"], "double star")          # from the addendum
 
     def test_a_duplicate_takes_the_data_at_its_position_with_a_note(self):
+        # Fixture: a synthetic "M041" duplicate row at M31's position.
+        m = {o["id"]: o for o in sky.messier(FIX, numbers=(31, 41))}
+        self.assertEqual((m["M41"]["ra"], m["M41"]["dec"]), (m["M31"]["ra"], m["M31"]["dec"]))
+        self.assertEqual(m["M41"]["names"], [])                    # a note is not a searchable name
+        self.assertIn("duplicate of NGC0224", m["M41"]["note"])
+        self.assertNotIn("note", m["M31"])
+
+    def test_m102_is_ngc_5866_and_says_it_departs_from_openngc(self):
+        # OpenNGC lists M102 as a duplicate of M101; the project maps it to NGC 5866 (owner).
         m = {o["id"]: o for o in sky.messier(FIX, numbers=(101, 102))}
-        self.assertEqual((m["M102"]["ra"], m["M102"]["dec"]), (m["M101"]["ra"], m["M101"]["dec"]))
-        self.assertEqual(m["M102"]["names"], [])                   # the note is not a searchable name
-        self.assertIn("duplicate of M101", m["M102"]["note"])
-        self.assertNotIn("note", m["M101"])
+        self.assertEqual((m["M102"]["ra"], m["M102"]["dec"], m["M102"]["mag"], m["M102"]["con"]),
+                         (226.6229, 55.7632, 9.89, "Dra"))
+        self.assertNotEqual(m["M102"]["ra"], m["M101"]["ra"])
+        self.assertEqual(m["M102"]["names"], ["Spindle Galaxy"])
+        self.assertIn("departs from OpenNGC", m["M102"]["note"])
 
     def test_a_missing_messier_number_stops_the_build(self):
         with self.assertRaises(SystemExit):
@@ -88,10 +98,20 @@ class LookupTest(unittest.TestCase):
         self.assertEqual(catalog.lookup("M31")["name"], "M31 — Andromeda Galaxy")
         self.assertEqual(catalog.lookup("Pleiades")["id"], "M45")
         self.assertEqual(catalog.lookup("Vega")["con"], "Lyr")
-        self.assertIn("duplicate of M101", catalog.lookup("M102")["note"])
+        m102 = catalog.lookup("M102")
+        self.assertEqual(m102["name"], "M102 — Spindle Galaxy")
+        self.assertIn("departs from OpenNGC", m102["note"])
 
-    def test_a_note_is_not_a_name(self):
-        self.assertIsNone(catalog.lookup("Spindle"))
+    def test_spindle_finds_m102_not_m101(self):
+        for q in ("Spindle", "Spindle Galaxy", "spindle"):
+            hit = catalog.lookup(q)
+            self.assertEqual(hit["id"], "M102", q)
+            self.assertAlmostEqual(hit["ra"], 226.6229, places=3)
+
+    def test_the_departure_is_recorded_with_the_license(self):
+        lic = (ROOT / "third_party" / "licenses" / "CC-BY-SA-4.0-OpenNGC.txt").read_text(encoding="utf-8")
+        self.assertIn("NGC 5866", lic)
+        self.assertIn("NGC 5866", (DATA / "README.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

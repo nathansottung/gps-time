@@ -46,10 +46,18 @@ OPENNGC_TYPES = {
     "Other": "Other",
 }
 
-# OpenNGC lists some Messier numbers as duplicates ("Dup") of another object: M102 is a duplicate
-# of M101 there. A duplicate takes its data from the object at the same position, with a note,
-# because the name alone would otherwise point at nothing.
-DUP_NOTES = {102: "listed by OpenNGC as a duplicate of M101; often identified instead with NGC 5866 (Spindle Galaxy)"}
+# OpenNGC lists some Messier numbers as duplicates ("Dup") of another object. A duplicate takes its
+# data from the object at the same position, with a note, because the name alone would otherwise
+# point at nothing.
+#
+# The project's one departure from OpenNGC (owner, 2026-10-21): OpenNGC lists M102 as a duplicate
+# of M101. This file maps M102 to NGC 5866 instead, a common identification, using OpenNGC's own
+# NGC 5866 row; the name "Spindle Galaxy" is the project's addition. The note says so.
+OVERRIDES = {
+    102: ("NGC5866", ["Spindle Galaxy"],
+          "departs from OpenNGC: OpenNGC lists M102 as a duplicate of M101; mapped here to NGC 5866 "
+          "(Spindle Galaxy), a common identification"),
+}
 
 
 def _find(base: Path, *names: str) -> Path:
@@ -77,6 +85,7 @@ def messier(openngc: Path, numbers=range(1, 111)) -> list[dict]:
         with open(_find(openngc, fn), encoding="utf-8", newline="") as f:
             rows += list(csv.DictReader(f, delimiter=";"))
     real = [r for r in rows if r["RA"] and r["Type"] != "Dup"]
+    by_name = {r["Name"]: r for r in real}
     by_m = {int(r["M"]): r for r in real if r.get("M")}
     # A duplicate row is named after its own Messier number ("M102"); its M column names the
     # object it duplicates (101), so it is keyed by name.
@@ -94,7 +103,12 @@ def messier(openngc: Path, numbers=range(1, 111)) -> list[dict]:
 
     out = []
     for n in numbers:
-        if n in by_m:
+        if n in OVERRIDES:
+            src, names, note = OVERRIDES[n]
+            if src not in by_name:
+                raise SystemExit(f"OpenNGC has no {src} (override for M{n})")
+            out.append(obj(n, by_name[src], names, note))
+        elif n in by_m:
             r = by_m[n]
             out.append(obj(n, r, [x.strip() for x in r["Common names"].split(",") if x.strip()]))
         elif n in dups:
@@ -102,7 +116,7 @@ def messier(openngc: Path, numbers=range(1, 111)) -> list[dict]:
             same = next((r for r in real if r["RA"] == d["RA"] and r["Dec"] == d["Dec"]), None)
             if same is None:
                 raise SystemExit(f"OpenNGC M{n} is a duplicate of nothing at its position")
-            out.append(obj(n, same, [], DUP_NOTES.get(n, "listed by OpenNGC as a duplicate of " + same["Name"])))
+            out.append(obj(n, same, [], "listed by OpenNGC as a duplicate of " + same["Name"]))
         else:
             raise SystemExit(f"OpenNGC has no M{n}")
     return out
