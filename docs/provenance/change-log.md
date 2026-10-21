@@ -1125,7 +1125,7 @@ Owner's request: add the five spec files from 2026-10-19 and index them in `ROAD
 - **Indexed** in `ROADMAP.md` (Phase 2: the parts list; Phase 4, now "Radio and the coordinator": the coordinator and RF tasking specs; Phase 5: the sensor roadmap), `INDEX.md`, `hardware/README.md` and `STATUS.md`.
 - No code changed. No items are scheduled from these documents.
 
-## 2026-10-21 — README screenshot (#PR)
+## 2026-10-21 — README screenshot (#104)
 
 Owner's request: take a README screenshot from the demo with screenshot mode on (public release checklist, section 5).
 
