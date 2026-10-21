@@ -22,6 +22,10 @@ planned = "RTL-SDR-class receiver with the buffered, attenuated PPS injected at 
 needed = "PPS on the station; the marker carries it into the samples"
 if_worse = "with no markers, or too few, the time model has no time for the samples and reports state UNKNOWN"
 
+[limits]
+memory_mib = 256
+cpu_percent = 50   # the demo computes in bursts; the share is measured over 60 s
+
 [permissions]
 network = false
 devices = []

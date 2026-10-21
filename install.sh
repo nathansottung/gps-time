@@ -131,6 +131,15 @@ for f in config.json config.json.prev timing-events.json; do
   if [ -f "$DEST/$f" ]; then chown gps-time:gps-time "$DEST/$f"; fi
 done
 
+echo "== Optional modules: user and service (installed, not enabled) =="
+# Modules run as gps-time-mod, which is in no group of the station's, so it can't
+# read the config (exact position), the admin token or the station key. The
+# supervisor service is installed but NOT enabled: no module runs until the owner
+# enables it (docs/modules/README.md).
+id gps-time-mod >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin gps-time-mod
+install -m 0644 system/gps-time-modules.service /etc/systemd/system/gps-time-modules.service
+systemctl daemon-reload
+
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
 # Debian's polkitd package owns this directory and sets its owner and mode.
 # Create it only if it is missing; never change an existing one.

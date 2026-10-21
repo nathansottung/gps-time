@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/spec-ci16, #119; no status change). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (feat/module-isolation, #120). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -110,7 +110,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 523 rows: 288 done, 0 in progress, 44 next, 191 planned.
+**Totals:** 524 rows: 289 done, 0 in progress, 43 next, 192 planned.
 
 ## Status table
 
@@ -595,7 +595,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | EXT | Order 5 | `analysis-tower-delay-check` module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | EXT | Order 6 | Move existing optional features (sky tools, references page) to modules where it simplifies them | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | Repo |  | Extensibility (module architecture) spec imported; README "Where this is going" section | done | owner-provided, copied verbatim | [#110](https://github.com/nathansottung/gps-time/pull/110) |
-| EXT | Safety | Module safety: off by default, own unprivileged process, declared permissions only, resource caps, never affects timing | next | partial: off by default, crash contained per module, emitted items schema-checked, capped storage; permissions recorded, not enforced; own process and CPU/memory caps still to do | [#111](https://github.com/nathansottung/gps-time/pull/111) [#117](https://github.com/nathansottung/gps-time/pull/117) |
+| EXT | Safety | Module safety: off by default, own unprivileged process, declared permissions only, resource caps, never affects timing | done | own process per module as `gps-time-mod`; memory and file-size limits; CPU share, resident memory and output watched and killed over caps; storage size and write-rate caps; guard for network, devices, writes, processes, ctypes; hardened supervisor unit installed, not enabled. Open: one user per module | [#111](https://github.com/nathansottung/gps-time/pull/111) [#117](https://github.com/nathansottung/gps-time/pull/117) [#120](https://github.com/nathansottung/gps-time/pull/120) |
 | EXT | API | API stability: semver for interface, manifest and schemas; loader refuses incompatible modules | done | semver `INTERFACE_VERSION` 1.0.0; manifests state `interface = "M.m"`; the loader refuses incompatible modules with the reason | [#111](https://github.com/nathansottung/gps-time/pull/111) [#117](https://github.com/nathansottung/gps-time/pull/117) |
 | EXT | Receiver | Receiver profiles as `receiver` modules; existing hardware profiles move into this form | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | EXT | Licence | Data licence: code MIT; shared observations CC BY 4.0 by default, per station | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
@@ -639,3 +639,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | Research 1b | Conservative uncertainty on short runs: 95 % upper bound on marker scatter (quadratic fit per block, chi-square) plus an interpolation floor; 95 % coverage tested over 200 seeded runs | done | owner; coverage 180/180 runs with a time (synthetic) | [#116](https://github.com/nathansottung/gps-time/pull/116) |
+| EXT | Safety+ | One user per module (all modules share `gps-time-mod` today) | planned | after module isolation | [#120](https://github.com/nathansottung/gps-time/pull/120) |

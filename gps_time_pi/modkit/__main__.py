@@ -2,7 +2,8 @@
 
 list   every module found, with its state for this station's config
 check  validate every manifest and interface version; exit 1 if any is invalid
-demo   load one module with {"demo": true} and print what it emits (JSON lines)
+demo   run one module, sandboxed, with {"demo": true} and print what it emits (JSON lines).
+       Where the sandbox isn't available (Windows), the demo runs it unenforced and says so.
 """
 
 import argparse
@@ -21,6 +22,7 @@ def main(argv=None):
     d = sub.add_parser("demo")
     d.add_argument("name")
     d.add_argument("--timeout", type=float, default=60.0)
+    d.add_argument("--user", help="module user when run as root (default: none; root refuses)")
     a = ap.parse_args(argv)
 
     if a.cmd in ("list", "check"):
@@ -46,8 +48,13 @@ def main(argv=None):
         return 1 if (a.cmd == "check" and bad) else 0
 
     out = []
-    host = loader.ModuleHost(a.dir, [a.name], configs={a.name: {"demo": True}},
-                             emit=lambda name, item: out.append(item))
+    from .sandbox import available
+    unenforced = not available()
+    if unenforced:
+        print("warning: the module sandbox isn't available on this platform; running the demo unenforced",
+              file=sys.stderr)
+    host = loader.ModuleHost(a.dir, [a.name], configs={a.name: {"demo": True}}, user=a.user,
+                             allow_unenforced=unenforced, emit=lambda name, item: out.append(item))
     host.load()
     host.start()
     host.join(a.timeout)

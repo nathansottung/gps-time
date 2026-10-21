@@ -2,7 +2,7 @@
 
 A module adds a sensor, a reference signal, an analysis or a dashboard card without touching the timing core. Spec: [`../specs/SPEC-EXTENSIBILITY.md`](../specs/SPEC-EXTENSIBILITY.md). Decision: [ADR-0007](../decisions/ADR-0007-module-architecture.md).
 
-**Where things stand:** the interfaces, manifest, schemas, `ctx`, loader and scaffolder exist (`gps_time_pi/modkit/`, `tools/new_module.py`). The web service doesn't load modules yet, so a station behaves exactly as before. Modules run in the host's process for now: declared permissions are recorded but not enforced, and there are no CPU or memory caps (see "Safety" below).
+**Where things stand:** the interfaces, manifest, schemas, `ctx`, loader and scaffolder exist (`gps_time_pi/modkit/`, `tools/new_module.py`). Every module runs in its own sandboxed process ("Safety" below). The web service never loads modules. A station runs them only under `gps-time-modules.service`, which is installed but not enabled.
 
 ## 1. Create it
 
@@ -59,29 +59,37 @@ Interfaces and `ctx`: [interfaces.md](interfaces.md). Data contracts: [schemas.m
 
 ## 4. Enable it on a station
 
-Modules are off by default. A module runs only when it is named in the station config:
+Modules are off by default. On a station:
 
-```json
-{"modules_enabled": ["my-sensor"]}
-```
+1. Copy the module to `/opt/gps-time-pi/modules/<name>/`, readable by everyone (`sudo chmod -R a+rX`).
+2. Name it in the station config: `{"modules_enabled": ["my-sensor"]}`. Optional: `"module_config": {"my-sensor": {...}}`, and `"module_limits"` to lower the host's maximums.
+3. If it needs a device or the network, also add a drop-in to the service (`sudo systemctl edit gps-time-modules`): `PrivateDevices=no` plus `DeviceAllow=/dev/...`, or `IPAddressAllow=...`. The manifest permission alone isn't enough.
+4. `sudo systemctl enable --now gps-time-modules`. Status (RAM): `/run/gps-time-modules/status.json`.
 
-The loader refuses a module, with the reason, when:
+The host refuses a module, with the reason, when:
 - its manifest is invalid;
 - it needs a newer interface;
-- its entry point doesn't import, or isn't the right kind of class;
-- it asks for storage the host doesn't give.
+- it asks for storage the host doesn't give;
+- the sandbox isn't available on the platform.
 
-An exception in a module marks that module failed; the host carries on. Everything a module emits is checked against the schemas, and invalid items are dropped and counted.
+A module whose entry point doesn't import, or isn't the right kind of class, fails in its own process; the host never imports module code. Everything a module emits is checked against the schemas, and invalid items are dropped and counted.
 
-## Safety, now and next
+## Safety
 
-| Rule (spec "Module safety") | Now |
+Each module runs in its own process (`gps_time_pi/modkit/runner.py`). Layers, outside in:
+
+| Layer | What it enforces |
 |---|---|
-| Off by default; the owner enables each | Yes |
-| A crash never affects timing | Yes: contained per module; the timing core doesn't use modules |
-| Declared permissions only | Recorded and shown; not enforced (same process) |
-| Own unprivileged process, systemd hardening | Next |
-| CPU, memory, disk and SD write caps | Storage cap only (`ctx.storage`); the rest next |
+| `gps-time-modules.service` | systemd hardening as the web service, plus `PrivateDevices=yes` and `IPAddressDeny=any`: no module gets a device or the network unless the owner adds a drop-in. Totals: `MemoryMax=768M`, `CPUQuota=60%`, `TasksMax=128`. The supervisor keeps only `CAP_SETUID`, `CAP_SETGID`, `CAP_CHOWN` and `CAP_DAC_READ_SEARCH`. |
+| Module user | Each module process drops to `gps-time-mod`, which has no supplementary groups. File permissions keep it out of the station config (exact position), the admin token and the station key. A module refuses to run as root. |
+| Resource limits | Per process: address space (`[limits] memory_mib`, default 256, at most 512), file size (the storage cap), 64 open files, no core dumps. |
+| Host watch | CPU share over 60 s (`[limits] cpu_percent`, default 25, at most 50), resident memory, output lines up to 1 MiB and 50 items per second. A module over a cap is killed, with the reason. |
+| Storage | `ctx.storage` only: a size cap, and for `disk:` storage a write-rate cap of 4 MiB per hour (to spare the SD card). |
+| Permission guard | A Python audit hook, installed before the module's code is imported, that can't be removed. It blocks: sockets without `network = true`; device files not listed in `devices`; writes outside the module's storage; starting processes; loading native libraries through ctypes; signalling processes; opening the paths the host denies. |
+
+The guard binds Python code; a C extension could get round it. That is why the outer layers are OS-level: the module user, the resource limits and the service's own sandbox. Not yet: a separate user per module (all modules share `gps-time-mod`, so they could read each other's storage if file modes allowed it; storage folders are 0700).
+
+On Windows (desktop demo) the sandbox isn't available. `python -m gps_time_pi.modkit demo` then runs the module unenforced, and says so; the host refuses unenforced modules everywhere else.
 
 ## Example
 

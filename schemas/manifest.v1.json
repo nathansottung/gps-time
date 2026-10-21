@@ -25,6 +25,14 @@
       },
       "additionalProperties": false
     },
-    "licence": {"type": "object", "required": ["code"]}
+    "licence": {"type": "object", "required": ["code"]},
+    "limits": {
+      "type": "object",
+      "properties": {
+        "memory_mib": {"type": "integer", "minimum": 32},
+        "cpu_percent": {"type": "number", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
   }
 }

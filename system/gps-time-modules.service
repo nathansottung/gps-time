@@ -1,0 +1,57 @@
+[Unit]
+Description=GPS Time optional modules (each in its own sandboxed process)
+Documentation=file:///opt/gps-time-pi/docs/modules/README.md
+After=gps-time-pi.service
+
+# Installed by install.sh but NOT enabled: a station runs no modules until the
+# owner runs `sudo systemctl enable --now gps-time-modules` and names modules in
+# "modules_enabled" (docs/modules/README.md, "Enable it on a station").
+
+[Service]
+WorkingDirectory=/opt/gps-time-pi
+Environment=GTP_CONFIG=/opt/gps-time-pi/config.json
+Environment=GTP_MODULES_DIR=/opt/gps-time-pi/modules
+Environment=GTP_MODULE_USER=gps-time-mod
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.modkit.supervisor
+Restart=on-failure
+RestartSec=30
+
+# The supervisor reads the station config as root, then starts each module as
+# gps-time-mod (no supplementary groups), which can't read the config, the
+# admin token or the station key. It keeps only what that needs.
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_CHOWN CAP_DAC_READ_SEARCH
+AmbientCapabilities=
+NoNewPrivileges=yes
+RuntimeDirectory=gps-time-modules
+StateDirectory=gps-time-modules
+
+# Hardening, as the web service, plus no devices and no network by default.
+# A module that needs a device or the network also needs a drop-in here
+# (DeviceAllow= / IPAddressAllow=), on top of its manifest permission.
+ProtectSystem=strict
+ReadOnlyPaths=/opt/gps-time-pi
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+IPAddressDeny=any
+UMask=0077
+
+# Totals for all modules together; each module also has its own caps.
+MemoryMax=768M
+CPUQuota=60%
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target
