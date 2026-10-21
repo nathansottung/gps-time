@@ -254,7 +254,7 @@ The header's stratum and reference come from the same timing-chain snapshot. `/a
 2. **Is `chrony_pps_visible` FAILED?** The PPS refclock is missing from chrony's configuration.
 3. **Is `nmea_refclock` STALE while the PPS `lock` names it?** chrony needs recent samples from the lock refclock before it uses PPS. Check gpsd and the SHM/SOCK refclock.
 4. **Is chrony's symbol `x`, `~` or `?`?** Check `offset_s`, `error_bound_s` and the NMEA offset. chrony doesn't report a further reason.
-5. **Capture evidence before rebooting:** `/api/diagnostics`, `ls -l /dev/pps*`, `timeout 8 sudo ppstest /dev/pps0`, `chronyc sources -v`, `chronyc sourcestats -v`, `chronyc tracking`, `dmesg | grep -i pps`.
+5. **Capture evidence before rebooting:** `sudo bash /opt/gps-time-pi/scripts/capture-pps-evidence.sh` saves one archive in `/tmp` (`--out DIR` for elsewhere): `/dev/pps*`, sysfs PPS state with a few assert samples, `ppstest`, `chronyc -n` tracking/sources/sourcestats/activity, this boot's PPS, GPIO, serial and voltage kernel messages, the chrony/gpsd/boot/module lines that set up the chain, service states, and a few seconds of gpsd output with the position removed. Read-only; without `sudo` it skips `ppstest` (and kernel messages unless the user can read the journal). Also save `/api/diagnostics`.
 
 ## Not yet implemented
 

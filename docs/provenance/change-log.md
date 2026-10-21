@@ -1133,3 +1133,13 @@ Owner's request: take a README screenshot from the demo with screenshot mode on 
 - Captured with headless Edge through the DevTools protocol from a local demo server; the capture script is not part of the repository.
 - Checked by eye: the hostname is masked; the page shows no coordinates, heights or client addresses. The demo banner ("All values are synthetic") is left in.
 - `README.md` shows it under the opening paragraph. Checklist section 5 item and section 8 step 3 ticked.
+
+## 2026-10-21 — PPS evidence capture script (#PR)
+
+Owner's request: build the PPS evidence capture script (`ROADMAP-OSCILLATOR-AND-MISC.md` §4).
+
+- **`scripts/capture-pps-evidence.sh`**: run before rebooting during a timing incident. Saves one archive, `pps-evidence-<UTC time>.tar.gz`, in `/tmp` or `--out DIR`, with: the `/dev/pps*` listing; sysfs PPS state and a few `assert` samples one second apart; a short `ppstest` per device (root only); `chronyc -n` tracking, sources, sourcestats and activity; this boot's kernel messages about PPS, GPIO, serial ports and voltage; the chrony, gpsd, boot and kernel-module lines that set up the chain; service states and restart counts; a few seconds of gpsd output.
+- **Read-only:** changes no configuration, service or clock; writes only a temporary directory and the archive (mode 0600 via `umask 077`); never calls `sudo` itself. Nothing is written on a schedule.
+- **Privacy:** gpsd output goes through `gps_time_pi/gpsd_redact.py` (standard library only, runs without the venv). It removes the position in every privacy mode (latitude, longitude, heights, geoid separation, magnetic variation, ECEF and relative fields), drops non-JSON lines, and in hidden mode also removes satellite azimuth/elevation. `--include-position` keeps only what the station's mode shows on screen (exact; rounded to 1 decimal and MSL altitude to 10 m; hidden: nothing). An unreadable config counts as hidden. Without `python3` the gpsd output is left out. No hostname, NTP client addresses or chrony `allow` lines are collected.
+- **Docs:** `architecture/timing-chain.md` troubleshooting step 5 now names the script. The read-only button on the PPS diagnostics page is still to do (`STATUS.md`, planned).
+- **Tests:** `tests/test_pps_evidence_capture.py` (17): the filter in every mode, config mode fallback, the script's text (only read-only `chronyc` reports, only `systemctl show`, no privilege escalation, writes only to its own directory), and on POSIX the whole script against a fake sysfs/dev/etc/boot tree with stub tools: archive contents, no example coordinates in any file in any mode, `--include-position`, missing `gpspipe`, bad options. Not yet run on a Pi.
