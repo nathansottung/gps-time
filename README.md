@@ -19,7 +19,7 @@ cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build && 
 
 On Windows: `powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1` ([details](docs/development/windows-demo.md)).
 
-**Install on a Pi** (Raspberry Pi OS Lite, Debian 12):
+**Install on a Pi** (Raspberry Pi OS Lite, Debian 13 Trixie; Debian 12 Bookworm expected to work):
 
 1. Generate the wiring snippets for your board: `python3 tools/generate_config.py --profile uputronics` (other profiles: [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md)).
 2. Follow [`docs/deploy/fresh-pi-install.md`](docs/deploy/fresh-pi-install.md): serial and PPS setup, chrony, the deploy script, the checks.
@@ -31,10 +31,10 @@ Upgrading a 1.4 station: [`docs/deploy/upgrade-1.4-station.md`](docs/deploy/upgr
 
 | | Hardware | Known limits |
 |---|---|---|
-| **Tested** | Raspberry Pi 4 + Uputronics GPS/RTC board (u-blox MAX-M8Q, PPS on GPIO 18), Debian 12 | One development unit. Its antenna and site give a weak signal (best C/N₀ about 25 dB-Hz), which shows up as PPS outages. |
+| **Tested** | Raspberry Pi 4 + Uputronics GPS/RTC board (u-blox MAX-M8Q, PPS on GPIO 18), Debian 13 (Trixie, Python 3.13) | One development unit. Its antenna and site give a weak signal (best C/N₀ about 25 dB-Hz), which shows up as PPS outages. |
 | **Expected to work** | Adafruit Ultimate GPS HAT, SparkFun GNSS Flex pHAT, Waveshare L76X (only after soldering PPS to GPIO 4) | Profiles exist; not run by the project. |
 | | USB GNSS receivers (`usb-gps` profile) | NMEA only, no kernel PPS: millisecond-level time, not microsecond. |
-| | Raspberry Pi 5; Debian 13 | Untested on hardware (Debian 13 runs in CI). |
+| | Raspberry Pi 5; Debian 12 (Bookworm, Python 3.11) | Untested on hardware (Debian 12's Python 3.11 runs in CI). |
 
 Antenna placement matters as much as the receiver. Wiring and profile details: [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md).
 
