@@ -1214,7 +1214,7 @@ Owner's request: add the scope review as `docs/SCOPE-REVIEW.md` and each section
 - Noted, not changed (the review is kept verbatim): it cites `SPEC-RF-REFERENCE-SIGNALS-AND-TRUST`, which is not in the repository; it lists the README vision as next (merged in #110 and #112) and the oscillator profile fit as next (`STATUS.md` has it as future); and it says the new UI is at `/` (it is served at `/app/`, `/` redirects there).
 - Docs only.
 
-## 2026-10-21 — RF reference signals spec; oscillator profile next; scope review corrections (#PR)
+## 2026-10-21 — RF reference signals spec; oscillator profile next; scope review corrections (#114)
 
 Owner's request, four parts.
 

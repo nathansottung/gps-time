@@ -111,5 +111,5 @@ Checked against the repository after this review was added (#113):
 
 - **README vision:** done, not next. Merged in #110 and updated in #112 ("Where this is going").
 - **New UI location:** served at `/app/`; `/` redirects there (ADR-0004). Not served at `/` itself.
-- **SPEC-RF-REFERENCE-SIGNALS-AND-TRUST:** now in the repository (`docs/specs/`), #PR.
-- **Oscillator profile fit:** now next in `STATUS.md` (it was future when this review was written), #PR.
+- **SPEC-RF-REFERENCE-SIGNALS-AND-TRUST:** now in the repository (`docs/specs/`), #114.
+- **Oscillator profile fit:** now next in `STATUS.md` (it was future when this review was written), #114.
