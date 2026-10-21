@@ -1187,7 +1187,7 @@ Owner's request: add `SPEC-EXTENSIBILITY.md` to `docs/specs/`, add the vision te
 - Debian 13: already fixed in #109; nothing else in the repository names Debian 12 as the tested release.
 - Docs only.
 
-## 2026-10-21 — observation format and tasking spec; module spec updated (#PR)
+## 2026-10-21 — observation format and tasking spec; module spec updated (#111)
 
 Owner's request: add both new specs from 2026-10-21 to `docs/specs/`, mark them next in `STATUS.md`, link them from `ROADMAP.md`.
 

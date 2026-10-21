@@ -7,11 +7,11 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/observation-format-spec, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/observation-format-spec, #111). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-Re-ordered 2026-10-21 (#110): the module architecture spec came in as item 5 (owner), joined by the observation format (#PR). Earlier, 2026-10-21 (#99): legacy removal step 7 was done (with 8 and 9), leaving four items. Earlier, 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
+Re-ordered 2026-10-21 (#110): the module architecture spec came in as item 5 (owner), joined by the observation format (#111). Earlier, 2026-10-21 (#99): legacy removal step 7 was done (with 8 and 9), leaving four items. Earlier, 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
 
 1. **Soak run of v1.4.0-rc.11 on the Pi** (owner deploys; read-only check after 3 days): upgrade with `deploy/upgrade-1.4-station.md`; v1.4.0 is tagged on the rc.11 commit if three days are clean. rc.11 is tagged ([#95](https://github.com/nathansottung/gps-time/pull/95)). rc.10 was checked after 2 h 17 min and replaced (`development/raspberry-pi-deploy.md` → "First hours of v1.4.0-rc.10").
 2. **Dual-band receiver profile** (ZED-F9T or ZED-F9P; owner, 2026-10-19): plan in `hardware/zed-f9-dual-band.md`. First the owner's choices (module and band variant, board, antenna and site), then profiles and docs, per-signal satellites, the `/app/` satellite views, receiver identity, and hardware validation, one PR each. Raw-data collection and PPP come after.
@@ -592,14 +592,14 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | EXT | Order 5 | `analysis-tower-delay-check` module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | EXT | Order 6 | Move existing optional features (sky tools, references page) to modules where it simplifies them | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | Repo |  | Extensibility (module architecture) spec imported; README "Where this is going" section | done | owner-provided, copied verbatim | [#110](https://github.com/nathansottung/gps-time/pull/110) |
-| EXT | Safety | Module safety: off by default, own unprivileged process, declared permissions only, resource caps, never affects timing | next | with the loader (order 1) | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | API | API stability: semver for interface, manifest and schemas; loader refuses incompatible modules | next | with the interfaces (order 1) | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Receiver | Receiver profiles as `receiver` modules; existing hardware profiles move into this form | planned |  | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Licence | Data licence: code MIT; shared observations CC BY 4.0 by default, per station | planned |  | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Governance | `CODE_OF_CONDUCT.md`, `MAINTAINERS.md`, module maturity rule (experimental → supported) | planned |  | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| OBSF | Order 1 | Format: `gpstime:` extension schema, writer, reader, validator, converters to miniSEED and WAV | next |  | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| OBSF | Order 2 | Rolling buffers on the station for enabled sensors | planned | tasking part | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| OBSF | Order 3 | Single-owner capture requests (Stage A) | planned | tasking part | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| OBSF | Order 4 | Generic pick, correlate and locate analyses | planned |  | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| OBSF | Order 5 | Trusted groups and third parties (Stages B and C) | planned | tasking part | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| Repo |  | Observation format and tasking spec imported; module architecture spec updated (safety, API stability, receiver modules, data licence, governance) | done | owner-provided, copied verbatim | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| EXT | Safety | Module safety: off by default, own unprivileged process, declared permissions only, resource caps, never affects timing | next | with the loader (order 1) | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| EXT | API | API stability: semver for interface, manifest and schemas; loader refuses incompatible modules | next | with the interfaces (order 1) | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| EXT | Receiver | Receiver profiles as `receiver` modules; existing hardware profiles move into this form | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| EXT | Licence | Data licence: code MIT; shared observations CC BY 4.0 by default, per station | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| EXT | Governance | `CODE_OF_CONDUCT.md`, `MAINTAINERS.md`, module maturity rule (experimental → supported) | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| OBSF | Order 1 | Format: `gpstime:` extension schema, writer, reader, validator, converters to miniSEED and WAV | next |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| OBSF | Order 2 | Rolling buffers on the station for enabled sensors | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| OBSF | Order 3 | Single-owner capture requests (Stage A) | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| OBSF | Order 4 | Generic pick, correlate and locate analyses | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| OBSF | Order 5 | Trusted groups and third parties (Stages B and C) | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
+| Repo |  | Observation format and tasking spec imported; module architecture spec updated (safety, API stability, receiver modules, data licence, governance) | done | owner-provided, copied verbatim | [#111](https://github.com/nathansottung/gps-time/pull/111) |
