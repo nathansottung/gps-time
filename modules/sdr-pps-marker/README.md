@@ -15,7 +15,7 @@ Finds the station's PPS pulse inside an SDR's own sample stream and uses it to g
 | Time model | `sdr_pps_marker/timemodel.py` | Numbers each marker's UTC second from a coarse host clock (to within 0.5 s). Flags intervals with the wrong sample count (samples dropped or added) or a rate more than 200 ppm off nominal. Interpolates sample → UTC between markers, as an integer second plus a fraction. Measures the sample rate, its error in ppm and its drift. |
 
 Rules it keeps:
-- **No time where it can't know.** Samples before the first marker, after the last, inside a flagged interval, or before there are five scatter checks get `None`.
+- **No time where it can't know.** Samples before the first marker, after the last, inside a flagged interval, or before the scatter estimate has 3 degrees of freedom get `None`.
 - **No cause.** A short interval is reported as `samples_missing`, a long one as `samples_extra`.
 - **Labels.** `TimeModel.summary()` labels every value (observed or calculated) and reports state `UNKNOWN` until it has enough markers.
 - **Scope of the uncertainty.** It covers the marker fit only: PPS accuracy, the injection path, the SDR's internal delay and the antenna and cable delay come from bench calibration (steps 2–4). `marker_delay_s` takes the calibrated path delay.
@@ -36,7 +36,7 @@ From `fixtures/scenarios.json` at 24 kS/s. Errors are in samples, so they carry 
 At 2.4 MS/s that would be about 8–43 ns RMS from the marker fit alone, in line with the spec's 10–50 ns estimate. **These are figures from simulated data, not measurements**: the real spike shape, the SDR's filters, real broadcast signals and real noise will differ, and bench step 2 is where they get measured.
 
 Known limits:
-- **Uncertainty from a few seconds of data can be too small.** The scatter estimate comes from few checks, and in the short scenarios it is up to about 2× below the true error. Longer runs fix this. The tests check that every error stays within 5 stated sigmas.
+- **The uncertainty is conservative on purpose.** The stated 1-sigma is the 95 % upper confidence bound on the marker scatter (a quadratic fit per block of up to 30 markers, chi-square bound), plus a 0.02-sample floor for interpolation bias. In 200 seeded short runs (7–10 s, random noise, clock error, drift, carrier, drops), the 95 % interval (1.96 sigma) covered the true error in all 180 runs that gave a time; the median error was about a third of the stated sigma. Longer runs state a tighter bound. Runs too short to estimate the scatter (for example a drop splitting 7 markers into two short blocks) give no time.
 - **Drops of more than half a second** of samples can't be counted, because the number of seconds is ambiguous.
 - **Only a slow tone** stands in for a carrier. Wideband FM or ATSC near the spike is untested until the bench.
 - **Pure Python is slow** at real rates (2.4 MS/s). Step 2 will need a faster path, for example numpy or processing only around the expected marker windows.

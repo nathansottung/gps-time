@@ -2,6 +2,7 @@
 
 import json
 import math
+import random
 import tomllib
 import unittest
 from functools import lru_cache
@@ -144,13 +145,58 @@ class TestTimeModel(unittest.TestCase):
         self.assertIn(2, [iv.seconds for iv in model.intervals])
 
     def test_unknown_with_too_few_markers(self):
-        five = [1000.0 + k * FS for k in range(6)]   # 4 scatter checks: one short of MIN_CHECKS
+        five = [1000.0 + k * FS for k in range(5)]   # 2 degrees of freedom: one short of MIN_DOF
         for markers in ([], [1000.0], [1000.0, 1000.0 + FS], five):
             model = TimeModel(markers, FS, START)
             s = model.summary()
             self.assertEqual(s["state"], "UNKNOWN")
             self.assertIsNone(s["sample_time_uncertainty_s"]["value"])
             self.assertIsNone(model.utc(1000.5))
+
+
+class TestUncertaintyCoverage(unittest.TestCase):
+    """The stated uncertainty is conservative on short runs: its 95 % interval
+    (1.96 sigma) covers the true error in at least 95 % of seeded runs."""
+
+    RUNS = 200
+    FS_COV = 4000   # low rate keeps 200 runs fast; errors are in samples, so it carries over
+
+    def one_run(self, seed):
+        rng = random.Random(seed)
+        seconds = rng.choice([7, 8, 9, 10])
+        kw = dict(noise_rms=rng.uniform(0.01, 0.12), ppm=rng.uniform(-50, 50),
+                  drift_ppm_per_s=rng.uniform(-0.05, 0.05), start_offset_s=rng.uniform(0.05, 0.95),
+                  seed=seed)
+        if rng.random() < 0.3:
+            kw.update(tone_amp=rng.uniform(0.5, 3.0), tone_hz=rng.uniform(10, 60))
+        if rng.random() < 0.2:
+            kw["drops"] = ((rng.randrange(self.FS_COV * 2, self.FS_COV * (seconds - 2)), 256),)
+        x, truth = synth.generate(seconds, self.FS_COV, **kw)
+        markers = detect(x, self.FS_COV)
+        model = TimeModel(markers, self.FS_COV, START + kw["start_offset_s"] + rng.uniform(-0.2, 0.2))
+        if len(markers) < 2:
+            return None
+        for _ in range(20):
+            j = rng.uniform(markers[0].sample, markers[-1].sample)
+            u = model.utc(j)
+            if u is not None:
+                ts, tf = truth["true_utc"](j)
+                return abs((u.second - ts) + (u.fraction - tf)), u.uncertainty_s
+        return None
+
+    def test_95_percent_coverage_on_short_runs(self):
+        results = [r for r in (self.one_run(1000 + k) for k in range(self.RUNS)) if r is not None]
+        self.assertGreater(len(results), 0.8 * self.RUNS, "most short runs give a time")
+        covered = sum(err <= 1.96 * unc for err, unc in results)
+        self.assertGreaterEqual(covered / len(results), 0.95, f"{covered} of {len(results)}")
+
+    def test_bound_grows_when_there_are_few_markers(self):
+        rng = random.Random(5)
+        def bound(n):
+            pos = [1000.0 + k * FS + rng.gauss(0, 0.05) for k in range(n)]
+            return TimeModel(pos, FS, START).position_bound
+        self.assertIsNone(bound(5))
+        self.assertGreater(bound(6), 2 * bound(60))
 
 
 class TestSummary(unittest.TestCase):

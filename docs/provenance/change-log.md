@@ -1236,3 +1236,12 @@ Owner's request: add `SPEC-SDR-PPS-MARKER.md` as research, link it from `ROADMAP
 - **Not run by the station:** no module loader exists yet (EXT order 1), and the Pi bundle doesn't include `modules/`.
 - **Tests:** `tests/test_modules.py` loads every module's tests by path (their folder is also called `tests`) and checks the module layout. The module has 20 tests: fixture scenarios, time model, detector, summary labels, manifest, standard-library-only imports. CI and the documented checks now compile `modules/` (and `tests/`, which CI had left out).
 - **STATUS.md:** area PPSM. Research step 1 done; research steps 2-5, the MLAT path, outputs and the kit planned (research). One done row for the `modules/` test hook.
+
+## 2026-10-21 — sdr-pps-marker: conservative uncertainty on short runs (#116)
+
+Owner's request: make the stated uncertainty conservative on short runs, and test that it covers the true error in 95 % of seeded runs.
+
+- **Scatter estimate:** a quadratic in UTC seconds (rate and drift) is fitted to each block of up to 30 good consecutive markers; the pooled residuals give the marker position scatter with markers − 3 degrees of freedom per block. It replaces the neighbour-line estimate, whose small samples gave too small an uncertainty (up to about 2× in the short scenarios).
+- **Stated uncertainty:** the 95 % upper confidence bound on that scatter (chi-square: exact quantiles to 10 degrees of freedom, Wilson-Hilferty above), plus 0.02 samples in quadrature for the interpolation's bias. No sample gets a time below 3 degrees of freedom. The summary reports both the estimate (`marker_position_sd_samples`, with its degrees of freedom) and the bound used (`marker_position_bound_samples`).
+- **Coverage test:** 200 seeded runs of 7–10 s with random noise, clock error (±50 ppm), drift, start phase, carrier (in 30 % of runs) and a dropped block (in 20 %), at 4 kS/s. The 95 % interval (1.96 × stated sigma) must cover the true error in at least 95 % of the runs that give a time. Result: 180 runs gave a time, all 180 covered; the median error was about a third of the stated sigma (conservative, as asked). 20 runs gave no time, mostly because a drop left blocks too short to estimate the scatter.
+- Synthetic only; the module's README is updated.
