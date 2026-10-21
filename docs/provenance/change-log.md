@@ -1267,7 +1267,7 @@ Owner's request: the module loader and scaffolder (SPEC-EXTENSIBILITY order of w
 - **STATUS.md:** EXT order 1, order 2 and API stability done; Safety next (partial).
 - **Flaky test fixed:** `tests/test_evidence.py` `test_routes` failed once in CI. The demo's sample evidence id came from the current second, so it changed between the index call and the read when a second boundary fell between them. The sample outage now starts on the hour (`gps_time_pi/demo.py`).
 
-## 2026-10-21 — observation files: writer, reader, validator; sdr-pps-marker writes pps_marker (#PR)
+## 2026-10-21 — observation files: writer, reader, validator; sdr-pps-marker writes pps_marker (#118)
 
 Owner's request: the observation format's writer, reader and validator, with sdr-pps-marker outputting time_source pps_marker.
 
