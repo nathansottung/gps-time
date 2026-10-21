@@ -47,7 +47,7 @@ What a timed, fixed station can measure and calculate on its own, offline.
 |---|---|---|
 | [`specs/SPEC-EXTENSIBILITY.md`](specs/SPEC-EXTENSIBILITY.md) | How every future feature is added: modules (source, reference, analysis, UI, receiver) with a manifest, typed interfaces, versioned schemas, fixtures and tests; module safety, API stability, data licence, governance; the timing core untouched | Next |
 | [`specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md`](specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md) | One file format for any timed measurement (SigMF with a `gpstime:` extension), capture requests across stations (scheduled and look-back), and analyses that work on any signal type | Next (format); planned (capture requests) |
-| [`roadmap/ROADMAP-OSCILLATOR-AND-MISC.md`](roadmap/ROADMAP-OSCILLATOR-AND-MISC.md) | Trained oscillator profile, networked SDR, assisted deploys, evidence capture | Future (the oscillator log it needs is done; the PPS evidence capture script is built) |
+| [`roadmap/ROADMAP-OSCILLATOR-AND-MISC.md`](roadmap/ROADMAP-OSCILLATOR-AND-MISC.md) | Trained oscillator profile, networked SDR, assisted deploys, evidence capture | Oscillator profile: next (the oscillator log it needs is done). Evidence capture script: done. The rest: future |
 | [`roadmap/ROADMAP-WEB-UPDATES.md`](roadmap/ROADMAP-WEB-UPDATES.md) | Software updates and config upload from the web UI, LAN only | Future, low priority |
 | [`roadmap/ROADMAP-DESKTOP-FIELD-APP.md`](roadmap/ROADMAP-DESKTOP-FIELD-APP.md) | A laptop and a GNSS receiver as an off-grid time source for ham digital modes | Future |
 
@@ -59,6 +59,7 @@ What a timed, fixed station can measure and calculate on its own, offline.
 | [`roadmap/ROADMAP-SDR-RF-OBSERVATORY.md`](roadmap/ROADMAP-SDR-RF-OBSERVATORY.md) | Timestamped, frequency-calibrated SDR observations | Planned (scoping) |
 | [`specs/SPEC-RF-NODE-AND-TDOA.md`](specs/SPEC-RF-NODE-AND-TDOA.md) | RF nodes synced to a station, MLAT calibration, TDOA, fox hunts | Planned (19 items) |
 | [`specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md`](specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md) | Nodes asking other nodes to capture the same signal at the same moment (capability registry, signed capture tasks, owner control), and a first FM broadcast TDOA trial | Planned (option, in stages) |
+| [`specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md`](specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md) | A catalog of signals with known or self-reported transmitter positions (ATSC, FM, NOAA, ADS-B, AIS, radiosondes, WWV, AM, LTE sync) for calibrating nodes, and a trusted cluster that new nodes join by passing checks against references and peers | Planned (option, in stages) |
 
 ## Phase 5 — Geophysics and distributed science
 
