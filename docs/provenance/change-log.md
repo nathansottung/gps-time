@@ -1350,7 +1350,7 @@ Owner's request: generate a station key pair at install, sign observation files,
 - **Not yet:** who signs on the station. Modules don't get the key; signing their files will go through the supervisor or the web service when module output is wired in. The `sign` CLI covers files by hand.
 - **Tests:** `tests/test_station_key.py`: generation (0600, once), signed files verify, tampering with time, uncertainty or annotations is caught, changed samples, a swapped public key, a re-signed file against a trusted list, CLI, sign needs the checksum, no library means "not checked", installer and deny list.
 
-## 2026-10-21 — converters: observation files to WAV and miniSEED (#PR)
+## 2026-10-21 — converters: observation files to WAV and miniSEED (#122)
 
 Owner's request: miniSEED and WAV converters.
 
