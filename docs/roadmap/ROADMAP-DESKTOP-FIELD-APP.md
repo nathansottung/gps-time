@@ -6,7 +6,7 @@ FUTURE. Not scheduled. Do not start until the Raspberry Pi station work in docs/
 
 ## Goal
 
-A cross-platform desktop app (Windows, macOS, Linux) built on Electron that turns a laptop plus a GNSS receiver into an off-grid time source and GNSS dashboard. Main use: keeping a laptop clock accurate enough for ham digital modes (JS8Call, FT8, FT4, WSPR) with no Internet.
+A cross-platform desktop app (Windows, macOS, Linux) that turns a laptop plus a GNSS receiver into an off-grid time source and GNSS dashboard. It is a tray app that runs the station's own Python backend, packaged per OS (for example with PyInstaller), and opens the UI in the default browser. No Electron (owner decision, 2026-10-21; ADR-0006). Main use: keeping a laptop clock accurate enough for ham digital modes (JS8Call, FT8, FT4, WSPR) with no Internet.
 
 It reuses the `web/` React dashboard and the design system in `web/guidelines/Guidelines.md`.
 
@@ -24,7 +24,7 @@ Ham digital modes need about ±1 s; best decode under ~0.2 s. Every supported pa
 
 ## Core features
 
-1. **Receiver input.** Read NMEA from a serial/USB port (Node `serialport`). Auto-detect common u-blox, SiRF, and MediaTek dongles. Show baud, sentence types, and sentence timing.
+1. **Receiver input.** Read NMEA from a serial/USB port (in the Python backend, e.g. `pyserial`). Auto-detect common u-blox, SiRF, and MediaTek dongles. Show baud, sentence types, and sentence timing.
 2. **GNSS dashboard.** Satellites, C/N0, sky plot, fix, DOP, position, all using existing `web/` components.
 3. **Time offset.** Measure system clock vs GNSS time. Show offset, jitter, and trend. Support a per-receiver NMEA delay calibration, stored per device.
 4. **Set system time.** Optional, off by default. Step the clock once when the offset is large, then hold it with periodic small corrections. Log every change.
@@ -33,7 +33,7 @@ Ham digital modes need about ±1 s; best decode under ~0.2 s. Every supported pa
 
 ## Setting the clock safely
 
-Changing system time needs elevated rights on every OS. The Electron UI must never run elevated itself.
+Changing system time needs elevated rights on every OS. Neither the tray app nor the browser UI ever runs elevated.
 
 - **Windows:** a small signed helper service holding the right to set time, called by the UI over a local named pipe. Option to defer to an installed tool (Meinberg NTP, BktTimeSync) instead.
 - **macOS:** a privileged helper installed through the system's helper-tool mechanism, called over XPC.
@@ -57,8 +57,8 @@ Owner's notes, 2026-10-21.
 
 ## Shared code
 
-- The UI is the `web/` app with a desktop data adapter, the same way demo mode works.
-- Timing-chain, PPS, and event logic stay in one place. Decide during scoping whether the desktop app bundles the Python backend or ports the needed parts to TypeScript.
+- The UI is the `web/` app, served on localhost by the same backend and API as the Pi.
+- Timing-chain, PPS, and event logic stay in one place: the desktop app bundles the Python backend; nothing is ported to TypeScript (decided 2026-10-21).
 
 ## Out of scope
 
@@ -68,6 +68,7 @@ Owner's notes, 2026-10-21.
 
 ## Open questions
 
-- Python bundled vs TypeScript port.
+- Packaging per OS: PyInstaller or another bundler, and installer format.
+- Tray library per OS, and how the tray app starts, stops and finds a free localhost port.
 - Code-signing and notarization costs per platform.
 - Which dongles to officially support and test.
