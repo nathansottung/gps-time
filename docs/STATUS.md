@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/desktop-host-notes, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/desktop-host-notes, #106). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -577,4 +577,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | README screenshot: Overview page from the desktop demo in screenshot mode, location privacy rounded | done | `docs/screenshots/overview.png`; checked by eye for coordinates, heights, client addresses and hostname | [#104](https://github.com/nathansottung/gps-time/pull/104) |
 | Repo |  | PPS evidence capture script (`scripts/capture-pps-evidence.sh`): read-only archive of PPS devices, sysfs, ppstest, chronyc, kernel messages, config lines, services and gpsd output | done | position removed from gpsd output in every privacy mode (`gps_time_pi/gpsd_redact.py`); ppstest only as root. Not yet run on a Pi | [#105](https://github.com/nathansottung/gps-time/pull/105) |
 | Repo |  | PPS evidence capture: read-only button on the PPS diagnostics page producing the same archive | planned | `ROADMAP-OSCILLATOR-AND-MISC.md` §4 | [#105](https://github.com/nathansottung/gps-time/pull/105) |
-| Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#106](https://github.com/nathansottung/gps-time/pull/106) |

@@ -1144,7 +1144,7 @@ Owner's request: build the PPS evidence capture script (`ROADMAP-OSCILLATOR-AND-
 - **Docs:** `architecture/timing-chain.md` troubleshooting step 5 now names the script. The read-only button on the PPS diagnostics page is still to do (`STATUS.md`, planned).
 - **Tests:** `tests/test_pps_evidence_capture.py` (17): the filter in every mode, config mode fallback, the script's text (only read-only `chronyc` reports, only `systemctl show`, no privilege escalation, writes only to its own directory), and on POSIX the whole script against a fake sysfs/dev/etc/boot tree with stub tools: archive contents, no example coordinates in any file in any mode, `--include-position`, missing `gpspipe`, bad options. Not yet run on a Pi.
 
-## 2026-10-21 — desktop host notes in the desktop field app roadmap (#PR)
+## 2026-10-21 — desktop host notes in the desktop field app roadmap (#106)
 
 Owner's request: merge the desktop host notes into `roadmap/ROADMAP-DESKTOP-FIELD-APP.md` as a "Desktop host" section; the notes file itself is not added.
 
