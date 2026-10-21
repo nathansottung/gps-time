@@ -13,7 +13,7 @@ GPS Time is a timing-first, offline-capable measurement station: GNSS → PPS �
 - **Respect location privacy mode everywhere,** including diagnostics output and derived values.
 - **Tests must not need live GNSS, Internet, or root.** Use fixtures (`tests/fixtures/`, temp sysfs trees, manual clocks).
 - **UI follows `web/guidelines/Guidelines.md` exactly.**
-  - The React app in `web/` is being ported to become the Pi UI; the old `gps_time_pi` dashboard is not restyled.
+  - The React app in `web/` is the station UI, served at `/app/` (`/` redirects there). The legacy server-rendered pages were removed after v1.4.0 (#99).
   - Fonts are self-hosted (`@fontsource`, weights 300–600; 700 is not shipped).
   - Δf/f is shown as ×10⁻ⁿ (`fmtSci`).
 - **One feature branch per task. Small commits. Update `docs/` in the same branch** (change log at `docs/provenance/change-log.md`; an ADR for architectural changes).
@@ -65,5 +65,5 @@ CI (`.github/workflows/`):
   - Reference for every route: `docs/api/`.
   - Typed client and demo adapter: `web/src/api/`.
   - The built UI is served at `/app/` (ADR-0004).
-  - Legacy feature gaps: `docs/dashboard/web-ui-parity.md`.
+  - Legacy parity (closed) and the removal record: `docs/dashboard/web-ui-parity.md`, `docs/dashboard/legacy-removal-plan.md`.
 - **Desktop demo** (no Pi, gpsd, chrony or Internet needed): `scripts/run-demo.ps1` → http://127.0.0.1:8080/. Timing-chain demo: `/api/timing-chain?scenario=<name>`.

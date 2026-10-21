@@ -123,6 +123,7 @@ barycenter is within meters of the planet (Phobos and Deimos are gravel).
   gpsd, device path, gpsd/chronyd/app/Python versions.
 - **custom.css hook** and the hardware **config generator**
   (`tools/generate_config.py`) — see customization-and-hardware.md.
+  (The custom.css hook was removed with the legacy pages after v1.4.0.)
 
 ## Open items
 

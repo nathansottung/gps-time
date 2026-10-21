@@ -109,18 +109,18 @@ class TestWebUi(WebUiBase):
         self.assertIn("text/plain", headers["Content-Type"])
         self.assertIn(b"pnpm run build", body)
 
-    def test_legacy_templates_are_decoded_as_utf8(self):
-        # Templates contain non-ASCII (em dash, ✓); a locale-dependent read garbled them on Windows.
-        status, _, body = self.get("/admin")
-        self.assertEqual(status, 200)
-        self.assertIn("Admin — GPS Time Pi".encode("utf-8"), body)
-        self.assertNotIn("â€”".encode("utf-8"), body)
-
-    def test_legacy_pages_are_unchanged(self):
-        for path in ("/", "/legacy", "/almanac", "/history", "/admin", "/configure"):
+    def test_root_and_retired_legacy_paths_redirect_to_the_web_ui(self):
+        # The legacy pages were removed after v1.4.0; old bookmarks land on /app/.
+        for path in ("/", "/legacy", "/almanac", "/history", "/admin", "/configure", "/zones"):
             status, headers, _ = self.get(path)
-            self.assertEqual(status, 200, path)
-            self.assertIn("text/html", headers["Content-Type"])
+            self.assertEqual(status, 302, path)
+            self.assertEqual(headers["Location"], "/app/", path)
+        status, headers, _ = self.get("/?source=demo")
+        self.assertEqual((status, headers["Location"]), (302, "/app/?source=demo"))
+
+    def test_legacy_static_files_and_layout_api_are_gone(self):
+        for path in ("/static/app.js", "/static/style.css", "/static/custom.css", "/api/dashboard"):
+            self.assertEqual(self.get(path)[0], 404, path)
 
 
 class TestWebFile(WebUiBase):

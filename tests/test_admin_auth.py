@@ -8,7 +8,6 @@ static checks of the service unit and polkit rule. No root, network or Pi.
 
 import base64
 import contextlib
-import hashlib
 import http.client
 import io
 import json
@@ -138,12 +137,6 @@ class TestToken(AuthBase):
         self.assertEqual(self.post("/api/setting", {"reset_site": True})[2], {"ok": True, "reset_site": True})
         self.assertEqual(self.calls, ["reset_site"])
 
-    def test_dashboard_writes_need_the_token(self):
-        self.assertEqual(self.post("/api/dashboard/reset", {}, token=None)[0], 401)
-        status, _, body = self.post("/api/dashboard/reset", {})
-        self.assertEqual(status, 200)
-        self.assertTrue(body["ok"])
-
     def test_auth_endpoint_reports_state_without_secrets(self):
         _, _, anon = self.req("GET", "/api/auth")
         self.assertEqual(anon, {"demo": False, "auth_required": True, "admin_configured": True, "authenticated": False})
@@ -152,11 +145,6 @@ class TestToken(AuthBase):
         stored = Path(self.token_file).read_text()
         self.assertNotIn(TOKEN, stored)                      # only the hash is stored
         self.assertNotIn(stored.strip()[7:], json.dumps(ok))
-
-    def test_dashboard_meta_reflects_auth(self):
-        _, _, d = self.req("GET", "/api/dashboard")
-        self.assertTrue(d["_meta"]["writable"])
-        self.assertTrue(d["_meta"]["auth_required"])
 
 
 class TestAdminDisabledByDefault(AuthBase):
@@ -170,8 +158,6 @@ class TestAdminDisabledByDefault(AuthBase):
         self.assertEqual(self.calls, [])
         _, _, a = self.req("GET", "/api/auth")
         self.assertFalse(a["admin_configured"])
-        _, _, d = self.req("GET", "/api/dashboard")
-        self.assertFalse(d["_meta"]["writable"])
 
     def test_malformed_token_file_is_treated_as_absent(self):
         Path(self.token_file).write_text("not-a-hash\n")
@@ -343,19 +329,14 @@ class TestSecurityHeaders(AuthBase):
             self.assertIn("script-src 'self'", csp, what)
             self.assertNotIn("unsafe-inline", csp, what)          # strict outside the legacy pages
 
-    def test_legacy_pages_allow_only_their_own_inline_scripts(self):
-        for path in ("/", "/legacy", "/almanac", "/history", "/admin", "/configure", "/zones"):
-            status, headers, body = self.req("GET", path)
-            self.assertEqual(status, 200, path)
-            csp = self.assert_headers(headers, path)
-            script_src = re.search(r"script-src ([^;]*)", csp).group(1)
-            self.assertNotIn("unsafe-inline", script_src, path)
-            self.assertNotIn("unsafe-eval", script_src, path)
-            html = body if isinstance(body, str) else body.decode()
-            for script in re.findall(r"<script>(.*?)</script>", html, re.S):
-                h = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
-                self.assertIn(f"'sha256-{h}'", script_src, path)
-            self.assertIn("style-src 'self' 'unsafe-inline'", csp, path)   # documented legacy exception
+    def test_one_strict_csp_everywhere_no_inline_exceptions(self):
+        # The legacy pages and their style-src 'unsafe-inline' exception are gone.
+        for path in ("/", "/legacy", "/zones", "/api", "/time", "/nope"):
+            status, headers, _ = self.req("GET", path)
+            csp = self.assert_headers(headers, f"{path} ({status})")
+            self.assertEqual(csp, security.CSP_STRICT, path)
+            self.assertNotIn("unsafe-inline", csp, path)
+            self.assertNotIn("sha256-", csp, path)
 
 
 # ─── 3. failed-token logging and backoff ────────────────────────────────────

@@ -28,7 +28,7 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
    - **Strength:** 32 random bytes from `secrets`; constant-time comparison with `hmac.compare_digest`.
    - **Failed attempts:** logged to the journal without the token, with a per-IP exponential backoff (429 after 3 failures, capped at 300 s).
    - **Display:** `install.sh` shows the token on the terminal only (`--tty-only`), never on stdout.
-4. **Demo isolation.** Demo mode needs no token (its writes go to `.dev/`), but `/api/admin` is simulated and never runs anything. Legacy pages show a SAMPLE DATA banner.
+4. **Demo isolation.** Demo mode needs no token (its writes go to `.dev/`), but `/api/admin` is simulated and never runs anything. Legacy pages show a SAMPLE DATA banner. (2026-10-21: the legacy pages were removed; the web UI shows the demo banner.)
 5. **Unprivileged service.** `gps-time-pi.service` runs as `gps-time`:
    - **Groups:** `_chrony` for chrony-owned files, `video` for vcgencmd.
    - **No chronyd control socket.** See the 2026-10-04 update below.
@@ -40,13 +40,14 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
 6. **Security headers on every response.**
    - CSP is `'self'` only, with `frame-ancestors 'none'`, plus `nosniff`, `no-referrer` and `X-Frame-Options: DENY`.
    - Legacy pages allow their own static inline scripts by hash, and inline styles until they are retired.
+   - 2026-10-21: the legacy pages were removed; that exception is gone, and every response now gets the one strict CSP (`security.CSP_STRICT`; `csp_for_html()` was removed).
    - The built UI has no inlined assets.
 7. **Rollback.** `system/gps-time-pi-root-rollback.conf` is installed to `/opt/gps-time-pi/rollback/` but not enabled. As a drop-in it returns the service to root without hardening, keeping the current code and the token checks. A test keeps it in sync with the unit. Procedure: `docs/development/raspberry-pi-deploy.md` → "Rollback".
 
 ## Consequences
 
 - **Removed:** `GTP_ALLOW_CONFIG_WRITE` and the loopback exception. Behind a reverse proxy every client looked like loopback, so the token is the only gate.
-- **Clients:** the legacy `/admin` and `/configure` pages prompt for the token. The new UI has an Admin access card. The token is kept in `sessionStorage` only.
+- **Clients:** the legacy `/admin` and `/configure` pages prompt for the token. The new UI has an Admin access card. The token is kept in `sessionStorage` only. (2026-10-21: the legacy pages were removed; the token is entered on the web UI's Administration page only, and `/admin` and `/configure` redirect to `/app/`.)
 - **No TLS:** the token crosses the LAN in clear text. On an untrusted LAN, use a TLS reverse proxy and set `GTP_ALLOWED_HOSTS`/`GTP_ALLOWED_ORIGINS`.
 - **`chronyc clients`** needs chrony's local socket. When the list can't be read, `/api` reports `clients: null` (UNKNOWN), not an empty list.
 - **Update 2026-10-04, NTP client list.** On the first Pi build the list read UNKNOWN.

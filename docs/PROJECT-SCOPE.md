@@ -100,6 +100,8 @@ Add show/hide/reorder/resize of panels, saved layouts, selectable units/timezone
 
 Preserve existing themes, custom CSS, and external frontend access. A displayed timing or sensor value must retain validity/freshness information even in a custom layout. Exact per-browser versus station-wide layout behavior remains open.
 
+(The legacy pages were removed after v1.4.0, with custom CSS, the light theme and the saved-layout model, by owner decision; show/hide of pages and Overview cards is now per browser in `/app/` → Configure.)
+
 ### A-04 — Trusted-site refinement
 
 After F-04/F-08, add deliberate survey sessions, fresh accepted/rejected counts, raw scatter, stability across time blocks, accept/lock/reset/relocate workflows, manual or externally surveyed site input, and source/datum metadata.

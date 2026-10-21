@@ -20,9 +20,9 @@ The easiest way to work on the UI is Windows + VS Code with sample data:
 powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1
 ```
 
-Open `http://127.0.0.1:8080/`.
+Open `http://127.0.0.1:8080/` (it redirects to the web UI at `/app/`; build it first with `cd web && corepack pnpm run build`, otherwise `/app/` answers 503 with the build command).
 
-Demo mode uses the **same dashboard renderer** as the Pi. `/configure` supports multiple pages, widget show/hide flags, card width, and JSON import/export. No GPS receiver, chrony, gpsd or Internet connection is required to run the demo server.
+Demo mode serves the **same web UI** as the Pi, with sample data. Its Configure page shows or hides pages and Overview cards per browser. No GPS receiver, chrony, gpsd or Internet connection is required to run the demo server.
 
 See [`docs/development/windows-demo.md`](docs/development/windows-demo.md).
 
@@ -36,9 +36,9 @@ See [`docs/development/windows-demo.md`](docs/development/windows-demo.md).
 - NTP client IP activity
 - astronomy/almanac and local sidereal information
 - RAM-backed chrony tracking history / periodic persistence scaffolding
-- system diagnostics and light/dark/night themes
+- system diagnostics and dark/red-night themes
 - hardware configuration generator for multiple GNSS profiles
-- configurable multi-page dashboard development scaffold
+- multi-page web UI (React, served at `/app/`) with per-browser page and card visibility
 - browser HTTP round-trip/clock-estimate probe
 
 ## Platform roadmap

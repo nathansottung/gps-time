@@ -45,6 +45,10 @@ fi
 "$VENV/bin/python" -m pip install --quiet --disable-pip-version-check -r requirements.txt
 
 echo "== Copying application to $DEST =="
+# The legacy pages were retired after v1.4.0: remove their files from an upgraded
+# station (cp -r would leave them behind). Our own code only; nothing else.
+rm -rf "$DEST/gps_time_pi/templates" "$DEST/gps_time_pi/static"
+rm -f "$DEST/gps_time_pi/dashboard.py" "$DEST/gps_time_pi/data/dashboard.default.json"
 cp -r gps_time_pi $DEST/
 [ -f $DEST/config.json ] || echo '{}' > $DEST/config.json
 
@@ -57,7 +61,7 @@ if [ -f web/dist/index.html ]; then
   cp -r web/dist "$DEST/web/"
   echo "Installed web UI $(cat web/dist/version.txt 2>/dev/null || echo '(version unknown)')"
 else
-  echo "This bundle has no built web UI: /app/ will return 503. The legacy pages at / still work."
+  echo "This bundle has no built web UI: /app/ (and /) will return 503; the JSON API under /api still works."
 fi
 
 echo "== Ephemeris (JPL DE440s, ~32 MB, one-time download) =="
@@ -119,7 +123,7 @@ echo "== Service user and permissions (unprivileged web service) =="
 id gps-time >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin gps-time
 chown root:gps-time "$DEST"
 chmod 1775 "$DEST"
-for f in config.json config.json.prev dashboard.json timing-events.json custom.css; do
+for f in config.json config.json.prev timing-events.json; do
   if [ -f "$DEST/$f" ]; then chown gps-time:gps-time "$DEST/$f"; fi
 done
 

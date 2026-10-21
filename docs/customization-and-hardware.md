@@ -16,16 +16,18 @@ browser-default timezone, observation time auto-populated.
 
 Three tiers, least to most invasive:
 
-1. **custom.css** — create `/opt/gps-time-pi/custom.css` (next to
-   config.json) and it is loaded after the stock stylesheet on every page.
-   Hide sections (`#vers{display:none}`), recolor themes, resize the clock.
-   Survives reinstalls and upgrades untouched.
-2. **Templates** — the pages are plain single-file HTML in
-   `gps_time_pi/templates/`; the CSS variables and layout are deliberately
-   simple. Edit freely; restart the service to pick up changes.
-3. **API-first rebuild** — everything on every page comes from `/api`,
-   `/api/almanac`, `/api/object`, `/api/history`. A fully custom frontend
-   needs nothing from the stock templates.
+1. **Configure** — in the web UI (`/app/`), show or hide pages and Overview
+   cards and switch the red night theme. Stored per browser; nothing on the
+   station changes.
+2. **Web UI source** — the UI is the React app in `web/` (follow
+   `web/guidelines/Guidelines.md`). Edit it, rebuild (`corepack pnpm run
+   build`) and redeploy; the bundle ships `web/dist`.
+3. **API-first rebuild** — everything in the UI comes from `/api`,
+   `/api/almanac`, `/api/object`, `/api/history` and the other routes in
+   `docs/api/`. A fully custom frontend needs nothing from `web/`.
+
+(The legacy pages, `custom.css` and `gps_time_pi/templates/` were removed
+after v1.4.0; a `custom.css` left on a station is no longer loaded.)
 
 The planned v2 widget/plugin dashboard (see platform-extensions.md) will
 make tier 1-level customization cover show/hide/rearrange of everything.

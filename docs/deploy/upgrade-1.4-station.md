@@ -12,6 +12,8 @@ $Pi = "$PiUser@$PiHost"
 
 ## What the upgrade changes on the station
 
+**After rc.11** (on `main`, in no tag yet): the legacy pages were removed after v1.4.0. `/` and the old page paths (`/legacy`, `/almanac`, `/history`, `/admin`, `/configure`, `/zones`) answer `302` to `/app/`; `/static/*`, `/api/dashboard` and the `/api` fields `state` and `fmt` are gone. `install.sh` deletes the retired `gps_time_pi/templates/`, `gps_time_pi/static/`, `dashboard.py` and `dashboard.default.json` from the station. A `dashboard.json` or `custom.css` left in `/opt/gps-time-pi/` is no longer read. When deploying such a build, skip the legacy-dashboard checks in section 3.
+
 **New in rc.11** (code only: no change to the installer, the services, chrony's configuration or the files the station writes):
 
 - `/api/history` reads chrony's tracking log by named column (review GPS-003); `/api` adds chrony's error bound `max_error_bound_s` (GPS-007). Both UIs label chrony's System time as the remaining correction and show the bound instead of "± root dispersion". The legacy history chart's band is now chrony's offset SD.
@@ -115,14 +117,14 @@ ssh $Pi
   - Evidence: `0` files until an outage happens.
   - Ping: a few milliseconds.
 
-- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.11`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab.
+- [ ] In a browser, `http://<station>/app/`: the footer shows `1.4.0-rc.11`; Timing → Oscillator loads; Network & Devices → Browser Connection Test shows a round trip of milliseconds, not seconds, also with the legacy dashboard open in another tab (rc.11 only; after rc.11 there is no legacy dashboard).
 
 - [ ] An outage event at the service start, "PPS NOT USED BY CHRONY" with healthy pulses, is expected: the installer restarts chrony and PPS selection takes a moment to return (seen on rc.10). Any other event is real.
 
 - [ ] rc.11: `/app/` Overview shows "Remaining correction (chrony)" with "bound ≤ …" beneath; Timing → Overview shows the offset history with its band; Administration shows the throttle table and Station actions (don't press them for the check).
 
 - [ ] The two UI changes (rc.10):
-  - Legacy dashboard (`http://<station>/`), Sun & daylight: each day shows a sunrise and a sunset figure of the same size.
+  - Legacy dashboard (`http://<station>/`; rc.11 only, after rc.11 `/` redirects to `/app/`), Sun & daylight: each day shows a sunrise and a sunset figure of the same size.
   - `/app/`: press Alt+Shift+S (or click **Screenshot off · display only** in the header). The hostname, the coordinates and heights (GNSS & Site → Position and Geodesy) and the client addresses (Network & Devices) turn into blurred masks. Reload: it stays on. Press it again to turn it off.
 
 ## 4. Optional: independent `noselect` references

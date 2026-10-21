@@ -50,9 +50,9 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - professional concept image: kept outside the repository (provenance unrecorded; not distributed)
 
 ## Web prototype
-- `../web/` — React/Vite UI being ported to become the Pi UI; served by the station at `/app/` and wired to the API through a typed client (`web/src/api/`). Legacy pages stay until parity.
-- `dashboard/web-ui-parity.md` — legacy features the new UI still lacks
-- `dashboard/legacy-removal-plan.md` — PLAN, nothing removed: inventory of the legacy pages and the code that exists only for them, parity today, proposed order, timing (not before v1.4.0)
+- `../web/` — the station UI (React/Vite), served at `/app/` (`/` redirects there) and wired to the API through a typed client (`web/src/api/`). The legacy pages were removed after v1.4.0 (#99).
+- `dashboard/web-ui-parity.md` — CLOSED: every legacy feature ported to `/app/` or dropped by the owner, with the PRs
+- `dashboard/legacy-removal-plan.md` — DONE (#99): what the legacy pages were, the code that existed only for them, the order followed, rollback
 - `../web/guidelines/Guidelines.md` — UI guidelines all project UI must follow
 
 ## API
@@ -76,7 +76,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Licensing / decisions / provenance
 - `licensing/open-source-policy.md`
-- `decisions/` (ADR-0004: web UI served at `/app/` beside the legacy pages; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service)
+- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service)
 - `provenance/change-log.md`
 
 ## Source review

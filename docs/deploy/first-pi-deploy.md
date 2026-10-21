@@ -10,7 +10,7 @@ For upgrading a working v1.3 station to **v1.4.0-rc.11**. For a newly flashed Pi
 - `install.sh` makes sure `chrony.conf` has `log tracking` and `logdir /run/chrony-log`. A v1.3 station already has both. It also comments out `sourcedir /run/chrony-dhcp`, if the file has that line, so chrony stops taking NTP servers from DHCP and can't poll the station itself; the file as it was is kept as `chrony.conf.before-gps-time-pi`. If DHCP was the station's only network fallback, add a `server` or `pool` line, or keep it with `GTP_KEEP_DHCP_NTP=1` (`docs/development/raspberry-pi-deploy.md`). Nothing else in chrony, gpsd or PPS setup is touched.
 - The web service changes from root to the user `gps-time`, and runs from a venv.
 - Settings changes and admin actions will need the admin token.
-- `/app/` (the new UI) works after the deploy: the bundle ships the built UI. The deploy script builds it on Windows first, so Windows needs Node 22 with corepack (`docs/development/new-machine.md`). The legacy pages work as before.
+- `/app/` (the new UI) works after the deploy: the bundle ships the built UI. The deploy script builds it on Windows first, so Windows needs Node 22 with corepack (`docs/development/new-machine.md`). The v1.3 pages are gone (the legacy pages were removed after v1.4.0): `/` and the old page paths (`/admin`, `/almanac`, `/history`, ...) redirect to `/app/`.
 - The install needs the Internet on the Pi (apt, PyPI or piwheels).
 
 Throughout, PowerShell blocks run on Windows and `sh` blocks run on the Pi. Set these once per PowerShell window, with your own values. **Don't commit them, the backups or the token anywhere in the repository.**
@@ -266,11 +266,11 @@ ssh $Pi
   curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"action":"flush_logs"}' localhost/api/admin
   ```
 
-- [ ] In a browser, open `http://<pi>/admin`, enter the token when asked, and run the log flush. It must succeed. This is the full path: token, unprivileged service, polkit.
+- [ ] In a browser, open `http://<pi>/app/`, go to Administration, enter the token, and run the log flush. It must succeed. This is the full path: token, unprivileged service, polkit.
 
 **Web pages**
 
-- [ ] The legacy dashboard and the new UI both load: expect `200` twice, then the version the UI was built from.
+- [ ] `/` redirects to the web UI and the web UI loads: expect `302`, then `200`, then the version the UI was built from. (rc.11 itself still serves the legacy dashboard at `/`: `200` there.)
 
   ```sh
   curl -s -o /dev/null -w "%{http_code}\n" localhost/

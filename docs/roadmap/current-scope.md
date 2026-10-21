@@ -16,6 +16,8 @@ The v1.3.0 codebase already contains GPS/PPS/chrony status, NTP serving, timing/
 - PowerShell/Bash Pi deployment helpers
 - expanded `/docs/` architecture and roadmap contract
 
+(The configurable dashboard, its JSON layouts and the editor were removed with the legacy pages after v1.4.0; the station UI is now the web UI at `/app/`, with per-browser show/hide in Configure.)
+
 ## Before stable release
 
 Close or disposition the source-review findings in `../review/source-review-2026-09-07.md` and `../review/GPS-Time-Independent-Review-2026-09-27.md`, especially fresh-fix survey semantics, chrony history field meaning, bounded persistence and administrative security.

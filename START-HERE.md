@@ -13,24 +13,11 @@ This is the GPS Time development bundle: a working GPS/PPS/NTP baseline plus the
 powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1
 ```
 
-The same dashboard code used on the Pi opens at `http://127.0.0.1:8080/` with sample data.
+The same web UI used on the Pi opens at `http://127.0.0.1:8080/` with sample data (`/` redirects to `/app/`). Build the UI first (`cd web && corepack pnpm run build`); until then `/app/` answers 503 with the build command.
 
-Use **Configure dashboard** to:
+Use **Configure** in the web UI to show or hide pages and Overview cards, and to switch the red night theme. These choices are stored per browser.
 
-- create multiple pages
-- show/hide any registered widget on a page
-- choose normal/wide card size
-- import/export layout JSON
-
-Demo changes live under `.dev/` and are not committed automatically.
-
-When you want a demo layout to become the packaged Pi default:
-
-```powershell
-python tools\promote_dashboard.py
-```
-
-or use VS Code task **GPS Time: Promote demo layout**.
+Demo configuration lives under `.dev/` and is not committed automatically.
 
 ## Build downloadable/deployable archives
 
@@ -49,8 +36,6 @@ Outputs under `dist/`:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost 192.168.1.50 -PiUser pi
 ```
-
-Add `-UseDemoLayout` if you intentionally want to promote `.dev/dashboard.json` before building/deploying.
 
 ## Understand the project before changing core behavior
 

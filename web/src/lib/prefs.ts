@@ -1,6 +1,6 @@
 // Per-browser display preferences (legacy removal step 5, owner decisions 2026-10-19):
 // the theme (dark, or red night for observing; light was dropped) and which modules are shown.
-// They replace the legacy saved-layout editor. Nothing here changes the station.
+// They replaced the legacy saved-layout editor (removed after v1.4.0). Nothing here changes the station.
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 function store(storage?: StorageLike | null): StorageLike | null {
@@ -11,10 +11,10 @@ function store(storage?: StorageLike | null): StorageLike | null {
 // ─── Theme ───────────────────────────────────────────────────────────────────
 
 export type Theme = 'dark' | 'night';
-/** Shared with the legacy pages, so a night choice made there carries over. Their "light" reads as dark. */
+/** The key the legacy pages used, so an old choice carries over; their "light" (dropped) reads as dark. */
 const THEME_KEY = 'gtp-theme';
 
-/** ?theme=night|dark wins (as on the legacy pages), then the stored choice, else dark. */
+/** ?theme=night|dark wins, then the stored choice, else dark. */
 export function loadTheme(storage?: StorageLike | null, search = ''): Theme {
   try {
     const q = new URLSearchParams(search).get('theme');

@@ -1,7 +1,7 @@
 """Deterministic-ish demo data for desktop UI development.
 
 Demo mode must not require gpsd, chrony, a Raspberry Pi, Skyfield, or network
-access.  It exercises the same HTTP APIs and dashboard renderer as real mode.
+access.  It exercises the same HTTP APIs as real mode.
 Values are intentionally labelled as sample data in the UI.
 """
 
@@ -12,7 +12,7 @@ import os
 import time
 from datetime import date, datetime, timedelta, timezone
 
-from . import __version__, system, units
+from . import __version__, system
 
 
 def _satellite(i: int, now: float) -> dict:
@@ -46,7 +46,6 @@ def core_api() -> dict:
         "demo": True,
         "epoch_ms": now.timestamp() * 1000,
         "utc": now.strftime("%Y-%m-%d %H:%M:%S.%f UTC"),
-        "state": ["SYNCHRONIZED", "GPS/PPS · Stratum 1 · sample data"],
         "quality": {
             "system_time_s": system_s,
             "last_offset_s": 118e-9,
@@ -63,13 +62,6 @@ def core_api() -> dict:
             "stratum": "1",
             "reference": "PPS",
             "ref_time": now.strftime("%a %b %d %H:%M:%S %Y"),
-        },
-        "fmt": {
-            "system_pair": units.fmt_offset(system_s),
-            "error_bound": units.fmt_seconds(abs(system_s) + dispersion),
-            "rms": "312 ns",
-            "root_dispersion": "485 ns",
-            "root_delay": "0 ns",
         },
         "sources": sources,
         "sourcestats": "Sample source statistics for desktop demo mode.",

@@ -6,8 +6,7 @@
 # never runs on an archive whose SHA-256 doesn't match.
 param(
   [Parameter(Mandatory=$true)][string]$PiHost,
-  [string]$PiUser = 'pi',
-  [switch]$UseDemoLayout
+  [string]$PiUser = 'pi'
 )
 $ErrorActionPreference = 'Stop'
 
@@ -24,7 +23,6 @@ $Remote = "$PiUser@$PiHost"
 # Upload into a fresh directory in the remote user's home, not a fixed /tmp name.
 $RemoteDir = 'gps-time-deploy'
 
-if ($UseDemoLayout) { Invoke-Native python @('tools/promote_dashboard.py') }
 if (Test-Path $Archive) { Remove-Item $Archive -Force }
 # The bundle ships the built web UI (/app/). Build it from this checkout;
 # build_bundles.py refuses a web/dist built from another version.

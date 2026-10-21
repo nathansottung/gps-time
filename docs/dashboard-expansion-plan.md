@@ -1103,13 +1103,13 @@ Example:
 ```text
 NTP CLIENTS
 
-nas01.local
-192.168.10.20
+nas.example
+192.0.2.20
 Packets: 84,201
 Last seen: 3 s ago
 
-workstation.local
-192.168.10.30
+workstation.example
+192.0.2.30
 Packets: 13,292
 Last seen: 12 s ago
 ```

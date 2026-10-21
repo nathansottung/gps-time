@@ -1,4 +1,6 @@
-# New web UI (/app/) vs legacy dashboard: parity
+# New web UI (/app/) vs legacy dashboard: parity (CLOSED)
+
+**Closed 2026-10-21.** Every item below was ported to `/app/` or dropped by the owner, and the legacy pages were removed in #99 (`legacy-removal-plan.md` → "What was done"). Kept as the record of what each legacy feature became.
 
 The legacy pages stay until every row below is either done or explicitly dropped by the owner (ADR-0004). Status as of feat/web-dashboard, 2026-10-01.
 
