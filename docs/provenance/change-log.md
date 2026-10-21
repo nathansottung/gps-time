@@ -1159,3 +1159,12 @@ Owner's decision: drop Electron. A tray app runs the same Python backend, packag
 - `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`: Goal rewritten; receiver input via the Python backend (e.g. `pyserial`) instead of Node `serialport`; "neither the tray app nor the browser UI runs elevated"; shared code settled (bundled backend, no TypeScript port); open questions now ask about the packager, installer format, tray library and localhost port, instead of bundled-vs-port.
 - `decisions/ADR-0006-desktop-tray-app.md` records the decision; indexed in `INDEX.md`.
 - `STATUS.md`: decision entry and one done row. Docs only; the roadmap stays FUTURE, not scheduled.
+
+## 2026-10-21 — README reworked for first-time visitors (#108)
+
+Owner's request: README in this order: what it is (two sentences and the screenshot), quick start (demo on a PC, install on a Pi), supported hardware (tested vs expected, with known limits), planned hardware, features now and planned, accuracy (measured figures only), docs/contributing/license. Short, linking out.
+
+- **Supported hardware:** tested is only the Pi 4 + Uputronics MAX-M8Q on Debian 12 (one development unit, weak antenna site). The Adafruit, SparkFun and Waveshare profiles, USB receivers (NMEA only), the Pi 5 and Debian 13 are listed as expected to work, untested on hardware.
+- **Accuracy:** only figures measured on that unit, from `development/raspberry-pi-deploy.md`: chrony RMS offset 244 ns (rc.8, 14 days); PPS interval 1.000 000 s ± 1.3 µs (rc.10, 600 pulses); ADEV 1.7 × 10⁻⁶ at 1 s and 2.2 × 10⁻⁸ at 100 s; +1.7 µs after one 56-minute PPS loss; 9.9 % missed pulses in a weak-signal window. The README says these are agreement with the station's own PPS reference and that accuracy against UTC has not been measured.
+- **Removed from the README** (still in the linked docs): the Vision section (`ROADMAP.md`), the "won't claim" list (folded into one line under features; `docs/README.md`), and the known-limitations list (linked as open issues in `STATUS.md`). `public-release-checklist.md` updated to match.
+- Docs only.
