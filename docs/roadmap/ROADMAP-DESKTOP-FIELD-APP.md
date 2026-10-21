@@ -45,6 +45,16 @@ Changing system time needs elevated rights on every OS. The Electron UI must nev
 
 On Linux, a receiver that drives PPS on the serial DCD line can appear as `/dev/pps0` via `ldattach`. Reuse the Pi's timing-chain model and PPS state machine unchanged.
 
+## Desktop host
+
+Owner's notes, 2026-10-21.
+
+- Same backend and `web/` UI as the Pi, served on localhost from a tray app (Windows, macOS).
+- The receiver inspector becomes the Receivers page: identity, lock times, C/N0, sky, timing.
+- Each time source gets a tier and an honest ± bound: PPS, USB native, USB bridge.
+- Trust receiver time only after leap-second data has arrived. Observed: a u-blox 7 ran 2 s off for 12 minutes before it had the GPS–UTC offset.
+- The Pi stays the reference; desktops learn their offsets from it.
+
 ## Shared code
 
 - The UI is the `web/` app with a desktop data adapter, the same way demo mode works.

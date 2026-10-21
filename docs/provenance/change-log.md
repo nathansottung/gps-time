@@ -1143,3 +1143,11 @@ Owner's request: build the PPS evidence capture script (`ROADMAP-OSCILLATOR-AND-
 - **Privacy:** gpsd output goes through `gps_time_pi/gpsd_redact.py` (standard library only, runs without the venv). It removes the position in every privacy mode (latitude, longitude, heights, geoid separation, magnetic variation, ECEF and relative fields), drops non-JSON lines, and in hidden mode also removes satellite azimuth/elevation. `--include-position` keeps only what the station's mode shows on screen (exact; rounded to 1 decimal and MSL altitude to 10 m; hidden: nothing). An unreadable config counts as hidden. Without `python3` the gpsd output is left out. No hostname, NTP client addresses or chrony `allow` lines are collected.
 - **Docs:** `architecture/timing-chain.md` troubleshooting step 5 now names the script. The read-only button on the PPS diagnostics page is still to do (`STATUS.md`, planned).
 - **Tests:** `tests/test_pps_evidence_capture.py` (17): the filter in every mode, config mode fallback, the script's text (only read-only `chronyc` reports, only `systemctl show`, no privilege escalation, writes only to its own directory), and on POSIX the whole script against a fake sysfs/dev/etc/boot tree with stub tools: archive contents, no example coordinates in any file in any mode, `--include-position`, missing `gpspipe`, bad options. Not yet run on a Pi.
+
+## 2026-10-21 — desktop host notes in the desktop field app roadmap (#PR)
+
+Owner's request: merge the desktop host notes into `roadmap/ROADMAP-DESKTOP-FIELD-APP.md` as a "Desktop host" section; the notes file itself is not added.
+
+- New section "Desktop host", after "Linux PPS path": the same backend and `web/` UI served on localhost from a tray app (Windows, macOS); the receiver inspector as the Receivers page; a tier and ± bound per time source (PPS, USB native, USB bridge); receiver time trusted only after leap-second data has arrived (observed: a u-blox 7 2 s off for 12 minutes); the Pi as the reference desktops learn their offsets from.
+- The rest of the roadmap is unchanged. Its Goal still names Electron and its open questions still list "Python bundled vs TypeScript port"; the notes point to the bundled backend in a tray app, which the owner settles when the work is scoped.
+- Docs only. The roadmap stays FUTURE, not scheduled.
