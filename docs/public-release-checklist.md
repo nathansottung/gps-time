@@ -47,7 +47,7 @@ Making the repository public publishes every commit, not only `main` as it is to
 - [ ] `docs/ROADMAP.md` counts and statuses match `STATUS.md` on the release date.
 - [ ] `START-HERE.md` and the deploy checklists target the release being published.
 - [ ] Doc contradictions (GPS-025): the named stale items are fixed (runbook "idempotent", "RAM-backed history", the dashboard README, the plugin/localStorage text, the folder name); the maturity vocabulary mismatch between `docs/README.md` and the feature registry remains.
-- [ ] A screenshot for the README, taken in screenshot mode (`/app/`, Alt+Shift+S) with location privacy set to rounded or hidden. Check it by eye: no coordinates, heights, client addresses or hostname.
+- [x] A screenshot for the README, taken in screenshot mode (`/app/`, Alt+Shift+S) with location privacy set to rounded or hidden. Check it by eye: no coordinates, heights, client addresses or hostname. Done in #PR: `docs/screenshots/overview.png`, the Overview page from the desktop demo (synthetic data), 1440 × 900, privacy rounded; checked by eye (hostname masked; no coordinates, heights or client addresses on the page).
 
 ## 6. Repository settings (GitHub)
 
@@ -70,7 +70,7 @@ Nothing below has been done; each is the owner's step.
 
 1. ~~Confirm the dataset sources~~: done in #101 (section 4).
 2. **Wait for v1.4.0** (the scheduled soak check), or decide to go public on the pre-release.
-3. **Take the README screenshot** in screenshot mode with location privacy on (section 5), if wanted.
+3. ~~Take the README screenshot~~: done in #PR (section 5).
 4. **Flip the repository to public** (Settings → General → Danger zone).
 5. **Right after, in Settings:**
    - branch protection on `main` (pull request, CI checks required, no force pushes; not available while private on the current plan);

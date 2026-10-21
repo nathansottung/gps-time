@@ -4,6 +4,10 @@
 
 GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into an NTP server for your network. It watches every stage of the timing chain (receiver, satellites, PPS pulse, chrony) and says plainly what it can observe and what it can't. Around that core it adds offline sky and solar tools. Everything runs on the Pi, without the Internet.
 
+![The Overview page of the web UI: timing chain stages, local time and timing quality](docs/screenshots/overview.png)
+
+*The Overview page in the desktop demo (synthetic data), taken in screenshot mode with location privacy set to rounded.*
+
 ## Vision
 
 A small, offline station that keeps exact time and shows honestly how good that time is.
