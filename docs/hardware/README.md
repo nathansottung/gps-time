@@ -2,6 +2,8 @@
 
 Existing board setup guidance remains in `../HARDWARE-PROFILES.md` and `../GNSS-SURVEY-AND-INSTALLATION.md`.
 
+Reference node parts list (DRAFT, owner-provided): [`HARDWARE-REFERENCE-NODE.md`](HARDWARE-REFERENCE-NODE.md).
+
 Hardware documentation should ultimately cover:
 
 - Raspberry Pi 4/5 reference builds

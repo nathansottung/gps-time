@@ -38,6 +38,7 @@ What a timed, fixed station can measure and calculate on its own, offline.
 | [`specs/ADDENDUM-SKY-SOLAR-SATELLITE.md`](specs/ADDENDUM-SKY-SOLAR-SATELLITE.md) | Earth shadow and satellite illumination, solar geometry, sky obstruction | In progress (11 done, 24 planned) |
 | [`roadmap/feature-registry.md`](roadmap/feature-registry.md) | The full feature inventory, sections A–J | In progress (15 done, 1 scheduled, 92 planned) |
 | [`hardware/zed-f9-dual-band.md`](hardware/zed-f9-dual-band.md) | A dual-band u-blox receiver profile (ZED-F9T or ZED-F9P): fewer outages, more satellites, raw data for PPP | Next (plan) |
+| [`hardware/HARDWARE-REFERENCE-NODE.md`](hardware/HARDWARE-REFERENCE-NODE.md) | A reference parts list in four tiers (timing station, precision station, RF node, sensor add-ons), so results from different owners are comparable | Draft (part numbers are examples) |
 | [`roadmap/current-scope.md`](roadmap/current-scope.md) | What the 1.4 line contains | In progress (5 done, 1 scheduled, 1 planned) |
 
 ## Phase 3 — After v1.4.0
@@ -48,18 +49,21 @@ What a timed, fixed station can measure and calculate on its own, offline.
 | [`roadmap/ROADMAP-WEB-UPDATES.md`](roadmap/ROADMAP-WEB-UPDATES.md) | Software updates and config upload from the web UI, LAN only | Future, low priority |
 | [`roadmap/ROADMAP-DESKTOP-FIELD-APP.md`](roadmap/ROADMAP-DESKTOP-FIELD-APP.md) | A laptop and a GNSS receiver as an off-grid time source for ham digital modes | Future |
 
-## Phase 4 — Radio
+## Phase 4 — Radio and the coordinator
 
 | Document | What it covers | Status |
 |---|---|---|
+| [`specs/SPEC-COORDINATOR.md`](specs/SPEC-COORDINATOR.md) | The optional coordinator tier a small group runs on its own hardware: node sign-up and keys, transport, data formats, storage, processing services, privacy | Planned; required before any multi-station feature |
 | [`roadmap/ROADMAP-SDR-RF-OBSERVATORY.md`](roadmap/ROADMAP-SDR-RF-OBSERVATORY.md) | Timestamped, frequency-calibrated SDR observations | Planned (scoping) |
 | [`specs/SPEC-RF-NODE-AND-TDOA.md`](specs/SPEC-RF-NODE-AND-TDOA.md) | RF nodes synced to a station, MLAT calibration, TDOA, fox hunts | Planned (19 items) |
+| [`specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md`](specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md) | Nodes asking other nodes to capture the same signal at the same moment (capability registry, signed capture tasks, owner control), and a first FM broadcast TDOA trial | Planned (option, in stages) |
 
 ## Phase 5 — Geophysics and distributed science
 
 | Document | What it covers | Status |
 |---|---|---|
 | [`roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md`](roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md) | A network of timed stations measuring real effects: interference maps and site stability now; Earth tides, ionosphere and water vapor with dual-frequency receivers. Includes what cannot be measured at any tier | Future, research |
+| [`roadmap/ROADMAP-SENSOR-FUSION.md`](roadmap/ROADMAP-SENSOR-FUSION.md) | Optional sensors on timed nodes (seismic, infrasound, VLF lightning, muons, all-sky camera, magnetometer), the timing each needs, and events seen by several sensors | Future |
 
 ## What GPS Time will not claim
 
