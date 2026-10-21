@@ -1176,3 +1176,13 @@ Owner's correction: the tested Pi runs Debian 13 (Trixie, Python 3.13), not Debi
 - `README.md`: the tested row and the Pi install line say Debian 13; Debian 12 (Bookworm, Python 3.11) moves to "expected to work" (its Python runs in CI, untested on hardware).
 - `deploy/fresh-pi-install.md` says which release is tested on hardware. `STATUS.md`: the Debian 13 support row (#38) no longer says "not yet run on a Pi". No status changed.
 - Docs only.
+
+## 2026-10-21 — module architecture spec; README "Where this is going" (#110)
+
+Owner's request: add `SPEC-EXTENSIBILITY.md` to `docs/specs/`, add the vision text to `README.md` as "Where this is going", and mark the spec next.
+
+- `specs/SPEC-EXTENSIBILITY.md` (NEXT), copied verbatim: module types, layout, manifest, interfaces, data contracts, UI cards, tooling, the first example modules and the order of work. Indexed in `ROADMAP.md` (Phase 3) and `INDEX.md`.
+- `README.md`: "Where this is going" added verbatim, after Accuracy and before the docs list.
+- `STATUS.md`: next-5 item 5 is the module architecture (the list had four items); new area EXT with one `next` row per step of the spec's order of work; one done row for this import.
+- Debian 13: already fixed in #109; nothing else in the repository names Debian 12 as the tested release.
+- Docs only.

@@ -45,6 +45,7 @@ What a timed, fixed station can measure and calculate on its own, offline.
 
 | Document | What it covers | Status |
 |---|---|---|
+| [`specs/SPEC-EXTENSIBILITY.md`](specs/SPEC-EXTENSIBILITY.md) | How every future feature is added: modules (source, reference, analysis, UI) with a manifest, typed interfaces, versioned schemas, fixtures and tests; the timing core untouched | Next |
 | [`roadmap/ROADMAP-OSCILLATOR-AND-MISC.md`](roadmap/ROADMAP-OSCILLATOR-AND-MISC.md) | Trained oscillator profile, networked SDR, assisted deploys, evidence capture | Future (the oscillator log it needs is done; the PPS evidence capture script is built) |
 | [`roadmap/ROADMAP-WEB-UPDATES.md`](roadmap/ROADMAP-WEB-UPDATES.md) | Software updates and config upload from the web UI, LAN only | Future, low priority |
 | [`roadmap/ROADMAP-DESKTOP-FIELD-APP.md`](roadmap/ROADMAP-DESKTOP-FIELD-APP.md) | A laptop and a GNSS receiver as an off-grid time source for ham digital modes | Future |

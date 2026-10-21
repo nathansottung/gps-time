@@ -13,6 +13,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `specs/SPEC-RF-NODE-AND-TDOA.md` — PLANNED, starts after v1.4.0: separate RF nodes synced to a station, MLAT calibration from ADS-B, distributed TDOA, fox hunts; accuracy model, rules and limits
 - `specs/SPEC-TIMING-METROLOGY.md` — NEXT: stability analysis (ADEV/MDEV/TDEV), time scales panel, independent references, smaller items; then NTS, then PTP output
 - `specs/TASK-PPS-CHAIN.md` — implementation task for the PPS timing-chain backend (branch `feat/pps-chain`)
+- `specs/SPEC-EXTENSIBILITY.md` — NEXT (owner-provided, imported 2026-10-21): module architecture for every future feature (source, reference, analysis and UI modules; manifest, interfaces, data contracts, tooling, first example modules, order of work)
 - `specs/SPEC-COORDINATOR.md` — PLANNED (owner-provided, imported 2026-10-21); required before any multi-station feature: the optional coordinator tier (roles, node keys and sign-up, transport, data formats, storage, processing services, privacy, deployment)
 - `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` — OPTION, planned (owner-provided, imported 2026-10-21); extends `SPEC-RF-NODE-AND-TDOA.md`: capability registry, capture-task protocol, stages of access, rules, and a first FM broadcast TDOA trial
 
