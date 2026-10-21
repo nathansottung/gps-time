@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gps-time/sigmf-gpstime/1",
+  "title": "SigMF global object with the gpstime: extension",
+  "description": "The 'global' object of an observation's .sigmf-meta (docs/specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md, Part 1). Checked by gps_time_pi/obsformat.py, which adds the checks a schema can't express: the data file's checksum and size, capture order, timestamps and the privacy rule for the position.",
+  "type": "object",
+  "required": ["core:datatype", "core:sample_rate", "core:version", "core:recorder", "core:extensions",
+               "gpstime:schema", "gpstime:station_id", "gpstime:sensor", "gpstime:quantity", "gpstime:unit",
+               "gpstime:channels", "gpstime:time_source", "gpstime:time_offset_bound_s",
+               "gpstime:sample_time_uncertainty_s", "gpstime:frequency_reference", "gpstime:calibration",
+               "gpstime:position", "gpstime:provenance", "gpstime:request_id", "gpstime:licence",
+               "gpstime:checksum", "gpstime:signature"],
+  "properties": {
+    "core:datatype": {"enum": ["cf32_le", "ci16_le", "cu8", "rf32_le", "ri16_le"]},
+    "core:sample_rate": {"type": "number", "minimum": 0},
+    "core:version": {"type": "string", "pattern": "^1[.][0-9]+[.][0-9]+$"},
+    "core:recorder": {"type": "string", "minLength": 1},
+    "core:hw": {"type": "string"},
+    "core:description": {"type": "string"},
+    "core:extensions": {"type": "array", "items": {"type": "object", "required": ["name", "version", "optional"]}},
+    "gpstime:schema": {"const": "1"},
+    "gpstime:station_id": {"type": "string", "minLength": 1},
+    "gpstime:sensor": {"enum": ["rf", "audio", "infrasound", "seismic", "magnetic", "optical", "particle", "weather", "other"]},
+    "gpstime:quantity": {"type": "string", "minLength": 1},
+    "gpstime:unit": {"type": "string"},
+    "gpstime:channels": {"type": "array", "items": {"type": "object", "required": ["name"]}},
+    "gpstime:time_source": {"enum": ["pps", "ntp", "mlat_calibrated", "free_running", "pps_marker"]},
+    "gpstime:time_offset_bound_s": {"type": ["number", "null"], "minimum": 0},
+    "gpstime:sample_time_uncertainty_s": {"type": ["number", "null"], "minimum": 0},
+    "gpstime:frequency_reference": {
+      "type": "object",
+      "required": ["state"],
+      "properties": {
+        "state": {"enum": ["free", "calibrated", "gpsdo"]},
+        "error_ppm": {"type": ["number", "null"]},
+        "source": {"type": "string"}
+      }
+    },
+    "gpstime:calibration": {"type": ["object", "null"]},
+    "gpstime:position": {
+      "type": "object",
+      "required": ["privacy", "lat", "lon"],
+      "properties": {
+        "privacy": {"enum": ["exact", "rounded", "hidden"]},
+        "lat": {"type": ["number", "null"]},
+        "lon": {"type": ["number", "null"]},
+        "alt_m": {"type": ["number", "null"]},
+        "uncertainty_m": {"type": ["number", "null"]}
+      }
+    },
+    "gpstime:provenance": {"enum": ["observed", "calculated", "modeled", "predicted", "inferred", "external"]},
+    "gpstime:request_id": {"type": ["string", "null"]},
+    "gpstime:licence": {"type": "string", "minLength": 1},
+    "gpstime:checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "gpstime:signature": {"type": ["string", "null"]}
+  }
+}

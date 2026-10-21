@@ -237,6 +237,84 @@ class TestDetector(unittest.TestCase):
         self.assertEqual(len(detect(x, FS, pulse_width_s=None)), 2 * len(truth["markers"]))
 
 
+class TestObservationOutput(unittest.TestCase):
+    """Captures written as observation files with time_source pps_marker."""
+
+    def write(self, name, **kw):
+        import shutil, tempfile
+        from gps_time_pi import obsformat
+        from sdr_pps_marker.observation import to_observation
+        _, x, truth, markers, model = run(name)
+        meta, data = to_observation(x, model, station_id="demo-station", frequency_hz=100.1e6,
+                                    timing={"state": "PPS", "offset_bound_s": 1e-6}, **kw)
+        d = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        base = d / obsformat.filename("demo-station", "rf", obsformat.parse_ns(
+            next(c["core:datetime"] for c in meta["captures"] if "core:datetime" in c)))
+        obsformat.write(base, meta, data)
+        return obsformat, base, x, truth, model
+
+    def test_valid_file_with_pps_marker_time_source(self):
+        of, base, x, _, model = self.write("clean")
+        errs, warns = of.validate(base)
+        self.assertEqual(errs, [])
+        meta, data = of.read(base)
+        g = meta["global"]
+        self.assertEqual(g["gpstime:time_source"], "pps_marker")
+        self.assertEqual(g["gpstime:sample_time_uncertainty_s"], model.summary()["sample_time_uncertainty_s"]["value"])
+        self.assertEqual(g["gpstime:frequency_reference"]["state"], "calibrated")
+        self.assertEqual(g["gpstime:time_offset_bound_s"], 1e-6)
+        self.assertEqual(g["gpstime:position"], {"privacy": "hidden", "lat": None, "lon": None})
+        self.assertEqual(of.sample_count(meta, data), len(x))
+        labels = [a["core:label"] for a in meta["annotations"]]
+        self.assertEqual(labels.count("pps_marker"), len(model.markers))
+
+    def test_file_times_match_the_time_model_and_the_truth(self):
+        of, base, x, truth, model = self.write("fast-clock-drifting")
+        meta, _ = of.read(base)
+        checked = 0
+        for j in range(0, len(x), 997):
+            ft = of.sample_time(meta, j)
+            mt = model.utc(j)
+            self.assertEqual(ft is None, mt is None, j)
+            if ft is None:
+                continue
+            checked += 1
+            self.assertLessEqual(abs(ft[0] - mt.ns), 2, "file and model agree to the nanosecond")
+            ts, tf = truth["true_utc"](j)
+            err_s = abs(ft[0] / 1e9 - ts - tf)
+            self.assertLess(err_s, 1.96 * ft[1] + 1e-9)
+        self.assertGreater(checked, 100)
+
+    def test_dropped_samples_have_no_time_in_the_file(self):
+        of, base, x, truth, model = self.write("usb-drop")
+        meta, _ = of.read(base)
+        ev = model.events()[0]
+        self.assertIsNone(of.sample_time(meta, int((ev["from_sample"] + ev["to_sample"]) / 2)))
+        self.assertIn("samples_missing", [a["core:label"] for a in meta["annotations"]])
+        self.assertEqual(of.validate(base)[0], [])
+
+    def test_rounded_position_and_ci16(self):
+        of, base, x, *_ = self.write("clean", position={"privacy": "rounded", "lat": 38.9, "lon": -77.1},
+                                     datatype="ci16_le")
+        self.assertEqual(of.validate(base)[0], [])
+        meta, data = of.read(base)
+        scale = meta["global"]["gpstime:calibration"]["sample_scale"]
+        back = of.decode(data, "ci16_le")
+        self.assertLess(max(abs(b / scale - a) for a, b in zip(x, back)), 1.0 / scale)
+
+    def test_only_float_iq_datatypes(self):
+        from sdr_pps_marker.observation import to_observation
+        _, x, _, _, model = run("clean")
+        with self.assertRaises(ValueError):
+            to_observation(x, model, station_id="s", frequency_hz=1e8, datatype="cu8")
+
+    def test_no_observation_without_time(self):
+        from sdr_pps_marker.observation import to_observation
+        with self.assertRaises(ValueError):
+            to_observation([0j] * 10, TimeModel([], FS, START), station_id="s", frequency_hz=1e8)
+
+
 class TestManifest(unittest.TestCase):
     def test_manifest(self):
         m = tomllib.loads((HERE / "module.toml").read_text(encoding="utf-8"))

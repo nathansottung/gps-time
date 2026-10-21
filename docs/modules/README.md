@@ -55,7 +55,7 @@ python -m gps_time_pi.modkit demo my-sensor        # run it from its fixtures, p
 - Every value goes through `gps_time_pi.labels.q(value, unit, provenance)`. A value that can't be established is `None`, not a guess.
 - A module reads time and timing quality from `ctx`. It never changes chrony, gpsd or PPS settings, and gets positions only through `ctx.site()`.
 
-Interfaces and `ctx`: [interfaces.md](interfaces.md). Data contracts: [schemas.md](schemas.md).
+Interfaces and `ctx`: [interfaces.md](interfaces.md). Data contracts: [schemas.md](schemas.md). Sample data files: [observation-format.md](observation-format.md).
 
 ## 4. Enable it on a station
 

@@ -45,7 +45,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
 
 ## Modules
-- `modules/README.md` — the guide: create, fill in, test and enable a module (`tools/new_module.py`, `python -m gps_time_pi.modkit`); `modules/interfaces.md`, `modules/schemas.md`; ADR-0007
+- `modules/README.md` — the guide: create, fill in, test and enable a module (`tools/new_module.py`, `python -m gps_time_pi.modkit`); `modules/interfaces.md`, `modules/schemas.md`, `modules/observation-format.md` (SigMF + `gpstime:` observation files, `gps_time_pi/obsformat.py`); ADR-0007
 - `../modules/` — optional modules in the layout of `specs/SPEC-EXTENSIBILITY.md`; not run by the station until the module loader exists. Their tests run with the station's (`tests/test_modules.py`).
 - `../modules/sdr-pps-marker/` — research step 1 of `specs/SPEC-SDR-PPS-MARKER.md`: synthetic generator, PPS marker detector, sample-to-UTC time model
 
