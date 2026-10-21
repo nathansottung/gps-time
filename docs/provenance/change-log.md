@@ -1331,7 +1331,7 @@ Owner's request: each module in its own unprivileged process, with permissions a
   - `test_modkit.py` and `test_new_module.py` adapted: an entry-point failure now shows when the module starts, in its own process.
 - **STATUS.md:** EXT Safety done; one user per module added as planned.
 
-## 2026-10-21 — station key pair; observation files signed and verified (#PR)
+## 2026-10-21 — station key pair; observation files signed and verified (#121)
 
 Owner's request: generate a station key pair at install, sign observation files, verify in the validator.
 
