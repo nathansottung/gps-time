@@ -104,9 +104,31 @@ python -m gps_time_pi.station_key verify <base> --trust ed25519:...
   - errors: any change after signing, a public key that doesn't match the station ID, or changed samples;
   - warnings: unsigned files, a valid signature from a station not in the trusted list, and signatures it can't check (no `cryptography` package).
 
+## Converting to WAV and miniSEED
+
+Converters, not replacements: the observation file stays the record. Code: [`gps_time_pi/convert.py`](../../gps_time_pi/convert.py).
+
+```bash
+python -m gps_time_pi.convert wav <base> <out_base> [--sign]
+python -m gps_time_pi.convert miniseed <base> <out.mseed> --net XX --sta GTP01 --loc 00 --cha HDF
+```
+
+**WAV** (audio, IQ):
+- 16-bit PCM: mono for real samples, stereo I/Q for complex.
+- A sidecar `<out_base>.sigmf-meta` points at the WAV (`core:dataset`, `core:header_bytes` 44) and keeps the original captures, so every sample keeps its UTC time exactly. It records `gpstime:derived_from` (source checksum, station, signature, method) and the scale in `gpstime:calibration`.
+- The original signature doesn't carry over; `--sign` signs the sidecar with this station's key.
+- WAV can only hold an integer sample rate; the sidecar keeps the exact one.
+
+**miniSEED 2** (seismic, infrasound, other real samples):
+- 512-byte big-endian records: INT32 from `ri16_le`, FLOAT32 from `rf32_le`. Complex data is refused, and so is a non-integer nominal rate.
+- Each record's start time comes from the observation's own timing, to 1 µs (BTIME plus blockette 1001). Blockette 100 carries the measured rate.
+- Samples without a time are left out, as a gap.
+- The I/O flag "clock locked" is set for `pps` and `pps_marker` time sources. Timing quality is not set (0).
+- `<out>.gpstime.json` keeps what miniSEED has no field for: station ID, source checksum and signature, uncertainties, provenance.
+- Checked against ObsPy 1.5.1: codes, start times, rates, encodings, samples and gaps read back as written (`tests/test_convert.py`, skipped where ObsPy isn't installed).
+
 ## Not yet
 
-- Converters to miniSEED and WAV.
 - Rolling buffers and capture requests (Part 2 of the spec).
 
 ## Example: sdr-pps-marker
