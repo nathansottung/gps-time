@@ -1055,4 +1055,27 @@ Legacy removal steps 7–9, done together at the owner's request while rc.11 soa
 - **Docs:** ADR-0004 gains its outcome, `web-ui-parity.md` is closed, `legacy-removal-plan.md` records what was done, and `CLAUDE.md`, the API docs, the checklists, the guides and `web/AGENTS.md` are updated.
 - **Tests:** `test_inline_styles.py` and the web tests that read the legacy JavaScript are removed. New tests check that `/` and every old path redirect with the query kept; that `/static/*`, `custom.css` and `/api/dashboard` are 404; and that every kind of response carries exactly `CSP_STRICT`. Python 575 tests and web 196 pass (an earlier count of 583 in #99's description included the removed legacy tests).
 - **Rollback:** deploy v1.4.0-rc.11 (or v1.4.0) to get the legacy pages back.
+
+## 2026-10-21 — public release preparation (#100)
+
+Owner's request: run the public release checklist, scan all history, confirm the license and third-party notices, write CONTRIBUTING and a public README, and report before the repository is made public. It stays private.
+
+- **History scan (read-only):**
+  - Every git object (1,231; all branches, tags and remote refs, including `refs/pull/*`), all messages, and the one committed archive were scanned for secrets, coordinates and personal details. So were the PR bodies and comments and the release notes.
+  - Found: no secrets, no real station coordinates, no personal email or usernames, and only noreply commit identities. **No history rewrite is needed.**
+  - The demo's NTP client addresses were in the owner's LAN range: moved to RFC 5737 addresses. A personal folder name was trimmed from `development/new-machine.md`.
+- **GPS-022 (bundle builder):** `tools/build_bundles.py` archives only files git tracks, so an untracked `.env`, `config.json` or token file in a checkout never ships. Station state and secrets (`config.json*`, `admin-token.sha256`, `timing-events.json`, `.env*`, `*.bsp`, `*.log`, `*.sha256`) are refused even without git. Tests plant untracked files in the checkout and check that neither archive contains them.
+- **Licensing:**
+  - `LICENSE` is standard MIT.
+  - New `THIRD_PARTY_NOTICES.md` lists the bundled datasets, the npm packages shipped in the web UI (MIT, ISC, BSD-3; fonts under OFL-1.1), the Python packages a station installs, and the data it downloads, with the BSD notice.
+  - The two OFL texts are in `third_party/licenses/`. The notices and license texts ship in the Pi bundle.
+  - The sources of the three sky datasets are as `almanac-design-scope.md` states (OpenNGC, Yale BSC, d3-celestial), marked "to confirm" for the owner (GPS-023 partial).
+- **GPS-026:** the five sentences in `platform-extensions.md` and `open-lightning-network.md` that claimed more timing accuracy than the platform establishes are rephrased. They now say "enables, subject to characterization" and point to `sdr/timing-model.md`.
+- **GPS-025 (partial):** the runbook's "idempotent", "RAM-backed chrony history", the plugin/localStorage text and the folder name are corrected.
+- **For outside readers:**
+  - `README.md` rewritten: what it does, what it won't claim, status and known limitations, demo, Pi setup, hardware, docs, contributing, license.
+  - `CONTRIBUTING.md` rewritten: design rules, checks, PR rules, hardware profiles, privacy when reporting bugs.
+  - The bug template explains how to share diagnostics under privacy mode.
+- **`public-release-checklist.md`** records the result of each item, and section 8 lists what is left for the owner: confirm the dataset sources, wait for v1.4.0, the screenshot, the flip, and the settings that only exist once the repository is public.
 - Checks: Python 578 tests (575 plus the three new bundle tests) and web 196 pass; the build succeeds.
+- **Process slip:** the test-count correction (`9f4acaa`) was committed and pushed directly to `main` by mistake (a stray branch switch), outside a PR. It touched only this change log; its line is moved into this entry here. `main` was not force-pushed.

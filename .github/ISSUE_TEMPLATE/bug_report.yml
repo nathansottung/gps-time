@@ -24,4 +24,4 @@ body:
     id: evidence
     attributes:
       label: Reproduction / evidence
-      description: Commands, logs, screenshots, or a minimal reproducer. Redact private location and network details as needed.
+      description: Commands, logs, screenshots, or a minimal reproducer. Redact private location and network details. The diagnostic snapshot (PPS Diagnostics → COPY) follows the station's location privacy mode, so set it to rounded or hidden first; screenshot mode (Alt+Shift+S) masks coordinates, client addresses and the hostname on screen.

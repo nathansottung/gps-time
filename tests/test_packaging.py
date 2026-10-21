@@ -241,3 +241,53 @@ class TestWebUiInBundle(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNothingUntrackedOrSecretInBundles(unittest.TestCase):
+    """Review GPS-022: archives hold only files git tracks, and never station state or secrets."""
+
+    def setUp(self):
+        self.bb = _load_build_bundles()
+        self.bb._TRACKED = False                       # recompute for this checkout
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        # Untracked files a developer might have lying in a checkout.
+        self.planted = [ROOT / "gps_time_pi" / "zz-untracked-test.txt", ROOT / "scripts" / ".env.zz-test",
+                        ROOT / "zz-untracked-root-test.md"]
+        for p in self.planted:
+            p.write_text("SECRET-should-not-ship\n", encoding="utf-8")
+            self.addCleanup(p.unlink)
+
+    def names(self):
+        tar, zp = self.tmp / "pi.tar.gz", self.tmp / "dev.zip"
+        self.bb.build_pi_tar(tar)
+        self.bb.build_repo_zip(zp)
+        with tarfile.open(tar) as t, zipfile.ZipFile(zp) as z:
+            return set(t.getnames()), set(z.namelist())
+
+    def test_untracked_files_never_ship(self):
+        if self.bb.git_tracked() is None:
+            self.skipTest("not a git checkout")
+        tar, zp = self.names()
+        for p in self.planted:
+            arc = "gps-time/" + p.relative_to(ROOT).as_posix()
+            self.assertNotIn(arc, tar)
+            self.assertNotIn(arc, zp)
+
+    def test_station_state_and_secrets_are_refused_even_without_git(self):
+        for name in ("config.json", "config.json.prev", "admin-token.sha256", "timing-events.json",
+                     ".env", ".env.local", "de440s.bsp", "chrony.log"):
+            p = self.tmp / name
+            p.write_text("x", encoding="utf-8")
+            with mock.patch.object(self.bb, "ROOT", self.tmp):
+                self.assertFalse(self.bb.wanted(p, tracked=None), name)
+        ok = self.tmp / "fine.py"
+        ok.write_text("x", encoding="utf-8")
+        with mock.patch.object(self.bb, "ROOT", self.tmp):
+            self.assertTrue(self.bb.wanted(ok, tracked=None))
+
+    def test_pi_tar_ships_the_license_and_third_party_notices(self):
+        tar, _ = self.names()
+        for n in ("LICENSE", "THIRD_PARTY_NOTICES.md", "third_party/licenses/OFL-1.1-Inter.txt",
+                  "third_party/licenses/OFL-1.1-JetBrains-Mono.txt"):
+            self.assertIn("gps-time/" + n, tar)

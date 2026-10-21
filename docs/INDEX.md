@@ -66,7 +66,8 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
-- `public-release-checklist.md` — DRAFT: what to check before the repository goes public (history scan, release blockers, licensing, outside-reader docs, GitHub settings)
+- `../THIRD_PARTY_NOTICES.md` — third-party software and data: what is bundled, shipped, installed and downloaded, and under which license
+- `public-release-checklist.md` — RUN 2026-10-21: what was checked before the repository goes public (history scan, release blockers, licensing, outside-reader docs, GitHub settings), the result of each, and the owner's remaining steps
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
 ## Hardware

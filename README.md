@@ -1,8 +1,8 @@
 # GPS Time
 
-**Development status: v1.4.0-rc.11 (pre-release).** GPS Time began as a Raspberry Pi GPS/PPS Stratum-1 NTP appliance and is being structured as an **open-source, timing-first, offline-capable measurement platform**.
+**Development status: v1.4.0-rc.11 (pre-release).** A Raspberry Pi Stratum-1 time server that shows how good its time is, and why.
 
-GNSS establishes *when* and *where*. The platform then layers on local astronomy/solar/geodesy, network metrology, sensors, SDR/RF observation, ADS-B/UAT, and eventually opt-in distributed science—without making any of those optional capabilities dependencies of the timing core.
+GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into an NTP server for your network. It watches every stage of the timing chain (receiver, satellites, PPS pulse, chrony) and says plainly what it can observe and what it can't. Around that core it adds offline sky and solar tools. Everything runs on the Pi, without the Internet.
 
 ## Vision
 
@@ -10,98 +10,70 @@ A small, offline station that keeps exact time and shows honestly how good that 
 On that timing core: measurement, sky and radio science, each value labeled with where it came from.
 Later, a network of such stations doing opt-in distributed science. Phases and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-> The historical v1.3.0 timing appliance works as a development baseline, but a source review identified measurement-freshness, chrony-history semantics, persistence and administrative-security work that must be resolved/dispositioned before a stable public release. See [`docs/review/source-review-2026-09-07.md`](docs/review/source-review-2026-09-07.md).
+## What it does today
 
-## Desktop demo first
+- **Serves time.** gpsd and chrony with the PPS refclock: stratum 1 when PPS is selected, with honest fallback states (network, holdover, unsynchronized). The web UI never drives the clock; timing keeps working if it fails.
+- **Shows the timing chain.** Receiver → satellites → navigation solution → PPS device → pulses → chrony, each stage observed or marked UNKNOWN. PPS outages are recorded as events with evidence kept on the SD card, and classified only as far as the evidence goes (no guessed causes).
+- **Measures itself.** Allan, modified Allan and time deviation from kernel PPS timestamps; chrony's offset with its standard deviation and its error bound; comparison with independent NTP servers; NTP service counters; an oscillator-versus-temperature log; time scales (TAI, GPS time, MJD) with leap-second table expiry.
+- **Knows its sky, offline.** Sun and moon times with twilight and night bars for any date from 1850 to 2149, a sky map and object lookup, the Earth's shadow over the station and satellite illumination (from a locally cached orbital-element file).
+- **Respects privacy.** The station's location can be shown exactly, rounded to about 11 km, or hidden everywhere (pages, API, diagnostics, derived values). A screenshot mode masks coordinates, heights, client addresses and the hostname on screen.
+- **One web UI** at `/app/` (`/` redirects there), served by the station itself: no CDN, no web fonts from elsewhere, no analytics. Dark and red night themes, and pages and cards you can hide per browser.
+- **Safe administration.** Read-only by default. Service actions and settings need an admin token, are POST-only and same-origin, and run through a fixed polkit rule; the web service runs unprivileged.
 
-The easiest way to work on the UI is Windows + VS Code with sample data:
+Every value carries a provenance label: observed, calculated, modeled, predicted, inferred or external.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1
-```
+## What it won't claim
 
-Open `http://127.0.0.1:8080/` (it redirects to the web UI at `/app/`; build it first with `cd web && corepack pnpm run build`, otherwise `/app/` answers 503 with the build command).
+- A cause the evidence can't establish (jamming, spoofing, antenna failure). It reports what it observes.
+- Health for a stage it can't observe; that stage shows UNKNOWN.
+- Statistical repeatability as absolute accuracy, or the host clock's accuracy as the accuracy of an SDR sample, camera frame or network packet.
 
-Demo mode serves the **same web UI** as the Pi, with sample data. Its Configure page shows or hides pages and Overview cards per browser. No GPS receiver, chrony, gpsd or Internet connection is required to run the demo server.
+## Status and known limitations
 
-See [`docs/development/windows-demo.md`](docs/development/windows-demo.md).
+This is a pre-release. The release candidate is being soak-tested on a development Raspberry Pi before v1.4.0. An independent review of the code (`docs/review/`) found 32 issues; the open ones are tracked in [`docs/STATUS.md`](docs/STATUS.md). The main ones:
 
-## Current baseline capabilities
+- Holdover estimates still use the raw oscillator frequency, not a trained model (GPS-008); the UI marks them as planned.
+- Expensive requests aren't rate-limited and the service has no systemd resource limits yet (GPS-018).
+- The installer trusts the ephemeris download on first use and pip dependencies aren't hash-pinned (GPS-020).
+- The station serves plain HTTP. Use it on a trusted LAN, or put a TLS reverse proxy in front.
 
-- GNSS/PPS status via gpsd + chrony
-- Stratum-1 NTP architecture with optional Internet fallback
-- explicit synchronization states
-- timing quality, oscillator and source visibility
-- GNSS position/satellite table and a historical fixed-site survey implementation
-- NTP client IP activity
-- astronomy/almanac and local sidereal information
-- RAM-backed chrony tracking history / periodic persistence scaffolding
-- system diagnostics and dark/red-night themes
-- hardware configuration generator for multiple GNSS profiles
-- multi-page web UI (React, served at `/app/`) with per-browser page and card visibility
-- browser HTTP round-trip/clock-estimate probe
+## Try it without a Pi
 
-## Platform roadmap
-
-The canonical feature inventory is [`docs/roadmap/feature-registry.md`](docs/roadmap/feature-registry.md). Major families include:
-
-- timing metrology, holdover and light-distance-equivalent uncertainty
-- accepted site / geodesy / learned GNSS obstruction maps
-- offline Sun/Moon/solar-energy/magnetic/terrain/radio calculations
-- USB GNSS and precision GNSS hardware tiers
-- multiple SDRs, spectrum/RFI, WWV/CHU, WSPR/FST4W, meteor/satellite reception
-- ADS-B 1090, UAT 978 and MLAT integration
-- timing-aware SDR calibration and authorized amateur/test-beacon TDoA research
-- weather/environmental/optical/magnetic/acoustic sensors
-- satellite/aircraft/radiosonde Sun/Moon transit predictions
-- open VLF lightning-network research
-- decentralized, opt-in distributed observation records and requests
-- optional PTP/common-view GNSS/White Rabbit research tiers
-
-## Architecture
-
-The Pi remains a **Station Node**. Heavy DSP, long-term storage and multi-station solving can move to optional **Analysis Nodes** or **Network Coordinators**.
-
-Read [`docs/architecture/system-overview.md`](docs/architecture/system-overview.md).
-
-## Scientific naming and units
-
-Quantities should use canonical scientific terminology and unambiguous units. Friendly ELI5 copy supplements the expert value rather than replacing it.
-
-See [`docs/science/quantity-registry.md`](docs/science/quantity-registry.md) and [`docs/science/timing-metrology.md`](docs/science/timing-metrology.md).
-
-## Build and deploy
-
-Build repo and Pi archives:
+The demo serves the same web UI with sample data. It needs Python 3.11+ and, for the UI, Node 22 with corepack.
 
 ```bash
-python tools/build_bundles.py
+cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build && cd ..
+./scripts/run-demo.sh                          # http://127.0.0.1:8080/ (writes only under .dev/)
 ```
 
-Windows deploy helper:
+On Windows: `powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1`. Details: [`docs/development/windows-demo.md`](docs/development/windows-demo.md).
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost 192.168.1.50 -PiUser pi
-```
+## Run it on a Pi
 
-See [`docs/development/raspberry-pi-deploy.md`](docs/development/raspberry-pi-deploy.md).
+You need a Raspberry Pi 4 on Raspberry Pi OS Lite (Debian 12; Debian 13 is tested in CI but not yet on a Pi; the Pi 5 is untested), a GNSS receiver with its PPS output wired to a GPIO pin, and an antenna with a view of the sky.
+
+1. Generate the hardware snippets for your board: `python3 tools/generate_config.py --profile uputronics` (or another profile; see [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md)).
+2. Follow the checklist for a newly flashed Pi: [`docs/deploy/fresh-pi-install.md`](docs/deploy/fresh-pi-install.md). It covers the serial and PPS setup, chrony, the deploy script and the checks.
+3. Open `http://<your-pi>/`.
+
+Station already running an earlier 1.4 build: [`docs/deploy/upgrade-1.4-station.md`](docs/deploy/upgrade-1.4-station.md).
 
 ## Hardware
 
-The current deployed reference hardware is a Raspberry Pi 4 + Uputronics MAX-M8Q GPS/RTC HAT with GPIO PPS. Additional HAT/USB profiles are documented and generated through `tools/generate_config.py`.
+The reference build is a Raspberry Pi 4 with the Uputronics GPS/RTC board (u-blox MAX-M8Q, PPS on GPIO 18). Profiles exist for several other HATs and for USB receivers (NMEA-only, so no microsecond timing). A dual-band u-blox ZED-F9T / ZED-F9P profile is planned: [`docs/hardware/zed-f9-dual-band.md`](docs/hardware/zed-f9-dual-band.md).
 
-See [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md), [`docs/GNSS-SURVEY-AND-INSTALLATION.md`](docs/GNSS-SURVEY-AND-INSTALLATION.md), and [`docs/hardware/README.md`](docs/hardware/README.md).
+Antenna placement matters as much as the receiver: a weak signal shows up as PPS outages.
 
-## Open-source policy
+## Documentation
 
-Project-authored code, protocols, schemas, calibration formats, reference implementations and documentation are intended to remain open source. Third-party firmware, datasets, libraries and services retain their own licenses and are documented/provenanced rather than silently relicensed.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): every spec and roadmap, by phase, with status.
+- [`docs/STATUS.md`](docs/STATUS.md): every item and review finding, with the pull requests that delivered it.
+- [`docs/INDEX.md`](docs/INDEX.md): all documentation. [`docs/README.md`](docs/README.md): the project's design rules.
+- [`docs/api/`](docs/api/): the station's HTTP API.
 
-See [`docs/licensing/open-source-policy.md`](docs/licensing/open-source-policy.md).
+## Contributing, security, license
 
-## Documentation contract
-
-`/docs/` is part of the product. Human contributors and coding agents should start at [`docs/README.md`](docs/README.md). Material features, architectural decisions, maturity state, licensing constraints and implementation history belong in the repository—not only in chat history.
-
-## License
-
-MIT for project-authored code unless a file explicitly says otherwise. See [LICENSE](LICENSE).
+- Contributions are welcome: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- Report vulnerabilities privately: see [`SECURITY.md`](SECURITY.md).
+- The project's own code and documentation are under the MIT License ([`LICENSE`](LICENSE)).
+- Third-party software and data keep their own licenses: see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
