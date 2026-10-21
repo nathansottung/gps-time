@@ -1,0 +1,21 @@
+gps_time_pi/data/messier.json
+
+Contains data from OpenNGC by Mattia Verga (https://github.com/mattiaverga/OpenNGC),
+licensed under the Creative Commons Attribution-ShareAlike 4.0 International License
+(CC BY-SA 4.0): https://creativecommons.org/licenses/by-sa/4.0/
+Full legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Source: database_files/NGC.csv and database_files/addendum.csv at OpenNGC commit
+be3cd6c54988 (2026-10-18).
+
+Changes made by GPS Time (tools/build_sky_data.py):
+- only the 110 Messier objects are kept;
+- right ascension and declination are converted to decimal degrees and rounded to 0.0001 deg;
+- OpenNGC's object-type codes are written out as words;
+- the magnitude is OpenNGC's V magnitude, else its B magnitude, else none;
+- "Common names" are split into a list;
+- M102, which OpenNGC lists as a duplicate of M101, takes M101's data with a note saying so.
+
+This file (messier.json) is therefore an adapted work of OpenNGC and is itself licensed
+under CC BY-SA 4.0, not under the MIT License that covers the rest of GPS Time. Anyone
+redistributing a changed version must keep this attribution and license it the same way.

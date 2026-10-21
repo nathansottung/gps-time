@@ -1079,3 +1079,25 @@ Owner's request: run the public release checklist, scan all history, confirm the
 - **`public-release-checklist.md`** records the result of each item, and section 8 lists what is left for the owner: confirm the dataset sources, wait for v1.4.0, the screenshot, the flip, and the settings that only exist once the repository is public.
 - Checks: Python 578 tests (575 plus the three new bundle tests) and web 196 pass; the build succeeds.
 - **Process slip:** the test-count correction (`9f4acaa`) was committed and pushed directly to `main` by mistake (a stray branch switch), outside a PR. It touched only this change log; its line is moved into this entry here. `main` was not force-pushed.
+
+## 2026-10-21 — sky data provenance verified; Messier data rebuilt from OpenNGC (#101)
+
+Owner's request: compare the bundled Messier, star and constellation files with OpenNGC, the Yale Bright Star Catalogue and d3-celestial; confirm the sources; add the required attribution; keep each file's own license; regenerate whatever can't be confirmed.
+
+- **Compared** (the sources downloaded for the comparison; nothing fetched at runtime):
+  - `stars.json`: all 921 stars are d3-celestial's `stars.6.json` to magnitude 4.5, identical to the committed bytes. **Not** the Yale BSC, as `almanac-design-scope.md` said: its magnitudes differ (Sirius −1.44 here and in d3-celestial, −1.46 in the BSC).
+  - The 99 named stars in `catalog.json`: exactly every d3-celestial star with a proper name to magnitude 2.6, brightest first.
+  - `constellations.json`: all 89 figures (Serpens in two parts) identical to d3-celestial's `constellations.lines.json`.
+  - The Messier list: 107 of 110 positions match OpenNGC to 0.5″, magnitudes and constellations match. M40, M45 and M102, two names and seven magnitudes (M22, M35, M62, M69, M70, M71, M107) came from elsewhere and couldn't be confirmed.
+- **Licenses confirmed at the source:** OpenNGC: CC BY-SA 4.0 (Mattia Verga). d3-celestial: BSD 3-Clause, © 2015 Olaf Frohn; its star data come from the XHIP compilation of Hipparcos.
+- **One license per file:** the Messier list moves from `catalog.json` to its own `messier.json` (CC BY-SA 4.0, an adapted work of OpenNGC). `catalog.json` keeps the named stars (BSD-3) and the planet list. `catalog.py` reads both.
+- **Rebuilt from source:**
+  - `tools/build_sky_data.py` builds all four files from pinned OpenNGC (`be3cd6c54988`) and d3-celestial (`7e720a3de062`) files. `--check` confirms the committed files match.
+  - The Messier list now carries OpenNGC's values for M40 and M45, and no magnitude where OpenNGC has none (the object card leaves it out).
+  - M102 follows OpenNGC, which lists it as a duplicate of M101. It takes M101's data with a note naming the NGC 5866 (Spindle Galaxy) identification. The note is shown on the object card (`/api/object` → `meta`) but is not a searchable name, so "Spindle" doesn't resolve to M101's position.
+- **Attribution:**
+  - `gps_time_pi/data/README.md`: source, version, license and rebuild steps per file.
+  - `third_party/licenses/CC-BY-SA-4.0-OpenNGC.txt`: attribution, license and the list of changes.
+  - `third_party/licenses/BSD-3-Clause-d3-celestial.txt`: d3-celestial's own LICENSE.
+  - `THIRD_PARTY_NOTICES.md` updated, and the correction noted in `almanac-design-scope.md`. All of these ship in the Pi bundle. Review finding GPS-023 is closed.
+- **Tests:** `tests/test_sky_data.py` (10). The builder is tested on small synthetic fixtures in the sources' formats (`tests/fixtures/sky/`): the V→B magnitude fallback, no invented magnitude, the duplicate rule, RA wrap, the magnitude limits, both Serpens parts. Also covered: the bundled files' shape, the provenance and license records, and lookups ("Spindle" finds nothing). Python 588 tests pass.

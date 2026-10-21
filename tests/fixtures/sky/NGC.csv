@@ -1,0 +1,6 @@
+Name;Type;RA;Dec;Const;MajAx;MinAx;PosAng;B-Mag;V-Mag;J-Mag;H-Mag;K-Mag;SurfBr;Hubble;Pax;Pm-RA;Pm-Dec;RadVel;Redshift;Cstar U-Mag;Cstar B-Mag;Cstar V-Mag;M;NGC;IC;Cstar Names;Identifiers;Common names;NED notes;OpenNGC notes;Sources
+NGC1952;SNR;05:34:31.97;+22:00:52.1;Tau;;;;;8.40;;;;;;;;;;;;;;001;;;;;Crab Nebula;;;
+NGC5457;G;14:03:12.54;+54:20:56.2;UMa;;;;8.36;7.90;;;;;;;;;;;;;;101;;;;;;;;
+M102;Dup;14:03:12.54;+54:20:56.2;;;;;;;;;;;;;;;;;;;;101;;;;;;;;
+NGC6656;GCl;18:36:24.20;-23:54:12.2;Sgr;;;;;;;;;;;;;;;;;;;022;;;;;;;;
+NGC0224;G;00:42:44.35;+41:16:08.6;And;;;;4.36;;;;;;;;;;;;;;;031;;;;;Andromeda Galaxy, Andromeda Nebula;;;

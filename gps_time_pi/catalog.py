@@ -12,11 +12,16 @@ import os
 import re
 
 _HERE = os.path.dirname(__file__)
-with open(os.path.join(_HERE, "data", "catalog.json")) as f:
+# Two files because they carry different licenses (THIRD_PARTY_NOTICES.md); both are built by
+# tools/build_sky_data.py. messier.json: OpenNGC, CC BY-SA 4.0. catalog.json: named stars from
+# d3-celestial (BSD 3-Clause) and the planet list.
+with open(os.path.join(_HERE, "data", "messier.json"), encoding="utf-8") as f:
+    _MESSIER = json.load(f)["messier"]
+with open(os.path.join(_HERE, "data", "catalog.json"), encoding="utf-8") as f:
     _CAT = json.load(f)
 
 _BY_KEY = {}
-for obj in _CAT["messier"]:
+for obj in _MESSIER:
     _BY_KEY[obj["id"].lower()] = obj
     for n in obj["names"]:
         _BY_KEY[n.lower()] = obj
@@ -75,7 +80,7 @@ def lookup(query):
         name = hit["id"] + (" — " + hit["names"][0] if hit["names"] else "")
         return {"kind": "fixed", "id": hit["id"], "name": name, "ra": hit["ra"],
                 "dec": hit["dec"], "type": hit["type"], "mag": hit["mag"],
-                "con": hit["con"], "deepsky": deepsky}
+                "con": hit["con"], "deepsky": deepsky, "note": hit.get("note")}
     rd = parse_radec(q)
     if rd:
         return {"kind": "coords", "ra": rd[0], "dec": rd[1]}

@@ -37,7 +37,7 @@ Making the repository public publishes every commit, not only `main` as it is to
 ## 4. Licensing and provenance
 
 - [x] `LICENSE` is the standard MIT text, "Copyright (c) 2026 Nathan Sottung".
-- [x] `THIRD_PARTY_NOTICES.md` lists the bundled datasets, the npm packages shipped in the web UI (MIT, ISC, BSD-3, and the fonts under OFL-1.1, whose texts ship in `third_party/licenses/`), the Python packages installed on a station, and the data a station downloads. **Open for the owner:** the sources of `catalog.json` (Messier: OpenNGC, CC BY-SA 4.0?), `stars.json` (Yale BSC?) and `constellations.json` (d3-celestial, BSD-3?) are as stated in `almanac-design-scope.md` and not confirmed (GPS-023, partial).
+- [x] `THIRD_PARTY_NOTICES.md` lists the bundled datasets, the npm packages shipped in the web UI (MIT, ISC, BSD-3, and the fonts under OFL-1.1, whose texts ship in `third_party/licenses/`), the Python packages installed on a station, and the data a station downloads. The sky datasets were compared with their sources on 2026-10-21 (#101): `stars.json`, `constellations.json` and the named stars are d3-celestial (BSD-3), identical; the Messier list is OpenNGC (CC BY-SA 4.0), now in its own `messier.json` and rebuilt from OpenNGC. Each file keeps its own license, with attribution (`gps_time_pi/data/README.md`, `third_party/licenses/`). GPS-023 closed.
 - [x] The five overclaims GPS-026 named (`platform-extensions.md`, `open-lightning-network.md`) are rephrased as "enables, subject to characterization" with a pointer to `sdr/timing-model.md` (#100).
 - [x] `licensing/open-source-policy.md` points to the notices file.
 
@@ -68,7 +68,7 @@ Making the repository public publishes every commit, not only `main` as it is to
 
 Nothing below has been done; each is the owner's step.
 
-1. **Confirm the dataset sources** of `catalog.json`, `stars.json` and `constellations.json` (section 4). If the Messier data came from OpenNGC, keep the CC BY-SA attribution in `THIRD_PARTY_NOTICES.md`; if not, correct it.
+1. ~~Confirm the dataset sources~~: done in #101 (section 4).
 2. **Wait for v1.4.0** (the scheduled soak check), or decide to go public on the pre-release.
 3. **Take the README screenshot** in screenshot mode with location privacy on (section 5), if wanted.
 4. **Flip the repository to public** (Settings → General → Danger zone).

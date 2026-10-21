@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/public-release-prep, #100). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (data/sky-data-provenance, #101). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -42,6 +42,8 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 9. *Done in [#99](https://github.com/nathansottung/gps-time/pull/99).* **Close what the removal settles:** GPS-016, GPS-027, GPS-029 (if the layout model goes), the legacy halves of GPS-004 and GPS-009; ADR-0004 updated.
 
 ## Decisions
+
+- **2026-10-21, sky data:** owner asked for the bundled Messier, star and constellation files to be compared with OpenNGC, the Yale BSC and d3-celestial, attributed, and regenerated where a source can't be confirmed. Done in [#101](https://github.com/nathansottung/gps-time/pull/101). M102 follows OpenNGC (a duplicate of M101), with the NGC 5866 identification in a note.
 
 - **2026-10-21, public release preparation:** owner asked for the full checklist, a history scan, license and notices, CONTRIBUTING and a public README, and a report before the repository is made public. Done in [#100](https://github.com/nathansottung/gps-time/pull/100); the repository stays private until the owner flips it.
 
@@ -98,7 +100,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 463 rows: 266 done, 0 in progress, 32 next, 165 planned.
+**Totals:** 464 rows: 268 done, 0 in progress, 32 next, 164 planned.
 
 ## Status table
 
@@ -443,7 +445,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-020 | Installer unpinned pip / TOFU ephemeris | planned | partial: skyfield pinned in requirements.txt and installed into a venv (`apt-get update` added); preflight for root, chrony and the service groups. Still open: hashed requirements, ephemeris trust-on-first-use, staged install | [#17](https://github.com/nathansottung/gps-time/pull/17) [#25](https://github.com/nathansottung/gps-time/pull/25) [#36](https://github.com/nathansottung/gps-time/pull/36) |
 | Review | GPS-021 | Deploy scripts ignore failures | done | exit codes checked; upload SHA-256 verified on the Pi. First run against a Pi (2026-10-04) found the `-t` argument joined to user@host in `deploy-to-pi.ps1`; fixed, with an exact-argv test | [#30](https://github.com/nathansottung/gps-time/pull/30) [#40](https://github.com/nathansottung/gps-time/pull/40) |
 | Review | GPS-022 | Bundle builder sweeps secrets | done | archives only git-tracked files; station state and secrets refused even without git; tests | [#100](https://github.com/nathansottung/gps-time/pull/100) |
-| Review | GPS-023 | Third-party provenance/licenses | planned | partial: `THIRD_PARTY_NOTICES.md` and the OFL texts ship; the sources of the three sky datasets are as the design doc states, not yet confirmed (owner) | [#100](https://github.com/nathansottung/gps-time/pull/100) |
+| Review | GPS-023 | Third-party provenance/licenses | done | sources verified against OpenNGC and d3-celestial; files rebuilt by `tools/build_sky_data.py`; each keeps its license with attribution | [#100](https://github.com/nathansottung/gps-time/pull/100) [#101](https://github.com/nathansottung/gps-time/pull/101) |
 | Review | GPS-024 | Precise coordinates in docs | done |  |  |
 | Review | GPS-025 | Doc contradictions/staleness | planned | partial: the named stale items fixed; the maturity vocabulary mismatch remains | [#100](https://github.com/nathansottung/gps-time/pull/100) |
 | Review | GPS-026 | Extension docs overclaim accuracy | done | the five overclaims rephrased as subject to characterization, pointing to `sdr/timing-model.md` | [#100](https://github.com/nathansottung/gps-time/pull/100) |
@@ -567,3 +569,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Hardware |  | Dual-band receiver: optional raw-data collector (RAWX/SFRBX; RAM ring, 30 s chunks off the SD card, privacy as coordinates) | planned | off by default | [#98](https://github.com/nathansottung/gps-time/pull/98) |
 | Hardware |  | Dual-band receiver: coordinator-tier PPP (RTKLIB / PRIDE PPP-AR, IGS products) | planned | with the geophysics roadmap Tier 2 | [#98](https://github.com/nathansottung/gps-time/pull/98) |
 | Repo |  | Public release checklist run: history scan, licensing, README and CONTRIBUTING for outside readers | done | no history rewrite needed; owner steps left (dataset sources, the flip, settings) in `public-release-checklist.md` §8 | [#100](https://github.com/nathansottung/gps-time/pull/100) |
+| Repo |  | Sky data provenance: Messier from OpenNGC (CC BY-SA 4.0, own file), stars and constellations from d3-celestial (BSD-3), rebuilt and checkable from source | done | stars were d3-celestial, not the Yale BSC; 3 Messier objects and 7 magnitudes replaced with OpenNGC's | [#101](https://github.com/nathansottung/gps-time/pull/101) |

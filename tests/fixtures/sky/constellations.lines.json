@@ -1,0 +1,5 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","id":"Lyr","properties":{"rank":"3"},"geometry":{"type":"MultiLineString","coordinates":[[[-80.7653,38.7837],[-78.917,37.605]]]}},
+{"type":"Feature","id":"Ser","properties":{"rank":"2"},"geometry":{"type":"MultiLineString","coordinates":[[[-123.456,10.0],[-120.0,12.345]]]}},
+{"type":"Feature","id":"Ser","properties":{"rank":"2"},"geometry":{"type":"MultiLineString","coordinates":[[[-90.0,-5.0],[-85.0,-2.5]]]}}
+]}
