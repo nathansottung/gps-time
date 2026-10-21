@@ -45,6 +45,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
 
 ## Modules
+- `modules/README.md` — the guide: create, fill in, test and enable a module (`tools/new_module.py`, `python -m gps_time_pi.modkit`); `modules/interfaces.md`, `modules/schemas.md`; ADR-0007
 - `../modules/` — optional modules in the layout of `specs/SPEC-EXTENSIBILITY.md`; not run by the station until the module loader exists. Their tests run with the station's (`tests/test_modules.py`).
 - `../modules/sdr-pps-marker/` — research step 1 of `specs/SPEC-SDR-PPS-MARKER.md`: synthetic generator, PPS marker detector, sample-to-UTC time model
 
@@ -91,7 +92,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Licensing / decisions / provenance
 - `licensing/open-source-policy.md`
-- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service; ADR-0006: desktop app is a tray app running the Python backend, not Electron)
+- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service; ADR-0006: desktop app is a tray app running the Python backend, not Electron; ADR-0007: modules through one kit, off by default, outside the timing core)
 - `provenance/change-log.md`
 
 ## Source review

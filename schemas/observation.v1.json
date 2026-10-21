@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gps-time/observation/1",
+  "title": "Observation",
+  "description": "A timestamped observation emitted by a source module (gps_time_pi/modkit/interfaces.py, Observation).",
+  "type": "object",
+  "required": ["schema", "time_ns", "source", "values", "timing"],
+  "properties": {
+    "schema": {"const": "observation/1"},
+    "time_ns": {"type": "integer", "minimum": 0, "description": "UTC, integer nanoseconds"},
+    "source": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "values": {"type": "object", "additionalProperties": {"$ref": "#/$defs/labeled"}},
+    "timing": {"type": "object", "description": "station timing-quality snapshot at the time of the observation"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "labeled": {
+      "type": "object",
+      "required": ["value", "unit", "provenance"],
+      "properties": {
+        "value": {},
+        "unit": {"type": ["string", "null"]},
+        "provenance": {"enum": ["observed", "calculated", "modeled", "predicted", "inferred", "external"]},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

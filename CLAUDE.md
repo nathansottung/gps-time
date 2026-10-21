@@ -59,7 +59,7 @@ CI (`.github/workflows/`):
 - **chrony parsing:** `gps_time_pi/chrony.py`. Always `chronyc -n`. Refclocks are identified from `chrony.conf`, never by name alone.
 - **Local-time display zone** (display only; the system stays on UTC): `gps_time_pi/localtime.py` (override, offline lookup with `tzfpy`, privacy rule), `web/src/lib/localtime.ts`.
 - **GNSS collection and survey:** `gps_time_pi/gps.py` (background collector, fresh-epoch gating), `gps_time_pi/config.py` (persistence: SIGTERM flush, fsync, `config.json.prev`, corrupt files set aside).
-- **Modules** (optional; layout from `docs/specs/SPEC-EXTENSIBILITY.md`; not run by the station until the loader exists): `modules/<name>/`. Their tests run with the station's through `tests/test_modules.py`. First: `modules/sdr-pps-marker/` (research step 1 of `SPEC-SDR-PPS-MARKER.md`, synthetic only).
+- **Modules** (optional, off by default; guide `docs/modules/README.md`, ADR-0007): kit `gps_time_pi/modkit/` (interfaces, manifest, ctx, loader; `python -m gps_time_pi.modkit list|check|demo`), schemas `schemas/`, scaffolder `tools/new_module.py`, modules in `modules/<name>/`. The web service doesn't load modules yet. Module tests run with the station's through `tests/test_modules.py`. First module: `modules/sdr-pps-marker/` (research, synthetic only).
 - **Specifications** (requirements, not implemented behavior): `docs/specs/`.
 - **Independent review and remaining findings:** `docs/review/GPS-Time-Independent-Review-2026-09-27.md`.
 - **Admin security:** `gps_time_pi/security.py` (Host/Origin checks, token), `gps_time_pi/admin_token.py`, `gps-time-pi.service` (unprivileged), `system/50-gps-time-pi.rules` (polkit). Decision: ADR-0005.

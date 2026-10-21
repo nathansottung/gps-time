@@ -3,7 +3,7 @@
 Finds the station's PPS pulse inside an SDR's own sample stream and uses it to give every sample a UTC time. This is **research step 1** of [`SPEC-SDR-PPS-MARKER.md`](../../docs/specs/SPEC-SDR-PPS-MARKER.md): synthetic data only. No hardware has been built or measured.
 
 - **Type:** source (spec: [`SPEC-EXTENSIBILITY.md`](../../docs/specs/SPEC-EXTENSIBILITY.md)). Maturity: research.
-- **Status:** a library with tests. The module loader and interfaces don't exist yet (EXT order 1), so the station doesn't run it and the Pi bundle doesn't ship it.
+- **Status:** the first module the loader (`gps_time_pi.modkit`) loads. Its source (`sdr_pps_marker/source.py`) replays the fixture scenarios in demo mode and emits nothing otherwise, since there is no SDR input yet (research step 2). Off by default; the Pi bundle doesn't ship `modules/`. Demo: `python -m gps_time_pi.modkit demo sdr-pps-marker`.
 - **Dependencies:** Python standard library, plus `gps_time_pi.labels` for provenance labels.
 
 ## What it does
@@ -12,6 +12,7 @@ Finds the station's PPS pulse inside an SDR's own sample stream and uses it to g
 |---|---|---|
 | Generator | `sdr_pps_marker/synth.py` | Complex IQ with noise, an optional slow carrier, a band-limited spike per PPS edge (rising, and falling one pulse width later), a fast or slow and drifting sample clock, dropped sample blocks, missed markers. Deterministic by seed. |
 | Detector | `sdr_pps_marker/detector.py` | Finds spikes with a high-pass test (a carrier can't hide them), sets the threshold for one false alarm per hour of samples, removes the local carrier, matched-filters, and interpolates the peak to a fraction of a sample. Drops falling edges: a spike one pulse width after another, or a lone spike one pulse width after the second-phase of confirmed rising edges. |
+| Source | `sdr_pps_marker/source.py` | The loader's entry point: demo mode emits one Observation per fixture scenario with the time model's labeled health values. |
 | Time model | `sdr_pps_marker/timemodel.py` | Numbers each marker's UTC second from a coarse host clock (to within 0.5 s). Flags intervals with the wrong sample count (samples dropped or added) or a rate more than 200 ppm off nominal. Interpolates sample → UTC between markers, as an integer second plus a fraction. Measures the sample rate, its error in ppm and its drift. |
 
 Rules it keeps:

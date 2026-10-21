@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gps-time/result/1",
+  "title": "Result",
+  "description": "A result from an analysis module (gps_time_pi/modkit/interfaces.py, Result): values with uncertainty, the method, and the inputs used.",
+  "type": "object",
+  "required": ["schema", "time_ns", "analysis", "values", "method", "inputs", "uncertainty"],
+  "properties": {
+    "schema": {"const": "result/1"},
+    "time_ns": {"type": "integer", "minimum": 0},
+    "analysis": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "values": {"type": "object", "additionalProperties": {"$ref": "#/$defs/labeled"}},
+    "method": {"type": "string", "minLength": 1},
+    "inputs": {"type": "array", "items": {"type": "string"}},
+    "uncertainty": {"type": "object", "additionalProperties": {"$ref": "#/$defs/labeled"}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "labeled": {
+      "type": "object",
+      "required": ["value", "unit", "provenance"],
+      "properties": {
+        "value": {},
+        "unit": {"type": ["string", "null"]},
+        "provenance": {"enum": ["observed", "calculated", "modeled", "predicted", "inferred", "external"]},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
