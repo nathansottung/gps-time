@@ -166,11 +166,21 @@ def write(base, meta, data, signer=None):
 # ---------------------------------------------------------------- reading
 
 def read(base):
-    """(meta dict, data bytes) of an observation."""
+    """(meta dict, sample bytes) of an observation.
+
+    A sidecar for another file format (a WAV from gps_time_pi.convert) names its
+    data file in core:dataset, with core:header_bytes on the first capture; the
+    header is skipped, so the bytes are the samples either way."""
     base = Path(base)
     meta = json.loads(base.with_name(base.name + ".sigmf-meta").read_text(encoding="utf-8"))
-    data = base.with_name(base.name + ".sigmf-data").read_bytes()
-    return meta, data
+    dataset = meta.get("global", {}).get("core:dataset")
+    if dataset is None:
+        return meta, base.with_name(base.name + ".sigmf-data").read_bytes()
+    if not isinstance(dataset, str) or Path(dataset).name != dataset or dataset in ("", ".", ".."):
+        raise ValueError(f"core:dataset must be a file name next to the metadata, not {dataset!r}")
+    caps = meta.get("captures") or [{}]
+    header = caps[0].get("core:header_bytes", 0)
+    return meta, base.with_name(dataset).read_bytes()[header:]
 
 
 def sample_count(meta, data):

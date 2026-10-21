@@ -1349,3 +1349,23 @@ Owner's request: generate a station key pair at install, sign observation files,
 - **Notices:** `THIRD_PARTY_NOTICES.md` lists cryptography (Apache 2.0 or BSD 3-Clause; its wheels bundle OpenSSL) and its dependencies cffi and pycparser.
 - **Not yet:** who signs on the station. Modules don't get the key; signing their files will go through the supervisor or the web service when module output is wired in. The `sign` CLI covers files by hand.
 - **Tests:** `tests/test_station_key.py`: generation (0600, once), signed files verify, tampering with time, uncertainty or annotations is caught, changed samples, a swapped public key, a re-signed file against a trusted list, CLI, sign needs the checksum, no library means "not checked", installer and deny list.
+
+## 2026-10-21 — converters: observation files to WAV and miniSEED (#122)
+
+Owner's request: miniSEED and WAV converters.
+
+- **`gps_time_pi/convert.py`** (standard library only). CLI: `python -m gps_time_pi.convert wav|miniseed`.
+- **WAV:**
+  - 16-bit PCM: mono for real samples, stereo I/Q for complex. Floats are scaled to full range; cu8 is re-centred; int16 is kept as is.
+  - A SigMF sidecar names the WAV in `core:dataset`, with `core:header_bytes` 44. It keeps the original captures, so sample times are exact, and records `gpstime:derived_from` (source checksum, station, signature, method) and the scale.
+  - The signature doesn't carry over; `--sign` signs the sidecar with this station's key.
+  - `obsformat.read` now follows `core:dataset` (a bare file name next to the metadata) and skips the header.
+- **miniSEED 2:**
+  - 512-byte big-endian records: INT32 (from `ri16_le`) or FLOAT32 (from `rf32_le`). Complex data and non-integer nominal rates are refused, as are invalid network, station, location and channel codes.
+  - Each record's start time comes from the observation's timing for its first sample: BTIME plus blockette 1001, to 1 µs. Blockette 100 has the measured rate. Untimed samples are left out, as a gap.
+  - "Clock locked" is set for pps and pps_marker time sources; timing quality is left 0.
+  - A `<out>.gpstime.json` note keeps the station ID, source checksum and signature, uncertainties and provenance.
+- **Checked against ObsPy 1.5.1** in a scratch environment: codes, start times to the µs, rates, encodings, sample values, the gap as two traces, the clock flag. `tests/test_convert.py` has that check; it runs where ObsPy is installed (not in CI).
+- **Schema:** `core:dataset` and `gpstime:derived_from` added.
+- **Tests:** `tests/test_convert.py`: BTIME of a known time and the carry into the next second; WAV round trip with exact times, IQ stereo, cu8; refusing an invalid source; miniSEED records, times, samples, gap, blockette 100, the note; INT32; refusals; rate factors; CLI.
+- **STATUS.md:** OBSF order 1b (converters) done.

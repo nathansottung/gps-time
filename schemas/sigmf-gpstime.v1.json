@@ -16,6 +16,8 @@
     "core:version": {"type": "string", "pattern": "^1[.][0-9]+[.][0-9]+$"},
     "core:recorder": {"type": "string", "minLength": 1},
     "core:hw": {"type": "string"},
+    "core:dataset": {"type": "string", "minLength": 1},
+    "gpstime:derived_from": {"type": "object", "required": ["checksum", "method"]},
     "core:description": {"type": "string"},
     "core:extensions": {"type": "array", "items": {"type": "object", "required": ["name", "version", "optional"]}},
     "gpstime:schema": {"const": "1"},
