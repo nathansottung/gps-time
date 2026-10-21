@@ -78,4 +78,5 @@ What a timed, fixed station can measure and calculate on its own, offline.
 
 - Design rules for contributors: [`README.md`](README.md) (the documentation contract).
 - Every document: [`INDEX.md`](INDEX.md).
+- Everything discussed, against what is built, specced or missing: [`SCOPE-REVIEW.md`](SCOPE-REVIEW.md).
 - Releases: [`releases/`](releases/).

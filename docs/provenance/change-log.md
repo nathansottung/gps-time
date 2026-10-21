@@ -1204,3 +1204,12 @@ Owner's request: replace the README's "Where this is going" with the updated vis
 - Replaced with the owner's text, which adds "Aircraft as moving references" and "Build on it".
 - One sentence changed: the text linked `docs/modules/README.md` and a "module idea" issue, neither of which exists yet. It now links `specs/SPEC-EXTENSIBILITY.md`, says the guide comes with the first module work, and points to the feature request template. Restore the original wording once the guide and the label exist.
 - Docs only.
+
+## 2026-10-21 — full scope review (#113)
+
+Owner's request: add the scope review as `docs/SCOPE-REVIEW.md` and each section 7 gap to `STATUS.md` as planned.
+
+- `SCOPE-REVIEW.md`: the owner's review, copied verbatim. Linked from `INDEX.md` and `ROADMAP.md`.
+- `STATUS.md`: nine `planned` rows (area Scope, refs Gap 1–9), one per numbered gap in §7: accuracy validation against UTC, antenna and cable delay calibration, the CPU clock experiment, stability history persistence, kiosk/mobile/PWA, acoustic thunder ranging (extends the existing Feature H row), network partners, docs website and prebuilt image, legal and safety notes. One done row for the import.
+- Noted, not changed (the review is kept verbatim): it cites `SPEC-RF-REFERENCE-SIGNALS-AND-TRUST`, which is not in the repository; it lists the README vision as next (merged in #110 and #112) and the oscillator profile fit as next (`STATUS.md` has it as future); and it says the new UI is at `/` (it is served at `/app/`, `/` redirects there).
+- Docs only.

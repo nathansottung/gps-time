@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/readme-vision-update, #112). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/scope-review, #113). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -99,7 +99,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 | OBSF | `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` |
 | ADD | `specs/ADDENDUM-SKY-SOLAR-SATELLITE.md` |
 | Feature A–J | `roadmap/feature-registry.md` sections |
-| Scope | `roadmap/current-scope.md` |
+| Scope | `roadmap/current-scope.md`; "Gap" rows: `SCOPE-REVIEW.md` §7 |
 | Web UI | the React port (`web/`, ADR-0004) |
 | Review | `review/GPS-Time-Independent-Review-2026-09-27.md` |
 | Repo | repository tooling, CI and releases (owner requests) |
@@ -107,7 +107,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 491 rows: 278 done, 0 in progress, 41 next, 172 planned.
+**Totals:** 501 rows: 279 done, 0 in progress, 41 next, 181 planned.
 
 ## Status table
 
@@ -604,3 +604,13 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBSF | Order 5 | Trusted groups and third parties (Stages B and C) | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | Repo |  | Observation format and tasking spec imported; module architecture spec updated (safety, API stability, receiver modules, data licence, governance) | done | owner-provided, copied verbatim | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | Repo |  | README "Where this is going" replaced by the owner's update (aircraft as moving references; build on it as modules) | done | the module-guide link points to the spec until `docs/modules/README.md` exists | [#112](https://github.com/nathansottung/gps-time/pull/112) |
+| Scope | Gap 1 | Accuracy validation plan against UTC (two independent receivers with a scope or time-interval counter, a GPSDO, or a dual-band second station with known cable delays) | planned | needed before any claim about accuracy to UTC | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 2 | Antenna and cable delay calibration for dual-band hardware | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 3 | CPU clock experiment: fixed 600 vs 1500 MHz, with Stability page numbers | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 4 | Stability history persistence across restarts (minute summaries on SD) | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 5 | Kiosk full-screen clock, mobile layout, installable offline app (PWA) | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 6 | Acoustic thunder ranging as a sensor-fusion module (microphones + VLF start time + weather) | planned | extends Feature H "Acoustic thunder timing" | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 7 | Network partners: contributing data to Blitzortung, Raspberry Shake, Global Meteor Network, HiSPARC | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 8 | Docs website and a prebuilt Pi image or one-line installer | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 9 | Legal and safety notes for RF receiving and data sharing | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Repo |  | Full scope review added (`SCOPE-REVIEW.md`); its section 7 gaps added as planned rows | done | owner-provided, copied verbatim | [#113](https://github.com/nathansottung/gps-time/pull/113) |
