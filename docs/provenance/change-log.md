@@ -1246,7 +1246,7 @@ Owner's request: make the stated uncertainty conservative on short runs, and tes
 - **Coverage test:** 200 seeded runs of 7–10 s with random noise, clock error (±50 ppm), drift, start phase, carrier (in 30 % of runs) and a dropped block (in 20 %), at 4 kS/s. The 95 % interval (1.96 × stated sigma) must cover the true error in at least 95 % of the runs that give a time. Result: 180 runs gave a time, all 180 covered; the median error was about a third of the stated sigma (conservative, as asked). 20 runs gave no time, mostly because a drop left blocks too short to estimate the scatter.
 - Synthetic only; the module's README is updated.
 
-## 2026-10-21 — module loader and scaffolder (#PR)
+## 2026-10-21 — module loader and scaffolder (#117)
 
 Owner's request: the module loader and scaffolder (SPEC-EXTENSIBILITY order of work steps 1–2), with sdr-pps-marker as the first module it loads.
 
