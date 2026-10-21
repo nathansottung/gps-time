@@ -1177,7 +1177,7 @@ Owner's correction: the tested Pi runs Debian 13 (Trixie, Python 3.13), not Debi
 - `deploy/fresh-pi-install.md` says which release is tested on hardware. `STATUS.md`: the Debian 13 support row (#38) no longer says "not yet run on a Pi". No status changed.
 - Docs only.
 
-## 2026-10-21 — module architecture spec; README "Where this is going" (#PR)
+## 2026-10-21 — module architecture spec; README "Where this is going" (#110)
 
 Owner's request: add `SPEC-EXTENSIBILITY.md` to `docs/specs/`, add the vision text to `README.md` as "Where this is going", and mark the spec next.
 

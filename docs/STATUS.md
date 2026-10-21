@@ -7,11 +7,11 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/extensibility-spec-and-vision, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/extensibility-spec-and-vision, #110). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
-Re-ordered 2026-10-21 (#PR): the module architecture spec came in as item 5 (owner). Earlier, 2026-10-21 (#99): legacy removal step 7 was done (with 8 and 9), leaving four items. Earlier, 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
+Re-ordered 2026-10-21 (#110): the module architecture spec came in as item 5 (owner). Earlier, 2026-10-21 (#99): legacy removal step 7 was done (with 8 and 9), leaving four items. Earlier, 2026-10-19 (#98): the two done items (chrony history semantics, #93; bounded tracking log, #72) left the list, and the dual-band receiver profile came in as next (owner).
 
 1. **Soak run of v1.4.0-rc.11 on the Pi** (owner deploys; read-only check after 3 days): upgrade with `deploy/upgrade-1.4-station.md`; v1.4.0 is tagged on the rc.11 commit if three days are clean. rc.11 is tagged ([#95](https://github.com/nathansottung/gps-time/pull/95)). rc.10 was checked after 2 h 17 min and replaced (`development/raspberry-pi-deploy.md` → "First hours of v1.4.0-rc.10").
 2. **Dual-band receiver profile** (ZED-F9T or ZED-F9P; owner, 2026-10-19): plan in `hardware/zed-f9-dual-band.md`. First the owner's choices (module and band variant, board, antenna and site), then profiles and docs, per-signal satellites, the `/app/` satellite views, receiver identity, and hardware validation, one PR each. Raw-data collection and PPP come after.
@@ -584,10 +584,10 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#106](https://github.com/nathansottung/gps-time/pull/106) |
 | Repo |  | Desktop app decision: tray app running the Python backend (packaged per OS), UI in the default browser; Electron dropped | done | owner decision; ADR-0006; roadmap stays FUTURE | [#107](https://github.com/nathansottung/gps-time/pull/107) |
 | Repo |  | README reworked for first-time visitors: what it is, quick start, tested vs expected hardware, planned hardware, features, measured accuracy only, docs | done | owner's order; measured figures from the rc.8 and rc.10 checks; accuracy against UTC stated as not measured | [#108](https://github.com/nathansottung/gps-time/pull/108) |
-| EXT | Order 1 | Interfaces, manifest, schemas, `ctx` and the module loader, with no behaviour change to the station | next | owner, 2026-10-21 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Order 2 | `tools/new_module.py` and the `docs/modules/` guide | next | owner, 2026-10-21 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Order 3 | `source-weather` example module | next | owner, 2026-10-21 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Order 4 | `reference-adsb` and `reference-broadcast-towers` modules | next | owner, 2026-10-21 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Order 5 | `analysis-tower-delay-check` module | next | owner, 2026-10-21 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| EXT | Order 6 | Move existing optional features (sky tools, references page) to modules where it simplifies them | next | owner, 2026-10-21 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| Repo |  | Extensibility (module architecture) spec imported; README "Where this is going" section | done | owner-provided, copied verbatim | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| EXT | Order 1 | Interfaces, manifest, schemas, `ctx` and the module loader, with no behaviour change to the station | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 2 | `tools/new_module.py` and the `docs/modules/` guide | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 3 | `source-weather` example module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 4 | `reference-adsb` and `reference-broadcast-towers` modules | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 5 | `analysis-tower-delay-check` module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 6 | Move existing optional features (sky tools, references page) to modules where it simplifies them | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| Repo |  | Extensibility (module architecture) spec imported; README "Where this is going" section | done | owner-provided, copied verbatim | [#110](https://github.com/nathansottung/gps-time/pull/110) |
