@@ -1222,3 +1222,17 @@ Owner's request, four parts.
 2. Checked: all seven named documents are in the repository (`specs/SPEC-COORDINATOR.md`, `roadmap/ROADMAP-SENSOR-FUSION.md`, `hardware/HARDWARE-REFERENCE-NODE.md`, `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md`, `specs/SPEC-EXTENSIBILITY.md`, `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md`, `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md`). None missing.
 3. Oscillator profile (`ROADMAP-OSCILLATOR-AND-MISC.md` §1) moved to next: next-5 item 6 (six items until the soak is done), five OSC rows `next`, GPS-008 `next` (the modeled projection closes it). `ROADMAP.md` row updated.
 4. `SCOPE-REVIEW.md`: a dated "Corrections" section for the README vision (done), the UI location (`/app/`), the RF reference spec (now in) and the oscillator profile (now next). The review above it is unchanged.
+
+## 2026-10-21 — SDR PPS marker spec (research); step 1 built as a module (#115)
+
+Owner's request: add `SPEC-SDR-PPS-MARKER.md` as research, link it from `ROADMAP.md` and `SCOPE-REVIEW.md`, add `STATUS.md` rows, and build research step 1 (synthetic detector and time model) as a module.
+
+- **Spec:** `specs/SPEC-SDR-PPS-MARKER.md`, copied verbatim. Linked from `ROADMAP.md` (Phase 4), `INDEX.md`, and a dated "Added since" section in `SCOPE-REVIEW.md`.
+- **Module `modules/sdr-pps-marker/`** (the first module; layout from `SPEC-EXTENSIBILITY.md`: `module.toml`, `README.md`, package, `fixtures/`, `tests/`). Standard library only.
+  - `synth.py`: synthetic IQ with noise, an optional slow carrier, a spike per PPS edge (rising and falling), clock error and drift, dropped sample blocks, missed markers; deterministic by seed.
+  - `detector.py`: high-pass candidate test, threshold for one false alarm per hour, local carrier removal (complex quadratic), matched filter, log-parabolic sub-sample interpolation. Falling edges are dropped, by pairing and, when alone, by their phase against confirmed rising edges.
+  - `timemodel.py`: the UTC second of each marker from a coarse host clock; interval checks (samples missing or extra, rate beyond 200 ppm); sample to UTC as an integer second plus a fraction, with a 1-sigma uncertainty that covers the marker fit only; measured sample rate, ppm error and drift; a labeled summary, state UNKNOWN until there are five scatter checks. No time is given before the first marker, after the last, or inside a flagged interval.
+  - Synthetic results: marker position error 0.02-0.10 samples RMS across the scenarios (8-43 ns at 2.4 MS/s); drops flagged with the exact count; ppm measured to better than 0.3. Simulated, not measured; the limits are in the module's README.
+- **Not run by the station:** no module loader exists yet (EXT order 1), and the Pi bundle doesn't include `modules/`.
+- **Tests:** `tests/test_modules.py` loads every module's tests by path (their folder is also called `tests`) and checks the module layout. The module has 20 tests: fixture scenarios, time model, detector, summary labels, manifest, standard-library-only imports. CI and the documented checks now compile `modules/` (and `tests/`, which CI had left out).
+- **STATUS.md:** area PPSM. Research step 1 done; research steps 2-5, the MLAT path, outputs and the kit planned (research). One done row for the `modules/` test hook.
