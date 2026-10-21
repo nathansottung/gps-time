@@ -1169,7 +1169,7 @@ Owner's request: README in this order: what it is (two sentences and the screens
 - **Removed from the README** (still in the linked docs): the Vision section (`ROADMAP.md`), the "won't claim" list (folded into one line under features; `docs/README.md`), and the known-limitations list (linked as open issues in `STATUS.md`). `public-release-checklist.md` updated to match.
 - Docs only.
 
-## 2026-10-21 — README: the tested Pi runs Debian 13 (#PR)
+## 2026-10-21 — README: the tested Pi runs Debian 13 (#109)
 
 Owner's correction: the tested Pi runs Debian 13 (Trixie, Python 3.13), not Debian 12.
 
