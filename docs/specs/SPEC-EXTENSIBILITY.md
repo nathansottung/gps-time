@@ -96,6 +96,40 @@ These four teach every module type and become templates for contributors.
 - `docs/architecture/overview.md`: a one-page diagram of core, modules, coordinator.
 - Each roadmap item links to the module type it will become.
 
+## Module safety
+
+Modules are third-party code running on a timing station, so:
+
+- Modules are **off by default**; the owner enables each one.
+- Each runs as its own unprivileged process (systemd unit with the same hardening as the web service), never as root, and can't set the clock.
+- The manifest declares permissions (network, devices, storage); the loader grants only those.
+- Resource caps per module: CPU share, memory, disk and SD write rate. A module that exceeds them is stopped and reported.
+- A module that crashes or misbehaves never affects timing; the timing core doesn't depend on any module.
+- The dashboard shows each module's state, resource use and permissions.
+
+## API stability
+
+- The module interface, manifest format and schemas follow semantic versioning, separate from the app version.
+- Breaking changes only in a major version, announced one release ahead, with a migration note.
+- Each module declares the interface version it needs; the loader refuses incompatible modules with a clear message.
+
+## Receiver profiles as modules
+
+GNSS receivers are added the same way: a `receiver` module type describes the board (serial port, PPS pin, configuration, satellite reporting quirks), its tested status and its known limits. The existing hardware profiles move into this form.
+
+## Data licence
+
+- Code: MIT.
+- Shared observations and results: CC BY 4.0 by default, set per station; owners may choose otherwise.
+- Bundled third-party data keeps its own licence, recorded in the manifest.
+
+## Governance
+
+- `CODE_OF_CONDUCT.md` (Contributor Covenant).
+- Maintainer roles in `MAINTAINERS.md`: core maintainers for the timing core; module maintainers for each module.
+- Design decisions recorded as ADRs (existing `docs/decisions/`).
+- A module moves from `experimental` to `supported` when it has a maintainer, tests, docs, and a record of running on real hardware.
+
 ## Community
 
 - Issue labels: `good first issue`, `module idea`, `hardware`, `science`, `docs`.

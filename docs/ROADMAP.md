@@ -45,7 +45,8 @@ What a timed, fixed station can measure and calculate on its own, offline.
 
 | Document | What it covers | Status |
 |---|---|---|
-| [`specs/SPEC-EXTENSIBILITY.md`](specs/SPEC-EXTENSIBILITY.md) | How every future feature is added: modules (source, reference, analysis, UI) with a manifest, typed interfaces, versioned schemas, fixtures and tests; the timing core untouched | Next |
+| [`specs/SPEC-EXTENSIBILITY.md`](specs/SPEC-EXTENSIBILITY.md) | How every future feature is added: modules (source, reference, analysis, UI, receiver) with a manifest, typed interfaces, versioned schemas, fixtures and tests; module safety, API stability, data licence, governance; the timing core untouched | Next |
+| [`specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md`](specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md) | One file format for any timed measurement (SigMF with a `gpstime:` extension), capture requests across stations (scheduled and look-back), and analyses that work on any signal type | Next (format); planned (capture requests) |
 | [`roadmap/ROADMAP-OSCILLATOR-AND-MISC.md`](roadmap/ROADMAP-OSCILLATOR-AND-MISC.md) | Trained oscillator profile, networked SDR, assisted deploys, evidence capture | Future (the oscillator log it needs is done; the PPS evidence capture script is built) |
 | [`roadmap/ROADMAP-WEB-UPDATES.md`](roadmap/ROADMAP-WEB-UPDATES.md) | Software updates and config upload from the web UI, LAN only | Future, low priority |
 | [`roadmap/ROADMAP-DESKTOP-FIELD-APP.md`](roadmap/ROADMAP-DESKTOP-FIELD-APP.md) | A laptop and a GNSS receiver as an off-grid time source for ham digital modes | Future |
