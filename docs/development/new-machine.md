@@ -86,7 +86,7 @@ No third-party packages are needed for the server, the demo or the tests (standa
 
 ```powershell
 python --version                                  # 3.11+
-python -m compileall gps_time_pi tools tests
+python -m compileall gps_time_pi tools tests modules
 python tools/generate_config.py --help
 python -m unittest discover -s tests -t . -v
 ```

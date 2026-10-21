@@ -20,6 +20,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `specs/SPEC-COORDINATOR.md` — PLANNED (owner-provided, imported 2026-10-21); required before any multi-station feature: the optional coordinator tier (roles, node keys and sign-up, transport, data formats, storage, processing services, privacy, deployment)
 - `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` — OPTION, planned (owner-provided, imported 2026-10-21); extends `SPEC-RF-NODE-AND-TDOA.md`: capability registry, capture-task protocol, stages of access, rules, and a first FM broadcast TDOA trial
 - `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` — OPTION, planned (owner-provided, imported 2026-10-21); extends the RF tasking spec: reference signal catalog for RTL-SDR-class receivers, calibration (parity) checks, the trusted node cluster with an anchor station, privacy, order of work
+- `specs/SPEC-SDR-PPS-MARKER.md` — RESEARCH, planned (owner-provided, imported 2026-10-21): PPS time markers in SDR sample streams (physical build, error budget, research plan, path to ADS-B MLAT). Step 1 (synthetic detector and time model) is `../modules/sdr-pps-marker/`
 
 ## Architecture
 - `architecture/system-overview.md`
@@ -42,6 +43,10 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` — FUTURE, research; after v1.4.0 and the oscillator profile: a network of timed stations measuring geophysical effects (interference maps, site stability; Earth tides, ionosphere, water vapor with dual-frequency receivers), and what no tier can measure
 - `roadmap/ROADMAP-SENSOR-FUSION.md` — FUTURE (owner-provided, imported 2026-10-21); extends the geophysics roadmap: optional sensors on timed nodes ranked by science value per cost, the timing each needs, cross-sensor events, what is not feasible
 - legacy planning: `PROJECT-SCOPE.md`, `NEXT-ITERATION.md`, `ideas-ledger.md`
+
+## Modules
+- `../modules/` — optional modules in the layout of `specs/SPEC-EXTENSIBILITY.md`; not run by the station until the module loader exists. Their tests run with the station's (`tests/test_modules.py`).
+- `../modules/sdr-pps-marker/` — research step 1 of `specs/SPEC-SDR-PPS-MARKER.md`: synthetic generator, PPS marker detector, sample-to-UTC time model
 
 ## Science
 - `science/quantity-registry.md`

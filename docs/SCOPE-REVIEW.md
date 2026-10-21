@@ -113,3 +113,7 @@ Checked against the repository after this review was added (#113):
 - **New UI location:** served at `/app/`; `/` redirects there (ADR-0004). Not served at `/` itself.
 - **SPEC-RF-REFERENCE-SIGNALS-AND-TRUST:** now in the repository (`docs/specs/`), #114.
 - **Oscillator profile fit:** now next in `STATUS.md` (it was future when this review was written), #114.
+
+## Added since (2026-10-21)
+
+- **SDR PPS time markers (research):** [`specs/SPEC-SDR-PPS-MARKER.md`](specs/SPEC-SDR-PPS-MARKER.md). Belongs with §4 (radio and ranging). Research step 1 (synthetic detector and time model) is built as a module, `modules/sdr-pps-marker/`, #PR; the bench steps are not started.

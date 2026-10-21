@@ -23,7 +23,7 @@ The web UI follows [`web/guidelines/Guidelines.md`](web/guidelines/Guidelines.md
 ## Checks (all must pass; CI runs them)
 
 ```sh
-python -m compileall gps_time_pi tools tests
+python -m compileall gps_time_pi tools tests modules
 python tools/generate_config.py --help
 python -m unittest discover -s tests -t . -v
 cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run typecheck && corepack pnpm run test && corepack pnpm run build

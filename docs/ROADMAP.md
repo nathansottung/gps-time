@@ -60,6 +60,7 @@ What a timed, fixed station can measure and calculate on its own, offline.
 | [`specs/SPEC-RF-NODE-AND-TDOA.md`](specs/SPEC-RF-NODE-AND-TDOA.md) | RF nodes synced to a station, MLAT calibration, TDOA, fox hunts | Planned (19 items) |
 | [`specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md`](specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md) | Nodes asking other nodes to capture the same signal at the same moment (capability registry, signed capture tasks, owner control), and a first FM broadcast TDOA trial | Planned (option, in stages) |
 | [`specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md`](specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md) | A catalog of signals with known or self-reported transmitter positions (ATSC, FM, NOAA, ADS-B, AIS, radiosondes, WWV, AM, LTE sync) for calibrating nodes, and a trusted cluster that new nodes join by passing checks against references and peers | Planned (option, in stages) |
+| [`specs/SPEC-SDR-PPS-MARKER.md`](specs/SPEC-SDR-PPS-MARKER.md) | Research: the station's PPS injected into an SDR's input as a time marker, so every sample gets a UTC time, the SDR's clock is calibrated every second and dropped samples are caught; then ADS-B TDOA and MLAT | Research (step 1, synthetic, done: `modules/sdr-pps-marker/`; bench steps not started) |
 
 ## Phase 5 — Geophysics and distributed science
 

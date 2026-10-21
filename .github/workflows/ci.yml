@@ -26,7 +26,7 @@ jobs:
           echo "version: $v"
           if [ "$v" = "unknown" ]; then echo "::error::no reachable v* tag; checkout needs fetch-depth: 0"; exit 1; fi
       - name: Compile Python
-        run: python -m compileall gps_time_pi tools
+        run: python -m compileall gps_time_pi tools tests modules
       - name: Hardware config generator smoke test
         run: python tools/generate_config.py --help
       - name: Unit and packaging regression tests

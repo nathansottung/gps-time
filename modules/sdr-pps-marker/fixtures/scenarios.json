@@ -1,0 +1,45 @@
+{
+  "about": "Synthetic scenarios for research step 1 (sdr_pps_marker.synth.generate). Deterministic by seed. A scenario's own 'seconds' overrides the default. 'expect' gives what the detector and time model must achieve; sample errors are in samples, so they hold at any sample rate.",
+  "fs_nominal": 24000,
+  "seconds": 7,
+  "coarse_start_error_s": 0.004,
+  "scenarios": [
+    {
+      "name": "clean",
+      "params": {"noise_rms": 0.02, "seed": 1},
+      "expect": {"markers": 7, "max_marker_error": 0.06, "events": 0, "max_ppm_error": 0.5}
+    },
+    {
+      "name": "noisy",
+      "params": {"noise_rms": 0.1, "seed": 2},
+      "expect": {"markers": 7, "max_marker_error": 0.25, "events": 0, "max_ppm_error": 2.0}
+    },
+    {
+      "name": "carrier",
+      "params": {"noise_rms": 0.05, "tone_amp": 2.0, "tone_hz": 350, "seed": 3},
+      "expect": {"markers": 7, "max_marker_error": 0.2, "events": 0, "max_ppm_error": 2.0}
+    },
+    {
+      "name": "fast-clock-drifting",
+      "params": {"noise_rms": 0.03, "ppm": 37.5, "drift_ppm_per_s": 0.02, "seed": 4},
+      "expect": {"markers": 7, "max_marker_error": 0.08, "events": 0, "max_ppm_error": 0.5}
+    },
+    {
+      "name": "usb-drop",
+      "seconds": 12,
+      "params": {"noise_rms": 0.03, "ppm": -12.0, "drops": [[80000, 1024]], "seed": 5},
+      "expect": {"markers": 12, "max_marker_error": 0.08, "events": 1, "dropped": 1024, "max_ppm_error": 0.5}
+    },
+    {
+      "name": "missed-marker",
+      "seconds": 12,
+      "params": {"noise_rms": 0.03, "missing_seconds": [1792602003], "seed": 6},
+      "expect": {"markers": 11, "max_marker_error": 0.08, "events": 0, "max_ppm_error": 0.5}
+    },
+    {
+      "name": "no-falling-edge",
+      "params": {"noise_rms": 0.03, "falling_edge": false, "seed": 7},
+      "expect": {"markers": 7, "max_marker_error": 0.08, "events": 0, "max_ppm_error": 0.5}
+    }
+  ]
+}
