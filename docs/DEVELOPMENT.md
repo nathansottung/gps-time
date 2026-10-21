@@ -6,7 +6,7 @@ This repository is designed to be edited on a normal Windows, macOS, or Linux wo
 
 1. Install **Git**, **Python 3**, and **Visual Studio Code**.
 2. Extract the repository ZIP to a normal development folder. Do not develop inside the ZIP.
-3. In VS Code choose **File → Open Folder…** and select the `gps-time-pi` folder.
+3. In VS Code choose **File → Open Folder…** and select the repository folder (`gps-time`).
 4. Install the recommended Python extension when VS Code offers it.
 5. Open **Terminal → New Terminal**.
 6. Create a development branch before changing code:

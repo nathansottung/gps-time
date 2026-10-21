@@ -20,6 +20,8 @@ Adapters may support them. Redistribution requires the original license to permi
 
 Every bundled dataset/dependency should have source, version/revision, license, attribution, transformation/provenance and checksum where practical.
 
+The current list is [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) at the repository root (with the license texts that must travel with shipped files in `third_party/licenses/`). It ships in the Pi bundle.
+
 ## Offline packs
 
 Data packs must have manifests and support installation from local files/USB. Time-sensitive data must expose age/validity rather than silently appearing current.

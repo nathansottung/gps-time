@@ -66,9 +66,9 @@ def core_api() -> dict:
         "sources": sources,
         "sourcestats": "Sample source statistics for desktop demo mode.",
         "clients": [
-            {"host": "192.168.10.21", "ntp_packets": 18421, "dropped": "0", "last": "7"},
-            {"host": "192.168.10.42", "ntp_packets": 9218, "dropped": "0", "last": "18"},
-            {"host": "192.168.10.77", "ntp_packets": 4101, "dropped": "0", "last": "61"},
+            {"host": "192.0.2.21", "ntp_packets": 18421, "dropped": "0", "last": "7"},
+            {"host": "192.0.2.42", "ntp_packets": 9218, "dropped": "0", "last": "18"},
+            {"host": "192.0.2.77", "ntp_packets": 4101, "dropped": "0", "last": "61"},
         ],
         "gps": {"fix": "3D", "sats": sats, "used": used, "visible": len(sats),
                 "tdop": 0.72, "hdop": 0.83, "last_fix": "3D",

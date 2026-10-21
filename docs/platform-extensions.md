@@ -21,8 +21,10 @@ for:
 - **NOAA / Meteor weather satellite imagery**: pass predictions computed
   on-device from the almanac's own machinery (Skyfield does satellites)
 - **Radiosonde tracking**: decode weather-balloon telemetry
-- **WSPR propagation monitoring**: report HF band openings; the
-  disciplined clock directly improves frequency/drift measurement
+- **WSPR propagation monitoring**: report HF band openings. PPS disciplines
+  the Pi's system clock, not the SDR's oscillator: frequency and drift
+  measurements improve only if the SDR is itself locked or calibrated
+  (see `sdr/timing-model.md`)
 - **Meteor scatter counting**: echoes off ionized trails, timestamped
 
 **Magnetometer (RM3100 / HMC5883L, ~$15, I²C)** — geomagnetic storm
@@ -44,12 +46,17 @@ same stroke gives single-station lightning range (instrumented
 flash-to-bang); doubles as an infrasound experiment.
 
 **Muon detector (CosmicWatch-style)** — cosmic-ray coincidence between
-separated stations is only meaningful with µs absolute timestamps, which
-is exactly what this platform provides.
+separated stations is only meaningful with µs absolute timestamps. The
+platform's disciplined clock enables that, subject to characterization: the
+host clock is not the detector's timestamp path, so the detector-to-host
+latency and its jitter have to be measured (see `sdr/timing-model.md`).
 
 A recurring theme: ADS-B MLAT, lightning TOA, seismic location, and muon
-coincidence are all the *same measurement* — timestamped arrivals at
-distributed stations. Build the timestamping once, get four sciences.
+coincidence are conceptually the *same measurement*: timestamped arrivals
+at distributed stations. The timestamp paths differ, though (MLAT networks
+typically use SDR sample counters synchronized through the aircraft
+signals themselves, not host GPS time), so each needs its own
+characterization (`sdr/timing-model.md`).
 
 ## Extension architecture (v2 direction)
 
@@ -62,8 +69,9 @@ To make iteration easy, the dashboard should become an arranger of
   2. A widget descriptor: name, refresh interval, render template or a
      small JS module
 - The core server discovers plugins from a `plugins/` directory and
-  proxies their data; the dashboard page renders enabled widgets from a
-  user layout saved in localStorage (per-device) or config.json (global)
+  proxies their data; the web UI renders enabled widgets (since v1.4 the
+  web UI's Configure page shows or hides pages and cards per browser;
+  this plugin model is not built)
 - Core widgets (clock, sync state, quality, satellites, survey, almanac
   summary, history sparkline) are refactored onto the same interface, so
   "full customization" — show/hide/reorder everything — falls out of the

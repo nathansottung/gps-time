@@ -2,7 +2,7 @@
 
 ## Historical baseline
 
-The v1.3.0 codebase already contains GPS/PPS/chrony status, NTP serving, timing/source displays, satellite table, NTP client table, astronomy/almanac, position survey, RAM-backed chrony history, themes and system diagnostics.
+The v1.3.0 codebase already contains GPS/PPS/chrony status, NTP serving, timing/source displays, satellite table, NTP client table, astronomy/almanac, position survey, chrony tracking history (its log in RAM, copied to the SD card hourly), themes and system diagnostics.
 
 ## Development scaffold added in 1.4.0-dev
 

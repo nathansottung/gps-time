@@ -45,7 +45,7 @@ cd gps-time
 Git for Windows sets `core.autocrlf=true` in its *system* config (`C:\Program Files\Git\etc\gitconfig`), so this matters even when you never set it yourself. A clone without the flag checked out about 150 files with CRLF endings.
 
 **Keep the clone path short on Windows.** pnpm nests packages deeply under `web/node_modules/.pnpm/…`. In a long parent folder, some files exceed Windows' 260-character path limit, and `pnpm run build` then fails with `ERR_PACKAGE_IMPORT_NOT_DEFINED` (`#module-sync-enabled`); a 283-character path failed in testing. Either:
-- clone into a folder whose full path is at most about 64 characters, e.g. `C:\dev\gps-time` (tested: `C:\Users\<name>\Documents\Software Development\pi_ntp\gps-time`, 64 characters, builds); or
+- clone into a folder whose full path is at most about 64 characters, e.g. `C:\dev\gps-time` (a 64-character path under `C:\Users\<name>\Documents\` was tested and builds); or
 - enable long paths, from an elevated PowerShell:
   ```powershell
   New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force

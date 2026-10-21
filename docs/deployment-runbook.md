@@ -43,7 +43,7 @@ sleep 3 && curl -s localhost/api | grep -o '"app": "[^"]*"'   # → "app": "1.3.
 one-time DE440s download with recorded SHA-256 (verified on reruns); chrony
 `log tracking` with `logdir /run/chrony-log` (RAM); install/enable the
 logsync + logflush units; restart chrony; install/enable the web service.
-Reruns are idempotent.
+Reruns are safe to repeat; they are not fully idempotent (they restart chrony and re-copy the application; see review GPS-020).
 
 ## 2. Field fixes applied during deployment (now baked into the repo)
 

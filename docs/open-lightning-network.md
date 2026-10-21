@@ -7,9 +7,10 @@ anyone can build a station from the published design, feed the network,
 and use the data.
 
 **Why this platform:** TOA location needs stations that timestamp a radio
-waveform to ~1 µs absolute accuracy. GPS Time Pi already provides a
-GPS/PPS-disciplined clock at that level; 1 µs of timing is 300 m of light
-travel. The rare ingredient is done. Everything below is ordinary
+waveform to ~1 µs absolute accuracy (1 µs of timing is 300 m of light
+travel). GPS Time disciplines the Pi's clock to GPS/PPS; whether a captured
+waveform's timestamp reaches that level depends on the capture path, and has
+to be characterized (`sdr/timing-model.md`). The rest is ordinary
 electronics and software.
 
 ## Physics in one paragraph
@@ -60,7 +61,10 @@ computer. Instead: inject the Pi's **PPS pulse into one audio channel**
 time reference *in-band*, sampled by the same converter clock as the
 signal. Arrival times are computed as sample offsets from the PPS edge;
 USB latency cancels exactly. This is the classic amateur precision-timing
-trick and it turns a $15 codec into a µs-absolute instrument. With crossed
+trick. It establishes which sample is at the PPS edge; absolute accuracy
+still depends on the input network, AC-coupling distortion of the PPS edge,
+channel skew and anti-alias group delay, which have to be measured (see
+below and `sdr/timing-model.md`). With crossed
 loops: sferics on L, PPS on R, or a 4-channel codec for both loops + PPS.
 
 **Software (Python, on the Pi).**

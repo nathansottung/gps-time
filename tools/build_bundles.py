@@ -15,6 +15,7 @@ import hashlib
 import importlib.util
 import io
 import os
+import subprocess
 import tarfile
 import zipfile
 from pathlib import Path
@@ -23,8 +24,11 @@ ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
 EXCLUDE_DIRS = {".git", ".dev", "dist", "generated", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"}
 WEB_DIST = ROOT / "web" / "dist"
-EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
-PI_TOP = ["gps_time_pi", "scripts", "system", "examples", "install.sh", "requirements.txt", "gps-time-pi.service", "README.md", "LICENSE", "SECURITY.md"]
+EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".bsp", ".log", ".sha256"}
+# Station state and secrets: never archived, whatever git says (review GPS-022).
+EXCLUDE_NAMES = {"config.json", "config.json.prev", "admin-token.sha256", "timing-events.json"}
+PI_TOP = ["gps_time_pi", "scripts", "system", "examples", "install.sh", "requirements.txt", "gps-time-pi.service",
+          "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "third_party", "SECURITY.md"]
 
 
 EXECUTABLE_SUFFIXES = {".sh"}
@@ -54,15 +58,40 @@ def _tar_member(tinfo: tarfile.TarInfo) -> tarfile.TarInfo:
     return tinfo
 
 
-def wanted(path: Path) -> bool:
+def git_tracked(root: Path = ROOT) -> set[str] | None:
+    """Paths git tracks under root (POSIX, relative), or None outside a git checkout (e.g. an
+    unpacked archive). Only tracked files are archived, so an untracked .env, config.json or
+    token file in a checkout never ends up in a bundle (review GPS-022)."""
+    try:
+        out = subprocess.run(["git", "-C", str(root), "ls-files", "-z"], capture_output=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return {p for p in out.decode("utf-8").split("\x00") if p}
+
+
+_TRACKED: set[str] | None | bool = False   # computed once per run
+
+
+def _tracked() -> set[str] | None:
+    global _TRACKED
+    if _TRACKED is False:
+        _TRACKED = git_tracked()
+    return _TRACKED
+
+
+def wanted(path: Path, tracked: set[str] | None | bool = False) -> bool:
+    """tracked: the git-tracked set to require (default: this checkout's; None: no git, filters only)."""
     rel = path.relative_to(ROOT)
     if rel == VERSION_ARC:
         return False
     if any(part in EXCLUDE_DIRS for part in rel.parts):
         return False
-    if path.suffix in EXCLUDE_SUFFIXES:
+    if path.suffix in EXCLUDE_SUFFIXES or path.name in EXCLUDE_NAMES or path.name.startswith(".env"):
         return False
-    return path.is_file()
+    if not path.is_file():
+        return False
+    tracked = _tracked() if tracked is False else tracked
+    return tracked is None or rel.as_posix() in tracked
 
 
 def sha256(path: Path) -> str:
