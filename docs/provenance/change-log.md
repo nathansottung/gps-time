@@ -1053,7 +1053,7 @@ Legacy removal steps 7–9, done together at the owner's request while rc.11 soa
 - **Upgrades:** `install.sh` deletes the retired `templates/`, `static/`, `dashboard.py` and `dashboard.default.json` from the station (its `cp -r` would have left them), and stops changing ownership of `dashboard.json` and `custom.css`. Those files, if present, stay on the station unused.
 - **Review findings closed by the removal:** GPS-016 (unescaped `innerHTML` in the legacy view), GPS-027 (unit labels in `dashboard.js`), GPS-029 (dashboard config hardening), and the legacy halves of GPS-004 (browser clock) and GPS-009 (survey "repeatability").
 - **Docs:** ADR-0004 gains its outcome, `web-ui-parity.md` is closed, `legacy-removal-plan.md` records what was done, and `CLAUDE.md`, the API docs, the checklists, the guides and `web/AGENTS.md` are updated.
-- **Tests:** `test_inline_styles.py` and the web tests that read the legacy JavaScript are removed. New tests check that `/` and every old path redirect with the query kept; that `/static/*`, `custom.css` and `/api/dashboard` are 404; and that every kind of response carries exactly `CSP_STRICT`. Python 583 tests and web 196 pass.
+- **Tests:** `test_inline_styles.py` and the web tests that read the legacy JavaScript are removed. New tests check that `/` and every old path redirect with the query kept; that `/static/*`, `custom.css` and `/api/dashboard` are 404; and that every kind of response carries exactly `CSP_STRICT`. Python 575 tests and web 196 pass (an earlier count of 583 in #99's description included the removed legacy tests).
 - **Rollback:** deploy v1.4.0-rc.11 (or v1.4.0) to get the legacy pages back.
 
 ## 2026-10-21 — public release preparation (#100)
@@ -1077,3 +1077,5 @@ Owner's request: run the public release checklist, scan all history, confirm the
   - `CONTRIBUTING.md` rewritten: design rules, checks, PR rules, hardware profiles, privacy when reporting bugs.
   - The bug template explains how to share diagnostics under privacy mode.
 - **`public-release-checklist.md`** records the result of each item, and section 8 lists what is left for the owner: confirm the dataset sources, wait for v1.4.0, the screenshot, the flip, and the settings that only exist once the repository is public.
+- Checks: Python 578 tests (575 plus the three new bundle tests) and web 196 pass; the build succeeds.
+- **Process slip:** the test-count correction (`9f4acaa`) was committed and pushed directly to `main` by mistake (a stray branch switch), outside a PR. It touched only this change log; its line is moved into this entry here. `main` was not force-pushed.
