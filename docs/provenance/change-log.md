@@ -1197,7 +1197,7 @@ Owner's request: add both new specs from 2026-10-21 to `docs/specs/`, mark them 
 - `ROADMAP.md` (Phase 3) and `INDEX.md` list both.
 - Docs only.
 
-## 2026-10-21 — README "Where this is going" updated (#PR)
+## 2026-10-21 — README "Where this is going" updated (#112)
 
 Owner's request: replace the README's "Where this is going" with the updated vision section.
 

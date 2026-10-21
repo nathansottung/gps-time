@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/readme-vision-update, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/readme-vision-update, #112). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -603,4 +603,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBSF | Order 4 | Generic pick, correlate and locate analyses | planned |  | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | OBSF | Order 5 | Trusted groups and third parties (Stages B and C) | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | Repo |  | Observation format and tasking spec imported; module architecture spec updated (safety, API stability, receiver modules, data licence, governance) | done | owner-provided, copied verbatim | [#111](https://github.com/nathansottung/gps-time/pull/111) |
-| Repo |  | README "Where this is going" replaced by the owner's update (aircraft as moving references; build on it as modules) | done | the module-guide link points to the spec until `docs/modules/README.md` exists | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| Repo |  | README "Where this is going" replaced by the owner's update (aircraft as moving references; build on it as modules) | done | the module-guide link points to the spec until `docs/modules/README.md` exists | [#112](https://github.com/nathansottung/gps-time/pull/112) |
