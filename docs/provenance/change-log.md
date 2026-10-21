@@ -1111,3 +1111,16 @@ Owner's decision after #101.
 - **Records:** the departure is recorded with the CC BY-SA attribution (`third_party/licenses/CC-BY-SA-4.0-OpenNGC.txt`, list of changes), in `gps_time_pi/data/README.md` and in `THIRD_PARTY_NOTICES.md`.
 - **Unchanged:** `catalog.json`, `stars.json` and `constellations.json` rebuild byte-identical; only `messier.json` changes.
 - **Tests:** `tests/test_sky_data.py` (12). The M102 override is tested with the departure note. The generic duplicate rule keeps its own test on a synthetic duplicate row. "Spindle" finds M102 and not M101, and the departure is recorded with the license.
+
+## 2026-10-21 — coordinator and RF tasking specs, sensor roadmap, reference node imported (docs/import-coordinator-specs)
+
+Owner's request: add the five spec files from 2026-10-19 and index them in `ROADMAP.md`, if not in yet.
+
+- **Already in:** `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (#77), identical to the owner's copy.
+- **Added, copied verbatim:**
+  - `specs/SPEC-COORDINATOR.md` (PLANNED): the optional coordinator tier.
+  - `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned): RF tasking between nodes and a first FM TDOA trial.
+  - `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE): optional sensors on timed nodes.
+  - `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT): reference parts list in four tiers.
+- **Indexed** in `ROADMAP.md` (Phase 2: the parts list; Phase 4, now "Radio and the coordinator": the coordinator and RF tasking specs; Phase 5: the sensor roadmap), `INDEX.md`, `hardware/README.md` and `STATUS.md`.
+- No code changed. No items are scheduled from these documents.
