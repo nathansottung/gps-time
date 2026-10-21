@@ -54,7 +54,7 @@ Samples that have no time are in a capture with `"gpstime:time_valid": false` an
 | `rf32_le` | real float32 | audio, infrasound, seismic |
 | `ri16_le` | real int16 (raw counts) | audio, compact |
 
-In SigMF, `c` means complex and `r` means real. Use `ci16_le` for IQ, not `ri16_le` (the spec's example names `ri16_le` for RF IQ).
+In SigMF, `c` means complex and `r` means real: use `ci16_le` (or `cf32_le`, `cu8`) for IQ, and the `r` types for real samples.
 
 ## gpstime: fields (all required)
 
