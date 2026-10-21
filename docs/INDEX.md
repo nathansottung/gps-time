@@ -4,6 +4,8 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 **For outside readers:** [`ROADMAP.md`](ROADMAP.md). Every spec and roadmap by phase, with status, on one page.
 
+**Scope review:** [`SCOPE-REVIEW.md`](SCOPE-REVIEW.md). Everything discussed, checked against what is built, specced or missing, with the gaps to add (2026-10-21).
+
 **Where things stand:** [`STATUS.md`](STATUS.md). Every spec item, roadmap feature and review finding, with its status and PR links, plus the next 5 tasks. It is updated in every PR.
 
 ## Specifications (owner-provided, imported 2026-10-01)
