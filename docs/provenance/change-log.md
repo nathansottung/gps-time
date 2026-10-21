@@ -1300,7 +1300,7 @@ Owner's request: the observation format's writer, reader and validator, with sdr
 
 Owner's request: fix the spec example. `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` now gives `ci16_le` for RF IQ. In SigMF `r` means real samples, so `ri16_le` was wrong for IQ. The note about the mismatch in `docs/modules/observation-format.md` is replaced by the rule. No status changed.
 
-## 2026-10-21 — module isolation: own process, unprivileged user, caps and permissions enforced (#PR)
+## 2026-10-21 — module isolation: own process, unprivileged user, caps and permissions enforced (#120)
 
 Owner's request: each module in its own unprivileged process, with permissions and CPU, memory and disk caps enforced; the station doesn't load modules until this lands.
 

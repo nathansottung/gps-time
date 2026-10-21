@@ -22,5 +22,5 @@ Every feature after the timing core (sensors, reference signals, analyses, cards
 ## Consequences
 
 - Contributors have one pattern, and tests that run on a laptop.
-- **Isolation (added in #PR):** every module runs in its own process as the unprivileged `gps-time-mod` user, under a hardened supervisor service that is installed but not enabled. Per process: memory and file-size limits, CPU share, memory and output watched by the host, and a permission guard for network, devices, writes, processes and ctypes. Details: `docs/modules/README.md`, "Safety". Still open: one user per module.
+- **Isolation (added in #120):** every module runs in its own process as the unprivileged `gps-time-mod` user, under a hardened supervisor service that is installed but not enabled. Per process: memory and file-size limits, CPU share, memory and output watched by the host, and a permission guard for network, devices, writes, processes and ctypes. Details: `docs/modules/README.md`, "Safety". Still open: one user per module.
 - Wiring the host into the web service (status, cards) is a later step.
