@@ -39,6 +39,8 @@ Build-time tools (not shipped): Vite, Tailwind CSS, TypeScript, Vitest, oxfmt, @
 | jplephem, sgp4 (skyfield dependencies) | MIT | |
 | numpy | BSD 3-Clause | |
 | certifi (skyfield dependency) | MPL 2.0 | |
+| cryptography | Apache 2.0 or BSD 3-Clause (dual) | Ed25519 station key: signs observation files. Its wheels bundle OpenSSL (Apache 2.0). |
+| cffi, pycparser (cryptography dependencies) | MIT, BSD 3-Clause | |
 | tzfpy | MIT | Its embedded time-zone boundaries come from timezone-boundary-builder, which is derived from OpenStreetMap data (© OpenStreetMap contributors, ODbL 1.0). Used offline to find the display zone from the station position. |
 
 The system packages (`gpsd`, `chrony`, `pps-tools`, Python) come from Debian under their own licenses.

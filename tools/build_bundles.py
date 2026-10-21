@@ -26,7 +26,7 @@ EXCLUDE_DIRS = {".git", ".dev", "dist", "generated", "node_modules", "__pycache_
 WEB_DIST = ROOT / "web" / "dist"
 EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".bsp", ".log", ".sha256"}
 # Station state and secrets: never archived, whatever git says (review GPS-022).
-EXCLUDE_NAMES = {"config.json", "config.json.prev", "admin-token.sha256", "timing-events.json"}
+EXCLUDE_NAMES = {"config.json", "config.json.prev", "admin-token.sha256", "timing-events.json", "station-key", "station-key.pub"}
 PI_TOP = ["gps_time_pi", "schemas", "scripts", "system", "examples", "install.sh", "requirements.txt", "gps-time-pi.service",
           "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "third_party", "SECURITY.md"]
 

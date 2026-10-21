@@ -52,6 +52,7 @@
     "gpstime:request_id": {"type": ["string", "null"]},
     "gpstime:licence": {"type": "string", "minLength": 1},
     "gpstime:checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-    "gpstime:signature": {"type": ["string", "null"]}
+    "gpstime:public_key": {"type": ["string", "null"]},
+    "gpstime:signature": {"type": ["string", "null"], "pattern": "^ed25519:"}
   }
 }

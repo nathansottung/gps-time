@@ -4,3 +4,5 @@ skyfield==1.55
 numpy<2.7
 # Offline time-zone lookup from the station position, for local-time display only (gps_time_pi/localtime.py).
 tzfpy==2.1.1
+# Ed25519 station key: signs observation files (gps_time_pi/station_key.py).
+cryptography==50.0.2

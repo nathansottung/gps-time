@@ -74,7 +74,7 @@ class TestWriteRead(unittest.TestCase):
         self.assertEqual(m2["global"]["core:extensions"][0]["name"], "gpstime")
         errs, warns = of.validate(base)
         self.assertEqual(errs, [])
-        self.assertEqual(warns, ["unsigned (station keys are not implemented yet)"])
+        self.assertEqual(warns, ["unsigned"])
         self.assertEqual([p.name for p in self.dir.iterdir() if p.name.startswith(".tmp")], [])
 
     def test_sample_times(self):
