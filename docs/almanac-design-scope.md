@@ -145,6 +145,11 @@ Copyright/licenses of code and data, all permissive, repo stays MIT:
 | Bright stars | Yale Bright Star Catalog | Public domain |
 | Constellation lines | d3-celestial datasets | BSD-3 |
 
+**Verified 2026-10-21 (#101):** the bundled stars came from d3-celestial (its Hipparcos-based
+`stars.6.json`), not the Yale Bright Star Catalogue as the table says. The Messier data is
+OpenNGC (CC BY-SA 4.0) and now lives in its own file, `messier.json`. Sources, versions and
+licenses per file: `gps_time_pi/data/README.md`.
+
 Deliberately avoided: Stellarium data files (GPL — would virally
 relicense the MIT repo if bundled).
 

@@ -8,9 +8,9 @@ GPS Time's own code and documentation are under the MIT License (`LICENSE`). Thi
 
 | File | What | Source | License | Notes |
 |---|---|---|---|---|
-| `gps_time_pi/data/catalog.json` → `messier` | positions, types and magnitudes of the 110 Messier objects | OpenNGC (Mattia Verga), a subset as stated in `docs/almanac-design-scope.md` **(to confirm)** | **CC BY-SA 4.0** | Attribution: "Contains data from OpenNGC, © Mattia Verga, CC BY-SA 4.0 (https://github.com/mattiaverga/OpenNGC)." If it is OpenNGC-derived, this file (not the rest of the repository) is under CC BY-SA 4.0, and changes to it must be shared alike. |
-| `gps_time_pi/data/catalog.json` → `stars`, `gps_time_pi/data/stars.json` | bright-star positions and magnitudes | Yale Bright Star Catalogue, 5th edition (Hoffleit & Warren), as stated in `docs/almanac-design-scope.md` **(to confirm)** | public domain | |
-| `gps_time_pi/data/constellations.json` | constellation stick figures | d3-celestial by Olaf Frohn, as stated in `docs/almanac-design-scope.md` **(to confirm)** | BSD 3-Clause | The BSD notice is reproduced below. |
+| `gps_time_pi/data/messier.json` | the 110 Messier objects: positions, types, magnitudes, common names | [OpenNGC](https://github.com/mattiaverga/OpenNGC) by Mattia Verga, commit `be3cd6c54988`; **verified** 2026-10-21 and rebuilt from it by `tools/build_sky_data.py` | **CC BY-SA 4.0** | "Contains data from OpenNGC by Mattia Verga, CC BY-SA 4.0." This file is an adapted work and is itself CC BY-SA 4.0, not MIT; the changes are listed in `third_party/licenses/CC-BY-SA-4.0-OpenNGC.txt`. |
+| `gps_time_pi/data/catalog.json` (`stars`), `gps_time_pi/data/stars.json` | named bright stars, and the sky map's stars to magnitude 4.5 | [d3-celestial](https://github.com/ofrohn/d3-celestial) by Olaf Frohn, commit `7e720a3de062` (`stars.6.json`, `starnames.json`; its star data are from the XHIP compilation of Hipparcos, Anderson & Francis 2012); **verified** 2026-10-21: identical | BSD 3-Clause | Not the Yale Bright Star Catalogue, as an earlier design note said. The planet list in `catalog.json` is the project's. |
+| `gps_time_pi/data/constellations.json` | constellation stick figures | d3-celestial `constellations.lines.json`, same commit; **verified** 2026-10-21: identical | BSD 3-Clause | |
 | `tests/fixtures/` | sample chrony, gpsd, leap-second and TLE outputs for the tests | written for this project, or short excerpts of public-domain files (IERS/IANA leap-second list) | MIT (project) / public domain | |
 
 ## Shipped in the web UI (`web/dist`)
@@ -54,7 +54,9 @@ The system packages (`gpsd`, `chrony`, `pps-tools`, Python) come from Debian und
 
 ## BSD 3-Clause notice (d3-celestial, d3-ease)
 
-Copyright (c) the respective authors (d3-celestial: Olaf Frohn; d3-ease: Mike Bostock). All rights reserved.
+`gps_time_pi/data/README.md` gives each data file's source, version and license, and how to rebuild it.
+
+d3-celestial: Copyright (c) 2015, Olaf Frohn. All rights reserved. (Its own LICENSE file is in `third_party/licenses/BSD-3-Clause-d3-celestial.txt`.) d3-ease: Copyright the d3 authors (Mike Bostock). All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

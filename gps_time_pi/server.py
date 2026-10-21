@@ -328,7 +328,8 @@ def _object_labels(rep, target, obs_dt, mode):
     elif target["kind"] == "fixed":
         rep["name"] = target["name"]
         rep["meta"] = target["type"] + (f", mag {target['mag']}" if target["mag"] is not None else "") \
-            + (f", in {target['con']}" if target.get("con") else "")
+            + (f", in {target['con']}" if target.get("con") else "") \
+            + (f"; {target['note']}" if target.get("note") else "")
         rep["emphasis"] = "moonless" if target["deepsky"] else "dark"
     else:
         rep["name"] = f"RA {target['ra']:.4f}°, Dec {target['dec']:+.4f}° (J2000)"
