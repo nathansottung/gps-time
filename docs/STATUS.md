@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/import-coordinator-specs, #103). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/readme-screenshot, #104). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -102,7 +102,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 466 rows: 270 done, 0 in progress, 32 next, 164 planned.
+**Totals:** 467 rows: 271 done, 0 in progress, 32 next, 164 planned.
 
 ## Status table
 
@@ -574,3 +574,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Sky data provenance: Messier from OpenNGC (CC BY-SA 4.0, own file), stars and constellations from d3-celestial (BSD-3), rebuilt and checkable from source | done | stars were d3-celestial, not the Yale BSC; 3 Messier objects and 7 magnitudes replaced with OpenNGC's | [#101](https://github.com/nathansottung/gps-time/pull/101) |
 | Repo |  | M102 mapped to NGC 5866 (Spindle Galaxy), marked as departing from OpenNGC; "Spindle" lookup restored | done | owner's decision; the only override in `tools/build_sky_data.py` | [#102](https://github.com/nathansottung/gps-time/pull/102) |
 | Repo |  | Coordinator, RF tasking and FM TDOA trial specs, sensor roadmap and reference node parts list imported and indexed | done | owner-provided, copied verbatim; no items scheduled | [#103](https://github.com/nathansottung/gps-time/pull/103) |
+| Repo |  | README screenshot: Overview page from the desktop demo in screenshot mode, location privacy rounded | done | `docs/screenshots/overview.png`; checked by eye for coordinates, heights, client addresses and hostname | [#104](https://github.com/nathansottung/gps-time/pull/104) |

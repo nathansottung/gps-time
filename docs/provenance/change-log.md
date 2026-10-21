@@ -1124,3 +1124,12 @@ Owner's request: add the five spec files from 2026-10-19 and index them in `ROAD
   - `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT): reference parts list in four tiers.
 - **Indexed** in `ROADMAP.md` (Phase 2: the parts list; Phase 4, now "Radio and the coordinator": the coordinator and RF tasking specs; Phase 5: the sensor roadmap), `INDEX.md`, `hardware/README.md` and `STATUS.md`.
 - No code changed. No items are scheduled from these documents.
+
+## 2026-10-21 — README screenshot (#104)
+
+Owner's request: take a README screenshot from the demo with screenshot mode on (public release checklist, section 5).
+
+- `docs/screenshots/overview.png`: the Overview page (`/app/`) of the desktop demo, synthetic data, 1440 × 900, dark theme. Screenshot mode on, location privacy set to rounded in a throwaway demo config.
+- Captured with headless Edge through the DevTools protocol from a local demo server; the capture script is not part of the repository.
+- Checked by eye: the hostname is masked; the page shows no coordinates, heights or client addresses. The demo banner ("All values are synthetic") is left in.
+- `README.md` shows it under the opening paragraph. Checklist section 5 item and section 8 step 3 ticked.
