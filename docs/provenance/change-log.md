@@ -1265,3 +1265,4 @@ Owner's request: the module loader and scaffolder (SPEC-EXTENSIBILITY order of w
 - **Docs:** `docs/modules/README.md` (guide), `interfaces.md`, `schemas.md`; ADR-0007. The README's "Build on it" now links the guide.
 - **Tests:** `tests/test_modkit.py` (manifests, interface versions, host: off by default, runs, crash containment, refusals, storage; the first module's demo; CLI; no behaviour change) and `tests/test_new_module.py` (every type's generated tests pass; a generated source runs under the loader; bad names refused).
 - **STATUS.md:** EXT order 1, order 2 and API stability done; Safety next (partial).
+- **Flaky test fixed:** `tests/test_evidence.py` `test_routes` failed once in CI. The demo's sample evidence id came from the current second, so it changed between the index call and the read when a second boundary fell between them. The sample outage now starts on the hour (`gps_time_pi/demo.py`).
