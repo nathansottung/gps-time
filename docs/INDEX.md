@@ -19,6 +19,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` — NEXT for the format, PLANNED for tasking (owner-provided, imported 2026-10-21): SigMF-based observation format with a `gpstime:` extension, export to miniSEED/RINEX/WAV, capture requests across stations (scheduled and look-back), signal-independent pick/correlate/locate
 - `specs/SPEC-COORDINATOR.md` — PLANNED (owner-provided, imported 2026-10-21); required before any multi-station feature: the optional coordinator tier (roles, node keys and sign-up, transport, data formats, storage, processing services, privacy, deployment)
 - `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` — OPTION, planned (owner-provided, imported 2026-10-21); extends `SPEC-RF-NODE-AND-TDOA.md`: capability registry, capture-task protocol, stages of access, rules, and a first FM broadcast TDOA trial
+- `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` — OPTION, planned (owner-provided, imported 2026-10-21); extends the RF tasking spec: reference signal catalog for RTL-SDR-class receivers, calibration (parity) checks, the trusted node cluster with an anchor station, privacy, order of work
 
 ## Architecture
 - `architecture/system-overview.md`

@@ -1213,3 +1213,12 @@ Owner's request: add the scope review as `docs/SCOPE-REVIEW.md` and each section
 - `STATUS.md`: nine `planned` rows (area Scope, refs Gap 1–9), one per numbered gap in §7: accuracy validation against UTC, antenna and cable delay calibration, the CPU clock experiment, stability history persistence, kiosk/mobile/PWA, acoustic thunder ranging (extends the existing Feature H row), network partners, docs website and prebuilt image, legal and safety notes. One done row for the import.
 - Noted, not changed (the review is kept verbatim): it cites `SPEC-RF-REFERENCE-SIGNALS-AND-TRUST`, which is not in the repository; it lists the README vision as next (merged in #110 and #112) and the oscillator profile fit as next (`STATUS.md` has it as future); and it says the new UI is at `/` (it is served at `/app/`, `/` redirects there).
 - Docs only.
+
+## 2026-10-21 — RF reference signals spec; oscillator profile next; scope review corrections (#114)
+
+Owner's request, four parts.
+
+1. `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned), copied verbatim: reference signal catalog, calibration checks, trusted node cluster. Indexed in `ROADMAP.md` (Phase 4), `INDEX.md` and the `STATUS.md` future list.
+2. Checked: all seven named documents are in the repository (`specs/SPEC-COORDINATOR.md`, `roadmap/ROADMAP-SENSOR-FUSION.md`, `hardware/HARDWARE-REFERENCE-NODE.md`, `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md`, `specs/SPEC-EXTENSIBILITY.md`, `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md`, `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md`). None missing.
+3. Oscillator profile (`ROADMAP-OSCILLATOR-AND-MISC.md` §1) moved to next: next-5 item 6 (six items until the soak is done), five OSC rows `next`, GPS-008 `next` (the modeled projection closes it). `ROADMAP.md` row updated.
+4. `SCOPE-REVIEW.md`: a dated "Corrections" section for the README vision (done), the UI location (`/app/`), the RF reference spec (now in) and the oscillator profile (now next). The review above it is unchanged.

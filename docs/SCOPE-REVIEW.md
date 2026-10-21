@@ -104,3 +104,12 @@ A check of everything discussed against what is built, specced, or still missing
 3. v1.5.0: legacy removal, deployed and soaked.
 4. Modules + observation format, with the four starter modules.
 5. Dual-band station, then the first RF node and the FM trial.
+
+## Corrections (2026-10-21)
+
+Checked against the repository after this review was added (#113):
+
+- **README vision:** done, not next. Merged in #110 and updated in #112 ("Where this is going").
+- **New UI location:** served at `/app/`; `/` redirects there (ADR-0004). Not served at `/` itself.
+- **SPEC-RF-REFERENCE-SIGNALS-AND-TRUST:** now in the repository (`docs/specs/`), #114.
+- **Oscillator profile fit:** now next in `STATUS.md` (it was future when this review was written), #114.
