@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/readme-first-visit, #108). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/readme-debian-13, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -468,7 +468,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Tag v1.4.0-rc.3 with release notes | done | pre-release; tag on this PR's merge commit; intended first Pi deploy | [#33](https://github.com/nathansottung/gps-time/pull/33) |
 | Repo |  | First Pi deploy of the 1.4 line | done | v1.4.0-rc.6 on 2026-10-04: PPS selected, stratum 1, offset about 300 ns (owner's report). Individual check results not recorded. Nothing merged after rc.6 has run on a Pi | [#34](https://github.com/nathansottung/gps-time/pull/34) [#36](https://github.com/nathansottung/gps-time/pull/36) [#59](https://github.com/nathansottung/gps-time/pull/59) |
 | Repo |  | Tag v1.4.0-rc.4 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#37](https://github.com/nathansottung/gps-time/pull/37) |
-| Repo |  | Debian 13 (Trixie, Python 3.13) support: CI matrix 3.11 + 3.13, aarch64 wheel check, installer and docs audit | done | not yet run on a Pi | [#38](https://github.com/nathansottung/gps-time/pull/38) |
+| Repo |  | Debian 13 (Trixie, Python 3.13) support: CI matrix 3.11 + 3.13, aarch64 wheel check, installer and docs audit | done | the tested Pi runs Debian 13 (owner, 2026-10-21); Debian 12 untested on hardware | [#38](https://github.com/nathansottung/gps-time/pull/38) |
 | Repo |  | Tag v1.4.0-rc.5 with release notes | done | pre-release; tag on this PR's merge commit; the bundle the deploy checklists target | [#39](https://github.com/nathansottung/gps-time/pull/39) |
 | Repo |  | Tag v1.4.0-rc.6 with release notes | done | pre-release; tag on this PR's merge commit | [#41](https://github.com/nathansottung/gps-time/pull/41) |
 | Repo |  | Astronomy states why it is unavailable (API, legacy widget, install self-check) | done | found on the first Pi build; the Pi's own cause is not yet known | [#43](https://github.com/nathansottung/gps-time/pull/43) |

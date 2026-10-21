@@ -12,7 +12,7 @@ Work top to bottom and stop at any step that doesn't match what's written. **v1.
 - Windows has Python, git, and Node 22 with corepack (`docs/development/new-machine.md`).
 - The Pi has Internet access during the install (apt, PyPI or piwheels, the JPL ephemeris).
 
-**OS releases.** Written for Raspberry Pi OS on Debian 13 (Trixie, Python 3.13) and Debian 12 (Bookworm, Python 3.11). CI runs the tests on both Python versions and checks that every pinned dependency has an aarch64 wheel for each. The paths and names used below (`/boot/firmware/config.txt`, `/etc/chrony/chrony.conf`, the `_chrony` and `video` groups, `raspi-config nonint`) are the same on both. A 32-bit OS (`uname -m` prints `armv7l`) isn't covered by that wheel check.
+**OS releases.** Written for Raspberry Pi OS on Debian 13 (Trixie, Python 3.13) and Debian 12 (Bookworm, Python 3.11). The project's tested Pi runs Debian 13; Debian 12 is expected to work but untested on hardware. CI runs the tests on both Python versions and checks that every pinned dependency has an aarch64 wheel for each. The paths and names used below (`/boot/firmware/config.txt`, `/etc/chrony/chrony.conf`, the `_chrony` and `video` groups, `raspi-config nonint`) are the same on both. A 32-bit OS (`uname -m` prints `armv7l`) isn't covered by that wheel check.
 
 PowerShell blocks run on Windows and `sh` blocks run on the Pi. Set these once per PowerShell window. **Don't commit your values, the generated files or the token.**
 

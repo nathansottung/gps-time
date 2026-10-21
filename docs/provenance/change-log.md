@@ -1168,3 +1168,11 @@ Owner's request: README in this order: what it is (two sentences and the screens
 - **Accuracy:** only figures measured on that unit, from `development/raspberry-pi-deploy.md`: chrony RMS offset 244 ns (rc.8, 14 days); PPS interval 1.000 000 s ± 1.3 µs (rc.10, 600 pulses); ADEV 1.7 × 10⁻⁶ at 1 s and 2.2 × 10⁻⁸ at 100 s; +1.7 µs after one 56-minute PPS loss; 9.9 % missed pulses in a weak-signal window. The README says these are agreement with the station's own PPS reference and that accuracy against UTC has not been measured.
 - **Removed from the README** (still in the linked docs): the Vision section (`ROADMAP.md`), the "won't claim" list (folded into one line under features; `docs/README.md`), and the known-limitations list (linked as open issues in `STATUS.md`). `public-release-checklist.md` updated to match.
 - Docs only.
+
+## 2026-10-21 — README: the tested Pi runs Debian 13 (#PR)
+
+Owner's correction: the tested Pi runs Debian 13 (Trixie, Python 3.13), not Debian 12.
+
+- `README.md`: the tested row and the Pi install line say Debian 13; Debian 12 (Bookworm, Python 3.11) moves to "expected to work" (its Python runs in CI, untested on hardware).
+- `deploy/fresh-pi-install.md` says which release is tested on hardware. `STATUS.md`: the Debian 13 support row (#38) no longer says "not yet run on a Pi". No status changed.
+- Docs only.
