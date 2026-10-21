@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/desktop-tray-app-decision, #107). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/readme-first-visit, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -104,7 +104,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (FUTURE; none blocks v1.4.0), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 471 rows: 274 done, 0 in progress, 32 next, 165 planned.
+**Totals:** 472 rows: 275 done, 0 in progress, 32 next, 165 planned.
 
 ## Status table
 
@@ -581,3 +581,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | PPS evidence capture: read-only button on the PPS diagnostics page producing the same archive | planned | `ROADMAP-OSCILLATOR-AND-MISC.md` §4 | [#105](https://github.com/nathansottung/gps-time/pull/105) |
 | Repo |  | Desktop host notes merged into `ROADMAP-DESKTOP-FIELD-APP.md` (tray app serving the same backend and UI, Receivers page, source tiers with ± bounds, leap-second gate, Pi as reference) | done | roadmap stays FUTURE, not scheduled | [#106](https://github.com/nathansottung/gps-time/pull/106) |
 | Repo |  | Desktop app decision: tray app running the Python backend (packaged per OS), UI in the default browser; Electron dropped | done | owner decision; ADR-0006; roadmap stays FUTURE | [#107](https://github.com/nathansottung/gps-time/pull/107) |
+| Repo |  | README reworked for first-time visitors: what it is, quick start, tested vs expected hardware, planned hardware, features, measured accuracy only, docs | done | owner's order; measured figures from the rc.8 and rc.10 checks; accuracy against UTC stated as not measured | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |

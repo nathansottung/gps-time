@@ -1,83 +1,81 @@
 # GPS Time
 
-**Development status: v1.4.0-rc.11 (pre-release).** A Raspberry Pi Stratum-1 time server that shows how good its time is, and why.
-
-GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into an NTP server for your network. It watches every stage of the timing chain (receiver, satellites, PPS pulse, chrony) and says plainly what it can observe and what it can't. Around that core it adds offline sky and solar tools. Everything runs on the Pi, without the Internet.
+GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into a Stratum-1 NTP server for your network, running offline. It shows how good its time is, and why: every stage from satellite to NTP client is either observed or marked UNKNOWN.
 
 ![The Overview page of the web UI: timing chain stages, local time and timing quality](docs/screenshots/overview.png)
 
 *The Overview page in the desktop demo (synthetic data), taken in screenshot mode with location privacy set to rounded.*
 
-## Vision
+**Status: v1.4.0-rc.11, pre-release.** It is soak-tested on one development Pi before v1.4.0. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
 
-A small, offline station that keeps exact time and shows honestly how good that time is.
-On that timing core: measurement, sky and radio science, each value labeled with where it came from.
-Later, a network of such stations doing opt-in distributed science. Phases and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+## Quick start
 
-## What it does today
-
-- **Serves time.** gpsd and chrony with the PPS refclock: stratum 1 when PPS is selected, with honest fallback states (network, holdover, unsynchronized). The web UI never drives the clock; timing keeps working if it fails.
-- **Shows the timing chain.** Receiver → satellites → navigation solution → PPS device → pulses → chrony, each stage observed or marked UNKNOWN. PPS outages are recorded as events with evidence kept on the SD card, and classified only as far as the evidence goes (no guessed causes).
-- **Measures itself.** Allan, modified Allan and time deviation from kernel PPS timestamps; chrony's offset with its standard deviation and its error bound; comparison with independent NTP servers; NTP service counters; an oscillator-versus-temperature log; time scales (TAI, GPS time, MJD) with leap-second table expiry.
-- **Knows its sky, offline.** Sun and moon times with twilight and night bars for any date from 1850 to 2149, a sky map and object lookup, the Earth's shadow over the station and satellite illumination (from a locally cached orbital-element file).
-- **Respects privacy.** The station's location can be shown exactly, rounded to about 11 km, or hidden everywhere (pages, API, diagnostics, derived values). A screenshot mode masks coordinates, heights, client addresses and the hostname on screen.
-- **One web UI** at `/app/` (`/` redirects there), served by the station itself: no CDN, no web fonts from elsewhere, no analytics. Dark and red night themes, and pages and cards you can hide per browser.
-- **Safe administration.** Read-only by default. Service actions and settings need an admin token, are POST-only and same-origin, and run through a fixed polkit rule; the web service runs unprivileged.
-
-Every value carries a provenance label: observed, calculated, modeled, predicted, inferred or external.
-
-## What it won't claim
-
-- A cause the evidence can't establish (jamming, spoofing, antenna failure). It reports what it observes.
-- Health for a stage it can't observe; that stage shows UNKNOWN.
-- Statistical repeatability as absolute accuracy, or the host clock's accuracy as the accuracy of an SDR sample, camera frame or network packet.
-
-## Status and known limitations
-
-This is a pre-release. The release candidate is being soak-tested on a development Raspberry Pi before v1.4.0. An independent review of the code (`docs/review/`) found 32 issues; the open ones are tracked in [`docs/STATUS.md`](docs/STATUS.md). The main ones:
-
-- Holdover estimates still use the raw oscillator frequency, not a trained model (GPS-008); the UI marks them as planned.
-- Expensive requests aren't rate-limited and the service has no systemd resource limits yet (GPS-018).
-- The installer trusts the ephemeris download on first use and pip dependencies aren't hash-pinned (GPS-020).
-- The station serves plain HTTP. Use it on a trusted LAN, or put a TLS reverse proxy in front.
-
-## Try it without a Pi
-
-The demo serves the same web UI with sample data. It needs Python 3.11+ and, for the UI, Node 22 with corepack.
+**Demo on a PC** (no Pi, receiver or Internet needed; sample data). Needs Python 3.11+ and Node 22 with corepack:
 
 ```bash
 cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run build && cd ..
 ./scripts/run-demo.sh                          # http://127.0.0.1:8080/ (writes only under .dev/)
 ```
 
-On Windows: `powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1`. Details: [`docs/development/windows-demo.md`](docs/development/windows-demo.md).
+On Windows: `powershell -ExecutionPolicy Bypass -File .\scripts\run-demo.ps1` ([details](docs/development/windows-demo.md)).
 
-## Run it on a Pi
+**Install on a Pi** (Raspberry Pi OS Lite, Debian 12):
 
-You need a Raspberry Pi 4 on Raspberry Pi OS Lite (Debian 12; Debian 13 is tested in CI but not yet on a Pi; the Pi 5 is untested), a GNSS receiver with its PPS output wired to a GPIO pin, and an antenna with a view of the sky.
-
-1. Generate the hardware snippets for your board: `python3 tools/generate_config.py --profile uputronics` (or another profile; see [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md)).
-2. Follow the checklist for a newly flashed Pi: [`docs/deploy/fresh-pi-install.md`](docs/deploy/fresh-pi-install.md). It covers the serial and PPS setup, chrony, the deploy script and the checks.
+1. Generate the wiring snippets for your board: `python3 tools/generate_config.py --profile uputronics` (other profiles: [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md)).
+2. Follow [`docs/deploy/fresh-pi-install.md`](docs/deploy/fresh-pi-install.md): serial and PPS setup, chrony, the deploy script, the checks.
 3. Open `http://<your-pi>/`.
 
-Station already running an earlier 1.4 build: [`docs/deploy/upgrade-1.4-station.md`](docs/deploy/upgrade-1.4-station.md).
+Upgrading a 1.4 station: [`docs/deploy/upgrade-1.4-station.md`](docs/deploy/upgrade-1.4-station.md). The station serves plain HTTP: use it on a trusted LAN, or put a TLS reverse proxy in front.
 
-## Hardware
+## Supported hardware
 
-The reference build is a Raspberry Pi 4 with the Uputronics GPS/RTC board (u-blox MAX-M8Q, PPS on GPIO 18). Profiles exist for several other HATs and for USB receivers (NMEA-only, so no microsecond timing). A dual-band u-blox ZED-F9T / ZED-F9P profile is planned: [`docs/hardware/zed-f9-dual-band.md`](docs/hardware/zed-f9-dual-band.md).
+| | Hardware | Known limits |
+|---|---|---|
+| **Tested** | Raspberry Pi 4 + Uputronics GPS/RTC board (u-blox MAX-M8Q, PPS on GPIO 18), Debian 12 | One development unit. Its antenna and site give a weak signal (best C/N₀ about 25 dB-Hz), which shows up as PPS outages. |
+| **Expected to work** | Adafruit Ultimate GPS HAT, SparkFun GNSS Flex pHAT, Waveshare L76X (only after soldering PPS to GPIO 4) | Profiles exist; not run by the project. |
+| | USB GNSS receivers (`usb-gps` profile) | NMEA only, no kernel PPS: millisecond-level time, not microsecond. |
+| | Raspberry Pi 5; Debian 13 | Untested on hardware (Debian 13 runs in CI). |
 
-Antenna placement matters as much as the receiver: a weak signal shows up as PPS outages.
+Antenna placement matters as much as the receiver. Wiring and profile details: [`docs/HARDWARE-PROFILES.md`](docs/HARDWARE-PROFILES.md).
 
-## Documentation
+## Planned hardware
 
-- [`docs/ROADMAP.md`](docs/ROADMAP.md): every spec and roadmap, by phase, with status.
-- [`docs/STATUS.md`](docs/STATUS.md): every item and review finding, with the pull requests that delivered it.
-- [`docs/INDEX.md`](docs/INDEX.md): all documentation. [`docs/README.md`](docs/README.md): the project's design rules.
-- [`docs/api/`](docs/api/): the station's HTTP API.
+- **Dual-band u-blox ZED-F9T / ZED-F9P:** fewer outages, more satellites, raw data for PPP. Next on the list: [`docs/hardware/zed-f9-dual-band.md`](docs/hardware/zed-f9-dual-band.md).
+- **SDR nodes** timed by a station: [`docs/roadmap/ROADMAP-SDR-RF-OBSERVATORY.md`](docs/roadmap/ROADMAP-SDR-RF-OBSERVATORY.md), [`docs/specs/SPEC-RF-NODE-AND-TDOA.md`](docs/specs/SPEC-RF-NODE-AND-TDOA.md).
+- **Sensors** on timed nodes (seismic, infrasound, VLF lightning, muons, all-sky camera): [`docs/roadmap/ROADMAP-SENSOR-FUSION.md`](docs/roadmap/ROADMAP-SENSOR-FUSION.md).
+- Reference parts list for all tiers: [`docs/hardware/HARDWARE-REFERENCE-NODE.md`](docs/hardware/HARDWARE-REFERENCE-NODE.md).
 
-## Contributing, security, license
+## Features
 
-- Contributions are welcome: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- Report vulnerabilities privately: see [`SECURITY.md`](SECURITY.md).
-- The project's own code and documentation are under the MIT License ([`LICENSE`](LICENSE)).
-- Third-party software and data keep their own licenses: see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+**Now:**
+
+- **Serves time:** gpsd and chrony with the PPS refclock; honest fallback states (network, holdover, unsynchronized). The web UI never drives the clock.
+- **Shows the timing chain:** receiver → satellites → PPS → chrony, with outages recorded as events and evidence kept on the SD card. It never names a cause the evidence can't establish.
+- **Measures itself:** Allan, modified Allan and time deviation; chrony's error bound; comparison with independent NTP servers; an oscillator-versus-temperature log; time scales and leap-second expiry.
+- **Knows its sky, offline:** sun and moon times, a sky map, the Earth's shadow and satellite illumination.
+- **Respects privacy:** location exact, rounded or hidden everywhere; a screenshot mode for sharing.
+- **One web UI** served by the station: no CDN, no external fonts, no analytics. Admin actions need a token; the service runs unprivileged.
+
+Every value is labeled observed, calculated, modeled, predicted, inferred or external.
+
+**Planned:** PPS history views, NTS and PTP, a trained oscillator model for holdover, a desktop app for laptops in the field, SDR and sensor nodes, and a coordinator for networks of stations. Phases and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+## Accuracy
+
+Measured on the tested development unit (Pi 4, MAX-M8Q, weak antenna site), from the station's own readings. Details: [`docs/development/raspberry-pi-deploy.md`](docs/development/raspberry-pi-deploy.md).
+
+| Measurement | Result | When |
+|---|---|---|
+| chrony's RMS offset from the PPS reference | 244 ns | after a 14-day run (rc.8, 2026-10-19) |
+| PPS interval, kernel timestamps, 600 pulses | 1.000 000 s ± 1.3 µs | rc.10, 2026-10-19 |
+| Allan deviation (includes outages) | 1.7 × 10⁻⁶ at 1 s; 2.2 × 10⁻⁸ at 100 s | 14-day run |
+| Holdover: one 56-minute loss of PPS | clock off by +1.7 µs afterwards | 2026-10-17 (one event) |
+| Missed PPS pulses in a weak-signal window | 9.9 % | rc.10, 2 h 17 min |
+
+These are the station's agreement with its own PPS reference. Accuracy against UTC has not been measured: that needs an independent reference, which this unit doesn't have.
+
+## Docs, contributing, license
+
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) (phases), [`docs/STATUS.md`](docs/STATUS.md) (every item, with PRs), [`docs/INDEX.md`](docs/INDEX.md) (all documents), [`docs/api/`](docs/api/) (HTTP API), [`docs/README.md`](docs/README.md) (design rules).
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md). Vulnerabilities, privately: [`SECURITY.md`](SECURITY.md).
+- MIT License ([`LICENSE`](LICENSE)). Third-party software and data keep their own licenses: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
