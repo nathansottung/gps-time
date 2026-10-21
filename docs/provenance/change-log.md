@@ -1134,7 +1134,7 @@ Owner's request: take a README screenshot from the demo with screenshot mode on 
 - Checked by eye: the hostname is masked; the page shows no coordinates, heights or client addresses. The demo banner ("All values are synthetic") is left in.
 - `README.md` shows it under the opening paragraph. Checklist section 5 item and section 8 step 3 ticked.
 
-## 2026-10-21 — PPS evidence capture script (#PR)
+## 2026-10-21 — PPS evidence capture script (#105)
 
 Owner's request: build the PPS evidence capture script (`ROADMAP-OSCILLATOR-AND-MISC.md` §4).
 
