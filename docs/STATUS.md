@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (fix/sdr-pps-marker-uncertainty, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (fix/sdr-pps-marker-uncertainty, #116). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -636,4 +636,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | PPSM | Outputs | Observation format fields (`time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows) and dashboard health (markers per minute, sample-rate error, dropped-sample events) | planned | the time model already computes the health values; the observation format comes with OBSF order 1 | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#115](https://github.com/nathansottung/gps-time/pull/115) |
-| PPSM | Research 1b | Conservative uncertainty on short runs: 95 % upper bound on marker scatter (quadratic fit per block, chi-square) plus an interpolation floor; 95 % coverage tested over 200 seeded runs | done | owner; coverage 180/180 runs with a time (synthetic) | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| PPSM | Research 1b | Conservative uncertainty on short runs: 95 % upper bound on marker scatter (quadratic fit per block, chi-square) plus an interpolation floor; 95 % coverage tested over 200 seeded runs | done | owner; coverage 180/180 runs with a time (synthetic) | [#116](https://github.com/nathansottung/gps-time/pull/116) |

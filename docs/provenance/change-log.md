@@ -1237,7 +1237,7 @@ Owner's request: add `SPEC-SDR-PPS-MARKER.md` as research, link it from `ROADMAP
 - **Tests:** `tests/test_modules.py` loads every module's tests by path (their folder is also called `tests`) and checks the module layout. The module has 20 tests: fixture scenarios, time model, detector, summary labels, manifest, standard-library-only imports. CI and the documented checks now compile `modules/` (and `tests/`, which CI had left out).
 - **STATUS.md:** area PPSM. Research step 1 done; research steps 2-5, the MLAT path, outputs and the kit planned (research). One done row for the `modules/` test hook.
 
-## 2026-10-21 — sdr-pps-marker: conservative uncertainty on short runs (#PR)
+## 2026-10-21 — sdr-pps-marker: conservative uncertainty on short runs (#116)
 
 Owner's request: make the stated uncertainty conservative on short runs, and test that it covers the true error in 95 % of seeded runs.
 
