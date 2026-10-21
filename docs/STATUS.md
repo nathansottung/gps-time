@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (feat/sdr-pps-marker-research, #PR). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (feat/sdr-pps-marker-research, #115). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -623,16 +623,16 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OSC | §1 board | Oscillator profile: board binding by serial hash on import (match: use; mismatch: warn, keep for reference, start a new profile) | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
 | OSC | §1 meta | Oscillator profile: record board model, receiver profile and software version in the file | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
 | Repo |  | RF reference signals and trust spec imported; oscillator profile moved to next; scope review corrections | done | owner-provided spec, copied verbatim | [#114](https://github.com/nathansottung/gps-time/pull/114) |
-| PPSM | Research 1 | Synthetic detector, sub-sample interpolation and time model (pulses, drops, drift); runs in CI with no hardware | done | module `modules/sdr-pps-marker/`; synthetic results only | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | Research 2 | Bench, one SDR: marker visibility across bands and attenuation, detection rate, sample-rate error over hours and temperature | planned | research; needs the injection build | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | Research 3 | Bench, two SDRs through a splitter: arrival-time difference zero within the stated uncertainty (first real timing figure) | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | Research 4 | Scope or time-interval counter check against the PPS line | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | Research 5 | Publish schematic, BOM, measured results; `time_source: pps_marker` with measured uncertainty | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | MLAT 1 | One node, ADS-B: arrival times against positions reported by aircraft (consistency check) | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | MLAT 2 | Two nodes, ADS-B TDOA: residuals against reported positions | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | MLAT 3 | Three or more nodes: MLAT for Mode S without position; cross-check ADS-B | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | MLAT 4 | Same timing for FM/ATSC towers, the FM two-tower trial and fox hunts | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | MLAT 5 | Coordinator integration: solver module, error ellipses, optional feed to MLAT networks | planned | research | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | Outputs | Observation format fields (`time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows) and dashboard health (markers per minute, sample-rate error, dropped-sample events) | planned | the time model already computes the health values; the observation format comes with OBSF order 1 | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
-| Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#PR](https://github.com/nathansottung/gps-time/pull/PR) |
+| PPSM | Research 1 | Synthetic detector, sub-sample interpolation and time model (pulses, drops, drift); runs in CI with no hardware | done | module `modules/sdr-pps-marker/`; synthetic results only | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Research 2 | Bench, one SDR: marker visibility across bands and attenuation, detection rate, sample-rate error over hours and temperature | planned | research; needs the injection build | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Research 3 | Bench, two SDRs through a splitter: arrival-time difference zero within the stated uncertainty (first real timing figure) | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Research 4 | Scope or time-interval counter check against the PPS line | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Research 5 | Publish schematic, BOM, measured results; `time_source: pps_marker` with measured uncertainty | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | MLAT 1 | One node, ADS-B: arrival times against positions reported by aircraft (consistency check) | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | MLAT 2 | Two nodes, ADS-B TDOA: residuals against reported positions | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | MLAT 3 | Three or more nodes: MLAT for Mode S without position; cross-check ADS-B | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | MLAT 4 | Same timing for FM/ATSC towers, the FM two-tower trial and fox hunts | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | MLAT 5 | Coordinator integration: solver module, error ellipses, optional feed to MLAT networks | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Outputs | Observation format fields (`time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows) and dashboard health (markers per minute, sample-rate error, dropped-sample events) | planned | the time model already computes the health values; the observation format comes with OBSF order 1 | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#115](https://github.com/nathansottung/gps-time/pull/115) |

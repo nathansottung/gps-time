@@ -1223,7 +1223,7 @@ Owner's request, four parts.
 3. Oscillator profile (`ROADMAP-OSCILLATOR-AND-MISC.md` §1) moved to next: next-5 item 6 (six items until the soak is done), five OSC rows `next`, GPS-008 `next` (the modeled projection closes it). `ROADMAP.md` row updated.
 4. `SCOPE-REVIEW.md`: a dated "Corrections" section for the README vision (done), the UI location (`/app/`), the RF reference spec (now in) and the oscillator profile (now next). The review above it is unchanged.
 
-## 2026-10-21 — SDR PPS marker spec (research); step 1 built as a module (#PR)
+## 2026-10-21 — SDR PPS marker spec (research); step 1 built as a module (#115)
 
 Owner's request: add `SPEC-SDR-PPS-MARKER.md` as research, link it from `ROADMAP.md` and `SCOPE-REVIEW.md`, add `STATUS.md` rows, and build research step 1 (synthetic detector and time model) as a module.
 

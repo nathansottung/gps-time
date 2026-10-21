@@ -116,4 +116,4 @@ Checked against the repository after this review was added (#113):
 
 ## Added since (2026-10-21)
 
-- **SDR PPS time markers (research):** [`specs/SPEC-SDR-PPS-MARKER.md`](specs/SPEC-SDR-PPS-MARKER.md). Belongs with §4 (radio and ranging). Research step 1 (synthetic detector and time model) is built as a module, `modules/sdr-pps-marker/`, #PR; the bench steps are not started.
+- **SDR PPS time markers (research):** [`specs/SPEC-SDR-PPS-MARKER.md`](specs/SPEC-SDR-PPS-MARKER.md). Belongs with §4 (radio and ranging). Research step 1 (synthetic detector and time model) is built as a module, `modules/sdr-pps-marker/`, #115; the bench steps are not started.
