@@ -1112,7 +1112,7 @@ Owner's decision after #101.
 - **Unchanged:** `catalog.json`, `stars.json` and `constellations.json` rebuild byte-identical; only `messier.json` changes.
 - **Tests:** `tests/test_sky_data.py` (12). The M102 override is tested with the departure note. The generic duplicate rule keeps its own test on a synthetic duplicate row. "Spindle" finds M102 and not M101, and the departure is recorded with the license.
 
-## 2026-10-21 — coordinator and RF tasking specs, sensor roadmap, reference node imported (docs/import-coordinator-specs)
+## 2026-10-21 — coordinator and RF tasking specs, sensor roadmap, reference node imported (#103)
 
 Owner's request: add the five spec files from 2026-10-19 and index them in `ROADMAP.md`, if not in yet.
 

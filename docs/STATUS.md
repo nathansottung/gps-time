@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-21 (docs/import-coordinator-specs). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-21 (docs/import-coordinator-specs, #103). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -573,4 +573,4 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Public release checklist run: history scan, licensing, README and CONTRIBUTING for outside readers | done | no history rewrite needed; owner steps left (dataset sources, the flip, settings) in `public-release-checklist.md` §8 | [#100](https://github.com/nathansottung/gps-time/pull/100) |
 | Repo |  | Sky data provenance: Messier from OpenNGC (CC BY-SA 4.0, own file), stars and constellations from d3-celestial (BSD-3), rebuilt and checkable from source | done | stars were d3-celestial, not the Yale BSC; 3 Messier objects and 7 magnitudes replaced with OpenNGC's | [#101](https://github.com/nathansottung/gps-time/pull/101) |
 | Repo |  | M102 mapped to NGC 5866 (Spindle Galaxy), marked as departing from OpenNGC; "Spindle" lookup restored | done | owner's decision; the only override in `tools/build_sky_data.py` | [#102](https://github.com/nathansottung/gps-time/pull/102) |
-| Repo |  | Coordinator, RF tasking and FM TDOA trial specs, sensor roadmap and reference node parts list imported and indexed | done | owner-provided, copied verbatim; no items scheduled | PR_LINK |
+| Repo |  | Coordinator, RF tasking and FM TDOA trial specs, sensor roadmap and reference node parts list imported and indexed | done | owner-provided, copied verbatim; no items scheduled | [#103](https://github.com/nathansottung/gps-time/pull/103) |
