@@ -35,7 +35,7 @@ GPS Time is a timing-first, offline-capable measurement station: GNSS â†’ PPS â†
 ## Checks (all must pass; CI runs them)
 
 ```sh
-python -m compileall gps_time_pi tools tests modules
+python -m compileall gps_time_pi tools tests modules coordinator
 python tools/generate_config.py --help
 python -m unittest discover -s tests -t . -v
 cd web && corepack pnpm install --frozen-lockfile && corepack pnpm run typecheck && corepack pnpm run test && corepack pnpm run build
@@ -63,6 +63,8 @@ CI (`.github/workflows/`):
 - **Modules** (optional, off by default; guide `docs/modules/README.md`, ADR-0007): kit `gps_time_pi/modkit/` (interfaces, manifest, ctx, loader; `python -m gps_time_pi.modkit list|check|demo`), schemas `schemas/`, scaffolder `tools/new_module.py`, modules in `modules/<name>/`. Each module runs in its own sandboxed process (`runner.py`, `sandbox.py`) as `gps-time-mod`; on a station only under `system/gps-time-modules.service` (installed, not enabled). The web service never loads modules. Module tests run with the station's through `tests/test_modules.py`. First module: `modules/sdr-pps-marker/` (research, synthetic only).
 - **Observation files** (SigMF + `gpstime:`; writer, reader, validator; `python -m gps_time_pi.obsformat validate|info`): `gps_time_pi/obsformat.py`, `schemas/sigmf-gpstime.v1.json`. Converters to WAV (with a sidecar) and miniSEED 2: `gps_time_pi/convert.py` (`python -m gps_time_pi.convert wav|miniseed`). Guide: `docs/modules/observation-format.md`.
 - **Station key** (Ed25519, made at install, 0600 gps-time; signs observation files; `python -m gps_time_pi.station_key generate|show|sign|verify`): `gps_time_pi/station_key.py`. Never commit a key.
+- **Coordinator** (SKELETON, optional tier; never imported by the station, not in its bundle; ADR-0008): `coordinator/` (`gps_time_coordinator`: signed join/events with the station key, owner approval by CLI, SQLite; container for TrueNAS SCALE). Tests: `tests/test_coordinator.py`.
+- **Incidents** (write-ups from the records made at the time; never a cause the evidence can't establish): `docs/incidents/`. Second station: `docs/deploy/second-station.md`; bench kit: `docs/validation/bench-kit.md`.
 - **Specifications** (requirements, not implemented behavior): `docs/specs/`.
 - **Independent review and remaining findings:** `docs/review/GPS-Time-Independent-Review-2026-09-27.md`.
 - **Admin security:** `gps_time_pi/security.py` (Host/Origin checks, token), `gps_time_pi/admin_token.py`, `gps-time-pi.service` (unprivileged), `system/50-gps-time-pi.rules` (polkit). Decision: ADR-0005.

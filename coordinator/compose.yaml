@@ -1,0 +1,27 @@
+# GPS Time coordinator (SKELETON) for TrueNAS SCALE 24.10 or later: Apps → Discover Apps →
+# Custom App → Install via YAML, then paste this file. Guide: coordinator/README.md.
+#
+# Replace /mnt/POOL with your pool. The three folders are datasets (or folders in one),
+# owned by the apps user 568:568:
+#   /mnt/POOL/apps/gps-time-coordinator/src     a copy of this repository's coordinator/ folder
+#   /mnt/POOL/apps/gps-time-coordinator/config  coordinator.toml (from coordinator.example.toml)
+#   /mnt/POOL/apps/gps-time-coordinator/data    the SQLite database (back this one up)
+services:
+  coordinator:
+    build: /mnt/POOL/apps/gps-time-coordinator/src
+    image: gps-time-coordinator:0.1.0
+    container_name: gps-time-coordinator
+    user: "568:568"
+    ports:
+      - "8090:8090"          # LAN only until TLS is in front (README: "TLS")
+    volumes:
+      - /mnt/POOL/apps/gps-time-coordinator/config:/config:ro
+      - /mnt/POOL/apps/gps-time-coordinator/data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

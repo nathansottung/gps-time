@@ -77,6 +77,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `development/windows-demo.md`
 - `deploy/fresh-pi-install.md` — checklist for a newly flashed Raspberry Pi OS Lite: SSH key, packages, UART/PPS configuration, deploy, reboot, chrony refclocks, checks
 - `deploy/upgrade-1.4-station.md` — checklist for upgrading a station that already runs a 1.4 release candidate (rc.8, rc.9 or rc.10 → rc.11): what changes, the deploy command, checks, the soak run before v1.4.0
+- `deploy/second-station.md` — a second station: shared-antenna, two-antenna or different-receiver setups and what each can show, what differs from the fresh install (own identity, never copy `config.json`), comparing over NTP, with second pulses, and later through the coordinator
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
@@ -86,6 +87,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
 ## Validation
+- `validation/bench-kit.md` — what to buy or borrow to validate timing from outside the Pi: counter or scope, probes, line driver, an independent reference (second receiver, GPSDO), splitter for a shared antenna; examples, no prices
 - `validation/second-pulse.md` — the system clock on a GPIO pin at each second, compared with the receiver's PPS on a scope or counter (`gps_time_pi/secpulse.py`, `tools/pps_compare.py`): wiring, run, compare, what it can't show
 
 ## Hardware
@@ -95,7 +97,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Licensing / decisions / provenance
 - `licensing/open-source-policy.md`
-- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service; ADR-0006: desktop app is a tray app running the Python backend, not Electron; ADR-0007: modules through one kit, off by default, outside the timing core)
+- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service; ADR-0006: desktop app is a tray app running the Python backend, not Electron; ADR-0007: modules through one kit, off by default, outside the timing core; ADR-0008: coordinator skeleton, one container, signed HTTP messages, SQLite)
 - `provenance/change-log.md`
 
 ## Source review
@@ -116,6 +118,12 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `releases/v1.4.0-rc.3.md` — deploy scripts stop on failure, sun shifts (pre-release)
 - `releases/v1.4.0-rc.2.md` — admin security, venv installer, version reporting (pre-release)
 - `releases/v1.4.0-rc.1.md` — first tagged version (pre-release); rollback target for rc.2
+
+## Incidents
+- `incidents/2026-10-17-pps-gnss-outages.md` — the rc.8 soak run's outages: what the station recorded, chrony's 56-minute holdover (+1.68 µs), what isn't known, what changed because of it
+
+## Coordinator
+- `../coordinator/README.md` — SKELETON: signed join and events, owner approval, SQLite; install on TrueNAS SCALE; security notes; backups (ADR-0008)
 
 ## Change records
 - `provenance/change-log.md`
