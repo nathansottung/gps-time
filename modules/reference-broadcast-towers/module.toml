@@ -1,0 +1,52 @@
+# Module manifest (format: docs/modules/README.md; schema: schemas/manifest.v1.json).
+# Off by default: Administration → Experimental modules, then turn this module on.
+# Demo: python -m gps_time_pi.modkit demo reference-broadcast-towers
+
+name = "reference-broadcast-towers"
+version = "0.1.0"
+types = ["reference", "source"]
+maturity = "experimental"
+summary = "FM, ATSC and NOAA Weather Radio transmitters from an offline cache of public licence records, with predicted delays from the surveyed site and a bound"
+spec = "docs/specs/SPEC-EXTENSIBILITY.md"
+interface = "1.0"
+
+[entry]
+reference = "reference_broadcast_towers.reference:TowerReference"
+source = "reference_broadcast_towers.source:TowerSource"
+
+[hardware]
+required = "none: the cache is built by the operator from exported FCC and NOAA records (build_cache.py)"
+planned = "an SDR source and analysis-tower-delay-check to measure arrival times against these predictions"
+
+[timing]
+needed = "none"
+if_worse = "the predicted delays don't depend on the station's timing; they depend on the surveyed site"
+
+[limits]
+memory_mib = 64
+cpu_percent = 5
+
+[permissions]
+network = false
+devices = []
+storage = "none"
+
+[config]
+cache_path = { type = "path", default = "/var/lib/gps-time/towers-cache.json", description = "the cache built by build_cache.py" }
+services = { type = "string", default = "FM,ATSC,NOAA", description = "services used, comma-separated" }
+max_range_km = { type = "float", unit = "km", default = 150.0, description = "farther transmitters are left out" }
+max_cache_age_days = { type = "float", unit = "d", default = 365.0, description = "an older cache is flagged stale (still used)" }
+interval_s = { type = "float", unit = "s", default = 3600.0, description = "how often the predictions are emitted (the cache is read again only when it changes)" }
+max_per_service = { type = "int", default = 10, description = "transmitters emitted per service per cycle, best-bounded first" }
+
+[emits]
+streams = ["cache_available", "cache_built_utc", "cache_age_days", "cache_stale", "references_accepted", "site_available",
+           "in_cache_<service>", "accepted_<service>", "rejected_<reason>",
+           "transmitter", "frequency_hz", "bandwidth_hz", "lat", "lon", "alt_m",
+           "delay_s", "uncertainty_s", "range_m", "elevation_deg", "line_of_sight"]
+events = []
+schema_version = "observation/1"
+
+[licence]
+code = "MIT"
+bundled_data = "none (fixtures are synthetic, generated for this module); a cache built from FCC or NOAA records carries those records' terms (US government works)"

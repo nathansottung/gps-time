@@ -102,3 +102,6 @@ On Windows (desktop demo) the sandbox isn't available. `python -m gps_time_pi.mo
   - Positions are `external` and checked before use; rejections are counted by reason.
   - It is both a `reference` (`list`, `predict`) and a `source`, because the host runs a module's `source` entry; the source emits what the reference computes.
   - `python -m gps_time_pi.modkit demo reference-adsb` replays its synthetic fixtures.
+- [`modules/reference-broadcast-towers/`](../../modules/reference-broadcast-towers/README.md), the pattern for references from public records: FM, ATSC and NOAA Weather Radio transmitters.
+  - The module has no network permission. The operator builds its offline cache with `build_cache.py` from exported records, and every position keeps its source and date.
+  - `python -m gps_time_pi.modkit demo reference-broadcast-towers` predicts from its synthetic cache.
