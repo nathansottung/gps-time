@@ -20,11 +20,21 @@ Storage (project rule: nothing written at 1 Hz):
 
 It reports a straight-line frequency-versus-temperature slope over the bins in
 RAM (`calculated`), and the oscillator profile fitted over the whole log
-(oscprofile.py: temperature, optionally its square and aging; `modeled`). It
-doesn't predict holdover.
+(oscprofile.py: temperature, optionally its square and aging; `modeled`), and
+holdover projections from it beside the simple ones (oscprofile.holdover; GPS-008).
+
+Export/import (roadmap §1): the profile, its fit bins and metadata (board serial hash
+and model, receiver, software version) as one JSON file, so the profile survives a
+reflash. On import the board hashes are compared:
+  - match: the bins are merged into the fit and the file is kept next to the log;
+  - mismatch, or a board that can't be identified: the file is kept for reference only,
+    shown with a warning, never fitted or used for a projection; this board's own
+    profile carries on (or starts) from its own log.
+The file never holds a position or the raw serial.
 """
 
 import hashlib
+import json
 import math
 import os
 import re
@@ -44,6 +54,10 @@ MAX_BYTES = int(os.environ.get("GTP_OSCILLATOR_LOG_MAX_BYTES", str(4 * 1024 * 10
 FIT_MIN_BINS = 36                     # 6 hours of PPS-selected bins
 FIT_MIN_TEMP_SPAN_C = 2.0
 FORMAT = "gps-time oscillator log v1"
+EXPORT_FORMAT = "gps-time-oscillator-profile/1"
+IMPORTED_NAME = "oscillator-profile.json"            # this board's, merged into the fit
+REFERENCE_NAME = "oscillator-profile-reference.json" # another board's (or unverifiable): reference only
+MAX_IMPORT_BYTES = 2_000_000
 COLUMNS = ("bin_start_utc", "samples", "pps_samples", "temp_mean_c", "temp_min_c", "temp_max_c",
            "freq_mean_ppm", "freq_min_ppm", "freq_max_ppm", "skew_mean_ppm", "residual_mean_ppm")
 
@@ -169,7 +183,11 @@ class Log:
         self._last_flush = clock()
         self.problems = []
         self.set_aside = None
+        self._latest = None                 # the last one-minute sample: freq, skew, temperature
+        self.imported = None                # metadata of this board's imported profile file, in use
+        self.reference = None               # another board's (or unverifiable) file: reference only
         self._load()
+        self._load_profile_files()
 
     # -- file ----------------------------------------------------------------
 
@@ -313,6 +331,7 @@ class Log:
             if freq is None:
                 return                                  # chrony unreadable: nothing to log
             self._last_sample = now
+            self._latest = {"t": now, "freq": freq, "skew": parse_ppm((tracking or {}).get("Skew")), "temp": None}
             start = now - now % BIN_S
             if self._acc and self._acc["start"] != start:
                 self._close_bin()
@@ -330,9 +349,180 @@ class Log:
             temp = self.temp_reader()
             if temp is not None:
                 a["temp"].append(temp)
+            self._latest["temp"] = temp
             flush_due = now - self._last_flush >= FLUSH_INTERVAL_S
         if flush_due:
             self.flush()
+
+    # -- export / import (roadmap §1) -----------------------------------------
+
+    def _dir(self):
+        return os.path.dirname(os.path.abspath(self.path))
+
+    def _merge_fit(self, rows):
+        """Add (t, temp, freq) rows to the fit bins; a bin already there (same start) wins."""
+        with self._lock:
+            have = {r[0]: r for r in self._fit_bins}
+            for r in rows:
+                have.setdefault(r[0], r)
+            self._fit_bins = deque(sorted(have.values())[-oscprofile.MAX_BINS:], maxlen=oscprofile.MAX_BINS)
+
+    def export(self, receiver=None, software_version=None):
+        """The profile, its fit bins and metadata as one JSON-able dict (no position, no raw serial)."""
+        prof = self.profile()
+        with self._lock:
+            rows = [[int(t), round(T, 2), round(f, 4)] for t, T, f in self._fit_bins]
+        return {
+            "format": EXPORT_FORMAT,
+            "exported_utc": _iso(self.clock()),
+            "board": {"serial_sha256": self.identity.get("serial_sha256"), "model": self.identity.get("model")},
+            "receiver": receiver,
+            "software_version": software_version,
+            "profile": profile_payload(prof),
+            "fit_bins": {"columns": ["bin_start_utc_epoch", "temp_mean_c", "freq_mean_ppm"], "rows": rows,
+                         "note": "10-minute bins with PPS selected throughout; frequency is chrony's, + = fast"},
+            "note": ("Oscillator profile export. Import it on the same board (the serial hash must match) "
+                     "to keep the profile across a reflash; on another board it is kept for reference only."),
+        }
+
+    def binding(self, doc_board):
+        """match, mismatch or unverifiable: the file's board hash against this board's."""
+        theirs = doc_board.get("serial_sha256") if isinstance(doc_board, dict) else None
+        mine = self.identity.get("serial_sha256")
+
+        def valid(h):
+            return isinstance(h, str) and re.fullmatch(r"[0-9a-f]{16}", h) is not None
+        if not valid(theirs) or not valid(mine):
+            return "unverifiable"
+        return "match" if theirs == mine else "mismatch"
+
+    def parse_export(self, doc):
+        """(rows, None) from an export document, or (None, reason). Checks shape and ranges only."""
+        if not isinstance(doc, dict) or doc.get("format") != EXPORT_FORMAT:
+            return None, f"not an oscillator profile file (expected format {EXPORT_FORMAT})"
+        fb = doc.get("fit_bins")
+        rows = fb.get("rows") if isinstance(fb, dict) else None
+        if not isinstance(rows, list) or len(rows) > oscprofile.MAX_BINS:
+            return None, f"fit_bins.rows must be a list of at most {oscprofile.MAX_BINS} bins"
+        out = []
+        latest = self.clock() + 86400
+        for r in rows:
+            if not (isinstance(r, list) and len(r) == 3
+                    and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in r)):
+                return None, "each bin must be [epoch seconds, °C, ppm]"
+            t, T, f = r
+            if not (946684800 <= t <= latest and -50 <= T <= 150 and -1000 <= f <= 1000):
+                return None, "a bin is out of range (time 2000 to now, −50 to 150 °C, ±1000 ppm)"
+            out.append((float(t), float(T), float(f)))
+        return out, None
+
+    @staticmethod
+    def _meta(doc, binding, n_rows, path):
+        board = doc.get("board") if isinstance(doc.get("board"), dict) else {}
+        return {"binding": binding, "file": os.path.basename(path), "bins": n_rows,
+                "exported_utc": doc.get("exported_utc"),
+                "board": {"serial_sha256": board.get("serial_sha256"), "model": board.get("model")},
+                "receiver": doc.get("receiver"), "software_version": doc.get("software_version")}
+
+    @staticmethod
+    def _write_json(path, doc):
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(doc, f, separators=(",", ":"))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+
+    def _read_json(self, path):
+        try:
+            if os.path.getsize(path) > MAX_IMPORT_BYTES:
+                self.problems.append(f"{os.path.basename(path)} is over {MAX_IMPORT_BYTES} bytes; ignored")
+                return None
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError) as e:
+            self.problems.append(f"{os.path.basename(path)} could not be read ({e}); ignored")
+            return None
+
+    def _reference_entry(self, doc, binding, rows, path):
+        warn = ("This profile belongs to a different board (the serial hashes differ). It is kept for "
+                "reference only: never fitted with this board's data or used for a projection."
+                if binding == "mismatch" else
+                "This profile's board can't be confirmed (a serial hash is missing on the file or on this "
+                "station). It is kept for reference only: never fitted with this board's data or used for "
+                "a projection.")
+        return {**self._meta(doc, binding, len(rows), path), "warning": warn,
+                "profile": profile_payload(oscprofile.fit(rows))}
+
+    def _load_profile_files(self):
+        """At start: this board's imported file joins the fit; any other stays reference only."""
+        for name in (IMPORTED_NAME, REFERENCE_NAME):
+            path = os.path.join(self._dir(), name)
+            doc = self._read_json(path)
+            if doc is None:
+                continue
+            rows, err = self.parse_export(doc)
+            if err:
+                self.problems.append(f"{name}: {err}; ignored")
+                continue
+            b = self.binding(doc.get("board"))
+            if name == IMPORTED_NAME and b == "match":
+                self._merge_fit(rows)
+                self.imported = self._meta(doc, b, len(rows), path)
+            else:
+                self.reference = self._reference_entry(doc, b, rows, path)
+
+    def import_profile(self, doc, dry_run=False):
+        """Import an export file. Returns {'ok', 'binding', 'bins', 'used', 'detail'} or {'ok': False, 'error'}."""
+        rows, err = self.parse_export(doc)
+        if err:
+            return {"ok": False, "error": err}
+        b = self.binding(doc.get("board"))
+        used = b == "match"
+        detail = (f"same board: {len(rows)} bins merged into this board's profile" if used else
+                  "a different board: kept for reference only; this board's profile carries on from its own log"
+                  if b == "mismatch" else
+                  "the board can't be confirmed (no serial hash on the file or the station): kept for reference only")
+        res = {"ok": True, "binding": b, "bins": len(rows), "used": used, "detail": detail}
+        if dry_run:
+            return {**res, "simulated": True, "detail": "demo mode, nothing was saved. On a station: " + detail}
+        try:
+            if used:
+                path = os.path.join(self._dir(), IMPORTED_NAME)
+                old = self._read_json(path)
+                merged = {r[0]: r for r in ((self.parse_export(old)[0] or []) if old else [])}
+                merged.update({r[0]: r for r in rows})
+                keep = sorted(merged.values())[-oscprofile.MAX_BINS:]
+                doc = {**doc, "fit_bins": {**doc["fit_bins"], "rows": [[int(t), T, f] for t, T, f in keep]}}
+                os.makedirs(self._dir(), exist_ok=True)
+                self._write_json(path, doc)
+                self._merge_fit(rows)
+                self.imported = self._meta(doc, b, len(keep), path)
+            else:
+                path = os.path.join(self._dir(), REFERENCE_NAME)
+                os.makedirs(self._dir(), exist_ok=True)
+                self._write_json(path, doc)
+                self.reference = self._reference_entry(doc, b, rows, path)
+        except OSError as e:
+            return {"ok": False, "error": f"could not save the file: {e.strerror or e}"}
+        return res
+
+    # -- holdover --------------------------------------------------------------
+
+    def holdover(self):
+        """Holdover projections from the last sample (GPS-008): the simple ones and the profile's."""
+        with self._lock:
+            latest = dict(self._latest) if self._latest else None
+            day = [b for b in self._bins if latest and b["t"] >= latest["t"] - 86400]
+        temps = [b["temp_mean_c"] for b in day if b["temp_mean_c"] is not None]   # bin means, as the fit uses
+        full_day = bool(day) and latest["t"] - day[0]["t"] >= 0.9 * 86400
+        rng = (min(temps), max(temps)) if full_day and temps else None
+        out = oscprofile.holdover(self.profile(), latest["freq"] if latest else None,
+                                  latest["skew"] if latest else None, latest["temp"] if latest else None, rng)
+        out["sample_utc"] = _iso(latest["t"]) if latest else None
+        return out
 
     # -- report --------------------------------------------------------------
 
@@ -357,6 +547,10 @@ class Log:
                 "bin_start_utc": _iso(latest["t"])},
             "fit": linear_fit(bins),
             "profile": profile_payload(self.profile()),
+            "holdover": self.holdover(),
+            "profile_files": {"imported": self.imported, "reference": self.reference,
+                              "note": ("Export: GET /api/oscillator/profile. Import: POST the file back (admin "
+                                       "token). Only a file from this board (same serial hash) joins the fit.")},
             "fit_note": ("A straight line through frequency against temperature over the logged bins. It is not "
                          "the oscillator profile and not a holdover prediction."),
             "storage": {"path": self.path, "bytes": size, "max_bytes": self.max_bytes,

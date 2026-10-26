@@ -15,8 +15,9 @@ import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import { applySetting } from '../lib/modules';
+import { demoImport, holdoverTimes } from '../lib/oscillator';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleRow, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleRow, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -89,6 +90,8 @@ export function demoApi(): StationApi {
     references: (o) => delay(references(o?.scenario, o?.history)),
     ntpService: () => delay(ntpService()),
     oscillator: () => delay(oscillator()),
+    oscillatorExport: () => delay(oscillatorExport()),
+    oscillatorImport: (doc) => delay(demoImport(doc, DEMO_BOARD.serial_sha256)),
     evidence: () => delay(evidenceIndex()),
     // Mirrors the server: shadow geometry and passes depend on the position, so hidden mode computes none.
     shadow: (o) => delay(locationMode === 'hidden' ? { available: false as const, reason: SKY_HIDDEN, location_display: 'hidden' as const }
@@ -573,10 +576,51 @@ function oscillator(): Oscillator {
       candidates: [{ model: 'linear', bic: -3880.1 }, { model: 'quadratic', bic: -3874.6 }],
       note: "A statistical model of how chrony's frequency estimate moved with the SoC sensor's temperature (and with time) while GPS kept the clock right, fitted over the whole log. It describes this board's sensor and crystal together, only within the temperature range and time span it covers. It is not a holdover guarantee.",
     },
+    holdover: demoHoldover(last.temp_mean_c ?? 50, last.t),
+    profile_files: { imported: null, reference: null,
+                     note: 'Export: GET /api/oscillator/profile. Import: POST the file back (admin token). Only a file from this board (same serial hash) joins the fit.' },
     storage: { path: '(sample data)', bytes: 24727, max_bytes: 4194304, pending_bins: 3, flush_interval_s: 3600,
                note: '10-minute bins appended once an hour and on a clean stop; oldest quarter dropped past the cap' },
-    board: { serial_sha256: 'demo', model: 'demo board' },
+    board: DEMO_BOARD,
     problems: ['sample data'],
+  };
+}
+
+// A visibly synthetic board hash (mirrors gps_time_pi/demo.py), so a demo export imports as "same board".
+const DEMO_BOARD = { serial_sha256: '0000000000000000', model: 'demo board' };
+const HOLD_THRESHOLDS = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1];
+
+function demoHoldover(tempNow: number, sampleUtc: string): OscillatorHoldover {
+  // Mirrors oscprofile.holdover for the demo profile: 10.9 ppm, skew 0.008 ppm, −0.3 ppm/°C, 43.7–56.3 °C.
+  const lo = 43.7, hi = 56.3, dtemp = 0.3 * Math.max(Math.abs(hi - tempNow), Math.abs(tempNow - lo));
+  const resid = 0.0012, skew = 0.008, free = 10.9 - 0.3 * (tempNow - 50);
+  const proj = (name: HoldoverProjection['name'], rate: number, extra: Partial<HoldoverProjection>): HoldoverProjection =>
+    ({ name, provenance: 'modeled', available: true, rate_ppm: rate, aging_ppm_per_day: 0, times_s: holdoverTimes(HOLD_THRESHOLDS, rate), ...extra });
+  return {
+    provenance: 'modeled', thresholds_s: HOLD_THRESHOLDS, sample_utc: sampleUtc,
+    note: 'Projections of how long the clock would take to drift past each error if GPS and PPS went away now and chrony kept running on its last frequency estimate. All three are models, not measurements and not guarantees: none has been checked against a real outage yet (that needs the offset measured when PPS comes back).',
+    projections: [
+      proj('free_running', Math.abs(free), { basis: '|chrony Frequency|: how fast the clock would run with no correction at all' }),
+      proj('trained_skew', skew, { basis: 'chrony Skew: its own bound on the error of the frequency it would keep applying; no temperature, no aging' }),
+      proj('profile', skew + resid + dtemp, {
+        components_ppm: { skew, residual_rms: resid, temperature: dtemp }, temp_now_c: tempNow, temp_assumed_c: [lo, hi],
+        temp_source: "the last 24 h's temperature range", extrapolated: false, caveat: null,
+        basis: `Skew + the profile's residual RMS + its largest frequency change for ${lo.toFixed(1)}–${hi.toFixed(1)} °C`,
+      }),
+    ],
+  };
+}
+
+function oscillatorExport(): OscillatorProfileExport {
+  const o = oscillator();
+  return {
+    format: 'gps-time-oscillator-profile/1', exported_utc: new Date().toISOString().slice(0, 19) + '+00:00',
+    board: DEMO_BOARD, receiver: { driver: 'u-blox', firmware: 'MAX-M8Q sample' }, software_version: UI_VERSION,
+    profile: o.profile,
+    fit_bins: { columns: ['bin_start_utc_epoch', 'temp_mean_c', 'freq_mean_ppm'],
+                rows: o.bins.map(b => [Math.round(Date.parse(b.t) / 1000), +(b.temp_mean_c ?? 0).toFixed(2), +(b.freq_mean_ppm ?? 0).toFixed(4)]),
+                note: "10-minute bins with PPS selected throughout; frequency is chrony's, + = fast (sample data)" },
+    note: 'Oscillator profile export (sample data). Import it on the same board (the serial hash must match) to keep the profile across a reflash; on another board it is kept for reference only.',
   };
 }
 

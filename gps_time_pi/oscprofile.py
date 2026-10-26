@@ -166,3 +166,102 @@ def predict(profile, temp_c, t_epoch):
     cov = profile["covers"]
     inside = cov["temp_min_c"] <= temp_c <= cov["temp_max_c"] and t_epoch <= cov["last_utc_epoch"] + 86400
     return f, None if inside else "outside the temperature range or time span the fit covers (extrapolated)"
+
+
+# -- holdover projection (GPS-008) ----------------------------------------------------------
+
+THRESHOLDS_S = (1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0)
+DEFAULT_EXCURSION_C = 5.0      # temperature change assumed when the last day's swing isn't known
+
+HOLDOVER_NOTE = ("Projections of how long the clock would take to drift past each error if GPS and PPS went "
+                 "away now and chrony kept running on its last frequency estimate. All three are models, not "
+                 "measurements and not guarantees: none has been checked against a real outage yet (that "
+                 "needs the offset measured when PPS comes back).")
+
+
+def _time_to(err_s, rate, accel):
+    """Time (s) for |x| = rate·τ + accel·τ²/2 to reach err_s; rate and accel as fractions (s/s, 1/s)."""
+    if accel > 0:
+        return (-rate + math.sqrt(rate * rate + 2 * accel * err_s)) / accel
+    return err_s / rate if rate > 0 else None
+
+
+def _freq_change(profile, temp_c, lo, hi):
+    """Largest |f(T) − f(temp_c)| in ppm for T in [lo, hi], from the profile's temperature terms."""
+    c = {t["name"]: t["value"] for t in profile["terms"]}
+    b, cc, T0 = c.get("b", 0.0), c.get("c", 0.0), profile["temp_ref_c"]
+
+    def f(T):
+        dT = T - T0
+        return b * dT + cc * dT * dT
+    pts = [lo, hi]
+    if cc:
+        v = T0 - b / (2 * cc)                         # the parabola's vertex
+        if lo < v < hi:
+            pts.append(v)
+    return max(abs(f(T) - f(temp_c)) for T in pts)
+
+
+def holdover(profile, freq_ppm, skew_ppm, temp_c, temp_range=None):
+    """Time to each error threshold in holdover, three ways, all `modeled`:
+
+    - free_running: the clock without chrony's correction (|Frequency|): an untrained crystal;
+    - trained_skew: chrony keeps its learned correction; the error grows at Skew, chrony's own
+      bound on its frequency estimate. No temperature, no aging;
+    - profile: as trained_skew, plus the profile's residual RMS (wander the fit doesn't explain),
+      the largest frequency change the profile gives for a temperature anywhere in temp_range
+      (the last 24 h's observed (min, max); else ±DEFAULT_EXCURSION_C from now), and the aging
+      term as a frequency ramp. Needs a fitted profile.
+
+    Rates are magnitudes added together (a pessimistic sum, not an RSS), as if the worst
+    temperature were reached at once. Times in seconds; None where the rate is zero."""
+    out = {"provenance": "modeled", "thresholds_s": list(THRESHOLDS_S), "note": HOLDOVER_NOTE,
+           "projections": []}
+
+    def proj(name, rate_ppm, aging_ppm_day=0.0, **extra):
+        times = [None] * len(THRESHOLDS_S)
+        if rate_ppm is not None:
+            rate, accel = abs(rate_ppm) * 1e-6, abs(aging_ppm_day) * 1e-6 / 86400.0
+            times = [_time_to(e, rate, accel) for e in THRESHOLDS_S]
+        out["projections"].append({"name": name, "provenance": "modeled", "rate_ppm": rate_ppm,
+                                   "aging_ppm_per_day": aging_ppm_day, "times_s": times, **extra})
+
+    if freq_ppm is None:
+        proj("free_running", None, available=False, reason="chrony's frequency is not known")
+    else:
+        proj("free_running", abs(freq_ppm), available=True,
+             basis="|chrony Frequency|: how fast the clock would run with no correction at all")
+    if skew_ppm is None:
+        proj("trained_skew", None, available=False, reason="chrony's skew is not known")
+    else:
+        proj("trained_skew", abs(skew_ppm), available=True,
+             basis="chrony Skew: its own bound on the error of the frequency it would keep applying; "
+                   "no temperature, no aging")
+
+    if not profile or profile.get("status") != "fitted":
+        why = profile.get("reason") if profile else None
+        proj("profile", None, available=False, reason="no fitted oscillator profile" + (f": {why}" if why else ""))
+        return out
+    if skew_ppm is None or temp_c is None:
+        proj("profile", None, available=False, reason="chrony's skew or the SoC temperature is not known now")
+        return out
+    if temp_range and None not in temp_range:
+        lo, hi = min(temp_range[0], temp_c), max(temp_range[1], temp_c)
+        source = "the last 24 h's temperature range"
+    else:
+        lo, hi = temp_c - DEFAULT_EXCURSION_C, temp_c + DEFAULT_EXCURSION_C
+        source = f"assumed ±{DEFAULT_EXCURSION_C:g} °C from now (no 24 h range yet)"
+    dtemp = _freq_change(profile, temp_c, lo, hi)
+    resid = profile.get("residual_rms_ppm") or 0.0
+    aging = next((t["value"] for t in profile["terms"] if t["name"] == "d"), 0.0)
+    cov = profile["covers"]
+    inside = cov["temp_min_c"] <= lo and hi <= cov["temp_max_c"]
+    proj("profile", abs(skew_ppm) + resid + dtemp, aging, available=True,
+         components_ppm={"skew": abs(skew_ppm), "residual_rms": resid, "temperature": round(dtemp, 6)},
+         temp_now_c=round(temp_c, 2), temp_assumed_c=[round(lo, 2), round(hi, 2)], temp_source=source,
+         extrapolated=not inside,
+         basis=(f"Skew + the profile's residual RMS + its largest frequency change for {lo:.1f}–{hi:.1f} °C"
+                + (" + aging as a ramp" if aging else "")),
+         caveat=None if inside else ("the temperatures assumed go beyond what the profile has seen "
+                                     f"({cov['temp_min_c']:.1f}–{cov['temp_max_c']:.1f} °C); extrapolated"))
+    return out

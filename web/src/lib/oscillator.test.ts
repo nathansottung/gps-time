@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OscillatorBin } from '../api/types';
-import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve } from './oscillator';
+import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve, bindingFor, demoImport, exportFilename, fmtHoldTime, fmtThreshold, holdoverRows, holdoverTimes, importOutcome } from './oscillator';
 import { demoApi } from '../api/demo';
 
 const bin = (t: string, temp: number | null, freq: number | null, pps = 10): OscillatorBin => ({
@@ -73,5 +73,83 @@ describe('oscillator profile', () => {
   it('shows terms as Δf/f with ppm in brackets', () => {
     expect(fmtTerm(base.terms[1])).toEqual({ label: 'Temperature coefficient', text: '−3 × 10⁻⁷ ± 1 × 10⁻¹⁰ per °C (−0.3000 ppm/°C)' });
     expect(fmtTerm(base.terms[3]).text).toContain('per day');
+  });
+});
+
+describe('holdover projections', () => {
+  it('matches the review numbers (GPS-008)', () => {
+    const t = holdoverTimes([1e-6, 1e-3, 1], 2.14);
+    expect(t[0]).toBeCloseTo(0.467, 3);
+    expect((t[2] as number) / 86400).toBeCloseTo(5.41, 2);
+    const trained = holdoverTimes([1e-6, 1e-3], 0.018);
+    expect(trained[0]).toBeCloseTo(55.6, 1);
+    expect((trained[1] as number) / 3600).toBeCloseTo(15.4, 1);
+    expect(holdoverTimes([1], 0)).toEqual([null]);
+  });
+  it('aging makes it sooner, and solves the quadratic', () => {
+    const [t] = holdoverTimes([1], 0.25, 0.05);
+    const r = 0.25e-6, a = 0.05e-6 / 86400;
+    expect(t as number).toBeLessThan(1 / r);
+    expect(r * (t as number) + a * (t as number) ** 2 / 2).toBeCloseTo(1, 9);
+  });
+  it('formats durations and thresholds', () => {
+    expect(fmtHoldTime(0.467)).toBe('0.47 s');
+    expect(fmtHoldTime(55.6)).toBe('56 s');
+    expect(fmtHoldTime(1500)).toBe('25 min');
+    expect(fmtHoldTime(15.4 * 3600)).toBe('15 h');
+    expect(fmtHoldTime(5.41 * 86400)).toBe('5.4 d');
+    expect(fmtHoldTime(4 * 365.25 * 86400)).toBe('4.0 yr');
+    expect(fmtHoldTime(null)).toBe('not reached');
+    expect([1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1].map(fmtThreshold))
+      .toEqual(['±1 µs', '±10 µs', '±100 µs', '±1 ms', '±10 ms', '±100 ms', '±1 s']);
+  });
+  it('rows show a dash for an unavailable projection, never a number', () => {
+    const h = {
+      provenance: 'modeled' as const, thresholds_s: [1e-6], sample_utc: null, note: '',
+      projections: [
+        { name: 'free_running' as const, provenance: 'modeled' as const, available: true, rate_ppm: 2.14, aging_ppm_per_day: 0, times_s: [0.467] },
+        { name: 'profile' as const, provenance: 'modeled' as const, available: false, reason: 'no fit', rate_ppm: null, aging_ppm_per_day: 0, times_s: [null] },
+      ],
+    };
+    expect(holdoverRows(h)).toEqual([{ threshold: '±1 µs', cells: [{ name: 'free_running', text: '0.47 s' }, { name: 'profile', text: '—' }] }]);
+    expect(holdoverRows(undefined)).toEqual([]);
+  });
+});
+
+describe('profile file', () => {
+  const doc = { format: 'gps-time-oscillator-profile/1', board: { serial_sha256: 'a1b2c3d4e5f60718' },
+                fit_bins: { rows: [[1793000000, 45, 10]] } };
+  it('binds by serial hash', () => {
+    expect(bindingFor('a1b2c3d4e5f60718', 'a1b2c3d4e5f60718')).toBe('match');
+    expect(bindingFor('0f0e0d0c0b0a0908', 'a1b2c3d4e5f60718')).toBe('mismatch');
+    expect(bindingFor(null, 'a1b2c3d4e5f60718')).toBe('unverifiable');
+    expect(bindingFor('a1b2c3d4e5f60718', null)).toBe('unverifiable');
+    expect(bindingFor('demo', 'demo')).toBe('unverifiable');
+  });
+  it('demo import mirrors the station and saves nothing', () => {
+    const same = demoImport(doc, 'a1b2c3d4e5f60718');
+    expect(same).toMatchObject({ ok: true, binding: 'match', used: true, simulated: true, bins: 1 });
+    expect(demoImport(doc, '0f0e0d0c0b0a0908')).toMatchObject({ ok: true, binding: 'mismatch', used: false });
+    expect(demoImport({ format: 'x' }, null).ok).toBe(false);
+    expect(demoImport({ ...doc, fit_bins: { rows: [[1, 2]] } }, null).ok).toBe(false);
+    expect(importOutcome(same).text).toContain('nothing was saved');
+    expect(importOutcome({ ok: false, error: 'admin token required' })).toEqual({ ok: false, text: 'Not imported: admin token required.' });
+  });
+  it('names the download by date', () => {
+    expect(exportFilename({ exported_utc: '2026-10-26T18:00:00+00:00' })).toBe('oscillator-profile-2026-10-26.json');
+    expect(exportFilename({})).toBe('oscillator-profile.json');
+  });
+});
+
+describe('demo adapter', () => {
+  it('a demo export imports as the same board, simulated', async () => {
+    const api = demoApi();
+    const doc = await api.oscillatorExport();
+    expect(doc.fit_bins.rows.length).toBeGreaterThan(0);
+    expect(JSON.stringify(doc)).not.toMatch(/"lat"|"lon"/);
+    expect(await api.oscillatorImport(doc)).toMatchObject({ ok: true, binding: 'match', simulated: true });
+    const o = await api.oscillator();
+    expect(o.holdover.projections.map(p => p.name)).toEqual(['free_running', 'trained_skew', 'profile']);
+    expect(o.holdover.projections.every(p => p.provenance === 'modeled')).toBe(true);
   });
 });

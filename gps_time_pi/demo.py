@@ -382,30 +382,38 @@ def evidence(eid=None) -> dict:
 
 
 def oscillator() -> dict:
-    """Sample /api/oscillator payload: the real log fed a synthetic day (a
+    """Sample /api/oscillator payload: the real log fed two synthetic days (a
     crystal at about -0.3 ppm per degree C with the SoC warming by day)."""
+    out = oscillator_log().report()
+    out["storage"] = {**out["storage"], "path": "(sample data)"}
+    out["problems"] = ["sample data"]
+    return out
+
+
+def oscillator_log():
+    """The demo oscillator log itself (for the profile export in demo mode)."""
     import tempfile
     from . import oscillator as osc
     now = time.time()
     clock = [now - 2 * 86400]
     temp = [50.0]
-    path = os.path.join(tempfile.gettempdir(), "gtp-demo-oscillator.csv")
+    # Its own folder: the log also looks for profile files next to itself, and the demo saves none.
+    folder = os.path.join(tempfile.gettempdir(), "gtp-demo-oscillator")
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, "oscillator-log.csv")
     try:
         os.remove(path)
     except OSError:
         pass
     log = osc.Log(path=path, clock=lambda: clock[0], temp_reader=lambda: temp[0],
-                  identity={"serial_sha256": "demo", "model": "demo board"})
+                  identity={"serial_sha256": "0000000000000000", "model": "demo board"})
     for i in range(2 * 1440):
         clock[0] = now - 2 * 86400 + i * 60
         temp[0] = 50.0 + 6.0 * math.sin(2 * math.pi * (i / 1440.0 - 0.3)) + 0.3 * math.sin(i / 7.0)
         freq = 10.9 - 0.3 * (temp[0] - 50.0) + 0.002 * math.sin(i / 3.0)
         log.add({"Frequency": f"{abs(freq):.3f} ppm {'fast' if freq >= 0 else 'slow'}",
                  "Skew": "0.008 ppm", "Residual freq": "-0.000 ppm"}, True)
-    out = log.report()
-    out["storage"] = {**out["storage"], "path": "(sample data)"}
-    out["problems"] = ["sample data"]
-    return out
+    return log
 
 
 def ntp_service() -> dict:

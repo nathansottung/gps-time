@@ -47,6 +47,24 @@ Once a minute, from the timing chain's last `chronyc -n tracking`:
 - **Display:** coefficients as Δf/f ×10⁻ⁿ (per °C, per °C², per day), with ppm in brackets.
 - **What it isn't:** a measurement of the crystal (the sensor is the processor's), valid outside the range and span it covers, or a holdover guarantee.
 
-## Not done here
+## Holdover projection (GPS-008)
 
-The rest of the roadmap's profile: the holdover projection labelled `modeled` beside the simple one (GPS-008), export/import as one JSON file, board binding on import, and the metadata in that file.
+`oscprofile.holdover()`, from the last one-minute sample. Three projections of the time until the clock is off by ±1 µs, 10 µs, 100 µs, 1 ms, 10 ms, 100 ms and 1 s if GPS and PPS went away now. All three are labelled `modeled`:
+
+- **Free-running (untrained):** |chrony Frequency|, how fast the clock would run with no correction. This is what the legacy page showed as "holdover".
+- **Trained (skew only):** chrony keeps applying its learned frequency, and the error grows at Skew, chrony's own bound on that frequency. No temperature, no aging. The review's fix for GPS-008.
+- **Profile:** Skew, plus the profile's residual RMS (wander the fit doesn't explain), plus the largest frequency change the profile gives for any temperature in the last 24 h's range of bin means (±5 °C from now until a day is logged), plus the aging term as a frequency ramp. The rates are added as magnitudes, as if the worst temperature were reached at once: pessimistic on purpose. The error is rate·τ + aging·τ²/2, solved for each threshold. A range beyond what the profile covers is flagged as extrapolated.
+
+None of them has been checked against a real outage. That needs the offset measured when PPS comes back (OBS §6, the Holdover Performance card, still planned). The note on the payload says so.
+
+## Export, import and board binding
+
+- **Export:** `GET /api/oscillator/profile` returns one JSON file (`gps-time-oscillator-profile/1`). It holds the fitted profile; the fit bins as `[epoch s, °C, ppm]` rows (≤ 90 days, about 360 kB); the board's serial hash and model; the receiver's driver and firmware; the software version; and the export time. No position and no raw serial.
+- **Import:** `POST /api/oscillator/profile` with that file, admin token required. The route accepts up to 2 MB (other POSTs: 256 kB). Each row is checked: time from 2000 to now + 1 day, −50 to 150 °C, ±1000 ppm, at most 90 days of bins.
+- **Board binding:** the file's serial hash is compared with this board's.
+  - **match:** the bins are merged into the fit (a bin the log already has wins). The file is written next to the log as `oscillator-profile.json`, merged with any earlier import, in one atomic write.
+  - **mismatch:** the file is written as `oscillator-profile-reference.json`. It is shown with a warning, and its profile is refitted for display. It is never fitted with this board's data or used for a projection. This board's own profile carries on from its own log.
+  - **unverifiable:** either hash is missing or malformed. The file is treated as reference only, the same as a mismatch.
+- **At every start** both files are read and the binding is checked again. An imported file on an SD card moved to another Pi becomes reference only.
+- **Writes:** only when an operator imports, never periodically.
+- **Demo mode:** the import is checked and answered, but nothing is saved.

@@ -469,6 +469,23 @@ def oscillator_payload():
     return timing_chain.service().oscillator.report()
 
 
+def oscillator_log():
+    return demo.oscillator_log() if DEMO_MODE else timing_chain.service().oscillator
+
+
+def oscillator_export():
+    """The profile export file (GET /api/oscillator/profile): no position, no raw serial."""
+    if DEMO_MODE:
+        receiver = {"driver": "u-blox", "firmware": "MAX-M8Q sample"}
+    else:
+        try:
+            r = gps.snapshot().get("receiver") or {}
+            receiver = {"driver": r.get("driver"), "firmware": r.get("firmware")}
+        except Exception:  # noqa: BLE001
+            receiver = None
+    return oscillator_log().export(receiver=receiver, software_version=__version__)
+
+
 def ntp_service_payload():
     if DEMO_MODE:
         return demo.ntp_service()
@@ -505,10 +522,11 @@ HOST_REFUSED = ("Host not allowed. Use the station's IP address or hostname, or 
                 "name to GTP_ALLOWED_HOSTS (comma-separated) in the service environment.\n")
 ADMIN_DISABLED = ("admin is disabled: no admin token is configured on the station "
                   "(create one with: sudo python3 -m gps_time_pi.admin_token)")
-POST_ROUTES = ("/api/admin", "/api/setting")
+POST_ROUTES = ("/api/admin", "/api/setting", "/api/oscillator/profile")
 # The retired legacy pages (removed after v1.4.0): their paths redirect to the web UI.
 LEGACY_PATHS = ("/legacy", "/almanac", "/history", "/admin", "/configure", "/zones")
 MAX_BODY = 256000
+ROUTE_MAX_BODY = {"/api/oscillator/profile": 2_000_000}   # a 90-day profile export
 
 
 def auth_payload(authenticated):
@@ -661,6 +679,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(evidence_payload(qs))
             elif p == "/api/oscillator":
                 self._json(oscillator_payload())
+            elif p == "/api/oscillator/profile":
+                doc = oscillator_export()
+                day = (doc.get("exported_utc") or "")[:10]
+                self._json(doc, headers={"Content-Disposition":
+                                         f'attachment; filename="oscillator-profile-{day}.json"'})
             elif p == "/api/ntp-service":
                 self._json(ntp_service_payload())
             elif p == "/api/references":
@@ -694,7 +717,8 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = -1
-        raw = self.rfile.read(length) if 0 < length <= MAX_BODY else None
+        cap = ROUTE_MAX_BODY.get(p, MAX_BODY)
+        raw = self.rfile.read(length) if 0 < length <= cap else None
         if raw is None:
             self.close_connection = True
         if not self._host_ok():
@@ -710,7 +734,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"ok": False, "error": "Content-Type must be application/json"}, code=415)
             return
         if raw is None:
-            self._json({"ok": False, "error": f"request body must be 1..{MAX_BODY} bytes of JSON"}, code=400)
+            self._json({"ok": False, "error": f"request body must be 1..{cap} bytes of JSON"}, code=400)
             return
         try:
             body = json.loads(raw.decode("utf-8"))
@@ -727,7 +751,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._check_token(p):
                 return
         try:
-            if p == "/api/admin":
+            if p == "/api/oscillator/profile":
+                # Import: only a file from this board joins the fit (oscillator.Log.import_profile).
+                res = oscillator_log().import_profile(body, dry_run=DEMO_MODE)
+                self._json(res, code=200 if res.get("ok") else 400)
+            elif p == "/api/admin":
                 action = body.get("action")
                 if DEMO_MODE:
                     # Never touch the host from demo mode (GPS-019).

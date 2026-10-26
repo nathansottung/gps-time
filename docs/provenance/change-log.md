@@ -1568,3 +1568,28 @@ Owner's request: the reference-adsb module (1090 and 978) with fixtures. SPEC-EX
 - **Fixtures:** `fixtures/aircraft-1090.json` (15 aircraft: 6 good, 9 covering every rejection) and `aircraft-978.json` (4). Synthetic, around the US Naval Observatory example site, marked so. The demo emits the summary and 8 references.
 - **Not yet:** a run against a live decoder, and measured arrival times (an SDR source and an analysis module, SPEC-RF-NODE-AND-TDOA).
 - **Tests:** `modules/reference-adsb/tests/test_reference_adsb.py` (15, run with the station's through `tests/test_modules.py`). They cover parsing, the self-reported rule, the fixture counts, the delay of an aircraft overhead to 0.5 m, how the bound grows with age, barometric altitude and rounding, the hidden site, the horizon and range, jumps, the source cycle and demo, and no invented aircraft without a file.
+
+## 2026-10-26 — Oscillator profile: holdover projection, export/import, board binding (#135)
+
+Owner's request: the modeled holdover projection (closes GPS-008), export/import, and board binding by serial hash. This finishes next-5 item 6 (`ROADMAP-OSCILLATOR-AND-MISC.md` §1), after the fit in #133.
+
+- **Holdover projection** (`oscprofile.holdover`, `/api/oscillator` → `holdover`): the time to ±1 µs … ±1 s if GPS and PPS went away now, three ways, all labelled `modeled`:
+  - free-running (|chrony Frequency|);
+  - trained, skew only (chrony's Skew), the two the review asked for;
+  - the profile's: Skew + residual RMS + the largest frequency change over the last 24 h's temperature range (±5 °C before a day is logged) + aging as a ramp. Pessimistic on purpose: the temperature is assumed to jump to its worst value at once.
+  - An assumed range beyond what the profile covers is flagged as extrapolated. None is validated against an outage yet, and the payload says so.
+- **UI:** a "Holdover Projection" card on Timing → Overview, replacing the synthetic time-to-error preview, and on Timing → Oscillator. The Holdover Performance scatter stays planned (it needs the offset measured at PPS reacquisition).
+- **Export:** `GET /api/oscillator/profile`, one JSON file. It holds the profile, the fit bins (≤ 90 days), the board's serial hash and model, the receiver's driver and firmware, the software version and the export time. No position, no raw serial.
+- **Import:** `POST /api/oscillator/profile`, admin token, 2 MB cap on that route only. Shape and range checks on every row.
+- **Board binding:**
+  - match: the bins join the fit and the file is kept next to the log;
+  - mismatch, or a hash that's missing: kept as a reference file, shown with a warning and refitted for display, never used;
+  - checked again at every start, so an SD card moved to another Pi doesn't carry its profile over.
+  - Written only on import.
+- **Demo:** the demo board hash is now a visibly synthetic 16-hex value (`0000000000000000`), so a demo export imports as "same board"; demo imports save nothing.
+- **Tests:** `tests/test_oscholdover.py` (23 tests). They cover:
+  - the review's numbers at the thresholds and the profile's components, extrapolation, the parabola's vertex and aging;
+  - export contents, the same-board round trip across a restart, another board, an unverifiable board, an SD card moved to another Pi, bad files, dry runs;
+  - HTTP: export needs no token, import needs it, a 90-day file fits under the route cap, demo mode.
+  - `web/src/lib/oscillator.test.ts`: +8.
+- **Not yet:** run on a Pi; validation against real outages.

@@ -545,6 +545,61 @@ export interface OscillatorProfile {
   candidates: { model: string; bic: number }[];
   note: string;
 }
+/** Holdover projections (gps_time_pi/oscprofile.py holdover; GPS-008). All modeled; none validated by an outage yet. */
+export interface HoldoverProjection {
+  name: 'free_running' | 'trained_skew' | 'profile';
+  provenance: Provenance;            // modeled
+  available: boolean;
+  reason?: string;                   // when not available
+  rate_ppm: number | null;           // the constant error rate assumed
+  aging_ppm_per_day: number;         // a frequency ramp on top (profile only)
+  times_s: (number | null)[];        // one per threshold; null: never reached under the model
+  basis?: string;
+  components_ppm?: { skew: number; residual_rms: number; temperature: number };
+  temp_now_c?: number;
+  temp_assumed_c?: [number, number];
+  temp_source?: string;
+  extrapolated?: boolean;
+  caveat?: string | null;
+}
+export interface OscillatorHoldover {
+  provenance: Provenance;            // modeled
+  thresholds_s: number[];
+  projections: HoldoverProjection[];
+  sample_utc: string | null;
+  note: string;
+}
+export type ProfileBinding = 'match' | 'mismatch' | 'unverifiable';
+export interface ProfileFileMeta {
+  binding: ProfileBinding;
+  file: string;
+  bins: number;
+  exported_utc: string | null;
+  board: { serial_sha256: string | null; model: string | null };
+  receiver: { driver: string | null; firmware: string | null } | null;
+  software_version: string | null;
+}
+export interface OscillatorProfileFiles {
+  imported: ProfileFileMeta | null;                                      // this board's file, in use
+  reference: (ProfileFileMeta & { warning: string; profile: OscillatorProfile }) | null;   // reference only
+  note: string;
+}
+/** GET /api/oscillator/profile: the export file. */
+export interface OscillatorProfileExport {
+  format: 'gps-time-oscillator-profile/1';
+  exported_utc: string;
+  board: { serial_sha256: string | null; model: string | null };
+  receiver: { driver: string | null; firmware: string | null } | null;
+  software_version: string | null;
+  profile: OscillatorProfile;
+  fit_bins: { columns: string[]; rows: [number, number, number][]; note: string };
+  note: string;
+}
+/** POST /api/oscillator/profile. */
+export type ProfileImportResult =
+  | { ok: true; binding: ProfileBinding; bins: number; used: boolean; detail: string; simulated?: boolean }
+  | { ok: false; error: string };
+
 export interface Oscillator {
   available: boolean;
   reason: string | null;
@@ -558,6 +613,8 @@ export interface Oscillator {
   fit: OscillatorFit;
   fit_note: string;
   profile: OscillatorProfile;
+  holdover: OscillatorHoldover;
+  profile_files: OscillatorProfileFiles;
   storage: { path: string; bytes: number; max_bytes: number; pending_bins: number; flush_interval_s: number; note: string };
   board: { serial_sha256: string | null; model: string | null };
   problems: string[];
