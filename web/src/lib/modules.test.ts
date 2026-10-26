@@ -20,6 +20,8 @@ describe('rowStatus', () => {
   });
   it('shows the switch as the reason a module is off', () => {
     expect(rowStatus(row({ enabled: true }), state({ experimental: false })).label).toBe('OFF (switch off)');
+    // an analysis-only module: the host never runs it, so it is never shown as running or UNKNOWN
+    expect(rowStatus(row({ enabled: true, host_runs: false, state: null }), state()).label).toMatch(/NOT RUN BY THE HOST/);
     expect(rowStatus(row(), state()).label).toBe('OFF');
   });
   it('maps reported states', () => {

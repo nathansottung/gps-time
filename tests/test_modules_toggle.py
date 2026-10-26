@@ -56,6 +56,19 @@ class TestGate(unittest.TestCase):
         self.assertEqual(loader.enabled_from_config({"modules_experimental": True, "modules_enabled": "a"}), [])
 
 
+class TestListingRuns(ModulesDir):
+    def test_an_analysis_only_module_is_never_listed_as_running(self):
+        shutil.copytree(REPO_MODULES / "analysis-tower-delay-check", self.root / "analysis-tower-delay-check",
+                        ignore=shutil.ignore_patterns("__pycache__"))
+        cfg = {"modules_experimental": True, "modules_enabled": ["analysis-tower-delay-check", "sdr-pps-marker"]}
+        rows = {r["name"]: r for r in settings.listing(cfg, root=self.root, status_path=self.status)["modules"]}
+        self.assertTrue(rows["analysis-tower-delay-check"]["valid"])
+        self.assertFalse(rows["analysis-tower-delay-check"]["runs"])
+        self.assertFalse(rows["analysis-tower-delay-check"]["host_runs"])
+        self.assertTrue(rows["sdr-pps-marker"]["runs"])
+        self.assertTrue(rows["sdr-pps-marker"]["host_runs"])
+
+
 class TestApply(ModulesDir):
     def apply(self, cfg, body):
         return settings.apply(cfg, body, root=self.root)

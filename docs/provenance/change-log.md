@@ -1623,3 +1623,34 @@ Owner's request: reference-broadcast-towers, with FCC FM/ATSC/NOAA data cached o
   - selection, the delay and bound, how the bound grows, beyond the horizon, the hidden site, re-reading only on change;
   - the source cycle, the stale flag, hidden counts, no cache, the demo, synthetic fixtures.
 - **Not yet:** a cache from real exports, and measured arrival times (`analysis-tower-delay-check` next, then an SDR source).
+
+## 2026-10-26 — analysis-tower-delay-check module, on synthetic data (#137)
+
+Owner's request: analysis-tower-delay-check, comparing a marker-timed capture with the predictions, on synthetic data. This is SPEC-EXTENSIBILITY's order of work 5, and the calibration check of SPEC-RF-REFERENCE-SIGNALS-AND-TRUST §3.
+
+- **`modules/analysis-tower-delay-check/`** (research), the first `analysis` module. Entry `tower_delay_check.check:TowerDelayCheck`; results are `result/1`.
+- **Input:** an observation file with `gpstime:time_source` `pps_marker` (what `sdr-pps-marker` writes). UTC per sample comes from its captures, and samples without time are never used. Marker windows are zeroed first. The predictions are `reference-broadcast-towers` observations. Each emission gives a waveform and its nominal emission time.
+- **Measurement:**
+  - complex cross-correlation with the waveform's template, ±20 µs around the nominal arrival;
+  - a parabolic peak;
+  - detected only at SNR ≥ 25 against the correlation's median, otherwise `unknown` with nothing claimed;
+  - arrival from the marker timing, in integer nanoseconds. A float near 1.8 × 10¹⁸ ns resolves only 256 ns, which the first synthetic run exposed.
+  - 1-sigma from the correlator (Cramér-Rao with a 0.02-sample floor), the capture's sample-time uncertainty and the prediction's bound.
+- **Modes:**
+  - `absolute`: emission times known; the station's clock bound is added.
+  - `common_offset` (default): one unknown emission and clock offset is shared by the towers. It is estimated by a weighted median with three or more towers (one bad tower can't drag the rest), or a weighted mean with two. Then z per tower and χ² for the set.
+  - Verdicts are `inferred` (agree, disagree, unknown) and never name a cause.
+- **Waveform:** only a seeded pseudo-random chip code (`prn`), standing in for a real broadcast's known segment. Real ATSC or FM waveforms aren't implemented.
+- **Runs from its CLI** (`python -m tower_delay_check check | synth | demo`): the module host runs only `source` entries.
+- **Fix found on the way:** `/api/modules` listed an enabled module as `runs: true` even without a `source` entry, which the host never runs. Now `runs` needs a source entry, and a new `host_runs` field says whether the host runs the module at all. Administration shows "not run by the host (runs from its command line)" for such a module instead of a state. Tests: `tests/test_modules_toggle.py` (+1), `web/src/lib/modules.test.ts` (+1 assertion).
+- **Synthetic results** (2.4 MS/s, clock −15 to +15 ppm):
+  - every tower agrees when nothing is injected (arrival errors 6–70 ns against a 1-sigma of 89–118 ns);
+  - an unknown 2.5 µs common offset is recovered within 60 ns, and the tower made 4 µs late disagrees (z ≈ 35) while the others agree;
+  - a buried tower is `unknown`;
+  - over 24 seeds, all 72 arrivals fell within 1.96 σ (median 0.39 σ).
+- **Tests:** `modules/analysis-tower-delay-check/tests/test_tower_delay_check.py` (15, through `tests/test_modules.py`). They cover:
+  - the waveform, the peak, the robust offset, marker-timed captures only, blanking and untimed samples;
+  - the three scenarios against the truth, a single tower with an unknown offset, a missing prediction;
+  - schema and labels, coverage over 24 seeds;
+  - the CLI round trip (synth → `obsformat validate` → check), the demo, synthetic fixtures.
+- **Not yet:** a real broadcast waveform, an SDR source writing marker-timed captures, a real capture.

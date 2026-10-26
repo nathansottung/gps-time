@@ -12,6 +12,7 @@ export function rowStatus(row: ModuleRow, s: ModulesState): { label: string; var
   if (!row.valid) return { label: 'INVALID MANIFEST', variant: 'error' };
   if (!row.enabled) return { label: 'OFF', variant: 'muted' };
   if (!s.experimental) return { label: 'OFF (switch off)', variant: 'muted' };
+  if (row.host_runs === false) return { label: 'ENABLED · NOT RUN BY THE HOST (runs from its command line)', variant: 'muted' };
   if (!s.supervisor.reporting || row.state === null) return { label: 'ENABLED · state UNKNOWN', variant: 'muted' };
   const st = row.state.toUpperCase();
   if (row.state === 'running' || row.state === 'finished') return { label: st, variant: 'good' };

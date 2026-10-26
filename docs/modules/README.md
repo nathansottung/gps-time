@@ -105,3 +105,6 @@ On Windows (desktop demo) the sandbox isn't available. `python -m gps_time_pi.mo
 - [`modules/reference-broadcast-towers/`](../../modules/reference-broadcast-towers/README.md), the pattern for references from public records: FM, ATSC and NOAA Weather Radio transmitters.
   - The module has no network permission. The operator builds its offline cache with `build_cache.py` from exported records, and every position keeps its source and date.
   - `python -m gps_time_pi.modkit demo reference-broadcast-towers` predicts from its synthetic cache.
+- [`modules/analysis-tower-delay-check/`](../../modules/analysis-tower-delay-check/README.md), the first `analysis`: measured against predicted tower delays, from a PPS-marker-timed observation file.
+  - It emits `result/1` with inferred verdicts that never name a cause.
+  - The host runs only `source` entries, so an analysis runs from its own command line: `python -m tower_delay_check demo` (from its folder).

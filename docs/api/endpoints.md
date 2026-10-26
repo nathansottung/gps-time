@@ -493,12 +493,13 @@ The experimental modules switch, every module installed in the modules folder an
  "modules": [{"name": "sdr-pps-marker", "installed": true, "valid": true, "errors": [], "version": "0.1.0",
               "maturity": "research", "types": ["source"], "summary": "...",
               "permissions": {"network": false, "devices": [], "storage": "none"},
-              "enabled": true, "runs": true, "state": null, "reason": null}],
+              "enabled": true, "runs": true, "host_runs": true, "state": null, "reason": null}],
  "supervisor": {"reporting": false, "age_s": null, "detail": "no status from gps-time-modules (not running, or not readable)"},
  "note": "..."}
 ```
 
-- `enabled`: the owner turned it on. `runs`: the switch is on, the module is enabled and its manifest is valid, so the supervisor is asked to run it.
+- `enabled`: the owner turned it on. `runs`: the switch is on, the module is enabled, its manifest is valid and it has a `source` entry, so the supervisor is asked to run it.
+- `host_runs`: whether the module host runs this module at all. It is `false` for a module without a `source` entry (an analysis, such as `analysis-tower-delay-check`, which runs from its own command line). The UI then says so, rather than showing a state.
 - `state`, `reason` (observed): from the supervisor's status file in `/run/gps-time-modules/` (`GTP_MODULES_STATUS`). Shown only while the supervisor reports, at most 60 s old; otherwise `null`, which the UI shows as UNKNOWN, never as stopped.
 - A module named in `modules_enabled` but not installed is listed with `installed: false`.
 
