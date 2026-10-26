@@ -428,9 +428,29 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 | `{"location_display": "exact" \| "rounded" \| "hidden"}` | sets the location privacy mode in `config.json` | `{"ok": true, "location_display": "<mode>"}` |
 | `{"timezone": "<IANA name>"}` or `{"timezone": null}` | sets or clears the local-time display zone override in `config.json`. Display only; the system clock stays on UTC. An unknown name gets **400**. | `{"ok": true, "timezone": "<name>" \| null}` |
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
-| anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone or reset_site"}` |
+| `{"modules_experimental": true \| false}` | the experimental modules switch. Either way `modules_enabled` is cleared, so every module is off afterwards | `{"ok": true, "modules_experimental": <bool>, "modules_enabled": []}` |
+| `{"module": "<name>", "enabled": true \| false}` | one module on or off. On needs the switch (**409** otherwise), an installed module (**404**) and a valid manifest (**409**). Off always works | `{"ok": true, "module": "<name>", "enabled": <bool>, "modules_enabled": [...]}` |
+| anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone, reset_site, modules_experimental or module"}` |
 
-The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation).
+The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation). The module settings are on Administration → Experimental modules.
+
+## GET /api/modules
+
+The experimental modules switch, every module installed in the modules folder and each one's setting. Read only, no token. Facts come from each module's manifest (`module.toml`); the web service never imports module code. Type: `ModulesState` (`web/src/api/types.ts`). Code: `gps_time_pi/modkit/settings.py`.
+
+```json
+{"experimental": true,
+ "modules": [{"name": "sdr-pps-marker", "installed": true, "valid": true, "errors": [], "version": "0.1.0",
+              "maturity": "research", "types": ["source"], "summary": "...",
+              "permissions": {"network": false, "devices": [], "storage": "none"},
+              "enabled": true, "runs": true, "state": null, "reason": null}],
+ "supervisor": {"reporting": false, "age_s": null, "detail": "no status from gps-time-modules (not running, or not readable)"},
+ "note": "..."}
+```
+
+- `enabled`: the owner turned it on. `runs`: the switch is on, the module is enabled and its manifest is valid, so the supervisor is asked to run it.
+- `state`, `reason` (observed): from the supervisor's status file in `/run/gps-time-modules/` (`GTP_MODULES_STATUS`). Shown only while the supervisor reports, at most 60 s old; otherwise `null`, which the UI shows as UNKNOWN, never as stopped.
+- A module named in `modules_enabled` but not installed is listed with `installed: false`.
 
 ## POST /api/admin
 

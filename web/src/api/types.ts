@@ -812,7 +812,38 @@ export type SettingResult =
   | { ok: true; location_display: LocationMode }
   | { ok: true; timezone: string | null }
   | { ok: true; reset_site: true }
+  | { ok: true; modules_experimental: boolean; modules_enabled: string[] }
+  | { ok: true; module: string; enabled: boolean; modules_enabled: string[] }
   | { ok: false };
+
+// ─── GET /api/modules ────────────────────────────────────────────────────────
+// Installed modules from their manifests (code is never imported by the web service),
+// the experimental switch and each module's setting. Changed with POST /api/setting.
+
+export type ModuleMaturity = 'experimental' | 'supported' | 'research';
+
+export interface ModuleRow {
+  name: string;
+  installed: boolean;          // false: enabled in the config but not in the modules folder
+  valid: boolean;              // the manifest passed its checks
+  errors: string[];
+  version: string | null;
+  maturity: ModuleMaturity | null;
+  types: string[];
+  summary: string | null;
+  permissions: { network: boolean; devices: string[]; storage: string } | null;
+  enabled: boolean;            // the owner turned it on
+  runs: boolean;               // switch on, enabled and valid: the supervisor is asked to run it
+  state: string | null;        // observed from gps-time-modules; null = UNKNOWN (not reporting)
+  reason: string | null;
+}
+
+export interface ModulesState {
+  experimental: boolean;
+  modules: ModuleRow[];
+  supervisor: { reporting: boolean; age_s: number | null; detail: string };
+  note: string;
+}
 
 // ─── GET /api/admin ──────────────────────────────────────────────────────────
 

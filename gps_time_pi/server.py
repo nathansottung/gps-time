@@ -8,6 +8,8 @@ Routes:
   /api/setting?location_display=exact|rounded|hidden
   /api/timing-chain  GNSS -> PPS -> chrony stage-by-stage status, PPS state, events (JSON)
   /api/diagnostics   copyable plain-text diagnostic snapshot (privacy mode applied)
+  /api/modules       installed modules (from their manifests; code is never imported), the
+                     experimental switch and each module's setting; changed by POST /api/setting
   /app/        the web UI: the built React app from web/dist (GTP_WEB_DIST to override)
 
 Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
@@ -32,6 +34,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
+from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
 DEMO_MODE = os.environ.get("GTP_DEMO", "0").lower() in ("1", "true", "yes", "on")
@@ -668,6 +671,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
                 self._json(survey_api())
+            elif p == "/api/modules":
+                self._json(modsettings.listing(config.load()))
             else:
                 self.send_error(404)
         except BrokenPipeError:
@@ -752,8 +757,19 @@ class Handler(BaseHTTPRequestHandler):
                 elif body.get("reset_site") is True:
                     config.reset_site()
                     self._json({"ok": True, "reset_site": True})
+                elif modsettings.MASTER in body or "module" in body:
+                    # Experimental modules: the switch, then each module by itself (modkit/settings.py).
+                    cfg = config.load()
+                    try:
+                        result = modsettings.apply(cfg, body)
+                    except modsettings.SettingError as e:
+                        self._json({"ok": False, "error": str(e)}, code=e.code)
+                    else:
+                        config.save(cfg)
+                        self._json(result)
                 else:
-                    self._json({"ok": False, "error": "expected location_display, timezone or reset_site"}, code=400)
+                    self._json({"ok": False, "error": "expected location_display, timezone, reset_site, "
+                                                      "modules_experimental or module"}, code=400)
             else:
                 self.send_error(404)
         except Exception as e:  # noqa: BLE001

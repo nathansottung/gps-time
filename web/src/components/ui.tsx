@@ -194,11 +194,12 @@ export function RangeSelector({ ranges, active, onChange }: { ranges: string[]; 
 }
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
-export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v:boolean)=>void; label?: string }) {
+export function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: (v:boolean)=>void; label?: string; disabled?: boolean }) {
   return (
-    <button onClick={() => onChange(!on)} role="switch" aria-checked={on} aria-label={label}
-      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${on ? 'toggle-on' : 'toggle-off'}`}>
-      <span className={`absolute top-[2px] h-4 w-4 rounded-full transition-transform ${on ? 'toggle-thumb-on' : 'toggle-thumb-off'}`}/>
+    <button onClick={() => onChange(!on)} role="switch" aria-checked={on} aria-label={label} disabled={disabled}
+      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${on ? 'toggle-on' : 'toggle-off'}`}
+      style={disabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}>
+      <span className={`absolute left-0 top-[2px] h-4 w-4 rounded-full transition-transform ${on ? 'toggle-thumb-on' : 'toggle-thumb-off'}`}/>
     </button>
   );
 }

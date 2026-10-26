@@ -1379,3 +1379,16 @@ Scheduled read-only check, authorized by the owner on 2026-10-19 (tag only if cl
 - **Tag:** annotated `v1.4.0` on `cbd891c`, the rc.11 commit (checked with `git rev-parse v1.4.0-rc.11^{commit}`). The first two pushes of the tag got HTTP 500 from GitHub; the third went through. GitHub release (stable) with `releases/v1.4.0.md`.
 - **Docs:** `releases/v1.4.0.md` (what 1.4 contains relative to v1.3.0, the soak result, known open issues, the development unit); the deployment record; `STATUS.md` (next-5 item 1 done, soak row done, a "Tag v1.4.0" row, a decision entry); INDEX, README (status line, rc.11 figures in the accuracy table), START-HERE and `ROADMAP.md`.
 - Nothing on the station was changed and nothing was deployed. Work merged after #95 (#96 onwards) is on `main` only, not in v1.4.0.
+
+## 2026-10-26 — experimental modules switch on Administration (#125)
+
+Owner's request: an experimental modules toggle on Administration, needing the admin token, with modules staying off one by one.
+
+- **Two settings, both off by default:** `modules_experimental` (the switch) and `modules_enabled` (each module). `loader.enabled_from_config` returns nothing unless the switch is on. Turning the switch on, or off, clears `modules_enabled`, so no module starts because of the switch.
+- **API:** `GET /api/modules` (read only, no token) lists installed modules from their manifests, each one's setting, and the supervisor's state when its status file is under 60 s old (otherwise `null`, shown as UNKNOWN). `POST /api/setting` takes `{"modules_experimental": bool}` and `{"module": name, "enabled": bool}`, with the admin token. Turning a module on needs the switch (409), an installed module (404) and a valid manifest (409); turning one off always works.
+- **The web service still never loads modules.** It imports only `modkit/settings.py`, which reads manifests (TOML) and the status file. The guard tests now check exactly that, instead of "no `modkit` in `server.py`".
+- **Supervisor:** at each 10 s publish it checks the config file's mtime and, when the module settings changed, stops its modules and starts the new set. Read only (it never sets the file aside). `site()` follows the current privacy mode. `gps-time-modules.service` stays installed and not enabled; enabling it is still the owner's step on the station.
+- **UI:** Administration → Experimental modules: the switch (with a confirmation), one row per module (maturity, permissions, status, its own toggle), the supervisor line. `lib/modules.ts` holds the logic; the demo adapter applies the same rules. `Toggle` takes `disabled`, and its thumb is pinned to the track's left edge; it sat off the track's end before.
+- **`python -m gps_time_pi.modkit list`** prints the switch.
+- **Tests:** `tests/test_modules_toggle.py` (gate, rules, refusals, listing without importing code, supervisor state freshness, HTTP with and without the token, demo mode, supervisor reload helpers); `web/src/lib/modules.test.ts`.
+- **STATUS.md:** a done EXT "Admin" row. The totals line is recounted from the table (it was one row behind since #124).

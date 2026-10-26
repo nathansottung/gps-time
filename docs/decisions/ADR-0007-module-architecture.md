@@ -23,4 +23,5 @@ Every feature after the timing core (sensors, reference signals, analyses, cards
 
 - Contributors have one pattern, and tests that run on a laptop.
 - **Isolation (added in #120):** every module runs in its own process as the unprivileged `gps-time-mod` user, under a hardened supervisor service that is installed but not enabled. Per process: memory and file-size limits, CPU share, memory and output watched by the host, and a permission guard for network, devices, writes, processes and ctypes. Details: `docs/modules/README.md`, "Safety". Still open: one user per module.
-- Wiring the host into the web service (status, cards) is a later step.
+- **Experimental modules switch (added in #125):** Administration → Experimental modules, behind the admin token. A master switch (`modules_experimental`, off by default) gates every module; turning it on or off clears `modules_enabled`, so modules stay off until each is turned on by itself. The web service reads manifests (`modkit/settings.py`) and the supervisor's status file to list them, and never imports module code. The supervisor re-reads the config, so a change needs no restart.
+- Wiring module output into the web service (cards) is a later step.

@@ -281,8 +281,11 @@ class TestCli(unittest.TestCase):
 
 class TestNoBehaviourChange(unittest.TestCase):
     def test_web_service_does_not_load_modules(self):
+        # Only the settings part of the kit (manifests, the Administration switch); never a host.
         server = (ROOT / "gps_time_pi" / "server.py").read_text(encoding="utf-8")
-        self.assertNotIn("modkit", server)
+        self.assertEqual([l for l in server.splitlines() if "modkit" in l and "import" in l],
+                         ["from .modkit import settings as modsettings"])
+        self.assertNotIn("ModuleHost", server)
 
     def test_bundle_ships_the_kit_and_schemas_but_no_modules(self):
         build = (ROOT / "tools" / "build_bundles.py").read_text(encoding="utf-8")

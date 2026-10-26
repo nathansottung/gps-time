@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, NtpService, ObjectResult, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -48,6 +48,12 @@ export interface StationApi {
   /** Local-time display zone override (IANA name); null = automatic. Display only. */
   setTimezone(tz: string | null): Promise<SettingResult>;
   resetSite(): Promise<SettingResult>;
+  /** Installed modules, the experimental switch and each module's setting (read only). */
+  modules(): Promise<ModulesState>;
+  /** The experimental modules switch; either way every module is off afterwards. Admin token. */
+  setModulesExperimental(on: boolean): Promise<SettingResult>;
+  /** One module on or off (on needs the switch). Admin token. */
+  setModule(name: string, enabled: boolean): Promise<SettingResult>;
   admin(action: AdminAction): Promise<AdminResult>;
   /** Whether admin is enabled on the station and whether the stored token is accepted. */
   auth(): Promise<AuthState>;
@@ -144,6 +150,9 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     setLocationDisplay: (mode) => json('/api/setting', post({ location_display: mode })),
     setTimezone: (tz) => json('/api/setting', post({ timezone: tz })),
     resetSite: () => json('/api/setting', post({ reset_site: true })),
+    modules: () => json('/api/modules'),
+    setModulesExperimental: (on) => json('/api/setting', post({ modules_experimental: on })),
+    setModule: (name, enabled) => json('/api/setting', post({ module: name, enabled })),
     admin: (action) => json('/api/admin', post({ action })),
     auth: () => json('/api/auth', { headers: authHeader(token.get()) }),
     token,
