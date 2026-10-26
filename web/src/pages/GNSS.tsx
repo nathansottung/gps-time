@@ -28,7 +28,7 @@ function ObstructionHeatmap() {
   const cx = size/2, cy = size/2, r = size/2 - 14;
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ maxWidth:'100%', height:'auto' }} data-layout-ok="plot">
         {obstructionCells.map(cell => {
           const azR = (cell.az - 90) * Math.PI / 180;
           const elR1 = (1 - cell.el/90) * r;
@@ -65,7 +65,7 @@ function CalibrationPanel() {
     <Card>
       <CardHeader title="Antenna & Calibration" />
       <CardBody>
-        <div className="grid grid-cols-2 gap-x-6">
+        <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-6">
           <div>
             <MetricRow label="Antenna model" value="u-blox ANN-MB-00" />
             <MetricRow label="Cable type" value="LMR-400" />
@@ -131,11 +131,11 @@ export default function GNSS() {
       {surveyTab && (
         <div className="space-y-4">
           <ApiErrorNote error={surveyPoll.error} />
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2"><ConvergenceCard survey={surveyPoll.data} /></div>
+          <div className="grid grid-cols-1 @5xl:grid-cols-3 gap-4">
+            <div className="@5xl:col-span-2"><ConvergenceCard survey={surveyPoll.data} /></div>
             <IngestCard survey={surveyPoll.data} />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
             <ScatterCard survey={surveyPoll.data} />
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function GNSS() {
         <Card>
           <CardHeader title="Satellite Table" badge={<ProvenanceTag type="observed" />} />
           <CardBody className="p-0">
-            <table className="w-full text-[11px]">
+            <div className="table-scroll"><table className="w-full text-[11px]">
               <thead>
                 <tr style={{ borderBottom:'1px solid var(--border)' }}>
                   {['System','SVID','Az °','El °','C/N₀ dB-Hz','State'].map(h => (
@@ -182,13 +182,13 @@ export default function GNSS() {
                 {!sats.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
                   {gps ? (gps.sky_stale ? 'Sky data is stale.' : 'No satellites reported.') : 'GNSS data not loaded.'}</td></tr>}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}
 
       {tab === 'Sky Plot' && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
           <Card>
             <CardHeader title="GNSS Sky Plot (Current)" badge={<ProvenanceTag type="observed" />} />
             <CardBody className="flex flex-col items-center py-4">
@@ -228,7 +228,7 @@ export default function GNSS() {
 
       {tab === 'Sky Obstruction' && (
         <Planned title="Learned Sky Obstruction" needs="long-term C/N₀ and tracking statistics per sky sector">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
           <Card>
             <CardHeader title="Learned Sky Obstruction" badge={<ProvenanceTag type="inferred" />} />
             <CardBody className="flex flex-col items-center py-4">
@@ -266,7 +266,7 @@ export default function GNSS() {
             <CardHeader title="Position — Station Survey" />
             <CardBody>
               {privacy && <div className="text-[10px] mb-3" style={{ color:'var(--t3)' }}>{privacy}</div>}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
                 <div className="rounded-sm p-3" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
                   <div className="text-[10px] mono uppercase mb-2" style={{ color:'var(--t3)' }}>
                     Position · {PROV_LABEL[core.data?.position_provenance ?? 'none'] ?? 'UNKNOWN'}
@@ -298,7 +298,7 @@ export default function GNSS() {
           <CardHeader title="Geodesy" />
           <CardBody>
             {privacy && <div className="text-[10px] mb-3" style={{ color:'var(--t3)' }}>{privacy}</div>}
-            <div className="grid grid-cols-2 gap-x-8">
+            <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-8">
               <div>
                 <SectionHeader title="Geographic Coordinates" />
                 <MetricRow label="Latitude" value={loc?.lat == null ? null : `${Math.abs(loc.lat)}° ${loc.lat >= 0 ? 'N' : 'S'}`} provenance="observed" sensitive />

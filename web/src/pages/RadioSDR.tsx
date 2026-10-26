@@ -59,7 +59,7 @@ function SDRCard({ dev }: { dev: typeof sdrDevices[0] }) {
         }
       />
       <CardBody>
-        <div className="grid grid-cols-2 gap-x-6">
+        <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-6">
           <div>
             <MetricRow label="Device" value={dev.name} />
             <MetricRow label="Tuner" value={dev.tuner} />
@@ -145,7 +145,7 @@ export default function RadioSDR() {
         <Card>
           <CardHeader title="RF Observation Modules" />
           <CardBody className="p-0">
-            <table className="w-full text-[11px]">
+            <div className="table-scroll"><table className="w-full text-[11px]">
               <thead>
                 <tr className="border-b border-[#222840]">
                   {['Module','Maturity','SDR','Notes'].map(h => (
@@ -163,7 +163,7 @@ export default function RadioSDR() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </CardBody>
         </Card>
       )}

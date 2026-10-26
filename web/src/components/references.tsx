@@ -49,7 +49,7 @@ export function ReferencesPanel() {
       <Card>
         <CardHeader title="Servers" badge={<ProvenanceTag type="external" />} />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr>
               {['Server', 'chrony state', 'Stratum', 'Offset', '± bound', 'Delay', 'Last rx', 'Comparison'].map((h, i) => (
                 <th key={h} style={{ ...TH, textAlign: i >= 2 && i <= 6 ? 'right' : 'left' }}>{h}</th>
@@ -75,7 +75,7 @@ export function ReferencesPanel() {
                 No independent servers. Add some with the installer (GTP_INDEPENDENT_REFS=1), or see the deploy guide.</td></tr>}
               {!d && <tr><td colSpan={8} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Reference data not loaded.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
           <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
             Offset: positive means the station's clock is ahead of that server. The bound is chrony's error bound for the
             server, which includes half the network delay. {d?.delay_note}
@@ -88,7 +88,7 @@ export function ReferencesPanel() {
         </CardBody>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title={`Offset History — ${shown?.name ?? 'no server'} (${hist.offset.unit})`} badge={<ProvenanceTag type="external" />} />
           <CardBody>

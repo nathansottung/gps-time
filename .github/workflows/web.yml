@@ -33,6 +33,10 @@ jobs:
           echo "UI version: ${v#v}"
       - name: Build
         run: pnpm run build
+      - name: Browser for the layout tests (install-time network only)
+        run: pnpm exec playwright install --with-deps chromium
+      - name: "Browser tests (Playwright): every page at 360-1920 px and half-screen widths, navigation"
+        run: pnpm run test:e2e
       - name: Offline guard (no runtime CDN, web-font or analytics URLs in the bundle)
         run: |
           if grep -rEn "fonts\.(googleapis|gstatic)\.com|googletagmanager|google-analytics|cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com" dist; then

@@ -1444,3 +1444,25 @@ Owner's request: tag v1.5.0-rc.1 with notes and the deploy command.
 - **Tag:** annotated `v1.5.0-rc.1` on this PR's merge commit, and a GitHub pre-release with the notes. Nothing deployed.
 - README, START-HERE, `ROADMAP.md`, INDEX: the pre-release is named next to the stable v1.4.0.
 - **STATUS.md:** a done "Tag v1.5.0-rc.1" row and a planned soak-run row. The next-5 list is unchanged.
+
+## 2026-10-26 — responsive audit: every page from 360 to 1920 px (#129)
+
+Owner's request: check every `/app/` page at 360, 768, 1024, 1280 and 1920 px and at half-screen widths, fix overlapping and clipped fields, and add a browser test at those widths.
+
+- **The audit** (`web/e2e/layout-audit.ts`, run by `responsive.spec.ts` in Playwright on the built UI with demo data):
+  - every page, and every tab on it, at 360, 640, 683, 768, 960, 1024, 1280 and 1920 px;
+  - it flags sideways scroll of the page or `main`, anything past the right edge outside a deliberate scroller, text clipped by its box, and text drawn over other text (clipped to what scrollers leave visible).
+  - Before the fixes: 60 of 96 page-and-width tests failed, with about 1,440 findings (most at 360–768 px, where the 188 px sidebar and fixed grids left no room). Also, at every width the Timing outage chart's axis label lay over its tick values, and at 960 px the Timing tab row was wider than the page. After: 96 of 96 pass.
+- **Fixes:**
+  - **Navigation:** below 1024 px the sidebar is a drawer (☰ in the header; closes on navigation, the backdrop or Escape; hidden from tab order when closed).
+  - **Header:** wraps; the stratum, reference and Unix time drop out below 768 px; below 640 px the clock and toggles take their own row.
+  - **Grids:** every fixed `grid-cols-N` became container-query columns (`main` and every `Card` are size containers), 53 places.
+  - **Wrapping and scrolling:** `MetricRow`, card headers and control rows wrap; tables scroll inside their card (`.table-scroll`), as do tab rows.
+  - **Content:** the Overview's main reading stacks above its chart in a narrow card, and the Error Budget rows stack.
+  - **Charts:** X axes drop colliding ticks; the outage chart's axis label moved clear of the ticks; fixed-size plots scale down.
+  - **Labels at data positions:** sky plots and polar maps place labels where the data falls; they are marked `data-layout-ok="plot"` and checked for overflow, not overlap.
+- **Page in the URL hash** (`lib/route.ts`): `#timing`, `#admin`… Reloads, bookmarks and Back keep the page; the tests open pages directly.
+- **`Tabs`** have `role="tablist"`/`tab` and `aria-selected`; nav items have `aria-current`.
+- **CI:** `web.yml` installs Chromium and runs `pnpm run test:e2e` after the build. New dev dependency `@playwright/test` (browser downloaded at install time only; nothing at runtime).
+- **Guidelines:** Layout → "Narrow screens", and the grid patterns now use container queries.
+- **Tests:** `e2e/responsive.spec.ts` (96), `e2e/navigation.spec.ts` (4), `src/lib/route.test.ts` (3).

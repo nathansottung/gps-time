@@ -71,7 +71,7 @@ export function SunAstronomy() {
         </div>
         <ApiErrorNote error={alm.error} />
         {unavailable && <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
           <SkyMapCard sky={a?.sky} when={a?.sky_when ?? null} demo={a?.demo} />
           <ObjectLookupCard date={date} tz={TZ} at={at} onTarget={setTarget} />
         </div>
@@ -85,7 +85,7 @@ export function SunAstronomy() {
       <ApiErrorNote error={alm.error} />
       {unavailable && <div className="text-[11px]" style={{ color:'var(--t3)' }}>Almanac unavailable: {unavailable}</div>}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title={isToday ? 'Sun / Daylight — Yesterday / Today / Tomorrow' : `Sun / Daylight — around ${date}`} badge={<ProvenanceTag type="predicted" />} />
           <CardBody>
@@ -110,13 +110,13 @@ export function SunAstronomy() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <DayBarCard sun={sun} tz={TZ} />
         <NightCard almanac={a} day={date} tz={TZ} />
       </div>
 
       <Planned title="Solar Position & Solar-Equivalent Time" needs="solar position and equation-of-time in the almanac API">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Solar Position (Now)" badge={<ProvenanceTag type="calculated" />} />
           <CardBody>
@@ -143,7 +143,7 @@ export function SunAstronomy() {
       </div>
       </Planned>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Planned title="Solar Irradiance (Modeled)" needs="a clear-sky irradiance model in the almanac">
         <Card>
           <CardHeader title="Solar Irradiance (Modeled)" badge={<ProvenanceTag type="modeled" />} />
@@ -178,7 +178,7 @@ export function SunAstronomy() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Sidereal Time" badge={<ProvenanceTag type="calculated" />} />
           <CardBody>
@@ -251,7 +251,7 @@ export function Network() {
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Network & Devices</h1>
       <ApiErrorNote error={core.error} />
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
         <Card>
           <CardHeader title="NTP Server (chrony)" />
           <CardBody>
@@ -296,7 +296,7 @@ export function Network() {
         <CardBody>
           <ApiErrorNote error={ntp.error} />
           {svc && !svc.available && <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>{svc.reason}</div>}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-6">
             <div>
               <MetricRow label="NTP packets received" value={fmtCount(svc?.ntp?.received.value)} provenance="observed" />
               <MetricRow label="Dropped (chrony rate limit)" value={fmtCount(svc?.ntp?.dropped.value)} provenance="observed" />
@@ -329,7 +329,7 @@ export function Network() {
           <div className="px-4 py-2 text-[10px]" style={{ borderBottom:'1px solid var(--border-dim)', color:'var(--t3)' }}>
             From chronyc clients. Polling this server does not prove the client clock is accurate.
           </div>
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
               {['Host','NTP packets','Dropped','Last request'].map(h=>(
                 <th key={h} className="text-left px-4 py-2 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
@@ -347,14 +347,14 @@ export function Network() {
               {!clients.length && <tr><td colSpan={4} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
                 {!core.data ? 'Not loaded.' : ntpClientCount(core.data, chain.data) === null ? 'chronyc not available: client list UNKNOWN.' : 'No NTP clients reported.'}</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
 
       <Card>
         <CardHeader title="chrony Sources" badge={<ProvenanceTag type="observed" />} />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
               {['Name','State','Stratum','Poll','Reach','Last rx','Last sample'].map(h=>(
                 <th key={h} className="text-left px-4 py-2 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
@@ -376,7 +376,7 @@ export function Network() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
     </div>
@@ -393,7 +393,7 @@ export function Aviation() {
       </div>
 
       <Planned title="ADS-B / UAT" needs="dump1090 / dump978 integration">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
         <Card>
           <CardHeader title="1090 MHz ADS-B" badge={<StatusBadge variant="good" label="ACTIVE" />} />
           <CardBody>
@@ -451,7 +451,7 @@ export function Distributed() {
         This is a future research area. Features shown below are conceptual designs and are not yet implemented. No data is transmitted without explicit per-request consent.
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Incoming Observation Request (concept)" badge={<MaturityBadge level="research" />} />
           <CardBody>
@@ -526,7 +526,7 @@ export function DataLogs() {
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Data & Logs</h1>
       <ApiErrorNote error={sys.error ?? survey.error} />
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
         <Card>
           <CardHeader title="Buffer & Storage" badge={<ProvenanceTag type="observed" />} />
           <CardBody>
@@ -570,7 +570,7 @@ export function DataLogs() {
       <Card>
         <CardHeader title="Offline Data Packs" />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
               {['Pack','Version','Size','Installed','Valid Through','State'].map(h=>(
                 <th key={h} className="text-left px-4 py-2 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
@@ -591,7 +591,7 @@ export function DataLogs() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
       </Planned>
@@ -637,7 +637,7 @@ export function Admin() {
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Administration / System</h1>
       <ApiErrorNote error={sys.error} />
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
         <Card>
           <CardHeader title="System" badge={<ProvenanceTag type="observed" />} />
           <CardBody>
@@ -668,7 +668,7 @@ export function Admin() {
             <MetricRow label="Input power" value={s?.power ? s.power.watts : null} unit="W" />
             {/* get_throttled, decoded by the station (parity 21): every condition, now and since boot */}
             {!throttle ? <MetricRow label="Throttle flags" value={null} /> : <>
-              <table className="w-full text-[11px] mt-2">
+              <div className="table-scroll"><table className="w-full text-[11px] mt-2">
                 <thead><tr>
                   {['Condition', 'Now', 'Since boot'].map((h, i) => (
                     <th key={h} className={`py-1 font-normal ${i ? 'text-right' : 'text-left'}`} style={{ color:'var(--t3)', fontSize:10 }}>{h}</th>
@@ -687,7 +687,7 @@ export function Admin() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
               <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>get_throttled = {s?.throttled?.raw}</div>
               {uv?.ever && (
                 <div className="text-[10px] mt-2 rounded-[2px] p-2" style={uv.now
@@ -777,7 +777,7 @@ export function Admin() {
       <Card>
         <CardHeader title="Services" />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
               {['Service','Status','PID','Uptime','Restarts'].map(h=>(
                 <th key={h} className="text-left px-4 py-2 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
@@ -798,7 +798,7 @@ export function Admin() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
       </Planned>
@@ -978,7 +978,7 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
           </div>
         )}
         {s && s.modules.length > 0 && (
-          <table className="w-full text-[11px] mt-3">
+          <div className="table-scroll"><table className="w-full text-[11px] mt-3">
             <thead><tr>
               {['Module', 'Maturity', 'Needs', 'Status', 'On'].map((h, i) => (
                 <th key={h} className={`py-1 font-normal ${i === 4 ? 'text-right' : 'text-left'}`} style={{ color:'var(--t3)', fontSize:10 }}>{h}</th>
@@ -1006,7 +1006,7 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: MOD_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {s && (

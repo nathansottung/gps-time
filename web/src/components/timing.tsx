@@ -107,7 +107,7 @@ export function TimingChainCard({ onOpenDiagnostics }: { onOpenDiagnostics?: () 
           <button onClick={onOpenDiagnostics} className="px-2.5 py-[3px] text-[10px] mono rounded-[2px]"
             style={{ border: '1px solid var(--border)', color: 'var(--t2)' }}>PPS diagnostics →</button>)} />
       <CardBody>
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 @sm:grid-cols-2 @xl:grid-cols-3 @4xl:grid-cols-5 gap-2">
           <Column title="GNSS" state={gnssState} variant={g.healthy === true ? 'good' : g.healthy === false ? 'error' : 'muted'}>
             <Row k="Satellites used / visible" v={g.satellites_used?.value != null ? `${g.satellites_used.value} / ${g.satellites_visible?.value ?? '—'}` : null} />
             <Row k="TDOP" v={g.tdop?.value ?? null} />

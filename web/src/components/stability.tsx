@@ -54,7 +54,7 @@ export function StabilityPanel() {
       <Card>
         <CardHeader title="Key Points" badge={<ProvenanceTag type="calculated" />} />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr>
               {['τ', 'ADEV', 'Interval', 'MDEV', 'TDEV', 'Noise type', 'Terms'].map((h, i) => (
                 <th key={h} style={{ ...TH, textAlign: i === 0 || i === 5 ? 'left' : 'right' }}>{h}</th>
@@ -80,7 +80,7 @@ export function StabilityPanel() {
               ))}
               {!s && <tr><td colSpan={7} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Stability data not loaded.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
           <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
             ADEV and MDEV are fractional frequency deviations (dimensionless). "Assumed" means too few points at that
             averaging time to identify the noise type; the type found at a shorter one was kept.

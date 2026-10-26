@@ -69,15 +69,15 @@ function ErrorBudget() {
         <div className="text-[10px] mb-3" style={{ color:'var(--t3)' }}>Signal chain from satellite reference to application. Corrections applied where calibrated.</div>
         <div className="space-y-0">
           {errorBudget.map((s, i) => (
-            <div key={i} className="flex items-center gap-3 py-2" style={{ borderBottom:'1px solid var(--border)', ...(i===0?{borderTop:'1px solid var(--border)'}:{}) }}>
-              <div className="flex items-center gap-2 w-52">
+            <div key={i} className="flex flex-col @md:flex-row @md:items-center gap-2 @md:gap-3 py-2" style={{ borderBottom:'1px solid var(--border)', ...(i===0?{borderTop:'1px solid var(--border)'}:{}) }}>
+              <div className="flex items-center gap-2 @md:w-52 @md:flex-shrink-0">
                 {i < errorBudget.length-1 && (
                   <svg width="8" height="16" viewBox="0 0 8 16"><line x1="4" y1="0" x2="4" y2="16" stroke="#2c3040" strokeWidth="1"/><polygon points="4,14 1,10 7,10" fill="#2c3040"/></svg>
                 )}
                 {i === errorBudget.length-1 && <span className="w-2"/>}
                 <span className="text-[11px]" style={{ color:'var(--t2)' }}>{s.stage}</span>
               </div>
-              <div className="flex-1 grid grid-cols-4 gap-3 text-[10px]">
+              <div className="flex-1 grid grid-cols-2 @lg:grid-cols-4 gap-3 text-[10px]">
                 <div>
                   <div style={{ color:'var(--t3)' }}>Nominal</div>
                   <div className="mono" style={{ color:'var(--t2)' }}>{s.nominalNs} ns</div>
@@ -125,7 +125,7 @@ function TimingChainPanel({ onNavigate }: { onNavigate?: (id: string) => void })
       <Card>
         <CardHeader title="Stages — GNSS → PPS → chrony" badge={<ProvenanceTag type="calculated" />} />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <tbody>
               {(c?.stages ?? []).map(st => (
                 <tr key={st.id} style={{ borderBottom:'1px solid var(--border-dim)' }}>
@@ -136,7 +136,7 @@ function TimingChainPanel({ onNavigate }: { onNavigate?: (id: string) => void })
               ))}
               {!c && <tr><td className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Timing chain not loaded.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
       <div className="text-[10px]" style={{ color:'var(--t3)' }}>
@@ -211,7 +211,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
           <Card>
             <CardHeader title="chrony tracking" badge={<ProvenanceTag type="observed" />} />
             <CardBody>
-              <div className="grid grid-cols-2 gap-x-8">
+              <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-8">
                 <div>
                   <MetricRow label="Frequency" value={core.data?.quality.frequency ?? null} />
                   <MetricRow label="Residual frequency" value={core.data?.quality.residual_freq ?? null} />
@@ -240,7 +240,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
 
           {/* PPS Stats summary (planned) */}
           <Planned title="PPS Availability & Outage Statistics" needs="30-day event history rollups (the station keeps recent events only)">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
             <Card>
               <CardHeader title="PPS Availability" />
               <CardBody>
@@ -278,7 +278,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
 
           {/* Holdover performance (planned) */}
           <Planned title="Holdover Performance & Time-to-Error" needs="offset measured at PPS reacquisition, and a validated oscillator model">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
             <Card>
               <CardHeader title="Holdover Performance" badge={<ProvenanceTag type="observed" />} />
               <CardBody>
@@ -292,7 +292,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
               <CardBody>
                 <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>How long before the free-running or trained oscillator crosses each error threshold.</div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11px]">
+                  <div className="table-scroll"><table className="w-full text-[11px]">
                     <thead>
                       <tr style={{ borderBottom:'1px solid var(--border)' }}>
                         <th className="text-left py-1.5 font-normal" style={{ color:'var(--t3)' }}>Threshold</th>
@@ -313,7 +313,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 </div>
               </CardBody>
             </Card>
@@ -337,7 +337,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
           <Card>
             <CardHeader title="PPS Events (recent)" badge={<ProvenanceTag type="observed" />} />
             <CardBody className="p-0">
-              <table className="w-full text-[11px]">
+              <div className="table-scroll"><table className="w-full text-[11px]">
                 <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
                   {['Start','Duration','Classification','Confidence','Boundary'].map(h => (
                     <th key={h} className="text-left px-4 py-1.5 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
@@ -356,7 +356,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                   {!events.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
                     {chain.data ? 'No PPS events recorded.' : 'Timing chain not loaded.'}</td></tr>}
                 </tbody>
-              </table>
+              </table></div>
               <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
                 Classifications are inferred from the evidence at the time. They name a boundary in the signal path, not a cause.
               </div>
@@ -366,7 +366,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
             <CardHeader title="Outage Evidence on the SD Card" badge={<ProvenanceTag type="observed" />} />
             <CardBody className="p-0">
               <ApiErrorNote error={evid.error} />
-              <table className="w-full text-[11px]">
+              <div className="table-scroll"><table className="w-full text-[11px]">
                 <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
                   {['Outage start','Duration','Classification','Kept','Size',''].map(h => (
                     <th key={h} className="text-left px-4 py-1.5 font-normal" style={{ color:'var(--t3)' }}>{h}</th>
@@ -385,7 +385,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                   ))}
                   {evid.data && !evid.data.files.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>No outage evidence kept.</td></tr>}
                 </tbody>
-              </table>
+              </table></div>
               <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
                 {evid.data ? `${(evid.data.total_bytes / 1024).toFixed(0)} kB of ${(evid.data.max_bytes / 1048576).toFixed(0)} MB cap. ${evid.data.note} No position is stored.` : 'Not loaded.'}
               </div>
@@ -417,7 +417,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
               A useful way to internalize timing uncertainty: how far does light travel in vacuum during this interval?
               This is an equivalent propagation distance, not a position accuracy claim.
             </div>
-            <table className="w-full text-[12px]">
+            <div className="table-scroll"><table className="w-full text-[12px]">
               <thead><tr style={{ borderBottom:'1px solid var(--border)' }}>
                 <th className="text-left py-2 font-normal" style={{ color:'var(--t3)' }}>Time interval</th>
                 <th className="text-right py-2 font-normal" style={{ color:'var(--t3)' }}>Distance</th>
@@ -432,7 +432,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <ELI5 text="Light travels about 299,792 km per second in vacuum. A clock 10 nanoseconds off matches the time light takes to travel 3 metres — a way to picture how precise GPS timing is." />
           </CardBody>
         </Card>

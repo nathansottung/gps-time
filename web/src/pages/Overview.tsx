@@ -69,9 +69,9 @@ function TimingWidget() {
       <CardHeader title="Timing Quality" badge={statusBadge(t.status?.code, t.status?.banner)} />
       <CardBody>
         <ApiErrorNote error={t.core.error} />
-        <div className="flex items-start gap-8 mb-3">
+        <div className="flex flex-col @xl:flex-row @xl:items-start gap-3 @xl:gap-8 mb-3">
           {/* Primary reading — the one place we use the brightest live color */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 min-w-0">
             <div className="flex items-center gap-1.5 mb-1.5">
               <span className="text-[9px] mono uppercase tracking-[0.15em]" style={{ color:'var(--t3)' }}>Remaining correction (chrony)</span>
               <ProvenanceTag type="observed" />
@@ -90,7 +90,7 @@ function TimingWidget() {
           </div>
 
           {/* Offset history chart */}
-          <div className="flex-1 min-w-0" style={{ borderLeft:'1px solid var(--border-dim)', paddingLeft:'1.5rem' }}>
+          <div className="flex-1 min-w-0 border-t pt-3 @xl:border-t-0 @xl:pt-0 @xl:border-l @xl:pl-6" style={{ borderColor:'var(--border-dim)' }}>
             <div className="text-[9px] mono uppercase tracking-[0.15em] mb-1" style={{ color:'var(--t3)' }}>Δt — last 1 hour ({s1h.unit})</div>
             {s1h.data.length
               ? <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
@@ -100,7 +100,7 @@ function TimingWidget() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-6" style={{ borderTop:'1px solid var(--border-dim)', paddingTop:'0.75rem' }}>
+        <div className="grid grid-cols-1 @sm:grid-cols-2 @md:grid-cols-3 gap-x-6" style={{ borderTop:'1px solid var(--border-dim)', paddingTop:'0.75rem' }}>
           <div>
             <MetricRow label="RMS offset (chrony)" value={t.rms} provenance="calculated" />
             <MetricRow label="Δf/f (uncorrected clock)" value={t.frac === null ? null : fmtSci(t.frac)} provenance="calculated" />
@@ -126,7 +126,7 @@ function HoldoverWidget() {
     <Card>
       <CardHeader title="Holdover Characterization" />
       <CardBody>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 @sm:grid-cols-2 @md:grid-cols-3 gap-3">
           <div className="rounded-[2px] p-3" style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-dim)' }}>
             <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2" style={{ color:'var(--t4)' }}>Raw Oscillator</div>
             <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Free-running quartz, no discipline</div>
@@ -167,7 +167,7 @@ export function SunDays({ almanac, labels = ['Yesterday', 'Today', 'Tomorrow'] }
   ];
   return (
     <div>
-      <div className="grid grid-cols-3 gap-2 text-[11px]">
+      <div className="grid grid-cols-1 @sm:grid-cols-2 @md:grid-cols-3 gap-2 text-[11px]">
       {cols.map(c => {
         const chg = fmtDelta(c.chg);   // daylight change vs the prior day (astro.daylight_deltas)
         return (
@@ -217,7 +217,7 @@ function SunShiftTable({ almanac }: { almanac: Almanac | null }) {
         <span className="text-[9px] mono uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>Shift per day</span>
         <ProvenanceTag type="predicted" />
       </div>
-      <table className="w-full text-[11px]">
+      <div className="table-scroll"><table className="w-full text-[11px]">
         <thead>
           <tr>
             <th style={{ ...TH, textAlign:'left' }}>Event</th>
@@ -234,7 +234,7 @@ function SunShiftTable({ almanac }: { almanac: Almanac | null }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       {shifts.clockChange && (
         <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
           The clock changes (DST) within these days; shifts exclude the hour.
@@ -415,19 +415,19 @@ function VariantA() {
       <TimingWidget />
       {show('holdover') && <HoldoverWidget />}
       {(show('sun') || show('gnss') || right) && (
-        <div className="grid grid-cols-12 gap-3">
-          {show('sun') && <div className="col-span-5"><SunWidget /></div>}
-          {show('gnss') && <div className="col-span-3"><GNSSWidget /></div>}
-          {right && <div className="col-span-4 space-y-3">
+        <div className="grid grid-cols-1 @3xl:grid-cols-2 @6xl:grid-cols-12 gap-3">
+          {show('sun') && <div className="@6xl:col-span-5"><SunWidget /></div>}
+          {show('gnss') && <div className="@6xl:col-span-3"><GNSSWidget /></div>}
+          {right && <div className="@6xl:col-span-4 space-y-3">
             {show('network') && <NetworkWidget />}
             {show('datapacks') && <DataPackWidget />}
           </div>}
         </div>
       )}
       {(show('solar') || show('moon')) && (
-        <div className="grid grid-cols-12 gap-3">
-          {show('solar') && <div className="col-span-4"><SolarWidget /></div>}
-          {show('moon') && <div className="col-span-8"><MoonWidget /></div>}
+        <div className="grid grid-cols-1 @3xl:grid-cols-12 gap-3">
+          {show('solar') && <div className="@3xl:col-span-4"><SolarWidget /></div>}
+          {show('moon') && <div className="@3xl:col-span-8"><MoonWidget /></div>}
         </div>
       )}
     </div>
@@ -471,7 +471,7 @@ function VariantB() {
         <div className="mono text-[9px] mb-3 uppercase tracking-[0.15em]" style={{ color:'var(--t4)' }}>
           <Sensitive>{window.location.hostname}</Sensitive> — Engineering Console — {new Date().toISOString().replace('T',' ').slice(0,-5)} UTC
         </div>
-        <div className="grid grid-cols-2 gap-x-10">
+        <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-10">
           {rows.map(([k,v,s]) => (
             <div key={k} className="flex items-baseline justify-between py-[5px] row-sep">
               <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>{k}</span>
@@ -488,7 +488,7 @@ function VariantB() {
           <div className="mono text-[9px] mb-1.5 uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Δt — last 1 hour ({s1h.unit})</div>
           <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-6">
+        <div className="mt-3 grid grid-cols-1 @md:grid-cols-2 gap-6">
           <div>
             <div className="mono text-[9px] mb-1 uppercase tracking-[0.12em]" style={{ color:'var(--t4)' }}>Recent PPS events</div>
             {events.length === 0 && <div className="mono text-[10px]" style={{ color:'var(--t4)' }}>none recorded</div>}

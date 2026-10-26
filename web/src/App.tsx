@@ -5,6 +5,7 @@ import { DemoBanner } from './components/ui';
 import { ScreenshotToggle, Sensitive } from './components/screenshot';
 import { NightOverlay, ThemeToggle, useModules } from './components/prefs';
 import { visiblePage } from './lib/prefs';
+import { hashFor, pageFromHash } from './lib/route';
 import Overview from './pages/Overview';
 import Timing from './pages/Timing';
 import GNSS from './pages/GNSS';
@@ -34,7 +35,7 @@ const NAV = [
 const GROUPS = ['', 'Measurement', 'Station', 'Research', 'System'];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function Header() {
+function Header({ navOpen, onMenu }: { navOpen: boolean; onMenu: () => void }) {
   const { core, chain, isDemo } = useStation();
   // Same guarded text as the page banner; /api's copy is used only when the chain is unavailable.
   const unreachable = !chain.data && !!(chain.error || core.error);
@@ -56,11 +57,14 @@ function Header() {
 
   return (
     <header
-      className="flex items-center justify-between px-5 h-11 flex-shrink-0 select-none"
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-3 sm:px-5 min-h-11 py-1.5 flex-shrink-0 select-none"
       style={{ background:'var(--nav)', borderBottom:'1px solid var(--border)' }}
     >
-      {/* Left — identity */}
-      <div className="flex items-center gap-3">
+      {/* Left — identity; the menu button opens the navigation drawer below 1024 px */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button onClick={onMenu} className="lg:hidden px-1.5 py-[3px] text-[11px] mono rounded-[2px]"
+          aria-label={navOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navOpen} aria-controls="gtp-nav"
+          style={{ border:'1px solid var(--border)', color:'var(--t2)' }}>☰</button>
         {/* Instrument mark */}
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
           <circle cx="9" cy="9" r="7.5" stroke="var(--accent)" strokeWidth="1"/>
@@ -74,12 +78,12 @@ function Header() {
           })}
         </svg>
         <span className="mono text-[12px] font-semibold tracking-tight" style={{ color:'var(--t1)' }}>GPS Time</span>
-        <span className="text-[9px] mono" style={{ color:'var(--t4)' }}>|</span>
-        <span className="text-[11px]" style={{ color:'var(--t3)' }}><Sensitive>{stationName}</Sensitive></span>
+        <span className="hidden sm:inline text-[9px] mono" style={{ color:'var(--t4)' }}>|</span>
+        <span className="hidden sm:inline text-[11px] truncate" style={{ color:'var(--t3)' }}><Sensitive>{stationName}</Sensitive></span>
       </div>
 
-      {/* Centre — station state chips */}
-      <div className="flex items-center gap-2">
+      {/* Centre — station state chips (stratum and reference from 768 px) */}
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
         {/* Timing status from /api/timing-chain (calculated) */}
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]" title={view.detail ?? undefined}
           style={{ background: st.bg, border:`1px solid ${st.border}` }}>
@@ -87,8 +91,8 @@ function Header() {
           <span className="mono text-[9px] font-medium uppercase tracking-[0.1em]" style={{ color: st.text }}>{view.title}</span>
         </div>
 
-        <Chip label="STRATUM" value={stratum} />
-        <Chip label="REF" value={reference} />
+        <Chip label="STRATUM" value={stratum} className="hidden md:flex" />
+        <Chip label="REF" value={reference} className="hidden md:flex" />
 
         {isDemo && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]"
@@ -100,28 +104,30 @@ function Header() {
         )}
       </div>
 
-      {/* Right — time display */}
-      <div className="flex items-center gap-3">
-        <div className="text-right" title={`${local.date} · ${zone.tz} — ${zone.label}; ${basisNote}. Display only; the station keeps UTC.`}>
+      {/* Right — time display (its own full-width row on narrow screens) */}
+      <div className="flex items-center gap-x-3 gap-y-1.5 max-sm:w-full max-sm:flex-wrap max-sm:justify-between">
+        <div className="text-right whitespace-nowrap" title={`${local.date} · ${zone.tz} — ${zone.label}; ${basisNote}. Display only; the station keeps UTC.`}>
           <div className="mono text-[12px] tabular font-medium" style={{ color:'var(--t1)', letterSpacing:'0.02em' }}>
             {local.time}{local.abbr && <span style={{ color:'var(--t2)' }}> {local.abbr}</span>}
             <span className="text-[9px]" style={{ color:'var(--t3)' }}> {local.offset}{local.dst ? ' · DST' : ''}</span>
           </div>
           <div className="mono text-[9px] tabular" style={{ color:'var(--t3)', marginTop:'1px' }}>
-            UTC {formatUtc(now)} · UNIX {unixSeconds(now)}
+            UTC {formatUtc(now)}<span className="hidden md:inline"> · UNIX {unixSeconds(now)}</span>
           </div>
         </div>
-        <HourToggle t={time} />
-        <ThemeToggle />
-        <ScreenshotToggle />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <HourToggle t={time} />
+          <ThemeToggle />
+          <ScreenshotToggle />
+        </div>
       </div>
     </header>
   );
 }
 
-function Chip({ label, value }: { label: string; value?: string }) {
+function Chip({ label, value, className = 'flex' }: { label: string; value?: string; className?: string }) {
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px]"
+    <div className={`${className} items-center gap-1.5 px-2.5 py-1 rounded-[2px]`}
       style={{ background:'rgba(255,255,255,0.030)', border:'1px solid var(--border)' }}>
       <span className="mono text-[9px] tracking-[0.08em]" style={{ color:'var(--t3)' }}>{label}</span>
       {value && <span className="mono text-[9px] font-medium" style={{ color:'var(--t2)' }}>{value}</span>}
@@ -130,12 +136,12 @@ function Chip({ label, value }: { label: string; value?: string }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: string) => void }) {
+function Sidebar({ active, onNavigate, open }: { active: string; onNavigate: (id: string) => void; open: boolean }) {
   const { core } = useStation();
   const [modules] = useModules();
   return (
-    <nav
-      className="w-[188px] flex-shrink-0 flex flex-col overflow-y-auto"
+    <nav id="gtp-nav" aria-label="Pages"
+      className={`w-[188px] flex-shrink-0 flex flex-col overflow-y-auto max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-40 transition-transform ${open ? '' : 'max-lg:-translate-x-full max-lg:invisible'}`}
       style={{ background:'var(--nav)', borderRight:'1px solid var(--border)' }}
     >
       <div className="flex-1 py-2">
@@ -152,7 +158,7 @@ function Sidebar({ active, onNavigate }: { active: string; onNavigate: (id: stri
               {items.map(item => (
                 <button
                   key={item.id}
-                  onClick={() => onNavigate(item.id)}
+                  onClick={() => onNavigate(item.id)} aria-current={active===item.id ? 'page' : undefined}
                   className={`nav-item w-full text-left flex items-center gap-2.5 px-4 py-[7px] text-[11px] ${active===item.id ? 'active' : ''}`}
                   style={{ color: active===item.id ? 'var(--t1)' : 'var(--t2)' }}
                 >
@@ -203,21 +209,43 @@ function PageContent({ page, onNavigate }: { page: string; onNavigate: (id: stri
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [chosen, setPage] = useState('overview');
+  // The page lives in the URL hash (lib/route.ts): reloads and bookmarks keep it.
+  const [chosen, setChosen] = useState<string>(() => pageFromHash(window.location.hash));
+  useEffect(() => {
+    const onHash = () => setChosen(pageFromHash(window.location.hash));
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const setPage = (id: string) => {
+    setChosen(id);
+    const h = hashFor(id);
+    if (window.location.hash !== h) history.pushState(null, '', h || window.location.pathname + window.location.search);
+  };
   const { isDemo } = useStation();
   const [modules] = useModules();
   const page = visiblePage(chosen, modules);   // a page hidden on Configure falls back to the Overview
+  // Navigation drawer below 1024 px (Guidelines → Layout → Narrow screens); closed by navigating, the backdrop or Escape.
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navOpen]);
+  const navigate = (id: string) => { setPage(id); setNavOpen(false); };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background:'var(--bg)' }}>
       <NightOverlay />
-      <Header />
+      <Header navOpen={navOpen} onMenu={() => setNavOpen(o => !o)} />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar active={page} onNavigate={setPage} />
-        <main className="flex-1 overflow-y-auto p-5 space-y-4">
+        {navOpen && <div className="lg:hidden fixed inset-0 z-30" style={{ background:'rgba(0,0,0,0.55)' }}
+          onClick={() => setNavOpen(false)} aria-hidden />}
+        <Sidebar active={page} onNavigate={navigate} open={navOpen} />
+        <main className="@container flex-1 min-w-0 overflow-y-auto p-3 sm:p-5 space-y-4">
           {isDemo && <DemoBanner />}
           <TimingBanner />
-          <PageContent page={page} onNavigate={setPage} />
+          <PageContent page={page} onNavigate={navigate} />
         </main>
       </div>
     </div>

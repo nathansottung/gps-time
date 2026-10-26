@@ -33,7 +33,7 @@ function ShadowSkyMap({ map, sun, picked, onPick }: {
   const sunPos = skyXY(sun.azimuth_deg, Math.max(0, sun.altitude_deg), cx, cy, r);
   const pick = picked && skyXY(picked.az, picked.alt, cx, cy, r);
   return (
-    <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{ maxWidth:'100%', cursor:'crosshair' }} onClick={click}
+    <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{ maxWidth:'100%', height:'auto', cursor:'crosshair' }} data-layout-ok="plot" onClick={click}
          role="img" aria-label={`Sky map of sunlight and Earth shadow at ${map.shell_km} km`}>
       {mapSegments(map).map((s, i) => (
         <path key={i} d={segmentPath(s, cx, cy, r)} fill={STATE_FILL[s.code]} fillOpacity={STATE_OPACITY[s.code]} stroke="none" />
@@ -93,7 +93,7 @@ export function ShadowPanel() {
   return (
     <div className="space-y-4">
       <ApiErrorNote error={sh.error} />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Satellite Shadow at Zenith" badge={<ProvenanceTag type="modeled" />} />
           <CardBody>
@@ -128,7 +128,7 @@ export function ShadowPanel() {
       <Card>
         <CardHeader title={`Illumination Sky Map — ${fmtKm(d.map.shell_km)} shell`} badge={<ProvenanceTag type="modeled" />}
           action={
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               {SHELL_PRESETS.map(km => (
                 <button key={km} onClick={() => setShell(km)} className="px-2 py-[3px] text-[9px] mono rounded-[2px]"
                   style={{ border:'1px solid var(--border)', color: shell === km ? 'var(--t1)' : 'var(--t3)', background: shell === km ? 'var(--float)' : 'transparent' }}>
@@ -143,7 +143,7 @@ export function ShadowPanel() {
                 style={{ border:'1px solid var(--border)', color: customKm ? 'var(--t2)' : 'var(--t4)' }}>SET</button>
             </div>} />
         <CardBody>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-6">
             <div>
               <ShadowSkyMap map={d.map} sun={d.sun} picked={picked} onPick={setPicked} />
               <Legend />
@@ -173,7 +173,7 @@ export function ShadowPanel() {
       <Card>
         <CardHeader title="Orbital Shells" badge={<ProvenanceTag type="modeled" />} />
         <CardBody className="p-0">
-          <table className="w-full text-[11px]">
+          <div className="table-scroll"><table className="w-full text-[11px]">
             <thead><tr>
               {['Shell', 'At zenith', 'Sunlit sky above 10°', 'Sunlit up to', 'Where'].map((h, i) => (
                 <th key={h} style={{ ...TH, textAlign: i === 2 || i === 3 ? 'right' : 'left' }}>{h}</th>
@@ -190,14 +190,14 @@ export function ShadowPanel() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </CardBody>
       </Card>
 
       <Card>
         <CardHeader title="Shadow Geometry" badge={<ProvenanceTag type="modeled" />} />
         <CardBody>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-6">
             <div>
               <MetricRow label="Sun azimuth" value={`${fmtDeg(d.sun.azimuth_deg)} (${compass(d.sun.azimuth_deg)})`} />
               <MetricRow label="Sun altitude" value={fmtDeg(d.sun.altitude_deg)} />
@@ -311,15 +311,15 @@ export function SatellitesPanel() {
         <Card>
           <CardHeader title="Now" badge={<ProvenanceTag type="modeled" />} />
           <CardBody>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 @md:grid-cols-2 gap-3">
               {d.featured.map(s => <NowCard key={s.norad} s={s} />)}
               {d.satellite && !d.featured.some(f => f.norad === d.satellite!.norad) && <NowCard s={d.satellite} />}
             </div>
             {!d.featured.length && !d.satellite && <div className="text-[10px]" style={{ color:'var(--t4)' }}>Search for a satellite below.</div>}
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex flex-wrap items-center gap-2 mt-3">
               <input value={text} onChange={e => setText(e.target.value)} placeholder="name or NORAD number" aria-label="Search the cached satellites"
                 onKeyDown={e => { if (e.key === 'Enter') setQ(text.trim()); }}
-                className="w-56 px-2 py-1 text-[11px] mono rounded-[2px]" style={{ border:'1px solid var(--border)', color:'var(--t1)', background:'var(--bg)' }} />
+                className="w-full @sm:w-56 px-2 py-1 text-[11px] mono rounded-[2px]" style={{ border:'1px solid var(--border)', color:'var(--t1)', background:'var(--bg)' }} />
               <button onClick={() => setQ(text.trim())} className="px-2 py-1 text-[10px] mono rounded-[2px]" style={{ border:'1px solid var(--border)', color:'var(--t2)' }}>SEARCH</button>
               {[...d.featured, ...d.matches].filter((s, i, a) => a.findIndex(x => x.norad === s.norad) === i).map(s => (
                 <button key={s.norad} onClick={() => setSat(s.norad)} className="px-2 py-1 text-[10px] mono rounded-[2px]"
@@ -338,7 +338,7 @@ export function SatellitesPanel() {
               ? <StatusBadge variant={elementAge(d.satellite.age_days).variant} label={elementAge(d.satellite.age_days).text} dot={false} /> : undefined} />
           <CardBody className="p-0">
             {d.satellite && !d.satellite.available && <div className="px-4 py-3 text-[11px]" style={{ color:'var(--t3)' }}>{d.satellite.reason}</div>}
-            <table className="w-full text-[11px]">
+            <div className="table-scroll"><table className="w-full text-[11px]">
               <thead><tr>
                 {['Rise', 'Culmination', 'Set', 'Earth shadow', 'Could be seen'].map(h => <th key={h} style={{ ...TH, textAlign:'left' }}>{h}</th>)}
               </tr></thead>
@@ -346,7 +346,7 @@ export function SatellitesPanel() {
                 {d.passes.map((p, i) => <PassRow key={i} p={p} />)}
                 {!d.passes.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>No passes above the horizon in this window.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
             <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
               Times in {TZ}. {d.meaning}{d.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting: times can be off by several seconds.'}
             </div>
