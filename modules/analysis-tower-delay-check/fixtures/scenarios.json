@@ -1,0 +1,41 @@
+{
+  "comment": "SYNTHETIC scenarios for analysis-tower-delay-check: captures are generated from these by tower_delay_check/synth.py (deterministic). The transmitters and their predicted delays come from predictions.jsonl, the reference-broadcast-towers demo (synthetic towers around the US Naval Observatory example site). The waveforms are pseudo-random test codes, not real broadcasts.",
+  "scenarios": [
+    {
+      "name": "absolute-agree",
+      "about": "emission times known exactly; every tower where predicted",
+      "mode": "absolute", "seed": 11, "fs_nominal": 2400000.0, "clock_ppm": 12.0, "frequency_hz": 521000000.0,
+      "t0_utc": "2026-10-26T15:00:00Z", "pre_marker_samples": 300, "duration_s": 0.003,
+      "noise_rms": 2.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": 0.0,
+      "towers": [
+        {"transmitter": "FM:900001:88500", "waveform": {"kind": "prn", "seed": 101, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0004},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "prn", "seed": 102, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0010},
+        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "prn", "seed": 103, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0016}
+      ]
+    },
+    {
+      "name": "common-offset-one-disagrees",
+      "about": "an unknown common emission offset of 2.5 µs; one tower arrives 4 µs late (injected)",
+      "mode": "common_offset", "seed": 12, "fs_nominal": 2400000.0, "clock_ppm": -7.5, "frequency_hz": 521000000.0,
+      "t0_utc": "2026-10-26T15:00:01Z", "pre_marker_samples": 300, "duration_s": 0.003,
+      "noise_rms": 2.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": 2.5e-6,
+      "towers": [
+        {"transmitter": "FM:900001:88500", "waveform": {"kind": "prn", "seed": 101, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0004},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "prn", "seed": 102, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0010},
+        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "prn", "seed": 103, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0016, "extra_delay_s": 4e-6}
+      ]
+    },
+    {
+      "name": "one-tower-too-weak",
+      "about": "common offset; one tower buried in noise, so not detected (unknown, nothing claimed)",
+      "mode": "common_offset", "seed": 13, "fs_nominal": 2400000.0, "clock_ppm": 3.0, "frequency_hz": 521000000.0,
+      "t0_utc": "2026-10-26T15:00:02Z", "pre_marker_samples": 300, "duration_s": 0.003,
+      "noise_rms": 2.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": -1.2e-6,
+      "towers": [
+        {"transmitter": "FM:900001:88500", "waveform": {"kind": "prn", "seed": 101, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0004},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "prn", "seed": 102, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0010, "amplitude": 0.02},
+        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "prn", "seed": 103, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0016}
+      ]
+    }
+  ]
+}

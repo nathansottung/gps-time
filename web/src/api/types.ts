@@ -910,7 +910,8 @@ export interface ModuleRow {
   summary: string | null;
   permissions: { network: boolean; devices: string[]; storage: string } | null;
   enabled: boolean;            // the owner turned it on
-  runs: boolean;               // switch on, enabled and valid: the supervisor is asked to run it
+  runs: boolean;               // switch on, enabled, valid and with a source entry: the supervisor is asked to run it
+  host_runs?: boolean;         // false: no source entry (an analysis); the host never runs it, its CLI does
   state: string | null;        // observed from gps-time-modules; null = UNKNOWN (not reporting)
   reason: string | null;
 }

@@ -85,7 +85,9 @@ def listing(cfg, root=None, status_path=None, now=None):
             "summary": m.data.get("summary") if m else None,
             "permissions": m.permissions if m else None,
             "enabled": name in enabled,
-            "runs": on and name in enabled and m is not None,
+            # the host runs only a module's source entry: an analysis-only module never runs under it
+            "runs": on and name in enabled and m is not None and "source" in m.entry,
+            "host_runs": bool(m and "source" in m.entry),
             # observed from the supervisor; None (UNKNOWN) when it isn't reporting
             "state": st.get("state") if st else None,
             "reason": st.get("reason") if st else None,
@@ -94,7 +96,7 @@ def listing(cfg, root=None, status_path=None, now=None):
         if name not in seen:
             rows.append({"name": name, "installed": False, "valid": False, "errors": [f"{name}: not installed"],
                          "version": None, "maturity": None, "types": [], "summary": None, "permissions": None,
-                         "enabled": True, "runs": False, "state": None, "reason": None})
+                         "enabled": True, "runs": False, "host_runs": False, "state": None, "reason": None})
     return {"experimental": on, "modules": rows, "supervisor": sup,
             "note": "Changes are read by gps-time-modules.service within about 10 s. The service is installed "
                     "but not enabled; until it runs, no module runs."}
