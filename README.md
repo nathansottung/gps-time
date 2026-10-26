@@ -6,7 +6,7 @@ GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into a Strat
 
 *The Overview page in the desktop demo (synthetic data), taken in screenshot mode with location privacy set to rounded.*
 
-**Status: v1.4.0-rc.11, pre-release.** It is soak-tested on one development Pi before v1.4.0. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
+**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Quick start
 
@@ -71,6 +71,9 @@ Measured on the tested development unit (Pi 4, MAX-M8Q, weak antenna site), from
 | Allan deviation (includes outages) | 1.7 × 10⁻⁶ at 1 s; 2.2 × 10⁻⁸ at 100 s | 14-day run |
 | Holdover: one 56-minute loss of PPS | clock off by +1.7 µs afterwards | 2026-10-17 (one event) |
 | Missed PPS pulses in a weak-signal window | 9.9 % | rc.10, 2 h 17 min |
+| chrony's RMS offset from the PPS reference | 202 ns | after a 6-day run without outages (rc.11, 2026-10-26) |
+| Allan deviation (no outages) | 1.5 × 10⁻⁶ at 1 s; 2.0 × 10⁻⁸ at 100 s | rc.11, 6-day run |
+| Missed PPS pulses over 6 days | 2 of 580,062 | rc.11 |
 
 These are the station's agreement with its own PPS reference. Accuracy against UTC has not been measured: that needs an independent reference, which this unit doesn't have.
 

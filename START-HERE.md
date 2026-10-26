@@ -41,4 +41,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost 192.
 
 Read [`docs/README.md`](docs/README.md), then [`docs/roadmap/feature-registry.md`](docs/roadmap/feature-registry.md).
 
-The current version is **v1.4.0-rc.11**, a pre-release. `/api` and the web UI footer report the version read from the tag. The deployed historical baseline was v1.3.0. The 2026-09-07 source review still contains unresolved blockers; this bundle is a development starting point, not a claim of stable/hardened timing appliance status.
+The current release is **v1.4.0** (2026-10-26), the first stable release of the 1.4 line, on the same commit as v1.4.0-rc.11 (`docs/releases/v1.4.0.md`). `/api` and the web UI footer report the version read from the tag. The deployed historical baseline was v1.3.0. Stable means it passed its soak run on one development Pi; the source reviews still have open findings (`docs/STATUS.md`), and it is not a claim of hardened timing appliance status. `main` has work after v1.4.0 that is in no tag yet.

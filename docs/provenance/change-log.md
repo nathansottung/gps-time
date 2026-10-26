@@ -1369,3 +1369,13 @@ Owner's request: miniSEED and WAV converters.
 - **Schema:** `core:dataset` and `gpstime:derived_from` added.
 - **Tests:** `tests/test_convert.py`: BTIME of a known time and the carry into the next second; WAV round trip with exact times, IQ stereo, cu8; refusing an invalid source; miniSEED records, times, samples, gap, blockette 100, the note; INT32; refusals; rate factors; CLI.
 - **STATUS.md:** OBSF order 1b (converters) done.
+
+## 2026-10-26 — soak run of v1.4.0-rc.11 clean; v1.4.0 (#124)
+
+Scheduled read-only check, authorized by the owner on 2026-10-19 (tag only if clean).
+
+- **Preconditions** (read-only SSH): version 1.4.0-rc.11; `gps-time-pi` active since 2026-10-19 21:20:16 UTC, `NRestarts=0`; no reboot.
+- **`tools/soak_check.py`** (HTTP GETs only), against the criteria fixed in #95, unchanged and run once: **CLEAN** (exit 0). 6.71 days of PPS reads; GPS_PPS, stratum 1; 0 outages since the start besides the installer's chrony restart (32 s, pulses healthy); 2 missed and 0 unread pulses (3.45 × 10⁻⁶ of reads), 0 late reads, longest gap 1.07 s; `/api/ping` median 19.4 ms idle and 30.8 ms under `/api/almanac` load; ADEV 1.53 × 10⁻⁶ at 1 s to 2.08 × 10⁻¹¹ at 1 day, PPS selected for every sample. Also recorded: chrony RMS offset 202 ns, 10 of 10 independent references agree, no service warnings in the journal, never throttled. GNSS signal as weak as before (best C/N₀ 25 dB-Hz). Record: `development/raspberry-pi-deploy.md` → "Soak run of v1.4.0-rc.11".
+- **Tag:** annotated `v1.4.0` on `cbd891c`, the rc.11 commit (checked with `git rev-parse v1.4.0-rc.11^{commit}`). The first two pushes of the tag got HTTP 500 from GitHub; the third went through. GitHub release (stable) with `releases/v1.4.0.md`.
+- **Docs:** `releases/v1.4.0.md` (what 1.4 contains relative to v1.3.0, the soak result, known open issues, the development unit); the deployment record; `STATUS.md` (next-5 item 1 done, soak row done, a "Tag v1.4.0" row, a decision entry); INDEX, README (status line, rc.11 figures in the accuracy table), START-HERE and `ROADMAP.md`.
+- Nothing on the station was changed and nothing was deployed. Work merged after #95 (#96 onwards) is on `main` only, not in v1.4.0.
