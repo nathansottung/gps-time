@@ -18,9 +18,10 @@ Storage (project rule: nothing written at 1 Hz):
   - the file starts with a hash of the board's serial number (never the serial
     itself). A file from another board is set aside, not mixed in.
 
-Nothing here fits a profile or predicts holdover. It reports a straight-line
-frequency-versus-temperature slope over the logged bins, labeled
-`calculated`, with the conditions it needs.
+It reports a straight-line frequency-versus-temperature slope over the bins in
+RAM (`calculated`), and the oscillator profile fitted over the whole log
+(oscprofile.py: temperature, optionally its square and aging; `modeled`). It
+doesn't predict holdover.
 """
 
 import hashlib
@@ -32,6 +33,7 @@ import time
 from collections import deque
 from datetime import datetime, timezone
 
+from . import oscprofile
 from .labels import q
 
 SAMPLE_INTERVAL_S = 60.0
@@ -129,6 +131,23 @@ def linear_fit(bins):
     return out
 
 
+PROFILE_NOTE = ("A statistical model of how chrony's frequency estimate moved with the SoC sensor's "
+                "temperature (and with time) while GPS kept the clock right, fitted over the whole log. It "
+                "describes this board's sensor and crystal together, only within the temperature range and "
+                "time span it covers. It is not a holdover guarantee.")
+
+
+def profile_payload(p):
+    """The profile for /api/oscillator: times as ISO strings, the note attached."""
+    out = dict(p)
+    cov = p.get("covers")
+    if cov:
+        out["covers"] = {**cov, "first_utc": _iso(cov["first_utc_epoch"]), "last_utc": _iso(cov["last_utc_epoch"])}
+    out["t0_utc"] = _iso(p["t0_utc_epoch"]) if p.get("t0_utc_epoch") is not None else None
+    out["note"] = PROFILE_NOTE
+    return out
+
+
 class Log:
     """Samples in, 10-minute bins out; RAM first, the CSV hourly."""
 
@@ -140,6 +159,10 @@ class Log:
         self.max_bytes = MAX_BYTES if max_bytes is None else max_bytes
         self._lock = threading.Lock()
         self._bins = deque(maxlen=RAM_BINS)
+        # Every bin with PPS selected throughout, from the whole file (up to 90 days), for the profile fit.
+        self._fit_bins = deque(maxlen=oscprofile.MAX_BINS)
+        self._profile = None
+        self._profile_n = -1
         self._pending = []                  # finished bins not yet on disk
         self._acc = None
         self._last_sample = None
@@ -182,6 +205,7 @@ class Log:
             b = self._parse_row(line)
             if b:
                 self._bins.append(b)
+                self._keep_for_fit(b)
 
     @staticmethod
     def _parse_row(line):
@@ -259,7 +283,24 @@ class Log:
              "freq_max_ppm": max(a["freq"]) if a["freq"] else None,
              "skew_mean_ppm": mean("skew"), "residual_mean_ppm": mean("resid")}
         self._bins.append(b)
+        self._keep_for_fit(b)
         self._pending.append(b)
+
+    def _keep_for_fit(self, b):
+        if b["samples"] and b["pps_samples"] == b["samples"] and b["temp_mean_c"] is not None \
+                and b["freq_mean_ppm"] is not None:
+            self._fit_bins.append((b["t"], b["temp_mean_c"], b["freq_mean_ppm"]))
+
+    def profile(self):
+        """The fitted profile over the whole log; refitted only when a bin was added."""
+        with self._lock:
+            n = len(self._fit_bins)
+            if n != self._profile_n or (self._fit_bins and self._profile
+                                        and self._profile.get("covers") and
+                                        self._profile["covers"]["last_utc_epoch"] != self._fit_bins[-1][0]):
+                self._profile = oscprofile.fit(list(self._fit_bins))
+                self._profile_n = n
+            return self._profile
 
     def add(self, tracking, pps_selected):
         """Called on every chain evaluation with chrony's parsed tracking; samples once a minute."""
@@ -315,6 +356,7 @@ class Log:
                 "freq_ppm": q(latest["freq_mean_ppm"], "ppm", "observed", "chrony's frequency estimate"),
                 "bin_start_utc": _iso(latest["t"])},
             "fit": linear_fit(bins),
+            "profile": profile_payload(self.profile()),
             "fit_note": ("A straight line through frequency against temperature over the logged bins. It is not "
                          "the oscillator profile and not a holdover prediction."),
             "storage": {"path": self.path, "bytes": size, "max_bytes": self.max_bytes,

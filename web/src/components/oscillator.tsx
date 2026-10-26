@@ -5,7 +5,8 @@ import {
 import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5, LoadingNote, EmptyNote } from './ui';
 import { ApiErrorNote } from './planned';
 import { useStation, usePoll, isPending } from '../api/station';
-import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays } from '../lib/oscillator';
+import { fitLine, fmtBytes, fmtSlope, fmtTerm, MODEL_LABEL, oscPoints, profileCurve, scatterPoints, spanDays } from '../lib/oscillator';
+import { fmtSci } from '../lib/units';
 import { fmtUtc } from '../lib/format';
 
 const TICK = { fontSize: 9, fontFamily: 'JetBrains Mono', fill: 'var(--t3)' } as const;
@@ -33,6 +34,8 @@ export function OscillatorPanel() {
   const pts = oscPoints(d?.bins);
   const scatter = scatterPoints(pts, sel === 'PPS only');
   const line = fitLine(d?.fit, scatter);
+  const prof = d?.profile;
+  const curve = profileCurve(prof);
   const span = spanDays(pts);
   const time = pts.map(p => ({ ts: p.ts, temp: p.temp, freq: p.freq }));
   const fmtT = (ts: number) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -56,12 +59,14 @@ export function OscillatorPanel() {
                     <ZAxis range={[12, 12]} />
                     <Tooltip content={<Tip />} />
                     <Scatter name="bin" data={scatter} fill="var(--live)" fillOpacity={0.5} />
-                    {line.length > 0 && <Scatter name="fit" data={line} line={{ stroke: 'var(--mod-text)', strokeWidth: 1.2 }} shape={() => null} />}
+                    {line.length > 0 && <Scatter name="straight line" data={line} line={{ stroke: 'var(--calc-text)', strokeWidth: 1, strokeDasharray: '4 3' }} shape={() => null} />}
+                    {curve.length > 0 && <Scatter name="profile" data={curve} line={{ stroke: 'var(--mod-text)', strokeWidth: 1.4 }} shape={() => null} />}
                   </ScatterChart>
                 </ResponsiveContainer>
               : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>{d?.reason ?? 'No bins yet.'}</div>}
             <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
               One point per 10-minute bin. Frequency is chrony's estimate of how fast the uncorrected clock runs (+ = fast).
+              {curve.length > 0 && <> <span style={{ color:'var(--mod-text)' }}>— profile</span> (at the end of its span), <span style={{ color:'var(--calc-text)' }}>- - straight line</span>.</>}
             </div>
           </CardBody>
         </Card>
@@ -79,6 +84,31 @@ export function OscillatorPanel() {
           </CardBody>
         </Card>
       </div>
+
+      <Card pending={isPending(osc)}>
+        <CardHeader title="Oscillator Profile (fit)" badge={<ProvenanceTag type="modeled" />} />
+        <CardBody>
+          {!prof ? (isPending(osc) ? <LoadingNote what="the oscillator profile" /> : <EmptyNote>Not available: the station did not answer (see the error above).</EmptyNote>)
+            : prof.status !== 'fitted' ? <EmptyNote>No profile yet: {prof.reason}.</EmptyNote>
+            : <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-x-8">
+                <div>
+                  <MetricRow label="Model" value={prof.model ? MODEL_LABEL[prof.model] : null} provenance="modeled" />
+                  {prof.terms.map(t => { const f = fmtTerm(t); return <MetricRow key={t.name} label={f.label} value={f.text} /> })}
+                  <MetricRow label="Reference temperature" value={prof.temp_ref_c != null ? `${prof.temp_ref_c.toFixed(1)} °C` : null} />
+                </div>
+                <div>
+                  <MetricRow label="Residual RMS" value={prof.residual_rms_ppm != null ? `${fmtSci(prof.residual_rms_ppm * 1e-6, 2)} (${prof.residual_rms_ppm.toFixed(4)} ppm)` : null} provenance="calculated" />
+                  <MetricRow label="R²" value={prof.r2} provenance="calculated" />
+                  <MetricRow label="Bins used (PPS throughout)" value={`${prof.bins_used.toLocaleString()}${prof.outliers ? ` (${prof.outliers} outliers left out)` : ''}`} />
+                  <MetricRow label="Covers" value={prof.covers ? `${prof.covers.temp_min_c.toFixed(1)}–${prof.covers.temp_max_c.toFixed(1)} °C, ${prof.covers.days.toFixed(1)} days` : null} />
+                  <MetricRow label="Span" value={prof.covers ? `${fmtUtc(prof.covers.first_utc)} → ${fmtUtc(prof.covers.last_utc)}` : null} />
+                  <MetricRow label="Models compared (BIC, lower is better)" value={prof.candidates.map(c => `${c.model} ${c.bic.toFixed(0)}`).join(' · ')} />
+                </div>
+              </div>}
+          {prof && <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{prof.note}</div>}
+          <ELI5 text="The profile is a formula for how fast this board's clock would run at a given temperature, learned while GPS kept it right. Holdover estimates can later use it instead of assuming today's rate stays fixed. It only knows the temperatures and the days it has seen." />
+        </CardBody>
+      </Card>
 
       <Card pending={isPending(osc)}>
         <CardHeader title="Temperature and Frequency over Time" badge={<ProvenanceTag type="observed" />} />
@@ -116,7 +146,7 @@ export function OscillatorPanel() {
           <MetricRow label="Bins waiting to be written" value={d ? d.storage.pending_bins : null} />
           <MetricRow label="Board (hash of the serial number)" value={d?.board.serial_sha256 ?? null} />
           {(d?.problems ?? []).map(p => <div key={p} className="text-[10px] mt-1" style={{ color:'var(--warn-text)' }}>{p}</div>)}
-          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{d?.storage.note}. This is the data the trained oscillator profile will be fitted on.</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{d?.storage.note}. The profile above is fitted on the whole file (up to 90 days); the charts show the last 7 days kept in memory.</div>
           <ELI5 text="A crystal oscillator runs a little faster or slower as it warms and cools. Logging how chrony's frequency estimate moves with temperature, while GPS keeps the clock right, shows how this board's clock would drift if GPS went away." />
         </CardBody>
       </Card>

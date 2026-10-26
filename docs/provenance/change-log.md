@@ -1530,3 +1530,19 @@ Owner's request: check the Pi's version (read-only), schedule the soak check if 
   - the record of soak runs.
 - **Test:** `tests/test_soak_check.py` checks that the rule's criteria table lists exactly the criteria `soak_check.py` checks.
 - **Also:** CLAUDE.md points to the rule. STATUS: the v1.5.0-rc.1 soak row is in progress, plus a done row for the rule.
+
+## 2026-10-26 — oscillator profile fit (#133)
+
+Owner's request: the oscillator profile fit (`roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1, the "fit" row; next-5 item 6).
+
+- **`gps_time_pi/oscprofile.py`** (pure Python, no NumPy). The model, in ppm: f = a + b·(T − T0) [+ c·(T − T0)²] [+ d·days].
+  - The quadratic term is a candidate from 8 °C of range, aging from 3 days of data; the lowest-BIC candidate is kept, and all candidates' BIC are reported.
+  - One pass of outlier removal (5 robust SDs), counted.
+  - Standard errors for each term, residual RMS, R², bins used, the temperature range and time span covered.
+  - `predict()` flags a request outside what the fit covers.
+  - It needs 72 PPS bins (12 h) and 3 °C of range; until then `insufficient`, with the reason.
+- **Data:** the log keeps every bin with PPS selected throughout from the whole file (up to 90 days; read at start, then each closing bin). The 7-day RAM window still feeds the charts and the straight-line slope. The fit is cached until a bin is added. Nothing new is written to the SD card.
+- **`/api/oscillator` → `profile`** (modeled), with times as ISO strings and a note: a model of sensor and crystal together, valid only over the range and span it covers, not a holdover guarantee.
+- **UI (Timing → Oscillator):** an "Oscillator Profile (fit)" card shows the model, each term as Δf/f ×10⁻ⁿ ± SE with ppm in brackets, and the fit quality, coverage and BIC comparison. The profile's curve is drawn on the scatter (only over the covered temperatures), and the straight line is now dashed in the `calculated` colour. The demo adapter carries a matching profile.
+- **Not in this PR:** the holdover projection (GPS-008), export/import, board binding on import, the file's metadata (STATUS OSC rows, still next).
+- **Tests:** `tests/test_oscprofile.py` (10: recovers known coefficients from synthetic seeded series, picks terms only when the data support them, outliers, insufficiency, prediction inside and outside, the log fitting the whole file past the RAM window, the demo payload); `web/src/lib/oscillator.test.ts` (+3).

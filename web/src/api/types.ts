@@ -526,6 +526,25 @@ export interface OscillatorFit {
   reason: string | null;
   provenance: Provenance;            // calculated
 }
+/** The oscillator profile fitted over the whole log (gps_time_pi/oscprofile.py). Modeled. */
+export interface OscillatorProfileTerm { name: 'a' | 'b' | 'c' | 'd'; value: number; se: number; unit: string }
+export interface OscillatorProfile {
+  status: 'fitted' | 'insufficient';
+  reason: string | null;
+  provenance: Provenance;            // modeled
+  model: 'linear' | 'quadratic' | 'linear+aging' | 'quadratic+aging' | null;
+  terms: OscillatorProfileTerm[];    // a: ppm at temp_ref_c and t0; b: ppm/°C; c: ppm/°C²; d: ppm/day
+  bins_used: number;
+  outliers: number;
+  residual_rms_ppm: number | null;
+  r2: number | null;
+  temp_ref_c: number | null;
+  t0_utc: string | null;
+  t0_utc_epoch: number | null;
+  covers: { temp_min_c: number; temp_max_c: number; first_utc: string; last_utc: string; first_utc_epoch: number; last_utc_epoch: number; days: number } | null;
+  candidates: { model: string; bic: number }[];
+  note: string;
+}
 export interface Oscillator {
   available: boolean;
   reason: string | null;
@@ -538,6 +557,7 @@ export interface Oscillator {
   latest: { temp_c: Measured; freq_ppm: Measured; bin_start_utc: string } | null;
   fit: OscillatorFit;
   fit_note: string;
+  profile: OscillatorProfile;
   storage: { path: string; bytes: number; max_bytes: number; pending_bins: number; flush_interval_s: number; note: string };
   board: { serial_sha256: string | null; model: string | null };
   problems: string[];

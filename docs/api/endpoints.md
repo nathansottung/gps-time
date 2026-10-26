@@ -215,6 +215,20 @@ SoC temperature logged with chrony's frequency estimate, in 10-minute bins. Type
 - `bins` holds up to 7 days (RAM); the file holds more.
 - `board.serial_sha256` is a hash; the serial number itself is never exposed.
 - `available: false` until the first 10-minute bin is finished.
+- `profile` (modeled): the oscillator profile fitted over the whole log (`gps_time_pi/oscprofile.py`; `architecture/oscillator-log.md` → "The profile fit"). Shape:
+
+```json
+{"status": "fitted", "reason": null, "provenance": "modeled", "model": "linear+aging",
+ "terms": [{"name": "a", "value": 10.31, "se": 0.0004, "unit": "ppm"}, {"name": "b", "value": -0.031, "se": 0.0002, "unit": "ppm/°C"},
+           {"name": "d", "value": 0.004, "se": 0.0005, "unit": "ppm/day"}],
+ "bins_used": 1840, "outliers": 3, "residual_rms_ppm": 0.0021, "r2": 0.97, "temp_ref_c": 52.1,
+ "t0_utc": "2026-10-20T00:00:00+00:00", "t0_utc_epoch": 1792454400,
+ "covers": {"temp_min_c": 47.2, "temp_max_c": 58.9, "first_utc": "...", "last_utc": "...", "first_utc_epoch": 1792454400, "last_utc_epoch": 1793558400, "days": 12.8},
+ "candidates": [{"model": "linear", "bic": -21712.4}, {"model": "linear+aging", "bic": -21790.0}],
+ "note": "... not a holdover guarantee."}
+```
+
+  `status: "insufficient"` with a `reason` until there are 72 PPS bins (12 h) and 3 °C of range; `terms` is then empty.
 
 ## GET /api/ntp-service
 

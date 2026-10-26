@@ -562,6 +562,17 @@ function oscillator(): Oscillator {
     latest: { temp_c: m(last.temp_mean_c, '°C', 'observed'), freq_ppm: m(last.freq_mean_ppm, 'ppm', 'observed'), bin_start_utc: last.t },
     fit: { bins_used: 288, slope_ppm_per_c: -0.3, intercept_ppm: 25.9, r: -1.0, temp_span_c: 12.5, reason: null, provenance: 'calculated' },
     fit_note: 'A straight line through frequency against temperature over the logged bins. It is not the oscillator profile and not a holdover prediction.',
+    // The profile the station would fit to these bins (the server demo fits it for real).
+    profile: {
+      status: 'fitted', reason: null, provenance: 'modeled', model: 'linear',
+      terms: [{ name: 'a', value: 10.9, se: 0.0002, unit: 'ppm' }, { name: 'b', value: -0.3, se: 0.00004, unit: 'ppm/°C' }],
+      bins_used: 288, outliers: 0, residual_rms_ppm: 0.0012, r2: 0.9999, temp_ref_c: 50, t0_utc: bins[0].t,
+      t0_utc_epoch: Date.parse(bins[0].t) / 1000,
+      covers: { temp_min_c: 43.7, temp_max_c: 56.3, first_utc: bins[0].t, last_utc: last.t,
+                first_utc_epoch: Date.parse(bins[0].t) / 1000, last_utc_epoch: Date.parse(last.t) / 1000, days: 1.993 },
+      candidates: [{ model: 'linear', bic: -3880.1 }, { model: 'quadratic', bic: -3874.6 }],
+      note: "A statistical model of how chrony's frequency estimate moved with the SoC sensor's temperature (and with time) while GPS kept the clock right, fitted over the whole log. It describes this board's sensor and crystal together, only within the temperature range and time span it covers. It is not a holdover guarantee.",
+    },
     storage: { path: '(sample data)', bytes: 24727, max_bytes: 4194304, pending_bins: 3, flush_interval_s: 3600,
                note: '10-minute bins appended once an hour and on a clean stop; oldest quarter dropped past the cap' },
     board: { serial_sha256: 'demo', model: 'demo board' },

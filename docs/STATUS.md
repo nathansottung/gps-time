@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-26 (docs/soak-rule, #132). The next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-26 (feat/oscillator-profile-fit, #133). Next-5 item 6 (oscillator profile): the fit is done; the holdover projection, export/import and board binding remain. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -112,7 +112,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 538 rows: 304 done, 1 in progress, 41 next, 192 planned.
+**Totals:** 538 rows: 305 done, 1 in progress, 40 next, 192 planned.
 
 ## Status table
 
@@ -622,7 +622,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Gap 8 | Docs website and a prebuilt Pi image or one-line installer | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
 | Scope | Gap 9 | Legal and safety notes for RF receiving and data sharing | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
 | Repo |  | Full scope review added (`SCOPE-REVIEW.md`); its section 7 gaps added as planned rows | done | owner-provided, copied verbatim | [#113](https://github.com/nathansottung/gps-time/pull/113) |
-| OSC | §1 fit | Oscillator profile: fit frequency vs temperature plus slow aging from the oscillator log; store fit quality and the data span covered | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
+| OSC | §1 fit | Oscillator profile: fit frequency vs temperature plus slow aging from the oscillator log; store fit quality and the data span covered | done | `gps_time_pi/oscprofile.py`: linear or quadratic in temperature, optional aging, chosen by BIC; standard errors, residual RMS, R², outliers, range and span; over the whole file (≤ 90 days); `/api/oscillator` → `profile` (modeled); Timing → Oscillator card and curve. Not yet run on a Pi | [#114](https://github.com/nathansottung/gps-time/pull/114) [#133](https://github.com/nathansottung/gps-time/pull/133) |
 | OSC | §1 holdover | Oscillator profile: modeled holdover projection beside the simple one (labeled modeled; never a guarantee); closes GPS-008 | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
 | OSC | §1 export | Oscillator profile: export/import as one JSON file, surviving a reflash | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
 | OSC | §1 board | Oscillator profile: board binding by serial hash on import (match: use; mismatch: warn, keep for reference, start a new profile) | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |

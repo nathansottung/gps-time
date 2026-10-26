@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OscillatorBin } from '../api/types';
-import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays } from './oscillator';
+import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve } from './oscillator';
 import { demoApi } from '../api/demo';
 
 const bin = (t: string, temp: number | null, freq: number | null, pps = 10): OscillatorBin => ({
@@ -48,5 +48,30 @@ describe('oscillator helpers', () => {
     expect(r.fit.provenance).toBe('calculated');
     expect(r.fit.slope_ppm_per_c).toBeCloseTo(-0.3, 1);
     expect(r.bins.length).toBeGreaterThan(100);
+  });
+});
+
+describe('oscillator profile', () => {
+  const base = {
+    status: 'fitted' as const, reason: null, provenance: 'modeled' as const, model: 'quadratic+aging' as const,
+    terms: [{ name: 'a' as const, value: 10, se: 0.001, unit: 'ppm' }, { name: 'b' as const, value: -0.3, se: 0.0001, unit: 'ppm/°C' },
+            { name: 'c' as const, value: 0.002, se: 0.0001, unit: 'ppm/°C²' }, { name: 'd' as const, value: 0.01, se: 0.001, unit: 'ppm/day' }],
+    bins_used: 500, outliers: 0, residual_rms_ppm: 0.001, r2: 0.999, temp_ref_c: 50, t0_utc: '', t0_utc_epoch: 0,
+    covers: { temp_min_c: 44, temp_max_c: 56, first_utc: '', last_utc: '', first_utc_epoch: 0, last_utc_epoch: 2 * 86400, days: 2 },
+    candidates: [], note: '',
+  };
+  it('evaluates at the end of the span', () => {
+    expect(profileAt(base, 50)).toBeCloseTo(10 + 0.02, 6);
+    expect(profileAt(base, 52)).toBeCloseTo(10 - 0.6 + 0.008 + 0.02, 6);
+    expect(profileAt({ ...base, status: 'insufficient' }, 50)).toBeNull();
+  });
+  it('draws only over the covered temperatures', () => {
+    const c = profileCurve(base, 4);
+    expect(c.map(p => p.x)).toEqual([44, 47, 50, 53, 56]);
+    expect(profileCurve(undefined)).toEqual([]);
+  });
+  it('shows terms as Δf/f with ppm in brackets', () => {
+    expect(fmtTerm(base.terms[1])).toEqual({ label: 'Temperature coefficient', text: '−3 × 10⁻⁷ ± 1 × 10⁻¹⁰ per °C (−0.3000 ppm/°C)' });
+    expect(fmtTerm(base.terms[3]).text).toContain('per day');
   });
 });
