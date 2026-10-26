@@ -1,0 +1,11 @@
+# GPS Time coordinator config (the only config file). Copy to coordinator.toml in the config dataset.
+# Every key is optional; these are the defaults.
+
+[server]
+bind = "0.0.0.0"
+port = 8090
+max_body_bytes = 1048576
+
+[storage]
+database = "/data/coordinator.sqlite3"
+retention_days = 90      # events older than this are deleted, daily

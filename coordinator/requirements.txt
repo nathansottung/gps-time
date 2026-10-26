@@ -1,0 +1,2 @@
+# Coordinator runtime dependencies (the container image). Same pin as the station's requirements.txt.
+cryptography==50.0.2

@@ -1415,3 +1415,20 @@ Owner's request: validation, with a GPIO pulse at each system-clock second and a
 - **Not run on hardware yet.** No deploy. The tests use a manual clock, a fake line and synthetic fixtures (`tests/fixtures/validation/`, marked synthetic).
 - **Tests:** `tests/test_secpulse.py`.
 - **STATUS.md:** a done "Gap 1a" row; Gap 1 stays planned, with a partial note.
+
+## 2026-10-26 — bench kit, second station, coordinator skeleton, Oct 17 write-up (#127)
+
+Owner's request: bench kit list, second-station guide, coordinator skeleton for TrueNAS, and the Oct 17 write-up.
+
+- **Coordinator skeleton** (`coordinator/`; ADR-0008; spec `specs/SPEC-COORDINATOR.md`):
+  - `gps_time_coordinator`: signed envelopes (Ed25519 over canonical JSON; `station_id` is the station key's fingerprint, so a station signs with the key it has; `seq` increasing, so no replays);
+  - `POST /v1/join`: pending until the owner approves with the CLI; `POST /v1/events`: approved stations only;
+  - position fields removed before anything is stored; SQLite with a retention window; `GET /v1/health` with counts only;
+  - container for TrueNAS SCALE 24.10+ (`compose.yaml`, Install via YAML): user 568:568, read-only root, no capabilities, config mounted read only;
+  - `demo-client` to exercise it with a throwaway key.
+  - The station is unchanged: nothing sends to it, the bundle doesn't ship it, and `gps_time_pi` never imports it. Not yet run on TrueNAS. Open: TLS, the persistent transport, the station-side sender (RAM queue, off by default), one-time-code approval, the event schema.
+  - CI compiles `coordinator/` and runs `tests/test_coordinator.py` again in the venv with `cryptography`, failing if anything is skipped.
+- **`docs/incidents/2026-10-17-pps-gnss-outages.md`:** the rc.8 soak run's outages, from the records made at the time. Ten events, about 71 minutes, the station's inferred classifications and their rules. chrony coasted without failover, and its first offset after the 56-minute gap was +1.68 µs. Also: what isn't known (the cause; the receiver's detail during the gaps; the make-up of rc.8's missed-pulse count) and what changed because of it (#70, #72, #73, the clean rc.11 soak).
+- **`docs/deploy/second-station.md`:** shared-antenna, two-antenna and different-receiver setups and what each can and can't show; what differs from the fresh install (own hostname, token and station key; never copy `config.json`); comparing over NTP (`noselect`, the owner's step), with second pulses on a counter, and later through the coordinator.
+- **`docs/validation/bench-kit.md`:** counter or scope, probes, tee, line driver for 50 Ω inputs, independent references (second receiver, GPSDO, 10 MHz into the counter), splitter for a shared antenna, what to record. Examples, no prices.
+- **STATUS.md:** four done Repo rows; Feature G "Optional coordinator" stays planned, with a partial note.
