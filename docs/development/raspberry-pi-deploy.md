@@ -11,6 +11,7 @@ Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-in
 | 2026-10-04 | v1.4.0-rc.6 | First deploy of the 1.4 line to the Pi. chrony selected the PPS refclock; stratum 1; system clock offset about 300 ns (owner's report). |
 | 2026-10-04 to 2026-10-19 | v1.4.0-rc.8 | Soak run, 14 days 20 h without a restart. Real PPS/GNSS outages on 2026-10-17 (below), so **v1.4.0 was not tagged**. Otherwise GPS was chrony's reference throughout. |
 | 2026-10-19 | v1.4.0-rc.10 | Deployed (service start 18:10 UTC). Read-only check after 2 h 17 min (below): four outage events, three of them real loss of PPS with weak GNSS signal. Replaced by rc.11 for the soak, which carries the chrony-history fix (#93). |
+| 2026-10-19 to 2026-10-26 | v1.4.0-rc.11 | Soak run: service start 21:20:16 UTC, read-only check after 6 days 17 h (below). **CLEAN**: no outages except the installer's at the start, 2 missed pulses. **v1.4.0 tagged** on the same commit (`cbd891c`). |
 
 Found on that build and fixed since:
 
@@ -62,6 +63,28 @@ Read over HTTP and SSH, nothing changed. The service started at 18:10:03 UTC (no
 - **Browser round trip is fixed:** `/api/ping` median 16 ms (max 32 ms) from the LAN, 24 ms (max 60 ms) while `/api/almanac` was requested continuously. On rc.8 it was seconds.
 - **Stability over this short window is dominated by the outages:** ADEV 2.1 × 10⁻⁵ at 1 s, 1.1 × 10⁻⁵ at 10 s, 1.4 × 10⁻⁶ at 100 s, 1.7 × 10⁻⁷ at 1000 s, with 812 gaps in 7387 samples (PPS selected 99.6 %). rc.8's 1 s value over two weeks was 1.7 × 10⁻⁶. Why the short window is this much higher is not established.
 - No warnings from the service in the journal. Network sources sit 4–8 ms from the station's clock, as on rc.8.
+
+### Soak run of v1.4.0-rc.11 (read-only check, 2026-10-26 14:28 UTC)
+
+Read over HTTP (`python tools/soak_check.py http://<station> --expect 1.4.0-rc.11`, GETs only) and read-only SSH; nothing on the station changed. Preconditions: version file 1.4.0-rc.11; `gps-time-pi` active since 2026-10-19 21:20:16 UTC with `NRestarts=0`; the Pi up since 2026-10-04 (no reboot). The criteria were fixed before the run (change log, #95). Result: **CLEAN** (exit 0), so v1.4.0 was tagged on the rc.11 commit `cbd891c`.
+
+| Criterion | The tool's line |
+|---|---|
+| version | 1.4.0-rc.11 (expected 1.4.0-rc.11) |
+| runtime | 580062 PPS reads = 6.71 days since the service started (need 3) |
+| timing | status GPS_PPS; stratum 1; reference 47505300 (GPS) |
+| outages | open: False; since the service started: 0 (+1 installer restart); evidence files: 5 |
+| pulses | missed 2, unread 0 (3.45e-06 of reads); late reads 0; longest gap 1.07 s |
+| rtt | idle median 19.4 ms, max 40.0 ms; under /api/almanac load median 30.8 ms, max 58.9 ms |
+| stability | ADEV 1 s 1.53e-06, 10 s 1.80e-07, 100 s 2.03e-08, 1000 s 2.12e-09, 1 day 2.08e-11; seconds series 14398 samples, 2 gaps, PPS selected 1.0 |
+
+- **The one event:** 2026-10-19 21:20:18 to 21:20:50 UTC, 32 s, PPS NOT USED BY CHRONY (`inferred`, boundary: chrony source selection), pulses healthy throughout, GNSS healthy, a network source selected meanwhile; chrony's largest remaining correction 38 ns. This is the installer's chrony restart, as on rc.10. Of the five evidence files, one is this event's; the other four are rc.10's four events on 2026-10-19 (18:10 to 20:01 UTC), before this service start.
+- **PPS at the check** (`/api/timing-chain`): state SELECTED, pulse health HEALTHY, 580,079 polls with 0 late (largest gap 1.07 s), 0 sequence resets, 3,356 consecutive pulses. Interval over the last 600 pulses 1.000 000 s ± 1.3 µs (kernel timestamps, CLOCK_REALTIME).
+- **GNSS at the check:** 3D fix, 9 of 23 satellites used, best C/N₀ 25 dB-Hz, median of those used 18 dB-Hz, TDOP 2.82 (`observed`). The signal is as weak as at the rc.10 check; this time it held for the whole run.
+- **chrony** (`chronyc -n tracking`): reference GPS, stratum 1, system time 262 ns slow of NTP time, last offset −198 ns, RMS offset 202 ns, frequency 10.509 ppm fast, residual 0.000 ppm, skew 0.009 ppm, root dispersion 9.5 µs, update interval 16 s, leap status normal.
+- **Stability** (`/api/stability`, history since the service start, no resets): ADEV 1.53 × 10⁻⁶ at 1 s (68 % interval 1.52–1.54 × 10⁻⁶, flicker PM), 1.80 × 10⁻⁷ at 10 s, 2.03 × 10⁻⁸ at 100 s, 2.12 × 10⁻⁹ at 1000 s, 2.08 × 10⁻¹¹ at 1 day. The 1000 s and 1-day intervals rest on an assumed noise type. Minute series: 9,667 samples over 6.7 days, 0 gaps, PPS selected 99.99 % (the start-up event). Close to rc.8's two-week values (1.70 × 10⁻⁶ at 1 s, 2.46 × 10⁻¹¹ at 1 day), which included outages.
+- **Also:** independent references AGREE, 10 of 10 within 50 ms (`calculated`); no warnings from `gps-time-pi` or `gps-time-pi-chrony-clients` in the journal since the service start; `vcgencmd get_throttled` 0x0.
+- What this shows: on this unit, with this antenna and site, rc.11 ran a week without losing PPS. It doesn't show that the outages seen on rc.8 and rc.10 won't come back; the station keeps counting them.
 
 ## Build archives
 

@@ -101,6 +101,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
+- `releases/v1.4.0.md` — first stable release of the 1.4 line, on the rc.11 commit: the clean soak result, what 1.4 contains relative to v1.3.0, known open issues
 - `releases/v1.4.0-rc.11.md` — chrony history semantics fixed (GPS-003/007), the legacy pages' features in `/app/`, TypeScript 7; the soak candidate, and the commit v1.4.0 is to be tagged on (pre-release)
 - `releases/v1.4.0-rc.10.md` — sunset as prominent as sunrise, screenshot mode, outside-reader docs (roadmap page, public release checklist); web UI only over rc.9 (pre-release)
 - `releases/v1.4.0-rc.9.md` — fixes from the rc.8 soak run (log flush with caps, outage evidence on SD, PPS poller thread, browser round trip), oscillator log, Earth shadow and satellites (pre-release)

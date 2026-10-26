@@ -4,7 +4,7 @@ GPS Time turns a Raspberry Pi and a GNSS receiver into a Stratum-1 time server t
 
 This page lists every specification and roadmap in the repository, by phase. Counts are rows in [`STATUS.md`](STATUS.md) on 2026-10-19; `STATUS.md` is the authoritative, per-item list and is updated in every pull request.
 
-**Where it stands:** the latest pre-release is v1.4.0-rc.11. The stable v1.4.0 waits for a soak run on the Pi and for the remaining release blockers below.
+**Where it stands:** v1.4.0, the first stable release, was tagged on 2026-10-26 on the rc.11 commit after a clean 6-day soak run on the Pi (`releases/v1.4.0.md`). Work on `main` after it is for the next release.
 
 ## Status words
 
@@ -26,7 +26,7 @@ The timing chain from satellite to NTP client, with every stage observed or mark
 | [`specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md`](specs/PPS-OBSERVABILITY-AND-GNSS-INTEGRITY.md) | Pipeline stages, PPS-loss graphs, holdover, GNSS integrity | In progress (34 done, 3 scheduled, 10 planned) |
 | [`review/GPS-Time-Independent-Review-2026-09-27.md`](review/GPS-Time-Independent-Review-2026-09-27.md) | Independent review of the code: 32 findings | In progress (14 closed, 2 scheduled, 16 open) |
 
-Release blocker still open: the second soak run on the Pi. chrony history semantics and the honest error bound (review GPS-003, GPS-007) were fixed in #93.
+No release blocker left: the rc.11 soak run was clean (2026-10-26) and v1.4.0 is tagged. chrony history semantics and the honest error bound (review GPS-003, GPS-007) were fixed in #93.
 
 ## Phase 2 — Measurement station
 
