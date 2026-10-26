@@ -1,6 +1,9 @@
 // Pure helpers for Timing → Oscillator (/api/oscillator). Tested in oscillator.test.ts.
 
-import type { OscillatorBin, OscillatorFit, OscillatorProfile } from '../api/types';
+import type {
+  HoldoverProjection, OscillatorBin, OscillatorFit, OscillatorHoldover, OscillatorProfile, OscillatorProfileExport,
+  ProfileBinding, ProfileImportResult,
+} from '../api/types';
 import { fmtSci } from './units';
 
 export interface OscPoint { ts: number; temp: number | null; freq: number | null; pps: boolean }
@@ -83,3 +86,92 @@ export const MODEL_LABEL: Record<string, string> = {
   linear: 'linear in temperature', quadratic: 'quadratic in temperature',
   'linear+aging': 'linear in temperature, plus aging', 'quadratic+aging': 'quadratic in temperature, plus aging',
 };
+
+// ─── Holdover projections (/api/oscillator → holdover; modeled, GPS-008) ─────
+
+export const HOLDOVER_LABEL: Record<HoldoverProjection['name'], string> = {
+  free_running: 'Free-running (untrained)',
+  trained_skew: 'Trained (skew only)',
+  profile: 'Profile (temperature, aging)',
+};
+
+/** Seconds for |error| = rate·τ + aging·τ²/2 to reach each threshold (mirrors oscprofile.holdover). */
+export function holdoverTimes(thresholdsS: number[], ratePpm: number, agingPpmPerDay = 0): (number | null)[] {
+  const r = Math.abs(ratePpm) * 1e-6, a = Math.abs(agingPpmPerDay) * 1e-6 / 86400;
+  return thresholdsS.map(e => a > 0 ? (-r + Math.sqrt(r * r + 2 * a * e)) / a : r > 0 ? e / r : null);
+}
+
+const sig2 = (v: number) => v >= 10 ? v.toFixed(0) : v.toFixed(1);
+
+/** A holdover duration: "0.47 s", "56 s", "25 min", "15 h", "5.4 d", "3.2 yr"; null → "not reached". */
+export function fmtHoldTime(s: number | null | undefined): string {
+  if (s === null || s === undefined || !Number.isFinite(s)) return 'not reached';
+  if (s < 1) return `${s.toPrecision(2)} s`;
+  if (s < 120) return `${sig2(s)} s`;
+  if (s < 7200) return `${sig2(s / 60)} min`;
+  if (s < 2 * 86400) return `${sig2(s / 3600)} h`;
+  if (s < 2 * 365.25 * 86400) return `${sig2(s / 86400)} d`;
+  return `${sig2(s / (365.25 * 86400))} yr`;
+}
+
+/** "±1 µs" … "±1 s" for a threshold in seconds. */
+export function fmtThreshold(s: number): string {
+  const units: [number, string][] = [[1, 's'], [1e-3, 'ms'], [1e-6, 'µs'], [1e-9, 'ns']];
+  const [div, u] = units.find(([d]) => s >= d * 0.999) ?? units[units.length - 1];
+  return `±${+(s / div).toPrecision(3)} ${u}`;
+}
+
+export interface HoldoverRow { threshold: string; cells: { name: HoldoverProjection['name']; text: string }[] }
+
+/** One row per threshold, one cell per projection; an unavailable projection shows "—". */
+export function holdoverRows(h: OscillatorHoldover | undefined): HoldoverRow[] {
+  if (!h) return [];
+  return h.thresholds_s.map((t, i) => ({
+    threshold: fmtThreshold(t),
+    cells: h.projections.map(p => ({ name: p.name, text: p.available ? fmtHoldTime(p.times_s[i]) : '—' })),
+  }));
+}
+
+// ─── Profile export / import (board binding by serial hash) ──────────────────
+
+export const BINDING_LABEL: Record<ProfileBinding, string> = {
+  match: 'same board: in use',
+  mismatch: 'another board: reference only',
+  unverifiable: "board can't be confirmed: reference only",
+};
+
+/** The download name for an export file. */
+export function exportFilename(doc: { exported_utc?: string | null }): string {
+  const day = (doc.exported_utc ?? '').slice(0, 10);
+  return `oscillator-profile${day ? '-' + day : ''}.json`;
+}
+
+/** The line shown after an import. */
+export function importOutcome(r: ProfileImportResult): { ok: boolean; text: string } {
+  if (!r.ok) return { ok: false, text: `Not imported: ${r.error}.` };
+  return { ok: true, text: `Imported (${r.bins.toLocaleString()} bins), ${r.detail}.` };
+}
+
+const HASH = /^[0-9a-f]{16}$/;
+
+/** The station's binding rule (oscillator.Log.binding), for the demo adapter. */
+export function bindingFor(fileHash: unknown, stationHash: string | null): ProfileBinding {
+  if (typeof fileHash !== 'string' || !HASH.test(fileHash) || !stationHash || !HASH.test(stationHash)) return 'unverifiable';
+  return fileHash === stationHash ? 'match' : 'mismatch';
+}
+
+/** What the demo adapter answers to an import: the station's checks, nothing saved. */
+export function demoImport(doc: unknown, stationHash: string | null): ProfileImportResult {
+  const d = doc as Partial<OscillatorProfileExport> | null;
+  if (!d || typeof d !== 'object' || d.format !== 'gps-time-oscillator-profile/1')
+    return { ok: false, error: 'not an oscillator profile file (expected format gps-time-oscillator-profile/1)' };
+  const rows = d.fit_bins?.rows;
+  if (!Array.isArray(rows) || rows.some(r => !Array.isArray(r) || r.length !== 3 || r.some(v => typeof v !== 'number' || !Number.isFinite(v))))
+    return { ok: false, error: 'each bin must be [epoch seconds, °C, ppm]' };
+  const binding = bindingFor(d.board?.serial_sha256, stationHash);
+  const used = binding === 'match';
+  const what = used ? `same board: ${rows.length} bins merged into this board's profile`
+    : binding === 'mismatch' ? "a different board: kept for reference only; this board's profile carries on from its own log"
+    : "the board can't be confirmed (no serial hash on the file or the station): kept for reference only";
+  return { ok: true, binding, bins: rows.length, used, simulated: true, detail: `demo mode, nothing was saved. On a station: ${what}` };
+}

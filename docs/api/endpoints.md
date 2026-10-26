@@ -229,6 +229,42 @@ SoC temperature logged with chrony's frequency estimate, in 10-minute bins. Type
 ```
 
   `status: "insufficient"` with a `reason` until there are 72 PPS bins (12 h) and 3 °C of range; `terms` is then empty.
+- `holdover` (modeled; GPS-008): the time to each error threshold if GPS and PPS went away now, three ways (`architecture/oscillator-log.md` → "Holdover projection"). `times_s` has one entry per `thresholds_s`; `null` means never reached under that model. An unavailable projection has `available: false` and a `reason`.
+
+```json
+{"provenance": "modeled", "thresholds_s": [1e-06, 1e-05, 0.0001, 0.001, 0.01, 0.1, 1.0], "sample_utc": "2026-10-26T18:20:00+00:00",
+ "projections": [
+   {"name": "free_running", "provenance": "modeled", "available": true, "rate_ppm": 10.9, "aging_ppm_per_day": 0.0, "times_s": [0.092, "..."], "basis": "..."},
+   {"name": "trained_skew", "provenance": "modeled", "available": true, "rate_ppm": 0.008, "aging_ppm_per_day": 0.0, "times_s": [125.0, "..."], "basis": "..."},
+   {"name": "profile", "provenance": "modeled", "available": true, "rate_ppm": 3.57, "aging_ppm_per_day": 0.0, "times_s": [0.28, "..."],
+    "components_ppm": {"skew": 0.008, "residual_rms": 0.00085, "temperature": 3.56}, "temp_now_c": 44.4, "temp_assumed_c": [43.7, 56.2],
+    "temp_source": "the last 24 h's temperature range", "extrapolated": false, "caveat": null, "basis": "..."}],
+ "note": "... not measurements and not guarantees ..."}
+```
+
+- `profile_files`: `imported` (this board's file, in use) and `reference` (another board's, or one whose board can't be confirmed: reference only, with `warning` and its refitted `profile`), each `null` when absent. Each has `binding` (`match`, `mismatch` or `unverifiable`), `file`, `bins`, `exported_utc`, `board`, `receiver` and `software_version`.
+
+## GET /api/oscillator/profile
+
+The oscillator profile export, as a download (`Content-Disposition: attachment`). Read only; no token. Type: `OscillatorProfileExport`. No position and no raw serial.
+
+```json
+{"format": "gps-time-oscillator-profile/1", "exported_utc": "2026-10-26T18:20:00+00:00",
+ "board": {"serial_sha256": "a1b2c3d4e5f60718", "model": "Raspberry Pi 4 Model B Rev 1.2"},
+ "receiver": {"driver": "u-blox", "firmware": "..."}, "software_version": "1.5.0",
+ "profile": {"status": "fitted", "...": "as in /api/oscillator"},
+ "fit_bins": {"columns": ["bin_start_utc_epoch", "temp_mean_c", "freq_mean_ppm"], "rows": [[1792454400, 52.31, 10.3412]], "note": "..."},
+ "note": "..."}
+```
+
+## POST /api/oscillator/profile
+
+Import an export file (the body is the file). It needs the admin token, like every POST, and accepts up to 2 MB. Answers:
+
+- `{"ok": true, "binding": "match", "bins": 1840, "used": true, "detail": "same board: 1840 bins merged into this board's profile"}`
+- `{"ok": true, "binding": "mismatch", "bins": 1840, "used": false, "detail": "a different board: kept for reference only; ..."}`. `unverifiable` is treated the same way.
+- `400` with `{"ok": false, "error": "..."}` for a file that isn't an export or has a bad row.
+- In demo mode: `"simulated": true`, and nothing is saved.
 
 ## GET /api/ntp-service
 

@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis,
 } from 'recharts';
 import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5, LoadingNote, EmptyNote } from './ui';
 import { ApiErrorNote } from './planned';
 import { useStation, usePoll, isPending } from '../api/station';
-import { fitLine, fmtBytes, fmtSlope, fmtTerm, MODEL_LABEL, oscPoints, profileCurve, scatterPoints, spanDays } from '../lib/oscillator';
+import {
+  BINDING_LABEL, exportFilename, fitLine, fmtBytes, fmtSlope, fmtTerm, HOLDOVER_LABEL, holdoverRows, importOutcome, MODEL_LABEL,
+  oscPoints, profileCurve, scatterPoints, spanDays,
+} from '../lib/oscillator';
+import type { Oscillator, ProfileImportResult } from '../api/types';
+import { ApiError } from '../api/client';
 import { fmtSci } from '../lib/units';
 import { fmtUtc } from '../lib/format';
 
@@ -110,6 +115,10 @@ export function OscillatorPanel() {
         </CardBody>
       </Card>
 
+      <HoldoverCard d={d} pending={isPending(osc)} />
+
+      <ProfileFileCard d={d} pending={isPending(osc)} onImported={osc.refresh} />
+
       <Card pending={isPending(osc)}>
         <CardHeader title="Temperature and Frequency over Time" badge={<ProvenanceTag type="observed" />} />
         <CardBody>
@@ -151,5 +160,134 @@ export function OscillatorPanel() {
         </CardBody>
       </Card>
     </div>
+  );
+}
+
+// ─── Holdover projections (GPS-008; modeled) ─────────────────────────────────
+const HOLD_COLOR: Record<string, string> = { free_running: 'var(--warn-text)', trained_skew: 'var(--calc-text)', profile: 'var(--mod-text)' };
+
+export function HoldoverCard({ d, pending }: { d: Oscillator | null | undefined; pending: boolean }) {
+  const h = d?.holdover;
+  const rows = holdoverRows(h);
+  const prof = h?.projections.find(p => p.name === 'profile');
+  return (
+    <Card pending={pending}>
+      <CardHeader title="Holdover Projection" badge={<ProvenanceTag type="modeled" />} />
+      <CardBody>
+        {!h ? (pending ? <LoadingNote what="the holdover projection" /> : <EmptyNote>Not available: the station did not answer (see the error above).</EmptyNote>)
+          : <>
+              <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+                Time until the clock would be off by each amount if GPS and PPS went away now{h.sample_utc ? <> (from the sample at {fmtUtc(h.sample_utc)})</> : null}.
+              </div>
+              <div className="table-scroll"><table className="w-full text-[11px]">
+                <thead>
+                  <tr style={{ borderBottom:'1px solid var(--border)' }}>
+                    <th className="text-left py-1.5 font-normal" style={{ color:'var(--t3)' }}>Error</th>
+                    {h.projections.map(p => <th key={p.name} className="text-right py-1.5 font-normal pl-3" style={{ color:'var(--t3)' }}>{HOLDOVER_LABEL[p.name]}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.threshold} style={{ borderBottom:'1px solid var(--border-dim)' }}>
+                      <td className="py-1.5 mono" style={{ color:'var(--t2)' }}>{r.threshold}</td>
+                      {r.cells.map(c => <td key={c.name} className="py-1.5 pl-3 mono text-right tabular-nums" style={{ color: c.text === '—' ? 'var(--t3)' : HOLD_COLOR[c.name] }}>{c.text}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+              <div className="mt-3 space-y-1">
+                {h.projections.map(p => (
+                  <div key={p.name} className="text-[10px]" style={{ color:'var(--t3)' }}>
+                    <span style={{ color: HOLD_COLOR[p.name] }}>{HOLDOVER_LABEL[p.name]}</span>
+                    {p.available
+                      ? <>: {p.basis}{p.rate_ppm != null && <>. Rate {fmtSci(p.rate_ppm * 1e-6, 2)} ({p.rate_ppm.toFixed(4)} ppm)</>}{p.aging_ppm_per_day ? <>, aging {fmtSci(Math.abs(p.aging_ppm_per_day) * 1e-6, 2)} per day</> : null}.</>
+                      : <>: not available, {p.reason}.</>}
+                  </div>
+                ))}
+                {prof?.available && prof.temp_assumed_c && <div className="text-[10px]" style={{ color:'var(--t3)' }}>Temperatures assumed for the profile: {prof.temp_assumed_c[0].toFixed(1)}–{prof.temp_assumed_c[1].toFixed(1)} °C ({prof.temp_source}), as if the worst of them were reached at once.</div>}
+                {prof?.caveat && <div className="text-[10px]" style={{ color:'var(--warn-text)' }}>Profile: {prof.caveat}.</div>}
+              </div>
+              <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{h.note}</div>
+            </>}
+        <ELI5 text="If GPS disappeared, the clock would slowly drift. The first column is a clock nobody has trained. The second trusts chrony's learned rate. The third also allows for the temperature changing, using what this board has learned. They are estimates, not promises." />
+      </CardBody>
+    </Card>
+  );
+}
+
+/** Timing → Overview: the same projection, polled on its own. */
+export function HoldoverPanel() {
+  const { api } = useStation();
+  const osc = usePoll(() => api.oscillator(), 120_000, [api]);
+  return <div className="space-y-4"><ApiErrorNote error={osc.error} /><HoldoverCard d={osc.data} pending={isPending(osc)} /></div>;
+}
+
+// ─── Profile file: export, import, board binding ─────────────────────────────
+function ProfileFileCard({ d, pending, onImported }: { d: Oscillator | null | undefined; pending: boolean; onImported: () => void }) {
+  const { api } = useStation();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const files = d?.profile_files;
+  const btn = { border:'1px solid var(--border)', color:'var(--t2)' };
+
+  const doExport = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const doc = await api.oscillatorExport();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(doc)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = exportFilename(doc); a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMsg({ ok: true, text: `Exported ${doc.fit_bins.rows.length.toLocaleString()} bins as ${exportFilename(doc)}.` });
+    } catch (e) {
+      setMsg({ ok: false, text: `Not exported: ${(e as Error).message}.` });
+    } finally { setBusy(false); }
+  };
+  const doImport = async (file: File) => {
+    setBusy(true); setMsg(null);
+    try {
+      let doc: unknown;
+      try { doc = JSON.parse(await file.text()); }
+      catch { setMsg({ ok: false, text: 'Not imported: the file is not JSON.' }); return; }
+      const r: ProfileImportResult = await api.oscillatorImport(doc);
+      setMsg(importOutcome(r));
+      if (r.ok) onImported();
+    } catch (e) {
+      const auth = e instanceof ApiError && (e.status === 401 || e.status === 403);
+      setMsg({ ok: false, text: `Not imported: ${(e as Error).message}${auth ? ' (enter the admin token under Administration → Admin access)' : ''}.` });
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = '';
+    }
+  };
+
+  return (
+    <Card pending={pending}>
+      <CardHeader title="Profile File" badge={<ProvenanceTag type="modeled" />} />
+      <CardBody>
+        <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+          One JSON file with the profile, the bins it was fitted on, and this board's serial hash, model, receiver and software version. No position.
+          Export it before a reflash and import it afterwards. Only a file from this board (same serial hash) joins the fit; any other is kept for reference only. Importing needs the admin token.
+        </div>
+        <div className="flex flex-wrap gap-1.5 items-center mb-2">
+          <button onClick={doExport} disabled={busy} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Export profile</button>
+          <button onClick={() => input.current?.click()} disabled={busy} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Import profile…</button>
+          <input ref={input} type="file" accept="application/json,.json" className="hidden" aria-label="Profile file to import"
+                 onChange={e => { const f = e.target.files?.[0]; if (f) void doImport(f); }} />
+        </div>
+        {msg && <div className="text-[10px] mb-2" style={{ color: msg.ok ? 'var(--good-text)' : 'var(--warn-text)' }}>{msg.text}</div>}
+        <MetricRow label="This board (hash of the serial number)" value={d ? d.board.serial_sha256 : null} />
+        <MetricRow label="Imported file in use" value={!files ? null : files.imported
+          ? `${files.imported.bins.toLocaleString()} bins, exported ${files.imported.exported_utc ? fmtUtc(files.imported.exported_utc) : 'UNKNOWN'} (${BINDING_LABEL[files.imported.binding]})` : 'none'} />
+        <MetricRow label="Reference file" value={!files ? null : files.reference
+          ? `${files.reference.board.model ?? 'unknown model'}, ${files.reference.bins.toLocaleString()} bins (${BINDING_LABEL[files.reference.binding]})` : 'none'} />
+        {files?.reference && <>
+          <div className="text-[10px] mt-1" style={{ color:'var(--warn-text)' }}>{files.reference.warning}</div>
+          {files.reference.profile.status === 'fitted' && files.reference.profile.model &&
+            <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>Its profile, refitted here for reference: {MODEL_LABEL[files.reference.profile.model]}; {files.reference.profile.terms.map(t => fmtTerm(t)).map(f => `${f.label.toLowerCase()} ${f.text}`).join('; ')}.</div>}
+        </>}
+      </CardBody>
+    </Card>
   );
 }

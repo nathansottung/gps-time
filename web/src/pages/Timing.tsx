@@ -6,7 +6,7 @@ import { Planned, ApiErrorNote } from '../components/planned';
 import { StabilityPanel } from '../components/stability';
 import { TimeScalesPanel } from '../components/timescales';
 import { ReferencesPanel } from '../components/references';
-import { OscillatorPanel } from '../components/oscillator';
+import { HoldoverPanel, OscillatorPanel } from '../components/oscillator';
 import { useStation, usePoll, isPending } from '../api/station';
 import { allEvents } from '../api/view';
 import type { StageStatus } from '../api/types';
@@ -15,31 +15,6 @@ import { fmtOffset, fmtSeconds, lightDistance, fmtDuration, fmtUtc } from '../li
 
 const RANGES = ['1h','24h','7d'];
 const RANGE_S: Record<string, number> = { '1h': 3600, '24h': 86400, '7d': 7 * 86400 };
-
-// ─── Time-to-error thresholds (preview of a planned model) ────────────────────
-const thresholds = [
-  { label:'±1 µs',   tRaw: 0.007,  tTrained: 0.3,   region:'observed'  },
-  { label:'±10 µs',  tRaw: 0.07,   tTrained: 3.1,   region:'observed'  },
-  { label:'±100 µs', tRaw: 0.7,    tTrained: 31,    region:'modeled'   },
-  { label:'±1 ms',   tRaw: 6.9,    tTrained: 308,   region:'modeled'   },
-  { label:'±10 ms',  tRaw: 69,     tTrained: 3080,  region:'extrapolated'},
-  { label:'±100 ms', tRaw: 694,    tTrained: 30800, region:'extrapolated'},
-  { label:'±1 s',    tRaw: 6944,   tTrained: 308000,region:'extrapolated'},
-];
-
-const regionBg: Record<string,string> = {
-  observed:     'var(--obs-bg)',
-  modeled:      'var(--mod-bg)',
-  extrapolated: 'var(--muted-bg)',
-};
-const regionTextVar: Record<string,string> = {
-  observed:     'var(--live)',
-  modeled:      'var(--mod-text)',
-  extrapolated: 'var(--t3)',
-};
-const regionLabel: Record<string,string> = {
-  observed:'OBSERVED',modeled:'MODELED',extrapolated:'EXTRAPOLATED',
-};
 
 // ─── Light distance table ─────────────────────────────────────────────────────
 const lightDistRows: { dt: string; dist: string; note: string; highlight?: boolean }[] = [
@@ -277,9 +252,8 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
           </div>
           </Planned>
 
-          {/* Holdover performance (planned) */}
-          <Planned title="Holdover Performance & Time-to-Error" needs="offset measured at PPS reacquisition, and a validated oscillator model">
-          <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
+          {/* Holdover performance (planned): needs the offset measured at PPS reacquisition */}
+          <Planned title="Holdover Performance" needs="offset measured at PPS reacquisition">
             <Card>
               <CardHeader title="Holdover Performance" badge={<ProvenanceTag type="observed" />} action={<ScaleToggle chart="holdover" />} />
               <CardBody>
@@ -288,38 +262,10 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                 <ELI5 text="After a GPS outage, when PPS returns we can see how far off the clock drifted. Longer outages should mean larger errors — this plot confirms or surprises that expectation." />
               </CardBody>
             </Card>
-            <Card>
-              <CardHeader title="Estimated Time-to-Error Thresholds" badge={<ProvenanceTag type="predicted" />} />
-              <CardBody>
-                <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>How long before the free-running or trained oscillator crosses each error threshold.</div>
-                <div className="overflow-x-auto">
-                  <div className="table-scroll"><table className="w-full text-[11px]">
-                    <thead>
-                      <tr style={{ borderBottom:'1px solid var(--border)' }}>
-                        <th className="text-left py-1.5 font-normal" style={{ color:'var(--t3)' }}>Threshold</th>
-                        <th className="text-right py-1.5 font-normal" style={{ color:'var(--t3)' }}>Raw osc.</th>
-                        <th className="text-right py-1.5 font-normal" style={{ color:'var(--t3)' }}>Trained</th>
-                        <th className="text-right py-1.5 font-normal" style={{ color:'var(--t3)' }}>Region</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {thresholds.map(t => (
-                        <tr key={t.label} style={{ borderBottom:'1px solid var(--border-dim)' }}>
-                          <td className="py-1.5 mono" style={{ color:'var(--t2)' }}>{t.label}</td>
-                          <td className="py-1.5 mono text-right" style={{ color:'var(--warn-text)' }}>{t.tRaw < 1 ? `${(t.tRaw*60).toFixed(0)}m` : t.tRaw < 60 ? `${t.tRaw.toFixed(0)}h` : `${(t.tRaw/24).toFixed(0)}d`}</td>
-                          <td className="py-1.5 mono text-right" style={{ color:'var(--live)' }}>{t.tTrained < 60 ? `${t.tTrained.toFixed(0)}h` : `${(t.tTrained/24).toFixed(0)}d`}</td>
-                          <td className="py-1.5 text-right">
-                            <span className="px-1.5 py-0.5 rounded-[2px] text-[9px] mono uppercase" style={{ color: regionTextVar[t.region], background: regionBg[t.region] }}>{regionLabel[t.region]}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table></div>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
           </Planned>
+
+          {/* Time to each error in holdover (modeled; GPS-008) */}
+          <HoldoverPanel />
         </div>
       )}
 

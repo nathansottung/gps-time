@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, Ping, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -31,6 +31,10 @@ export interface StationApi {
   ntpService(): Promise<NtpService>;
   /** SoC temperature logged with chrony's frequency, 10-minute bins (input for the oscillator profile). */
   oscillator(): Promise<Oscillator>;
+  /** The oscillator profile export file (profile, fit bins, board hash; no position). */
+  oscillatorExport(): Promise<OscillatorProfileExport>;
+  /** Import a profile export; only a file from this board joins the fit. Admin token. */
+  oscillatorImport(doc: unknown): Promise<ProfileImportResult>;
   /** Outage evidence files kept on the SD card (index only). */
   evidence(): Promise<EvidenceIndex>;
   /** Earth-shadow geometry over the station's sky (modeled). az/alt ask about one direction. */
@@ -130,6 +134,15 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     references: (o) => json('/api/references' + query({ scenario: o?.scenario, history: o?.history })),
     ntpService: () => json('/api/ntp-service'),
     oscillator: () => json('/api/oscillator'),
+    oscillatorExport: () => json('/api/oscillator/profile'),
+    oscillatorImport: async (doc) => {
+      // A refused file is a 400 with {ok: false, error}: an answer to show, not a failure.
+      try { return await json<ProfileImportResult>('/api/oscillator/profile', post(doc)); }
+      catch (e) {
+        if (e instanceof ApiError && e.status === 400) return { ok: false as const, error: e.message };
+        throw e;
+      }
+    },
     evidence: () => json('/api/evidence'),
     shadow: (o) => json('/api/shadow' + query({ shell: o?.shell?.toString(), az: o?.az?.toString(), alt: o?.alt?.toString() })),
     satellites: (o) => json('/api/satellites' + query({ sat: o?.sat?.toString(), q: o?.q })),

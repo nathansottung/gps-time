@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-26 (feat/reference-adsb, #134). Next-5 item 6 (oscillator profile): the fit is done; the holdover projection, export/import and board binding remain. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-26 (feat/oscillator-holdover, #135). Next-5 item 6 (oscillator profile) is done: the holdover projection (closing GPS-008), export/import and board binding came in #135, after the fit in #133. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -18,7 +18,7 @@ Re-ordered 2026-10-26 (#124): item 1, the rc.11 soak run, is done (clean; v1.4.0
 3. **PPS history views** (CHG "Historical UI", OBS §6): backend rollups of the event history (uptime, last/longest outage, 24 h/7 d counts, availability %, total unavailable time) and the six-category state timeline.
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
 5. **Module architecture and observation format** (owner, 2026-10-21): `specs/SPEC-EXTENSIBILITY.md`, then the format part of `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (`gpstime:` schema, writer, reader, validator, converters). Module safety and API stability go with the loader. Its order of work, one PR each: interfaces, manifest, schemas, `ctx` and loader with no behaviour change; `tools/new_module.py` and the guide; `source-weather`; `reference-adsb` and `reference-broadcast-towers`; `analysis-tower-delay-check`; moving optional features to modules where it simplifies them. Steps 1-2 (kit, loader, scaffolder, guide) done in #117; the observation format's writer, reader and validator in #118, converters in #122.
-6. **Trained oscillator profile** (owner, 2026-10-21; `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1): fit the oscillator log (frequency vs temperature, aging), a modeled holdover projection beside the simple one (GPS-008), export/import as one JSON file, board binding by serial hash, metadata. With item 1 done, the list has five open items.
+6. *Done in [#133](https://github.com/nathansottung/gps-time/pull/133) (fit) and [#135](https://github.com/nathansottung/gps-time/pull/135) (holdover projection, export/import, board binding, metadata). Not yet run on a Pi.* **Trained oscillator profile** (owner, 2026-10-21; `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1): fit the oscillator log (frequency vs temperature, aging), a modeled holdover projection beside the simple one (GPS-008), export/import as one JSON file, board binding by serial hash, metadata. With item 1 done, the list has five open items.
 
 ## v1.4.0-rc.9: to do
 
@@ -110,9 +110,9 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 | Repo | repository tooling, CI and releases (owner requests) |
 | Hardware | `hardware/` scopes and profiles (owner requests) |
 
-Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
+Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: done, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 539 rows: 306 done, 1 in progress, 40 next, 192 planned.
+**Totals:** 539 rows: 313 done, 1 in progress, 35 next, 190 planned.
 
 ## Status table
 
@@ -258,7 +258,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBS | §5b | Event fields incl. median C/N₀ | planned | partial: median C/N₀ missing | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | OBS | §6a | PPS-loss graph views | next |  |  |
 | OBS | §6b | Graph distinguishes GNSS/PPS/rejected/selected | next |  |  |
-| OBS | §7 | Time-to-1 µs…1 s holdover estimates | planned | partial: legacy raw-ppm projection (GPS-008) |  |
+| OBS | §7 | Time-to-1 µs…1 s holdover estimates | done | modeled: free-running (|Frequency|), trained (Skew) and profile (Skew + residual RMS + temperature over the last 24 h's range + aging) times to ±1 µs…±1 s; `/api/oscillator` → `holdover`; Timing → Overview and Oscillator. Not validated against an outage yet | [#135](https://github.com/nathansottung/gps-time/pull/135) |
 | OBS | §8 | Integrity metric history + baselines | planned |  |  |
 | OBS | §9 | RF interference detection | planned |  |  |
 | OBS | §10 | Spoofing / position anomaly detection | planned |  |  |
@@ -314,7 +314,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | ADD | AC10 | Apparent solar time | planned |  |  |
 | ADD | AC11 | Obstructed sky portions | planned |  |  |
 | ADD | AC12 | Is this satellite loss normal? | planned |  |  |
-| ADD | AC13 | Drift to 1 s without PPS | planned | partial: legacy raw-ppm (GPS-008) |  |
+| ADD | AC13 | Drift to 1 s without PPS | done | the ±1 s column of the holdover projection (three models, labelled modeled) | [#135](https://github.com/nathansottung/gps-time/pull/135) |
 | Feature A |  | GNSS/PPS-disciplined chrony NTP | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Feature A |  | Internet NTP fallback, honest source/stratum | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Feature A |  | NTP client IP activity | done |  | [#10](https://github.com/nathansottung/gps-time/pull/10) |
@@ -442,7 +442,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Review | GPS-005 | NMEA-only labeled GPS/PPS Stratum 1 | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-006 | Sync-state edge cases | done |  | [#4](https://github.com/nathansottung/gps-time/pull/4) |
 | Review | GPS-007 | ± is root dispersion only | done | `max_error_bound_s` = \|sys\| + rootdisp + ½ rootdelay, labeled conditional; System time labeled remaining correction; light distance from the bound; both UIs | [#93](https://github.com/nathansottung/gps-time/pull/93) |
-| Review | GPS-008 | Holdover from raw frequency | next | closed by the oscillator profile's modeled projection (OSC §1 holdover) | [#114](https://github.com/nathansottung/gps-time/pull/114) |
+| Review | GPS-008 | Holdover from raw frequency | done | two labelled projections as the review asked (free-running; trained, skew only), plus the profile's; all modeled; the preview table is gone | [#114](https://github.com/nathansottung/gps-time/pull/114) [#135](https://github.com/nathansottung/gps-time/pull/135) |
 | Review | GPS-009 | Survey SE labeled repeatability | done | `/app/` labels it SE of the mean (#10, #89); the legacy label is removed | [#10](https://github.com/nathansottung/gps-time/pull/10) [#99](https://github.com/nathansottung/gps-time/pull/99) |
 | Review | GPS-010 | Fresh install fails (logsync mode) | done | not Pi-verified | [#1](https://github.com/nathansottung/gps-time/pull/1) |
 | Review | GPS-011 | RAM tracking log unbounded | done | 8 MiB cap with rotation via `chronyc cyclelogs` | [#72](https://github.com/nathansottung/gps-time/pull/72) |
@@ -624,10 +624,10 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Scope | Gap 9 | Legal and safety notes for RF receiving and data sharing | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
 | Repo |  | Full scope review added (`SCOPE-REVIEW.md`); its section 7 gaps added as planned rows | done | owner-provided, copied verbatim | [#113](https://github.com/nathansottung/gps-time/pull/113) |
 | OSC | §1 fit | Oscillator profile: fit frequency vs temperature plus slow aging from the oscillator log; store fit quality and the data span covered | done | `gps_time_pi/oscprofile.py`: linear or quadratic in temperature, optional aging, chosen by BIC; standard errors, residual RMS, R², outliers, range and span; over the whole file (≤ 90 days); `/api/oscillator` → `profile` (modeled); Timing → Oscillator card and curve. Not yet run on a Pi | [#114](https://github.com/nathansottung/gps-time/pull/114) [#133](https://github.com/nathansottung/gps-time/pull/133) |
-| OSC | §1 holdover | Oscillator profile: modeled holdover projection beside the simple one (labeled modeled; never a guarantee); closes GPS-008 | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
-| OSC | §1 export | Oscillator profile: export/import as one JSON file, surviving a reflash | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
-| OSC | §1 board | Oscillator profile: board binding by serial hash on import (match: use; mismatch: warn, keep for reference, start a new profile) | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
-| OSC | §1 meta | Oscillator profile: record board model, receiver profile and software version in the file | next | owner, 2026-10-21 | [#114](https://github.com/nathansottung/gps-time/pull/114) |
+| OSC | §1 holdover | Oscillator profile: modeled holdover projection beside the simple one (labeled modeled; never a guarantee); closes GPS-008 | done | `oscprofile.holdover()`: three projections, all modeled, never a guarantee; extrapolation flagged; `/api/oscillator` → `holdover`; Timing → Overview and Oscillator | [#114](https://github.com/nathansottung/gps-time/pull/114) [#135](https://github.com/nathansottung/gps-time/pull/135) |
+| OSC | §1 export | Oscillator profile: export/import as one JSON file, surviving a reflash | done | GET `/api/oscillator/profile` (download; profile, fit bins, metadata; no position, no raw serial); POST it back with the admin token (2 MB cap on that route); Timing → Oscillator → Profile File | [#114](https://github.com/nathansottung/gps-time/pull/114) [#135](https://github.com/nathansottung/gps-time/pull/135) |
+| OSC | §1 board | Oscillator profile: board binding by serial hash on import (match: use; mismatch: warn, keep for reference, start a new profile) | done | match: bins merged into the fit, file kept next to the log; mismatch or unverifiable: kept for reference only (refitted for display, never used); checked again at every start | [#114](https://github.com/nathansottung/gps-time/pull/114) [#135](https://github.com/nathansottung/gps-time/pull/135) |
+| OSC | §1 meta | Oscillator profile: record board model, receiver profile and software version in the file | done | board serial hash and model, receiver driver and firmware, software version, export time | [#114](https://github.com/nathansottung/gps-time/pull/114) [#135](https://github.com/nathansottung/gps-time/pull/135) |
 | Repo |  | RF reference signals and trust spec imported; oscillator profile moved to next; scope review corrections | done | owner-provided spec, copied verbatim | [#114](https://github.com/nathansottung/gps-time/pull/114) |
 | PPSM | Research 1 | Synthetic detector, sub-sample interpolation and time model (pulses, drops, drift); runs in CI with no hardware | done | module `modules/sdr-pps-marker/`; synthetic results only | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | Research 2 | Bench, one SDR: marker visibility across bands and attenuation, detection rate, sample-rate error over hours and temperature | planned | research; needs the injection build | [#115](https://github.com/nathansottung/gps-time/pull/115) |
