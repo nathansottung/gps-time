@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-26 (feat/chart-scale-toggle, #131). The next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-26 (docs/soak-rule, #132). The next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -112,7 +112,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 537 rows: 303 done, 0 in progress, 41 next, 193 planned.
+**Totals:** 538 rows: 304 done, 1 in progress, 41 next, 192 planned.
 
 ## Status table
 
@@ -646,7 +646,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Bench kit list (`validation/bench-kit.md`) | done | owner, 2026-10-26; examples, no prices | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Second-station guide (`deploy/second-station.md`): setups, build differences, comparing over NTP, second pulses and later the coordinator | done | owner, 2026-10-26; not yet done on hardware | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Tag v1.5.0-rc.1 (pre-release) on the merge commit of the release notes PR, with the deploy command | done | owner, 2026-10-26; `releases/v1.5.0-rc.1.md`; not yet deployed | [#128](https://github.com/nathansottung/gps-time/pull/128) |
-| Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | planned | same criteria as #95 unless the owner changes them | [#128](https://github.com/nathansottung/gps-time/pull/128) |
+| Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | in progress | deployed by the owner; service start 2026-10-26 18:16:55 UTC; the check is scheduled for 2026-10-29 14:30 EDT and tags v1.5.0 on `709145f` only if clean (`releases/README.md`) | [#128](https://github.com/nathansottung/gps-time/pull/128) [#132](https://github.com/nathansottung/gps-time/pull/132) |
+| Repo |  | The soak rule written down: release candidates, the 72 h run and its validity, the check and its criteria, the decision, who does what, the record (`releases/README.md`); a test keeps its criteria table equal to the tool's | done | owner, 2026-10-26 | [#132](https://github.com/nathansottung/gps-time/pull/132) |
 | Web UI |  | Responsive layout: every `/app/` page from 360 to 1920 px and at half-screen widths (drawer navigation below 1024 px, container-query grids, wrapping rows, tables and tabs scroll inside their card), page in the URL hash; Playwright layout audit in CI | done | owner, 2026-10-26; Guidelines → Layout → Narrow screens | [#129](https://github.com/nathansottung/gps-time/pull/129) |
 | Web UI |  | Design pass against Guidelines.md: contrast (WCAG AA), type scale, letter-spacing, tabular figures, focus states, loading/empty/unknown states, colour tokens, radii; checked in CI (`e2e/design.spec.ts`) | done | owner, 2026-10-26; 16 deviations listed in `dashboard/design-review-2026-10-26.md`; text tokens lightened | [#130](https://github.com/nathansottung/gps-time/pull/130) |
 | Web UI |  | Linear/log toggle on every time-offset and stability chart (Overview Δt, offset history, holdover, reference offset and delay, ADEV/MDEV/TDEV), remembered per chart in the browser; time ticks in ns/µs/ms/s | done | owner, 2026-10-26; symmetric log for signed offsets; τ stays logarithmic | [#131](https://github.com/nathansottung/gps-time/pull/131) |
