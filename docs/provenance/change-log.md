@@ -1370,7 +1370,7 @@ Owner's request: miniSEED and WAV converters.
 - **Tests:** `tests/test_convert.py`: BTIME of a known time and the carry into the next second; WAV round trip with exact times, IQ stereo, cu8; refusing an invalid source; miniSEED records, times, samples, gap, blockette 100, the note; INT32; refusals; rate factors; CLI.
 - **STATUS.md:** OBSF order 1b (converters) done.
 
-## 2026-10-26 — soak run of v1.4.0-rc.11 clean; v1.4.0 (#PR)
+## 2026-10-26 — soak run of v1.4.0-rc.11 clean; v1.4.0 (#124)
 
 Scheduled read-only check, authorized by the owner on 2026-10-19 (tag only if clean).
 
