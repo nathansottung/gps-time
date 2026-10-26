@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-26 (feat/experimental-modules-toggle, #125). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-26 (feat/second-pulse-validation, #126). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -112,7 +112,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 527 rows: 294 done, 0 in progress, 41 next, 192 planned.
+**Totals:** 528 rows: 295 done, 0 in progress, 41 next, 192 planned.
 
 ## Status table
 
@@ -611,7 +611,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | OBSF | Order 5 | Trusted groups and third parties (Stages B and C) | planned | tasking part | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | Repo |  | Observation format and tasking spec imported; module architecture spec updated (safety, API stability, receiver modules, data licence, governance) | done | owner-provided, copied verbatim | [#111](https://github.com/nathansottung/gps-time/pull/111) |
 | Repo |  | README "Where this is going" replaced by the owner's update (aircraft as moving references; build on it as modules) | done | the module-guide link points to the spec until `docs/modules/README.md` exists | [#112](https://github.com/nathansottung/gps-time/pull/112) |
-| Scope | Gap 1 | Accuracy validation plan against UTC (two independent receivers with a scope or time-interval counter, a GPSDO, or a dual-band second station with known cable delays) | planned | needed before any claim about accuracy to UTC | [#113](https://github.com/nathansottung/gps-time/pull/113) |
+| Scope | Gap 1 | Accuracy validation plan against UTC (two independent receivers with a scope or time-interval counter, a GPSDO, or a dual-band second station with known cable delays) | planned | needed before any claim about accuracy to UTC. partial: the system clock against the receiver's PPS on a wire (#126); PPS against UTC still needs a second reference | [#113](https://github.com/nathansottung/gps-time/pull/113) [#126](https://github.com/nathansottung/gps-time/pull/126) |
+| Scope | Gap 1a | Second pulse: a GPIO edge at each system-clock second, and a tool comparing it with PPS from a scope or counter CSV | done | owner, 2026-10-26; `gps_time_pi/secpulse.py` (GPIO uAPI v2, refuses the PPS line, RAM only unless `--log`), `tools/pps_compare.py` (bound without a pulse log, modeled offset with one), guide `validation/second-pulse.md`. Not yet run on the station | [#126](https://github.com/nathansottung/gps-time/pull/126) |
 | Scope | Gap 2 | Antenna and cable delay calibration for dual-band hardware | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
 | Scope | Gap 3 | CPU clock experiment: fixed 600 vs 1500 MHz, with Stability page numbers | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |
 | Scope | Gap 4 | Stability history persistence across restarts (minute summaries on SD) | planned |  | [#113](https://github.com/nathansottung/gps-time/pull/113) |

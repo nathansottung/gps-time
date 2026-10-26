@@ -85,6 +85,9 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `public-release-checklist.md` — RUN 2026-10-21: what was checked before the repository goes public (history scan, release blockers, licensing, outside-reader docs, GitHub settings), the result of each, and the owner's remaining steps
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
+## Validation
+- `validation/second-pulse.md` — the system clock on a GPIO pin at each second, compared with the receiver's PPS on a scope or counter (`gps_time_pi/secpulse.py`, `tools/pps_compare.py`): wiring, run, compare, what it can't show
+
 ## Hardware
 - `hardware/README.md`
 - `hardware/zed-f9-dual-band.md` — PLAN, next: a dual-band u-blox receiver profile (ZED-F9T timing or ZED-F9P positioning): what it improves on a Pi and what it can't, wiring, PPS, receiver configuration, gpsd/chrony, raw data for PPP, the changes in order

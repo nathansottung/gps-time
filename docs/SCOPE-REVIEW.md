@@ -87,7 +87,7 @@ A check of everything discussed against what is built, specced, or still missing
 
 ## 7. Gaps to add
 
-1. **Accuracy validation plan.** Today's figures show agreement with the station's own PPS, not with UTC. Options: compare PPS from two independent receivers with a scope or time-interval counter; compare against a GPSDO; or later, a second station on dual-band hardware with known cable delays. Needed before any claim about accuracy to UTC.
+1. **Accuracy validation plan.** Today's figures show agreement with the station's own PPS, not with UTC. Options: compare PPS from two independent receivers with a scope or time-interval counter; compare against a GPSDO; or later, a second station on dual-band hardware with known cable delays. Needed before any claim about accuracy to UTC. First step done in #126: the system clock against the receiver's PPS on a wire (`validation/second-pulse.md`); PPS against UTC still needs a second reference.
 2. **Antenna and cable delay calibration** for dual-band hardware.
 3. **CPU clock experiment** (600 vs 1500 MHz fixed) with Stability page numbers.
 4. **Stability history persistence** across restarts.

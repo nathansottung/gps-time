@@ -1392,3 +1392,26 @@ Owner's request: an experimental modules toggle on Administration, needing the a
 - **`python -m gps_time_pi.modkit list`** prints the switch.
 - **Tests:** `tests/test_modules_toggle.py` (gate, rules, refusals, listing without importing code, supervisor state freshness, HTTP with and without the token, demo mode, supervisor reload helpers); `web/src/lib/modules.test.ts`.
 - **STATUS.md:** a done EXT "Admin" row. The totals line is recounted from the table (it was one row behind since #124).
+
+## 2026-10-26 — second pulse and the PPS comparison tool (#126)
+
+Owner's request: validation, with a GPIO pulse at each system-clock second and a tool comparing it with PPS from a scope or counter CSV. The first step of the accuracy validation (SCOPE-REVIEW §7 item 1).
+
+- **`gps_time_pi/secpulse.py`** (`python -m gps_time_pi.secpulse --line N`):
+  - drives a rising edge at each whole second of CLOCK_REALTIME, 100 ms wide, through the GPIO character device (uAPI v2, ctypes structures checked against `linux/gpio.h`: request 592 bytes, ioctls `0xC250B407` and `0xC010B40F`);
+  - sleeps with `clock_nanosleep(TIMER_ABSTIME)` to 500 µs before the second, then spins on the clock;
+  - logs per pulse the clock just before and after the write, relative to the boundary;
+  - skips a second whose wake-up came more than 0.2 s late, rather than putting a pulse in the wrong place;
+  - refuses the PPS input line named by the `pps-gpio` overlay in `config.txt`;
+  - doesn't touch chrony, gpsd or PPS settings, and keeps a RAM ring with a summary line per minute; the per-pulse CSV only with `--log` (the guide puts it on `/dev/shm`);
+  - `--rt` for SCHED_FIFO.
+- **`tools/pps_compare.py`:**
+  - reads counter and scope exports (delimiter, header lines, units in the header or on each value), the sign convention and cable/probe delays;
+  - drops pairing errors (|x| > 0.5 s) and counts them; flags outliers (10 MADs, at least 1 µs) and leaves them out unless asked;
+  - reports mean, SD, median, percentiles, range, drift, and ADEV/TDEV of x (reusing `stability.py`'s estimators);
+  - says what x means for the system clock, using x = L − e: without the pulse log only a bound (calculated); with it an offset taking the edge at the middle of the write window (modeled, with the window as uncertainty);
+  - never says anything about PPS against UTC, and never names a cause.
+- **Guide:** `docs/validation/second-pulse.md` (what is measured, wiring, run, compare, what it can't show).
+- **Not run on hardware yet.** No deploy. The tests use a manual clock, a fake line and synthetic fixtures (`tests/fixtures/validation/`, marked synthetic).
+- **Tests:** `tests/test_secpulse.py`.
+- **STATUS.md:** a done "Gap 1a" row; Gap 1 stays planned, with a partial note.
