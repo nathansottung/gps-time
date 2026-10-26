@@ -1546,3 +1546,25 @@ Owner's request: the oscillator profile fit (`roadmap/ROADMAP-OSCILLATOR-AND-MIS
 - **UI (Timing → Oscillator):** an "Oscillator Profile (fit)" card shows the model, each term as Δf/f ×10⁻ⁿ ± SE with ppm in brackets, and the fit quality, coverage and BIC comparison. The profile's curve is drawn on the scatter (only over the covered temperatures), and the straight line is now dashed in the `calculated` colour. The demo adapter carries a matching profile.
 - **Not in this PR:** the holdover projection (GPS-008), export/import, board binding on import, the file's metadata (STATUS OSC rows, still next).
 - **Tests:** `tests/test_oscprofile.py` (10: recovers known coefficients from synthetic seeded series, picks terms only when the data support them, outliers, insufficiency, prediction inside and outside, the log fitting the whole file past the RAM window, the demo payload); `web/src/lib/oscillator.test.ts` (+3).
+
+## 2026-10-26 — reference-adsb module: 1090 and 978 MHz, with fixtures (#134)
+
+Owner's request: the reference-adsb module (1090 and 978) with fixtures. SPEC-EXTENSIBILITY's first example reference module (order of work 4, first half).
+
+- **`modules/reference-adsb/`** (experimental), both `reference` (`AdsbReference.list`, `predict`) and `source` (`AdsbSource`, what the supervisor runs; the host only runs source entries).
+- **Input:** the `aircraft.json` that readsb or dump1090-fa (1090 MHz) and skyaware978 (978 MHz) write. Files only: no network permission, no devices.
+- **Only self-reported positions:**
+  - MLAT positions are refused (computed by a network);
+  - so are TIS-B and ADS-R (re-broadcast by a ground station, so the signal isn't from the aircraft) and Mode S without a position.
+- **Other checks:** stale (> 5 s), NACp unknown or < 8, no altitude, out of range (> 450 km or below the horizon), implausible jump (> 700 m/s). Every rejection is counted by reason.
+- **Predicted delay:** slant range (WGS84 ECEF) to the privacy-filtered site, divided by c, labelled `calculated`; positions are `external`. The bound is an approximate 95 %, root-sum-square of:
+  - the NACp position bound;
+  - the altitude bound (GVA; ±300 m barometric);
+  - movement since the fix;
+  - the site's height (±100 m if only MSL is known) and, in rounded mode, its rounding.
+  - The troposphere and decoder latency aren't modelled, and the note says so.
+- **Privacy:** a hidden site means nothing is predicted (counts only); the module never outputs the site.
+- **Emits** every 10 s: a summary (seen per band, accepted, rejected by reason, site available), and up to 10 references per band, best-bounded first. That stays inside the host's output cap.
+- **Fixtures:** `fixtures/aircraft-1090.json` (15 aircraft: 6 good, 9 covering every rejection) and `aircraft-978.json` (4). Synthetic, around the US Naval Observatory example site, marked so. The demo emits the summary and 8 references.
+- **Not yet:** a run against a live decoder, and measured arrival times (an SDR source and an analysis module, SPEC-RF-NODE-AND-TDOA).
+- **Tests:** `modules/reference-adsb/tests/test_reference_adsb.py` (15, run with the station's through `tests/test_modules.py`). They cover parsing, the self-reported rule, the fixture counts, the delay of an aircraft overhead to 0.5 m, how the bound grows with age, barometric altitude and rounding, the hidden site, the horizon and range, jumps, the source cycle and demo, and no invented aircraft without a file.

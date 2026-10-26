@@ -1,0 +1,52 @@
+# Module manifest (format: docs/modules/README.md; schema: schemas/manifest.v1.json).
+# Off by default: Administration → Experimental modules, then turn this module on.
+# Demo: python -m gps_time_pi.modkit demo reference-adsb
+
+name = "reference-adsb"
+version = "0.1.0"
+types = ["reference", "source"]
+maturity = "experimental"
+summary = "Aircraft on 1090 MHz (ADS-B 1090ES) and 978 MHz (UAT) as self-reported references: positions from a local decoder, predicted delays to the station with a bound"
+spec = "docs/specs/SPEC-EXTENSIBILITY.md"
+interface = "1.0"
+
+[entry]
+reference = "reference_adsb.reference:AdsbReference"
+source = "reference_adsb.source:AdsbSource"
+
+[hardware]
+required = "a local ADS-B decoder writing aircraft.json: readsb or dump1090-fa for 1090 MHz, dump978-fa with skyaware978 for 978 MHz (each with its own SDR)"
+planned = "none"
+
+[timing]
+needed = "ms"
+if_worse = "the predicted delays don't depend on the station's timing; when it is UNKNOWN the observations say so in their timing snapshot"
+
+[limits]
+memory_mib = 128
+cpu_percent = 10
+
+[permissions]
+network = false
+devices = []
+storage = "none"
+
+[config]
+aircraft_json_1090 = { type = "path", default = "/run/readsb/aircraft.json", description = "readsb or dump1090-fa output (empty: no 1090 MHz feed)" }
+aircraft_json_978 = { type = "path", default = "/run/skyaware978/aircraft.json", description = "skyaware978 output (empty: no 978 MHz feed)" }
+interval_s = { type = "float", unit = "s", default = 10.0, description = "how often the files are read" }
+max_age_s = { type = "float", unit = "s", default = 5.0, description = "older positions are rejected as stale" }
+min_nac_p = { type = "int", default = 8, description = "minimum NACp (8: 95 % position bound under 92.6 m)" }
+max_range_km = { type = "float", unit = "km", default = 450.0, description = "farther aircraft are rejected" }
+max_speed_mps = { type = "float", unit = "m/s", default = 700.0, description = "a faster jump between positions is rejected" }
+max_per_band = { type = "int", default = 10, description = "aircraft emitted per band per cycle, best-bounded first" }
+
+[emits]
+streams = ["aircraft_seen_1090", "aircraft_seen_978", "references_accepted", "rejected_<reason>", "site_available",
+           "transmitter", "frequency_hz", "lat", "lon", "alt_m", "delay_s", "uncertainty_s", "range_m"]
+events = []
+schema_version = "observation/1"
+
+[licence]
+code = "MIT"
+bundled_data = "none (fixtures are synthetic, generated for this module)"

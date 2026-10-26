@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-26 (feat/oscillator-profile-fit, #133). Next-5 item 6 (oscillator profile): the fit is done; the holdover projection, export/import and board binding remain. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-26 (feat/reference-adsb, #134). Next-5 item 6 (oscillator profile): the fit is done; the holdover projection, export/import and board binding remain. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -112,7 +112,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 538 rows: 305 done, 1 in progress, 40 next, 192 planned.
+**Totals:** 539 rows: 306 done, 1 in progress, 40 next, 192 planned.
 
 ## Status table
 
@@ -388,8 +388,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature E (SDR) |  | RF group-delay profiles | planned |  |  |
 | Feature E (SDR) |  | PPS/sample-marker research | planned |  |  |
 | Feature E (SDR) |  | SDR timing tiers | planned |  |  |
-| Feature F (aviation) |  | readsb/dump1090 receiver | planned |  |  |
-| Feature F (aviation) |  | 978 MHz UAT receiver | planned |  |  |
+| Feature F (aviation) |  | readsb/dump1090 receiver | planned | partial: `reference-adsb` reads its `aircraft.json` (#134); the receiver itself is the owner's install | [#134](https://github.com/nathansottung/gps-time/pull/134) |
+| Feature F (aviation) |  | 978 MHz UAT receiver | planned | partial: `reference-adsb` reads skyaware978's `aircraft.json` (#134) | [#134](https://github.com/nathansottung/gps-time/pull/134) |
 | Feature F (aviation) |  | External feed adapters (optional) | planned |  |  |
 | Feature F (aviation) |  | Radiosonde tracking | planned |  |  |
 | Feature F (aviation) |  | Topocentric alignment engine | planned |  |  |
@@ -594,7 +594,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | EXT | Order 1 | Interfaces, manifest, schemas, `ctx` and the module loader, with no behaviour change to the station | done | `gps_time_pi/modkit/` (interfaces 1.0.0, manifest checks, ctx, loader and host, CLI), `schemas/` (observation, result, manifest v1); the web service doesn't use it yet | [#110](https://github.com/nathansottung/gps-time/pull/110) [#117](https://github.com/nathansottung/gps-time/pull/117) |
 | EXT | Order 2 | `tools/new_module.py` and the `docs/modules/` guide | done | `tools/new_module.py` (source, reference, analysis, ui; generated tests pass as created); guide `docs/modules/` | [#110](https://github.com/nathansottung/gps-time/pull/110) [#117](https://github.com/nathansottung/gps-time/pull/117) |
 | EXT | Order 3 | `source-weather` example module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
-| EXT | Order 4 | `reference-adsb` and `reference-broadcast-towers` modules | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
+| EXT | Order 4 | `reference-adsb` and `reference-broadcast-towers` modules | next | partial: `reference-adsb` done (#134); `reference-broadcast-towers` next | [#110](https://github.com/nathansottung/gps-time/pull/110) [#134](https://github.com/nathansottung/gps-time/pull/134) |
+| EXT | Order 4a | `reference-adsb` module: aircraft on 1090 MHz (ADS-B 1090ES) and 978 MHz (UAT) from a local decoder's `aircraft.json` as self-reported references; MLAT/TIS-B/ADS-R refused; checks counted by reason; predicted delay with a 95 % bound; privacy via `ctx.site()`; synthetic fixtures | done | owner, 2026-10-26; experimental; not yet run against a live decoder; no measured arrival times yet (needs an SDR source) | [#134](https://github.com/nathansottung/gps-time/pull/134) |
 | EXT | Order 5 | `analysis-tower-delay-check` module | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | EXT | Order 6 | Move existing optional features (sky tools, references page) to modules where it simplifies them | next | owner, 2026-10-21 | [#110](https://github.com/nathansottung/gps-time/pull/110) |
 | Repo |  | Extensibility (module architecture) spec imported; README "Where this is going" section | done | owner-provided, copied verbatim | [#110](https://github.com/nathansottung/gps-time/pull/110) |
