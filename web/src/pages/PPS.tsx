@@ -85,7 +85,7 @@ function EventRow({ e }: { e: TimingEvent }) {
         <ProvenanceTag type={e.classification_provenance} />
         <span className="text-[10px]" style={{ color: 'var(--t3)' }}>confidence {e.confidence ?? '—'} · boundary: {e.boundary ?? '—'}</span>
       </div>
-      <div className="grid grid-cols-4 gap-x-4 mt-1 text-[10px]">
+      <div className="grid grid-cols-2 @lg:grid-cols-4 gap-x-4 mt-1 text-[10px]">
         <span style={{ color: 'var(--t3)' }}>Fallback: <span className="mono" style={{ color: 'var(--t2)' }}>
           {(r?.fallback_sources ?? e.evidence.fallback_sources ?? []).join(', ') || 'none'}</span></span>
         <span style={{ color: 'var(--t3)' }}>Max |correction|: <span className="mono" style={{ color: 'var(--t2)' }}>
@@ -196,7 +196,7 @@ export default function PPS() {
       <TimingChainCard />
 
       <Section title="Can the station's timing be diagnosed from here?">
-        <table className="w-full text-[11px]">
+        <div className="table-scroll"><table className="w-full text-[11px]">
           <tbody>
             {answers(c).map(([q, a, v]) => (
               <tr key={q} style={{ borderBottom: '1px solid var(--border-dim)' }}>
@@ -208,7 +208,7 @@ export default function PPS() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Section>
 
       {c.classification && (
@@ -221,7 +221,7 @@ export default function PPS() {
         </Section>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
         <Section title="Device" prov="observed">
           <MetricRow label="Expected device" value={val(p.device)} />
           <MetricRow label="Device present" value={val(p.device_present) === null ? null : val(p.device_present) ? 'yes' : 'no'} provenance="observed" />
@@ -277,7 +277,7 @@ export default function PPS() {
           const cmp = nmeaCompare(cal);
           return (
             <>
-              <div className="grid grid-cols-2 gap-4 mb-2">
+              <div className="grid grid-cols-1 @md:grid-cols-2 gap-4 mb-2">
                 <div className="px-3 py-2 rounded-[2px]" style={{ background: 'var(--bg)', border: '1px solid var(--border-dim)' }}>
                   <div className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--t3)' }}>Configured (chrony.conf)</div>
                   <div className="flex items-baseline gap-2 mt-1">
@@ -326,7 +326,7 @@ export default function PPS() {
       </Section>
 
       <Section title="Timing-chain stages" prov="calculated">
-        <table className="w-full text-[11px]">
+        <div className="table-scroll"><table className="w-full text-[11px]">
           <tbody>
             {c.stages.map(s => (
               <tr key={s.id} style={{ borderBottom: '1px solid var(--border-dim)' }}>
@@ -336,7 +336,7 @@ export default function PPS() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Section>
 
       <Section title="Advanced (read-only raw output)">

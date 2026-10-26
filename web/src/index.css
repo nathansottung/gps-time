@@ -238,3 +238,6 @@ b, strong { font-weight: 600; }
   font-size: 10px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
+
+/* Narrow screens: a table wider than its card scrolls inside the card, never the page. */
+.table-scroll { overflow-x: auto; max-width: 100%; }

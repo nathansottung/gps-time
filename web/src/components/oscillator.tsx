@@ -40,7 +40,7 @@ export function OscillatorPanel() {
   return (
     <div className="space-y-4">
       <ApiErrorNote error={osc.error} />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Frequency vs Temperature" badge={<ProvenanceTag type="observed" />}
             action={<RangeSelector ranges={['PPS only', 'All']} active={sel} onChange={setSel} />} />
@@ -49,7 +49,7 @@ export function OscillatorPanel() {
               ? <ResponsiveContainer width="100%" height={220}>
                   <ScatterChart margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="2 4" stroke={GRID} />
-                    <XAxis dataKey="x" type="number" domain={['auto', 'auto']} name="°C" tick={TICK} tickLine={false}
+                    <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="x" type="number" domain={['auto', 'auto']} name="°C" tick={TICK} tickLine={false}
                            axisLine={{ stroke: 'var(--border)' }} tickFormatter={(v: number) => `${v.toFixed(0)}°`} />
                     <YAxis dataKey="y" type="number" domain={['auto', 'auto']} name="ppm" tick={TICK} tickLine={false}
                            axisLine={false} width={40} tickFormatter={(v: number) => v.toFixed(2)} />
@@ -84,14 +84,14 @@ export function OscillatorPanel() {
         <CardHeader title="Temperature and Frequency over Time" badge={<ProvenanceTag type="observed" />} />
         <CardBody>
           {time.length > 1
-            ? <div className="grid grid-cols-2 gap-4">
+            ? <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
                 {(['temp', 'freq'] as const).map(k => (
                   <div key={k}>
                     <div className="text-[10px] mb-1" style={{ color:'var(--t3)' }}>{k === 'temp' ? 'SoC temperature (°C)' : 'chrony frequency (ppm)'}</div>
                     <ResponsiveContainer width="100%" height={150}>
                       <LineChart data={time} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false} />
-                        <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fmtT} tick={TICK} tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
+                        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="ts" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fmtT} tick={TICK} tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
                         <YAxis domain={['auto', 'auto']} tick={TICK} tickLine={false} axisLine={false} width={40}
                                tickFormatter={(v: number) => k === 'temp' ? v.toFixed(0) : v.toFixed(2)} />
                         <Tooltip content={<Tip />} />

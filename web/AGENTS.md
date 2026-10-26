@@ -14,6 +14,8 @@ corepack pnpm run dev                     # http://127.0.0.1:5173 (loopback only
 corepack pnpm run typecheck
 corepack pnpm run test                    # Vitest: src/**/*.test.ts (Node environment, no DOM)
 corepack pnpm run build                   # output: dist/
+corepack pnpm exec playwright install chromium   # once: the browser for the e2e tests
+corepack pnpm run test:e2e                # Playwright (e2e/*.spec.ts) against `vite preview` of dist/, demo data
 ```
 
 The dev server is not started for you. It binds to 127.0.0.1 by default; set `GTP_WEB_HOST=0.0.0.0` only to deliberately expose it on a LAN. `PORT` overrides the port. It proxies `/api` to `GTP_API_TARGET` (default `http://127.0.0.1:8080`, the desktop demo from `scripts/run-demo.ps1`). Open `http://127.0.0.1:5173/?source=demo` to use the client-side demo adapter with no backend.
@@ -62,6 +64,8 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/lib/prefs.ts` — per-browser display preferences: the theme (dark or red night; `gtp-theme`; `?theme=`) and the shown modules (`gtp-modules`: hidden pages and Overview cards, sanitized so Overview, Configure and Administration can't be hidden) (tested in `prefs.test.ts`); `src/components/prefs.tsx` has the stores, the header Night toggle and the night overlay; Configure is the modules page
 - `src/lib/throttle.ts` — Administration → Power: the station's decoded get_throttled flags as one row per condition (now, since boot), and whether under-voltage occurred (tested in `throttle.test.ts`)
 - `src/lib/offset.ts` — Timing → offset history: symmetric-log axis (linear within ±1 µs), rows from `/api/history` with the ± offset-SD band only where chrony reported it and the ± max-error bound, domain and decade ticks (tested in `offset.test.ts`); the chart is `OffsetHistoryChart` in `src/components/charts.tsx`
+- `src/lib/route.ts` — the page in the URL hash (`#timing`, `#admin`): reloads, bookmarks and Back keep it (tested in `route.test.ts`)
+- `e2e/` — browser tests (Playwright, Chromium): `responsive.spec.ts` audits every page and tab at 360–1920 px and half-screen widths with `layout-audit.ts` (sideways scroll, past the right edge, clipped text, text over text); `navigation.spec.ts` covers the drawer below 1024 px and hash navigation. Layout rules: Guidelines → Layout → Narrow screens
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling

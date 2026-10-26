@@ -40,7 +40,7 @@ export default function Configure() {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
         <Card>
           <CardHeader title={`Pages (${shown} of ${PAGE_MODULES.length} shown)`} />
           <CardBody>

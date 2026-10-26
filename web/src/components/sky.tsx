@@ -17,7 +17,7 @@ export function SkyMapCard({ sky, when, demo }: { sky: unknown; when: string | n
       <CardBody>
         <div className="text-[10px] mb-2 mono" style={{ color:'var(--t3)' }}>{when ? `at ${when}` : ''}{demo ? ' · demo positions (shapes only)' : ''}</div>
         {!L ? <StatusBadge variant="muted" label="UNKNOWN" dot={false} /> : (
-          <svg viewBox={`0 0 ${SZ} ${SZ}`} className="w-full max-w-[440px] mx-auto block" role="img"
+          <svg viewBox={`0 0 ${SZ} ${SZ}`} className="w-full max-w-[440px] mx-auto block" data-layout-ok="plot" role="img"
             aria-label={`Sky map: ${L.stars.length} stars, ${L.bodies.map(b => b.name).join(', ') || 'no bodies'} above the horizon${L.target === 'below' ? '; target below the horizon' : L.target ? '; target marked' : ''}`}>
             <circle cx={C} cy={C} r={R} fill="var(--sky-night)" stroke="var(--border-em)" />
             {[30, 60].map(alt => <circle key={alt} cx={C} cy={C} r={R * (1 - alt / 90)} fill="none" stroke="var(--border)" strokeDasharray="2 4" />)}

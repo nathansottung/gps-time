@@ -55,7 +55,7 @@ export function TimeScalesPanel() {
         </CardBody>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Leap-Second Table" badge={<ProvenanceTag type="external" />}
             action={<StatusBadge variant={leapVariant(leap?.status)} label={leapLabel(leap?.status)} dot={false} />} />

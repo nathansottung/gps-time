@@ -488,27 +488,35 @@ function ChartTip({ active, payload, label, unit }: any) {
 
 ### Page layout patterns
 
+Grids follow the width they have, not the window's: `main` and every `Card` are size containers, and columns are added with container-query variants (`@md:`, `@3xl:`…). A grid of cards follows `main`; a grid inside a card follows that card. Never use a bare `grid-cols-N` (N > 1) for content that can be narrow.
+
 **Full-width card:**
 ```tsx
 <Card>...</Card>
 ```
 
-**2-column equal:**
+**2-column equal (page level):**
 ```tsx
-<div className="grid grid-cols-2 gap-4">...</div>
+<div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">...</div>
 ```
 
-**3-column equal:**
+**3-column equal (page level):**
 ```tsx
-<div className="grid grid-cols-3 gap-4">...</div>
+<div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">...</div>
+```
+
+**Inside a card** (metric pairs, small stat tiles):
+```tsx
+<div className="grid grid-cols-1 @md:grid-cols-2 gap-x-6">...</div>
+<div className="grid grid-cols-2 @lg:grid-cols-4 gap-3">...</div>
 ```
 
 **12-column asymmetric (most overview pages):**
 ```tsx
-<div className="grid grid-cols-12 gap-3">
-  <div className="col-span-5">...</div>
-  <div className="col-span-3">...</div>
-  <div className="col-span-4">...</div>
+<div className="grid grid-cols-1 @3xl:grid-cols-2 @6xl:grid-cols-12 gap-3">
+  <div className="@6xl:col-span-5">...</div>
+  <div className="@6xl:col-span-3">...</div>
+  <div className="@6xl:col-span-4">...</div>
 </div>
 ```
 
@@ -518,6 +526,18 @@ function ChartTip({ active, payload, label, unit }: any) {
 ```
 
 The `.page-enter` class applies a 140ms fade-in-up animation on mount.
+
+### Narrow screens
+
+Every page must work from 360 px wide (a phone) to 1920 px, including a window snapped to half a screen. `e2e/responsive.spec.ts` checks each page at 360, 640, 683, 768, 960, 1024, 1280 and 1920 px: no sideways scroll, nothing past the right edge, no clipped text, no text over text.
+
+- **Below 1024 px** the sidebar is a drawer: a `☰` button in the header opens it over a dimmed backdrop; choosing a page, the backdrop or Escape closes it.
+- **The header wraps:** stratum and reference chips from 768 px; the Unix time from 768 px; below 640 px the clock and its toggles take their own row.
+- **Rows that can't fit wrap** (`flex-wrap`): card headers with actions, button rows, `MetricRow` (the value moves under its label rather than overlapping it).
+- **Wide content scrolls inside its card, never the page:** tables sit in `.table-scroll`; tab rows (`Tabs`) scroll sideways.
+- **Charts:** axes keep the first and last tick and drop ticks that would collide (`interval="preserveStartEnd" minTickGap={8}`); axis labels sit outside the tick labels.
+- **Plots that place labels at data positions** (sky plots, polar maps) mark their SVG `data-layout-ok="plot"`: their labels may meet; they are still checked for overflow.
+- `main` padding is `p-3` below 640 px, `p-5` above.
 
 ### Header layout
 
@@ -532,7 +552,7 @@ The `.page-enter` class applies a 140ms fade-in-up animation on mount.
 
 ### Sidebar
 
-- Width: 188px fixed
+- Width: 188px fixed; a drawer below 1024 px (Narrow screens)
 - Group labels: `8px mono uppercase tracking-[0.18em]` in `--t4`
 - Nav items: `11px Inter`, `--t2` inactive, `--t1` active
 - Active item: `background: var(--accent-dim)`, `border-left: 2px solid var(--accent)`

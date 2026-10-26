@@ -45,7 +45,7 @@ export function OffsetChart({ data, range, unit='ns' }: { data: any[]; range: st
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
-        <XAxis dataKey="ts" tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} interval="preserveStartEnd"/>
+        <XAxis minTickGap={8} dataKey="ts" tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} interval="preserveStartEnd"/>
         <YAxis tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={34} tickFormatter={(v:number)=>`${v.toFixed(0)}`}/>
         <Tooltip content={<ChartTip unit={unit}/>}/>
         <ReferenceLine y={0} stroke={AXIS} strokeDasharray="2 4" strokeOpacity={0.6}/>
@@ -83,7 +83,7 @@ export function OffsetHistoryChart({ rows, range, showMaxErr }: { rows: OffsetRo
     <ResponsiveContainer width="100%" height={220}>
       <ComposedChart data={rows} margin={{ top:8, right:4, left:0, bottom:0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
-        <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
+        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
         <YAxis domain={dom} ticks={symTicks(dom)} allowDataOverflow tickFormatter={(v: number) => fmtSym(symexp(v))}
           tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={48}/>
         <Tooltip content={<OffsetHistoryTip/>}/>
@@ -133,10 +133,10 @@ export function HoldoverScatter({ data }: { data: { durationS: number; errorNsOn
     <ResponsiveContainer width="100%" height={140}>
       <ScatterChart margin={{ top:8, right:4, left:0, bottom:16 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID}/>
-        <XAxis dataKey="durationS" name="Duration" unit="s" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}
+        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="durationS" name="Duration" unit="s" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}
           label={{ value:'Outage duration (s)', position:'insideBottom', offset:-8, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
-        <YAxis dataKey="errorNsOnRecovery" name="Error" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={36}
-          label={{ value:'Error (ns)', angle:-90, position:'insideLeft', offset:12, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
+        <YAxis dataKey="errorNsOnRecovery" name="Error" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={48}
+          label={{ value:'Error (ns)', angle:-90, position:'insideLeft', offset:0, dx:-2, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
         <Tooltip cursor={{ stroke:'var(--border-em)' }} content={({ active, payload }) => {
           if (!active || !payload?.length) return null;
           const d = payload[0]?.payload;
@@ -165,7 +165,7 @@ export function SkyPlot({ sats, hiddenNote }: { sats: { sys:string; svid:string;
     return { x: cx + p*Math.cos(a), y: cy + p*Math.sin(a) };
   };
   return (
-    <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{ maxWidth:'100%' }}>
+    <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`} style={{ maxWidth:'100%', height:'auto' }} data-layout-ok="plot">
       {/* Rings */}
       {[0,30,60,90].map(el => (
         <circle key={el} cx={cx} cy={cy} r={(1-el/90)*r}
@@ -212,7 +212,7 @@ export function OutageBarChart({ data }: { data: { date: string; durationS: numb
     <ResponsiveContainer width="100%" height={96}>
       <BarChart data={data} margin={{ top:4, right:4, left:0, bottom:4 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
-        <XAxis dataKey="date" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
+        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="date" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
         <YAxis tick={TICK} tickLine={false} axisLine={false} width={30}/>
         <Tooltip content={({ active, payload }) => {
           if (!active || !payload?.length) return null;
@@ -243,7 +243,7 @@ export function SolarCurve({ data }: { data: { h: number; w: number }[] }) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
-        <XAxis dataKey="h" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} tickFormatter={(v:number)=>`${v}h`}/>
+        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="h" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} tickFormatter={(v:number)=>`${v}h`}/>
         <YAxis tick={TICK} tickLine={false} axisLine={false} width={34} tickFormatter={(v:number)=>`${v}W`}/>
         <Tooltip content={<ChartTip unit="W/m²"/>}/>
         <Area type="monotone" dataKey="w" stroke="var(--warn-text)" strokeWidth={1.5} fill="url(#solFill)" dot={false}/>
@@ -278,7 +278,7 @@ export function StabilityChart({ rows, metric }: { rows: StabilityRow[]; metric:
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={rows} margin={{ top:8, right:12, left:0, bottom:0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
-        <XAxis dataKey="tau" type="number" scale="log" domain={[xTicks[0], xTicks[xTicks.length - 1]]} ticks={xTicks}
+        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="tau" type="number" scale="log" domain={[xTicks[0], xTicks[xTicks.length - 1]]} ticks={xTicks}
                tickFormatter={fmtTau} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} allowDataOverflow/>
         <YAxis type="number" scale="log" domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks}
                tickFormatter={metric === 'tdev' ? (v: number) => fmtDeviation(v, 'tdev') ?? '' : pow10}

@@ -24,7 +24,7 @@ export function ConvergenceCard({ survey }: { survey: Survey | null }) {
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={pts} margin={{ top:8, right:8, left:0, bottom:0 }}>
               <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false} />
-              <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} tickFormatter={fmtT} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} />
+              <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} interval="preserveStartEnd" minTickGap={8} tickFormatter={fmtT} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} />
               <YAxis scale="log" domain={dom} ticks={LOG_TICKS.filter(v => v >= dom[0] && v <= dom[1])} allowDataOverflow
                 tickFormatter={(v: number) => fmtMetres(v) ?? ''} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={46} />
               <Tooltip labelFormatter={(t) => fmtT(Number(t))} formatter={(v, name) => [fmtMetres(Number(v)) ?? '—', name === 'horiz' ? 'horizontal SE' : 'vertical SE']}
@@ -57,7 +57,7 @@ export function ScatterCard({ survey }: { survey: Survey | null }) {
       <CardHeader title="This session's fixes" badge={<ProvenanceTag type="observed" />} />
       <CardBody>
         {!b ? <StatusBadge variant="muted" label="UNKNOWN" dot={false} /> : <>
-          <svg viewBox={`0 0 ${SZ} ${SZ}`} className="w-full max-w-[300px] mx-auto block" role="img"
+          <svg viewBox={`0 0 ${SZ} ${SZ}`} className="w-full max-w-[300px] mx-auto block" data-layout-ok="plot" role="img"
             aria-label={`${survey!.fixes.length} fixes around the mean; per-fix scatter ${fmtMetres(b.sd)}`}>
             {b.rings.map((r, i) => <circle key={i} cx={c} cy={c} r={r} fill="none" stroke="var(--border)" />)}
             <circle cx={c} cy={c} r={b.rings[0]} fill="none" stroke="var(--t3)" strokeDasharray="5 4" />

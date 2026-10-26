@@ -63,16 +63,16 @@ export function MetricRow({ label, value, unit, uncertainty, provenance, muted, 
   // null/undefined = the station can't establish this value: show UNKNOWN, never a guess.
   if (value === null || value === undefined) {
     return (
-      <div className="flex items-baseline justify-between py-[5px] row-sep">
-        <span className="text-[11px]" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-[5px] row-sep">
+        <span className="text-[11px] min-w-0" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
         <StatusBadge variant="muted" label="UNKNOWN" dot={false} />
       </div>
     );
   }
   return (
-    <div className="flex items-baseline justify-between py-[5px] row-sep">
-      <span className="text-[11px]" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
-      <div className="flex items-baseline gap-1.5">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-[5px] row-sep">
+      <span className="text-[11px] min-w-0" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
+      <div className="flex items-baseline gap-1.5 ml-auto">
         <span className={`mono tabular ${large ? 'text-base' : 'text-[12px]'} font-medium`} style={{ color:'var(--t1)' }}>{sensitive ? <Sensitive>{value}</Sensitive> : value}</span>
         {unit && <span className="text-[10px]" style={{ color:'var(--t3)' }}>{unit}</span>}
         {uncertainty && <span className="text-[10px]" style={{ color:'var(--t3)' }}>± {uncertainty}</span>}
@@ -103,7 +103,8 @@ export function SciValue({ value, unit, uncertainty, sub, highlight }: {
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 export function Card({ children, className='' }: { children: ReactNode; className?: string }) {
-  return <div className={`card-surface ${className}`}>{children}</div>;
+  // Each card is a size container: grids inside it follow the card's width (@md:…), not the window's.
+  return <div className={`card-surface @container ${className}`}>{children}</div>;
 }
 
 export function CardHeader({ title, badge, action, icon }: {
@@ -111,10 +112,10 @@ export function CardHeader({ title, badge, action, icon }: {
 }) {
   return (
     <div
-      className="flex items-center justify-between px-4 py-2.5"
+      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2.5"
       style={{ borderBottom: '1px solid var(--border-dim)' }}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
         {icon && <span style={{ color:'var(--t3)' }}>{icon}</span>}
         <span className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ color:'var(--t3)' }}>{title}</span>
         {badge}
@@ -132,10 +133,10 @@ export function CardBody({ children, className='' }: { children: ReactNode; clas
 interface TabsProps { tabs: string[]; active: string; onChange: (t: string) => void; className?: string; }
 export function Tabs({ tabs, active, onChange, className='' }: TabsProps) {
   return (
-    <div className={`flex gap-0 ${className}`} style={{ borderBottom: '1px solid var(--border)' }}>
+    <div role="tablist" className={`flex gap-0 overflow-x-auto ${className}`} style={{ borderBottom: '1px solid var(--border)' }}>
       {tabs.map(t => (
-        <button key={t} onClick={() => onChange(t)}
-          className={`px-4 py-2 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${active===t ? 'tab-active' : 'tab-inactive'}`}>
+        <button key={t} onClick={() => onChange(t)} role="tab" aria-selected={active===t}
+          className={`px-4 py-2 text-[10px] font-medium uppercase tracking-[0.1em] whitespace-nowrap flex-shrink-0 transition-colors ${active===t ? 'tab-active' : 'tab-inactive'}`}>
           {t}
         </button>
       ))}
