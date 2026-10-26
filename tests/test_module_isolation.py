@@ -6,6 +6,7 @@ hardware or network needed: nothing here connects anywhere.
 """
 
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -339,7 +340,13 @@ class TestStationService(unittest.TestCase):
         self.assertNotRegex(code, r"systemctl (enable|start|restart)[^\n]*gps-time-modules")
 
     def test_web_service_still_never_loads_modules(self):
-        self.assertNotIn("modkit", (ROOT / "gps_time_pi" / "server.py").read_text(encoding="utf-8"))
+        # The web service may read manifests (modkit.settings) for the Administration
+        # switch, but never runs a host or imports module code.
+        src = (ROOT / "gps_time_pi" / "server.py").read_text(encoding="utf-8")
+        self.assertEqual(re.findall(r"^from \.modkit.*$", src, re.M), ["from .modkit import settings as modsettings"])
+        self.assertNotRegex(src, r"ModuleHost|modkit\.(loader|runner|sandbox|supervisor)")
+        settings_src = (ROOT / "gps_time_pi" / "modkit" / "settings.py").read_text(encoding="utf-8")
+        self.assertNotRegex(settings_src, r"ModuleHost|import (runner|sandbox|supervisor)|subprocess")
 
 
 if __name__ == "__main__":

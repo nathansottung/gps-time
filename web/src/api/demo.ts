@@ -14,8 +14,9 @@ import { UI_VERSION } from '../lib/version';
 import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
+import { applySetting } from '../lib/modules';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleRow, NtpService, Oscillator, OscillatorBin, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -51,6 +52,7 @@ function iso(ms: number) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/
 export function demoApi(): StationApi {
   let locationMode: LocationMode = 'exact';
   let tzOverride: string | null = null;
+  const mods = { experimental: false, enabled: [] as string[] };   // the station's rules: lib/modules.ts
   const delay = <T,>(v: T) => new Promise<T>(res => setTimeout(() => res(v), 60));
 
   function displayed() {
@@ -116,6 +118,16 @@ export function demoApi(): StationApi {
     setLocationDisplay: (mode) => { locationMode = mode; return delay({ ok: true as const, location_display: mode }); },
     setTimezone: (tz) => { tzOverride = tz || null; return delay({ ok: true as const, timezone: tzOverride }); },
     resetSite: () => delay({ ok: true as const, reset_site: true as const }),
+    modules: () => delay({
+      experimental: mods.experimental,
+      modules: DEMO_MODULES.map(r => ({ ...r, enabled: mods.enabled.includes(r.name),
+        runs: mods.experimental && mods.enabled.includes(r.name) && r.valid })),
+      supervisor: { reporting: false, age_s: null, detail: 'demo: no module supervisor runs here' },
+      note: 'Demo: settings are kept in this tab only; no module runs.',
+    }),
+    setModulesExperimental: (on) => delay(applySetting(mods, DEMO_VALID, { modules_experimental: on })),
+    setModule: (name, enabled) => { try { return delay(applySetting(mods, DEMO_VALID, { module: name, enabled })); }
+                                    catch (e) { return Promise.reject(e); } },
     admin: (action) => delay({ ok: true, action, simulated: true as const, detail: `demo adapter: ${action} was not executed` }),
     auth: () => delay({ demo: true, auth_required: false, admin_configured: false, authenticated: true }),
     token: tokenStore(null),
@@ -123,6 +135,14 @@ export function demoApi(): StationApi {
 }
 
 // ─── payload builders ────────────────────────────────────────────────────────
+
+/** The repository's one module, as its manifest describes it (modules/sdr-pps-marker/module.toml). */
+const DEMO_MODULES: ModuleRow[] = [{
+  name: 'sdr-pps-marker', installed: true, valid: true, errors: [], version: '0.1.0', maturity: 'research',
+  types: ['source'], summary: 'PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model',
+  permissions: { network: false, devices: [], storage: 'none' }, enabled: false, runs: false, state: null, reason: null,
+}];
+const DEMO_VALID: ReadonlySet<string> = new Set(DEMO_MODULES.filter(r => r.valid).map(r => r.name));
 
 function core(location: CoreStatus['location']): CoreStatus {
   const now = Date.now();

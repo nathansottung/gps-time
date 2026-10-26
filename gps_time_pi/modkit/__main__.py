@@ -30,7 +30,10 @@ def main(argv=None):
         enabled = []
         if a.cmd == "list":
             from .. import config   # only here: reading the station config is the list's job
-            enabled = loader.enabled_from_config(config.load())
+            cfg = config.load()
+            enabled = loader.enabled_from_config(cfg)
+            print("experimental modules: " + ("on" if cfg.get("modules_experimental") is True else
+                                              "off (no module runs)"))
         bad = 0
         for folder, m, errs in found:
             if errs:

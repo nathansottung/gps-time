@@ -59,12 +59,16 @@ Interfaces and `ctx`: [interfaces.md](interfaces.md). Data contracts: [schemas.m
 
 ## 4. Enable it on a station
 
-Modules are off by default. On a station:
+Modules are off by default, behind two settings: the **experimental modules switch** (`modules_experimental`) and each module's own setting (`modules_enabled`). With the switch off, no module runs. Turning the switch on, or off, clears `modules_enabled`, so after it every module is off until it is turned on by itself.
+
+On a station:
 
 1. Copy the module to `/opt/gps-time-pi/modules/<name>/`, readable by everyone (`sudo chmod -R a+rX`).
-2. Name it in the station config: `{"modules_enabled": ["my-sensor"]}`. Optional: `"module_config": {"my-sensor": {...}}`, and `"module_limits"` to lower the host's maximums.
+2. In the web UI, **Administration → Experimental modules** (admin token): turn the switch on, then turn the module on. Or by hand in the station config: `{"modules_experimental": true, "modules_enabled": ["my-sensor"]}`. Optional: `"module_config": {"my-sensor": {...}}`, and `"module_limits"` to lower the host's maximums.
 3. If it needs a device or the network, also add a drop-in to the service (`sudo systemctl edit gps-time-modules`): `PrivateDevices=no` plus `DeviceAllow=/dev/...`, or `IPAddressAllow=...`. The manifest permission alone isn't enough.
-4. `sudo systemctl enable --now gps-time-modules`. Status (RAM): `/run/gps-time-modules/status.json`.
+4. `sudo systemctl enable --now gps-time-modules`. Status (RAM): `/run/gps-time-modules/status.json`, also shown on the Administration card.
+
+The supervisor checks the config file at each 10 s status publish and restarts its set of modules when the module settings change, so the switches take effect without restarting the service. The web service only reads manifests for the card; it never imports module code.
 
 The host refuses a module, with the reason, when:
 - its manifest is invalid;

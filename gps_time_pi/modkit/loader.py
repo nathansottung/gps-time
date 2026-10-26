@@ -2,7 +2,8 @@
 
 - Discovery: every folder with a module.toml under the modules directory
   (GTP_MODULES_DIR, default modules/ next to gps_time_pi).
-- Off by default: only modules named in "modules_enabled" run. The web
+- Off by default: modules run only while "modules_experimental" is true, and
+  then only those named in "modules_enabled" (settings.py). The web
   service never loads modules; on a station they run only under
   gps-time-modules.service (supervisor.py), which is installed but not enabled.
 - The host never imports a module's code. Each module runs in its own process
@@ -42,9 +43,12 @@ STDERR_LINES = 50
 
 
 def enabled_from_config(cfg):
-    """Module names the owner enabled; none by default."""
-    names = cfg.get("modules_enabled", []) if isinstance(cfg, dict) else []
-    return [n for n in names if isinstance(n, str)]
+    """Module names that may run: none unless the experimental switch is on, then
+    those the owner enabled one by one. None by default."""
+    if not isinstance(cfg, dict) or cfg.get("modules_experimental") is not True:
+        return []
+    names = cfg.get("modules_enabled", [])
+    return [n for n in names if isinstance(n, str)] if isinstance(names, list) else []
 
 
 def discover(root=None):

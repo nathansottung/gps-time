@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag, Tabs } from '../components/ui';
+import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag, Tabs, Toggle } from '../components/ui';
 import { OffsetChart, SolarCurve } from '../components/charts';
 import { ShadowPanel, SatellitesPanel } from '../components/shadow';
 import { fmtCount, fmtPerMin, fmtShare, requestSeries, serviceLabel, serviceVariant } from '../lib/ntpservice';
@@ -7,11 +7,12 @@ import { Planned, ApiErrorNote } from '../components/planned';
 import { Sensitive } from '../components/screenshot';
 import { useStation, usePoll, useBrowserClock } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
-import type { AdminAction, AdminResult, AuthState, LocationMode, LunarDay, SolarDay, SurveyStats } from '../api/types';
+import type { AdminAction, AdminResult, AuthState, LocationMode, LunarDay, SettingResult, SolarDay, SurveyStats } from '../api/types';
 import { ApiError } from '../api/client';
 import { STATION_ACTIONS, actionInfo, actionOutcome, type ActionOutcome } from '../lib/admin';
 import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome } from '../lib/survey';
 import { throttleRows, underVoltage } from '../lib/throttle';
+import { canToggle, permissionText, rowStatus, settingOutcome, switchConfirm, type Outcome as ModOutcome } from '../lib/modules';
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
@@ -706,6 +707,8 @@ export function Admin() {
 
       <StationActions canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
 
+      <ExperimentalModules canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
+
       <Card>
         <CardHeader title="Location privacy" />
         <CardBody>
@@ -910,6 +913,110 @@ function StationActions({ canWrite, authKnown, onAuthError }: { canWrite: boolea
             </div>
           ))}
         </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ─── Experimental modules (GET /api/modules, POST /api/setting; lib/modules.ts) ─
+const MOD_COLOR: Record<ModOutcome['variant'], string> = {
+  good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)',
+};
+
+function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: boolean; authKnown: boolean; onAuthError: () => void }) {
+  const { api } = useStation();
+  const mods = usePoll(() => api.modules(), 10_000, [api]);
+  const s = mods.data;
+  const [pending, setPending] = useState<boolean | null>(null);   // the switch value waiting for confirmation
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<ModOutcome | null>(null);
+  const send = async (what: string, call: () => Promise<SettingResult>) => {
+    setBusy(true); setOutcome(null);
+    try {
+      setOutcome(settingOutcome(what, await call()));
+    } catch (e) {
+      const status = e instanceof ApiError ? e.status : null;
+      setOutcome(settingOutcome(what, null, { message: (e as Error).message, status }));
+      if (status === 401 || status === 403) onAuthError();
+    } finally { setBusy(false); mods.refresh(); }
+  };
+  const flip = (on: boolean) => {
+    setPending(null);
+    send(on ? 'Experimental modules on' : 'Experimental modules off', () => api.setModulesExperimental(on));
+  };
+  const btn = { border:'1px solid var(--border)', color:'var(--t2)' };
+  return (
+    <Card>
+      <CardHeader title="Experimental modules" badge={<MaturityBadge level="experimental" />} />
+      <CardBody>
+        <ApiErrorNote error={mods.error} />
+        <div className="text-[10px] mb-3" style={{ color:'var(--t3)' }}>
+          Optional modules (sensors, reference signals, analyses) run outside the timing core, each in its own sandboxed process.
+          They are off by default. Turning this switch on starts none of them: each module stays off until it is turned on by itself below.
+        </div>
+        <div className="flex items-center gap-3">
+          <Toggle on={!!s?.experimental} label="Experimental modules" disabled={!s || !canWrite || busy}
+            onChange={v => { setPending(v); setOutcome(null); }} />
+          <span className="text-[11px]" style={{ color:'var(--t2)' }}>
+            {!s ? (mods.error ? 'UNKNOWN' : '…') : s.experimental ? 'On: a module runs once it is turned on below' : 'Off: no module runs'}
+          </span>
+        </div>
+        {pending !== null && (
+          <div role="alertdialog" aria-label="Confirm experimental modules switch" className="mt-3 rounded-[2px] p-3"
+            style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)' }}>
+            <div className="text-[11px] mb-2" style={{ color:'var(--t1)' }}>{switchConfirm(pending)}</div>
+            <div className="flex gap-1.5">
+              <button onClick={() => flip(pending)} className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
+                style={{ border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>Confirm: turn {pending ? 'on' : 'off'}</button>
+              <button onClick={() => setPending(null)} autoFocus className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {s && s.modules.length === 0 && (
+          <div className="text-[10px] mt-3" style={{ color:'var(--t4)' }}>
+            No modules are installed on this station. The Pi bundle ships none; installing one: docs/modules/README.md.
+          </div>
+        )}
+        {s && s.modules.length > 0 && (
+          <table className="w-full text-[11px] mt-3">
+            <thead><tr>
+              {['Module', 'Maturity', 'Needs', 'Status', 'On'].map((h, i) => (
+                <th key={h} className={`py-1 font-normal ${i === 4 ? 'text-right' : 'text-left'}`} style={{ color:'var(--t3)', fontSize:10 }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {s.modules.map(r => {
+                const st = rowStatus(r, s);
+                return (
+                  <tr key={r.name} className="row-sep align-top">
+                    <td className="py-1.5 pr-2">
+                      <div className="mono" style={{ color:'var(--t1)' }}>{r.name}{r.version && <span style={{ color:'var(--t4)' }}> {r.version}</span>}</div>
+                      {r.summary && <div className="text-[10px]" style={{ color:'var(--t4)' }}>{r.summary}</div>}
+                      {r.errors.map(e => <div key={e} className="text-[10px] mono" style={{ color:'var(--err-text)' }}>{e}</div>)}
+                      {r.reason && <div className="text-[10px] mono" style={{ color:'var(--t3)' }}>{r.reason}</div>}
+                    </td>
+                    <td className="py-1.5 pr-2">{r.maturity ? <MaturityBadge level={r.maturity} /> : <span style={{ color:'var(--t4)' }}>—</span>}</td>
+                    <td className="py-1.5 pr-2 text-[10px]" style={{ color:'var(--t3)' }}>{permissionText(r)}</td>
+                    <td className="py-1.5 pr-2"><StatusBadge variant={st.variant} label={st.label} dot={false} className="text-[9px]" /></td>
+                    <td className="py-1.5 text-right">
+                      <Toggle on={r.enabled} label={`Module ${r.name}`} disabled={busy || !canToggle(r, s, canWrite)}
+                        onChange={v => send(`${r.name} ${v ? 'on' : 'off'}`, () => api.setModule(r.name, v))} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: MOD_COLOR[outcome.variant] }}>{outcome.text}</div>}
+        {s && (
+          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+            Supervisor: {s.supervisor.detail}. {s.note} A module that needs a device or the network also needs a drop-in for gps-time-modules.service.
+          </div>
+        )}
+        {!canWrite && authKnown && (
+          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>Changing these needs the admin token (Admin access, above).</div>
+        )}
       </CardBody>
     </Card>
   );
