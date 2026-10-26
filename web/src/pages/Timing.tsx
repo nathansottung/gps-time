@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, RangeSelector, Tabs, ProvenanceTag } from '../components/ui';
+import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, RangeSelector, Tabs, ProvenanceTag, LoadingNote, EmptyNote } from '../components/ui';
 import { OffsetHistoryChart, PPSTimeline, HoldoverScatter, OutageBarChart } from '../components/charts';
 import { offsetRows } from '../lib/offset';
 import { Planned, ApiErrorNote } from '../components/planned';
@@ -7,7 +7,7 @@ import { StabilityPanel } from '../components/stability';
 import { TimeScalesPanel } from '../components/timescales';
 import { ReferencesPanel } from '../components/references';
 import { OscillatorPanel } from '../components/oscillator';
-import { useStation, usePoll } from '../api/station';
+import { useStation, usePoll, isPending } from '../api/station';
 import { allEvents } from '../api/view';
 import type { StageStatus } from '../api/types';
 import { ppsOutages, ppsStats, errorBudget } from '../api/previews';
@@ -28,9 +28,9 @@ const thresholds = [
 ];
 
 const regionBg: Record<string,string> = {
-  observed:     'bg-cyan-400/20',
-  modeled:      'bg-purple-400/15',
-  extrapolated: 'bg-slate-500/10',
+  observed:     'var(--obs-bg)',
+  modeled:      'var(--mod-bg)',
+  extrapolated: 'var(--muted-bg)',
 };
 const regionTextVar: Record<string,string> = {
   observed:     'var(--live)',
@@ -134,7 +134,7 @@ function TimingChainPanel({ onNavigate }: { onNavigate?: (id: string) => void })
                   <td className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>{st.summary}</td>
                 </tr>
               ))}
-              {!c && <tr><td className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Timing chain not loaded.</td></tr>}
+              {!c && <tr><td className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>Timing chain not loaded.</td></tr>}
             </tbody>
           </table></div>
         </CardBody>
@@ -187,9 +187,10 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
               <ApiErrorNote error={hist.error} />
               {rows.length
                 ? <OffsetHistoryChart rows={rows} range={range} showMaxErr={showMaxErr} />
-                : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
-                    {hist.data && !hist.data.available ? 'chrony tracking log not available (needs "log tracking" in chrony.conf)' : 'No samples in this range'}
-                  </div>}
+                : isPending(hist) ? <LoadingNote what="the offset history" />
+                : <EmptyNote>
+                    {hist.error && !hist.data ? 'Not available: the station did not answer (see the error above).' : hist.data && !hist.data.available ? 'chrony tracking log not available (needs "log tracking" in chrony.conf)' : 'No samples in this range'}
+                  </EmptyNote>}
               <div className="flex items-center justify-between gap-4 mt-1">
                 <div className="flex gap-3 text-[9px] mono" style={{ color:'var(--t3)' }}>
                   <span style={{ color:'var(--live)' }}>— offset</span>
@@ -200,7 +201,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                   <input type="checkbox" checked={showMaxErr} onChange={e => setShowMaxErr(e.target.checked)} /> max-error bound
                 </label>
               </div>
-              <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
+              <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
                 From chrony's tracking log, one record per clock update: the offset chrony measured, ± its standard deviation of that offset (where chrony reported one; nothing is filled in), and ± chrony's maximum-error bound, which holds only if the reference is right. Symmetric-log scale: linear within ±1 µs, one step per decade beyond.
                 {hist.data && 'skipped_lines' in hist.data && hist.data.skipped_lines ? ` ${hist.data.note}` : ''}
               </div>
@@ -223,7 +224,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                   <MetricRow label="Reference time" value={core.data?.quality.ref_time ?? null} />
                 </div>
               </div>
-              <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+              <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
                 From <span className="mono">chronyc -n tracking</span>. Residual frequency is the difference between the frequency the reference indicates and the one chrony uses; skew is chrony's estimated error bound on that frequency. The PPS sample age is on PPS Diagnostics.
               </div>
             </CardBody>
@@ -308,7 +309,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                           <td className="py-1.5 mono text-right" style={{ color:'var(--warn-text)' }}>{t.tRaw < 1 ? `${(t.tRaw*60).toFixed(0)}m` : t.tRaw < 60 ? `${t.tRaw.toFixed(0)}h` : `${(t.tRaw/24).toFixed(0)}d`}</td>
                           <td className="py-1.5 mono text-right" style={{ color:'var(--live)' }}>{t.tTrained < 60 ? `${t.tTrained.toFixed(0)}h` : `${(t.tTrained/24).toFixed(0)}d`}</td>
                           <td className="py-1.5 text-right">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] mono uppercase ${regionBg[t.region]}`} style={{ color: regionTextVar[t.region] }}>{regionLabel[t.region]}</span>
+                            <span className="px-1.5 py-0.5 rounded-[2px] text-[9px] mono uppercase" style={{ color: regionTextVar[t.region], background: regionBg[t.region] }}>{regionLabel[t.region]}</span>
                           </td>
                         </tr>
                       ))}
@@ -353,11 +354,11 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                       <td className="px-4 py-1.5 text-[10px]" style={{ color:'var(--t3)' }}>{e.boundary ?? '—'}</td>
                     </tr>
                   ))}
-                  {!events.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
+                  {!events.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>
                     {chain.data ? 'No PPS events recorded.' : 'Timing chain not loaded.'}</td></tr>}
                 </tbody>
               </table></div>
-              <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
+              <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>
                 Classifications are inferred from the evidence at the time. They name a boundary in the signal path, not a cause.
               </div>
             </CardBody>
@@ -383,10 +384,10 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                       <td className="px-4 py-1.5"><a href={`/api/evidence?id=${encodeURIComponent(f.id)}`} target="_blank" rel="noreferrer" className="underline text-[10px]" style={{ color:'var(--t2)' }}>JSON</a></td>
                     </tr>
                   ))}
-                  {evid.data && !evid.data.files.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>No outage evidence kept.</td></tr>}
+                  {evid.data && !evid.data.files.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>No outage evidence kept.</td></tr>}
                 </tbody>
               </table></div>
-              <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
+              <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>
                 {evid.data ? `${(evid.data.total_bytes / 1024).toFixed(0)} kB of ${(evid.data.max_bytes / 1048576).toFixed(0)} MB cap. ${evid.data.note} No position is stored.` : 'Not loaded.'}
               </div>
             </CardBody>
@@ -425,10 +426,10 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
               </tr></thead>
               <tbody>
                 {lightRows.map((r) => (
-                  <tr key={r.dt} className={r.highlight ? 'bg-cyan-400/5' : ''} style={{ borderBottom:'1px solid var(--border-dim)' }}>
+                  <tr key={r.dt} style={{ borderBottom:'1px solid var(--border-dim)', background: r.highlight ? 'var(--live-dim)' : undefined }}>
                     <td className="py-2 mono" style={{ color: r.highlight ? 'var(--live)' : 'var(--t2)' }}>{r.dt}</td>
                     <td className="py-2 text-right mono" style={{ color: r.highlight ? 'var(--live-bright)' : 'var(--t2)' }}>{r.dist}</td>
-                    <td className="py-2 text-right text-[11px]" style={{ color:'var(--t3)' }}>{r.note}</td>
+                    <td className="py-2 text-right text-[11px]" style={{ color: r.highlight ? 'var(--t2)' : 'var(--t3)' }}>{r.note}</td>
                   </tr>
                 ))}
               </tbody>

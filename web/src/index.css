@@ -24,11 +24,12 @@
   --border:      rgba(255,255,255,0.07);
   --border-em:   rgba(255,255,255,0.11);
 
-  /* Text hierarchy — 4 levels */
-  --t1: #e2e6ef;            /* primary: live values, headings */
-  --t2: #8892aa;            /* secondary: labels, identifiers */
-  --t3: #4c5268;            /* tertiary: metadata, footnotes */
-  --t4: #282d3c;            /* quaternary: barely-there markers */
+  /* Text hierarchy — 4 levels. t1–t3 are text and meet WCAG AA (4.5:1) on every surface;
+     t4 is for decorative marks only (dividers, inactive icons), never for text. */
+  --t1: #e2e6ef;            /* primary: live values, headings (13.5:1 or more) */
+  --t2: #9fa7ba;            /* secondary: labels, identifiers (7.0:1 or more) */
+  --t3: #8188a3;            /* tertiary: section headers, units, notes (4.8:1 or more) */
+  --t4: #3a4052;            /* quaternary: decorative marks only (not text) */
 
   /* Live accent — reserved for GPS-locked live readings only */
   --live:        #4dc8e2;   /* slightly less saturated cyan */
@@ -51,7 +52,7 @@
   --warn-border: rgba(176,120,16,0.20);
 
   --err:         #9e4040;
-  --err-text:    #c86060;
+  --err-text:    #d06868;
   --err-bg:      rgba(158,64,64,0.08);
   --err-border:  rgba(158,64,64,0.20);
 
@@ -59,7 +60,7 @@
   --info-bg:     rgba(91,140,184,0.08);
   --info-border: rgba(91,140,184,0.20);
 
-  --muted-text:  #5a6278;
+  --muted-text:  #8089a0;   /* 4.8:1 or more on its tint */
   --muted-bg:    rgba(90,98,120,0.08);
   --muted-border:rgba(90,98,120,0.18);
 
@@ -71,7 +72,7 @@
   /* Provenance */
   --obs-text:   #4dc8e2;   --obs-bg:   rgba(77,200,226,0.07);  --obs-border: rgba(77,200,226,0.18);
   --calc-text:  #6092c8;   --calc-bg:  rgba(96,146,200,0.07);  --calc-border:rgba(96,146,200,0.18);
-  --mod-text:   #8870c0;   --mod-bg:   rgba(136,112,192,0.07); --mod-border: rgba(136,112,192,0.18);
+  --mod-text:   #927dc6;   --mod-bg:   rgba(136,112,192,0.07); --mod-border: rgba(136,112,192,0.18);
   --inf-text:   #b8963c;   --inf-bg:   rgba(184,150,60,0.07);  --inf-border: rgba(184,150,60,0.18);
   --pred-text:  #c07898;   --pred-bg:  rgba(192,120,152,0.07); --pred-border:rgba(192,120,152,0.18);
   --ext-text:   #9aa0ae;   --ext-bg:   rgba(154,160,174,0.06); --ext-border: rgba(154,160,174,0.22);
@@ -213,7 +214,10 @@ b, strong { font-weight: 600; }
 .tab-inactive:hover { color: var(--t2); }
 
 /* ─── Focus ring ─────────────────────────────────────────────────────────────── */
-:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+/* Keyboard focus on every control (accent, 4.7:1 or more against every surface). Fields show it
+   on any focus, as a typing cue; a date field's inner segments don't make it :focus-visible. */
+:focus-visible,
+input:focus, input:focus-within, select:focus, textarea:focus { outline: 1.5px solid var(--accent); outline-offset: 2px; }
 
 /* ─── Toggle switch ──────────────────────────────────────────────────────────── */
 .toggle-on  { background: rgba(91,140,184,0.35); }

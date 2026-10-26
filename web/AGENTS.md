@@ -31,7 +31,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/main.tsx` — React entrypoint; imports `src/index.css` and mounts `src/App.tsx`
 - `src/App.tsx` — app shell (header, sidebar, page routing)
 - `src/pages/` — one component per page
-- `src/components/ui.tsx` — design-system components (Card, MetricRow, StatusBadge, ProvenanceTag, MaturityBadge, DemoBanner, …)
+- `src/components/ui.tsx` — design-system components (Card, MetricRow, StatusBadge, ProvenanceTag, MaturityBadge, DemoBanner, …); `Loading`, `LoadingNote`, `EmptyNote` and `<Card pending>` for loading and empty states (Guidelines → Loading, empty and unknown)
 - `src/components/charts.tsx` — Recharts/SVG chart components
 - `src/lib/units.ts` — scientific formatting helpers (e.g. `fmtSci` for Δf/f as ×10⁻ⁿ)
 - `src/api/types.ts` — types for the station HTTP API (reference: `../docs/api/`)
@@ -65,7 +65,7 @@ The built app must make no network requests to third parties at runtime: no CDNs
 - `src/lib/throttle.ts` — Administration → Power: the station's decoded get_throttled flags as one row per condition (now, since boot), and whether under-voltage occurred (tested in `throttle.test.ts`)
 - `src/lib/offset.ts` — Timing → offset history: symmetric-log axis (linear within ±1 µs), rows from `/api/history` with the ± offset-SD band only where chrony reported it and the ± max-error bound, domain and decade ticks (tested in `offset.test.ts`); the chart is `OffsetHistoryChart` in `src/components/charts.tsx`
 - `src/lib/route.ts` — the page in the URL hash (`#timing`, `#admin`): reloads, bookmarks and Back keep it (tested in `route.test.ts`)
-- `e2e/` — browser tests (Playwright, Chromium): `responsive.spec.ts` audits every page and tab at 360–1920 px and half-screen widths with `layout-audit.ts` (sideways scroll, past the right edge, clipped text, text over text); `navigation.spec.ts` covers the drawer below 1024 px and hash navigation. Layout rules: Guidelines → Layout → Narrow screens
+- `e2e/` — browser tests (Playwright, Chromium): `responsive.spec.ts` audits every page and tab at 360–1920 px and half-screen widths with `layout-audit.ts` (sideways scroll, past the right edge, clipped text, text over text); `navigation.spec.ts` covers the drawer below 1024 px and hash navigation; `design.spec.ts` runs `design-audit.ts` on every page and tab (contrast WCAG AA, type scale, weights, tabular figures), tabs through every page for a visible focus ring, and checks that values show loading (not UNKNOWN) before the station answers. Layout rules: Guidelines → Layout → Narrow screens
 - `src/api/auth.ts` — admin token store (sessionStorage, guarded; never in the URL) used for state-changing requests (tested in `auth.test.ts`)
 
 ## Data and labeling

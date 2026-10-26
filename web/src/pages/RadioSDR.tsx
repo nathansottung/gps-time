@@ -13,18 +13,15 @@ const TIER_LABELS = [
   'PPS + reference clock',
   'Hardware timestamped',
 ];
-const TIER_COLORS = [
-  '', 'text-slate-500', 'text-cyan-400/70', 'text-cyan-400', 'text-blue-400', 'text-purple-400',
-];
 
 // Simulated waterfall data
 function WaterfallDisplay({ freqMHz }: { freqMHz: number }) {
   const rows = 24, cols = 80;
   return (
-    <div className="w-full overflow-hidden rounded-sm border border-[#222840]">
-      <div className="flex items-center justify-between px-3 py-1 bg-[#0e1118] border-b border-[#222840]">
-        <span className="mono text-[10px] text-slate-500">Waterfall — {freqMHz} MHz ± 1.024 MHz</span>
-        <span className="mono text-[10px] text-slate-600">2.048 MS/s</span>
+    <div className="w-full overflow-hidden rounded-[2px]" style={{ border:'1px solid var(--border)' }}>
+      <div className="flex items-center justify-between px-3 py-1" style={{ background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
+        <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>Waterfall — {freqMHz} MHz ± 1.024 MHz</span>
+        <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>2.048 MS/s</span>
       </div>
       <svg width="100%" height={rows*3} viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
         {Array.from({ length: rows }, (_, r) =>
@@ -53,7 +50,7 @@ function SDRCard({ dev }: { dev: typeof sdrDevices[0] }) {
         badge={<StatusBadge variant={dev.state==='active'?'good':'muted'} label={dev.state.toUpperCase()} />}
         action={
           <button onClick={() => setExpanded(!expanded)}
-            className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors mono">
+            className="text-[10px] mono transition-colors" style={{ color:'var(--t3)' }}>
             {expanded ? 'collapse' : 'details'}
           </button>
         }
@@ -72,8 +69,8 @@ function SDRCard({ dev }: { dev: typeof sdrDevices[0] }) {
           </div>
         </div>
         <div className="mt-2 flex items-center gap-3">
-          <span className="text-[10px] text-slate-600">Timestamp tier:</span>
-          <span className={`mono text-[10px] ${TIER_COLORS[dev.tier]}`}>
+          <span className="text-[10px]" style={{ color:'var(--t3)' }}>Timestamp tier:</span>
+          <span className="mono text-[10px]" style={{ color:'var(--t2)' }}>
             {dev.tier} — {TIER_LABELS[dev.tier]}
           </span>
         </div>
@@ -85,7 +82,7 @@ function SDRCard({ dev }: { dev: typeof sdrDevices[0] }) {
             <WaterfallDisplay freqMHz={dev.freqMHz} />
           </div>
         )}
-        <div className="mt-3 p-2 bg-amber-400/5 border border-amber-400/10 rounded-sm text-[10px] text-amber-400/70">
+        <div className="mt-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
           Clock discipline accuracy ≠ SDR sample-timestamp accuracy. Tier {dev.tier} device.
         </div>
       </CardBody>
@@ -117,7 +114,7 @@ export default function RadioSDR() {
   return (
     <div className="space-y-4 page-enter">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-sm font-semibold text-[#dde3ef]">Radio & SDR</h1>
+        <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Radio & SDR</h1>
         {isDemo ? <StatusBadge variant="info" label={`${sdrDevices.length} DEVICES ACTIVE`} /> : <MaturityBadge level="planned" />}
       </div>
 
@@ -132,7 +129,7 @@ export default function RadioSDR() {
           <Card>
             <CardHeader title="Experimental Capture" badge={<StatusBadge variant="muted" label="NOT CONNECTED" />} action={<MaturityBadge level="research" />} />
             <CardBody>
-              <div className="text-[11px] text-slate-600">Airspy HF+ Discovery — configured for experimental IQ capture. Device not currently connected.</div>
+              <div className="text-[11px]" style={{ color:'var(--t3)' }}>Airspy HF+ Discovery — configured for experimental IQ capture. Device not currently connected.</div>
               <MetricRow label="Assigned service" value="Experimental" muted />
               <MetricRow label="Planned tier" value="4 — PPS + reference clock" muted />
             </CardBody>
@@ -147,19 +144,19 @@ export default function RadioSDR() {
           <CardBody className="p-0">
             <div className="table-scroll"><table className="w-full text-[11px]">
               <thead>
-                <tr className="border-b border-[#222840]">
+                <tr style={{ borderBottom:'1px solid var(--border)' }}>
                   {['Module','Maturity','SDR','Notes'].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-slate-600 font-normal">{h}</th>
+                    <th key={h} className="text-left px-4 py-2.5 font-normal mono text-[10px]" style={{ color:'var(--t3)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sorted.map(m => (
-                  <tr key={m.name} className="border-b border-[#1a1e2e] hover:bg-[#1a1e2e] transition-colors">
-                    <td className="px-4 py-2.5 text-slate-300">{m.name}</td>
+                  <tr key={m.name} className="row-sep">
+                    <td className="px-4 py-2.5" style={{ color:'var(--t1)' }}>{m.name}</td>
                     <td className="px-4 py-2.5"><MaturityBadge level={m.maturity as any} /></td>
-                    <td className="px-4 py-2.5 mono text-slate-500">{m.sdr}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{m.notes}</td>
+                    <td className="px-4 py-2.5 mono" style={{ color:'var(--t2)' }}>{m.sdr}</td>
+                    <td className="px-4 py-2.5" style={{ color:'var(--t3)' }}>{m.notes}</td>
                   </tr>
                 ))}
               </tbody>
@@ -172,23 +169,23 @@ export default function RadioSDR() {
         <Card>
           <CardHeader title="SDR Timestamp Capability Tiers" />
           <CardBody>
-            <div className="mb-3 p-2 bg-amber-400/5 border border-amber-400/15 rounded-sm text-[10px] text-amber-400/80">
+            <div className="mb-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
               Important: GPS/PPS clock discipline accuracy is not automatically the sample-timestamp accuracy of an SDR device. Tiers define what is actually achieved.
             </div>
             <div className="space-y-3">
               {[
-                { tier:1, label:'USB Receive-Only', desc:'Sample timestamps derived from USB host clock. ±ms uncertainty typical. No GPS relationship.', color:'text-slate-500' },
-                { tier:2, label:'Frequency-Calibrated', desc:'Oscillator calibrated against GPS-disciplined reference. Fractional frequency error ~10⁻⁶ to 10⁻⁹. Time origin not precisely known.', color:'text-cyan-400/70' },
-                { tier:3, label:'PPS/Epoch-Aligned', desc:'Sample epoch snapped to PPS epoch at start of capture. Drift accumulates. Useful for short captures.', color:'text-cyan-400' },
-                { tier:4, label:'PPS + Reference Clock', desc:'Ongoing frequency correction plus PPS epoch alignment. Sub-µs sample timestamp accuracy for extended captures.', color:'text-blue-400' },
-                { tier:5, label:'Hardware Timestamped', desc:'Device provides per-sample hardware timestamps from a calibrated oscillator phase-characterized against PPS. Best achievable.', color:'text-purple-400' },
+                { tier:1, label:'USB Receive-Only', desc:'Sample timestamps derived from USB host clock. ±ms uncertainty typical. No GPS relationship.' },
+                { tier:2, label:'Frequency-Calibrated', desc:'Oscillator calibrated against GPS-disciplined reference. Fractional frequency error ~10⁻⁶ to 10⁻⁹. Time origin not precisely known.' },
+                { tier:3, label:'PPS/Epoch-Aligned', desc:'Sample epoch snapped to PPS epoch at start of capture. Drift accumulates. Useful for short captures.' },
+                { tier:4, label:'PPS + Reference Clock', desc:'Ongoing frequency correction plus PPS epoch alignment. Sub-µs sample timestamp accuracy for extended captures.' },
+                { tier:5, label:'Hardware Timestamped', desc:'Device provides per-sample hardware timestamps from a calibrated oscillator phase-characterized against PPS. Best achievable.' },
               ].map(t => (
-                <div key={t.tier} className="flex gap-4 p-3 bg-[#0e1118] border border-[#1a1e2e] rounded-sm">
-                  <div className={`mono text-lg font-light ${t.color} w-6 text-center`}>{t.tier}</div>
+                <div key={t.tier} className="flex gap-4 p-3 rounded-[2px]" style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-dim)' }}>
+                  <div className="mono text-base font-light w-6 text-center" style={{ color:'var(--t1)' }}>{t.tier}</div>
                   <div className="flex-1">
-                    <div className={`text-[12px] font-medium ${t.color}`}>{t.label}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{t.desc}</div>
-                    {isDemo && <div className="mt-1 text-[10px] text-slate-600">
+                    <div className="text-[12px] font-medium" style={{ color:'var(--t1)' }}>{t.label}</div>
+                    <div className="text-[11px] mt-0.5" style={{ color:'var(--t2)' }}>{t.desc}</div>
+                    {isDemo && <div className="mt-1 text-[10px]" style={{ color:'var(--t3)' }}>
                       Currently installed: {sdrDevices.filter(d=>d.tier===t.tier).map(d=>d.id).join(', ') || 'none'}
                     </div>}
                   </div>

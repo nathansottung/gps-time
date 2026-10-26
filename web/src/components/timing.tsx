@@ -49,7 +49,7 @@ function Row({ k, v, mono = true }: { k: string; v: ReactNode; mono?: boolean })
   return (
     <div className="flex justify-between gap-2 py-[2px] text-[10px]">
       <span style={{ color: 'var(--t3)' }}>{k}</span>
-      <span className={mono ? 'mono tabular text-right' : 'text-right'} style={{ color: v === null || v === undefined ? 'var(--t4)' : 'var(--t1)' }}>
+      <span className={mono ? 'mono tabular text-right' : 'text-right'} style={{ color: v === null || v === undefined ? 'var(--t3)' : 'var(--t1)' }}>
         {v === null || v === undefined || v === '' ? 'UNKNOWN' : v}
       </span>
     </div>
@@ -60,7 +60,7 @@ function Column({ title, state, variant, children }: { title: string; state: str
   const s = STYLE[variant];
   return (
     <div className="rounded-[2px] p-2.5 min-w-0" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid var(--border-dim)' }}>
-      <div className="text-[9px] mono uppercase tracking-[0.14em] mb-1" style={{ color: 'var(--t4)' }}>{title}</div>
+      <div className="text-[9px] mono uppercase tracking-[0.12em] mb-1" style={{ color: 'var(--t3)' }}>{title}</div>
       <div className="mono text-[12px] font-medium uppercase mb-1.5 break-words leading-tight" style={{ color: s.text }}>{state}</div>
       {children}
     </div>
@@ -138,7 +138,7 @@ export function TimingChainCard({ onOpenDiagnostics }: { onOpenDiagnostics?: () 
             <Row k="PPS unavailable/unused for" v={c.events.open ? fmtDuration(c.events.open.duration_s) : 'no open outage'} mono={!!c.events.open} />
           </Column>
         </div>
-        <div className="text-[9px] mt-2" style={{ color: 'var(--t4)' }}>
+        <div className="text-[9px] mt-2" style={{ color: 'var(--t3)' }}>
           The receiver's PPS output itself is not observable by software; PPS signal values are Linux kernel timestamps.
         </div>
       </CardBody>

@@ -17,11 +17,11 @@ function ModuleList({ items, hidden, onToggle, note }: {
     <>
       {items.map(it => (
         <div key={it.id} className="flex items-center justify-between py-[6px] row-sep">
-          <span className="text-[11px]" style={{ color: hidden.includes(it.id) ? 'var(--t4)' : 'var(--t2)' }}>{it.label}</span>
+          <span className="text-[11px]" style={{ color: hidden.includes(it.id) ? 'var(--t3)' : 'var(--t2)' }}>{it.label}</span>
           <Toggle on={!hidden.includes(it.id)} onChange={() => onToggle(it.id)} label={`Show ${it.label}`} />
         </div>
       ))}
-      <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>{note}</div>
+      <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>{note}</div>
     </>
   );
 }
@@ -71,7 +71,7 @@ export default function Configure() {
                   </button>
                 ))}
               </div>
-              <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+              <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
                 Night shows only red light, dimmed, to keep dark adaptation while observing. Also in the header (Night). Shared with the legacy pages in this browser.
               </div>
             </CardBody>

@@ -42,7 +42,7 @@ export function SkyMapCard({ sky, when, demo }: { sky: unknown; when: string | n
             ))}
           </svg>
         )}
-        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+        <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
           Map view: zenith at the centre, horizon at the edge, north up, east right (as the other sky plots here). Rings at 30° and 60° altitude.
         </div>
       </CardBody>
@@ -80,7 +80,7 @@ export function ObjectLookupCard({ date, tz, at, onTarget }: { date: string; tz:
           <button onClick={look} disabled={busy || !q.trim()} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={BTN}>{busy ? 'Looking…' : 'Look up'}</button>
           {res && <button onClick={clear} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={BTN}>Clear</button>}
         </div>
-        <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>Coordinates are read as J2000. The lookup is for this page only; the station keeps no shared target.</div>
+        <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>Coordinates are read as J2000. The lookup is for this page only; the station keeps no shared target.</div>
         {err && <div className="text-[10px] mono mt-2" style={{ color:'var(--err-text)' }}>{err}</div>}
         {res && 'error' in res && (
           <div className="text-[10px] mt-2" style={{ color:'var(--warn-text)' }}>

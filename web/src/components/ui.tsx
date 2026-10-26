@@ -1,5 +1,15 @@
-import { ReactNode, useState } from 'react';
+import { createContext, ReactNode, useContext, useState } from 'react';
 import { Sensitive } from './screenshot';
+import { useStarting } from '../api/station';
+
+// Inside a pending card, or while the station's first answers load, a missing value is
+// still loading ("…"), not UNKNOWN. UNKNOWN is only for what the station couldn't establish.
+const PendingCtx = createContext(false);
+
+/** The loading mark for one value. */
+export function Loading() {
+  return <span className="mono text-[12px]" style={{ color:'var(--t3)' }} role="status" aria-busy="true" aria-label="loading">…</span>;
+}
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 type BadgeVariant = 'good'|'warn'|'error'|'info'|'muted'|'demo';
@@ -46,7 +56,7 @@ export function SectionHeader({ title, sub, action, provenance }: {
       <div className="flex items-center gap-2">
         <span className="text-[9px] font-semibold uppercase tracking-[0.18em]" style={{ color:'var(--t3)' }}>{title}</span>
         {provenance && <ProvenanceTag type={provenance} />}
-        {sub && <span className="text-[10px]" style={{ color:'var(--t4)' }}>— {sub}</span>}
+        {sub && <span className="text-[10px]" style={{ color:'var(--t3)' }}>— {sub}</span>}
       </div>
       {action}
     </div>
@@ -61,17 +71,21 @@ export function MetricRow({ label, value, unit, uncertainty, provenance, muted, 
   sensitive?: boolean;
 }) {
   // null/undefined = the station can't establish this value: show UNKNOWN, never a guess.
+  // Before the data has arrived (pending card, or the station's first answers) it is loading instead.
+  const inPendingCard = useContext(PendingCtx);
+  const starting = useStarting();
+  const pending = inPendingCard || starting;
   if (value === null || value === undefined) {
     return (
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-[5px] row-sep">
-        <span className="text-[11px] min-w-0" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
-        <StatusBadge variant="muted" label="UNKNOWN" dot={false} />
+        <span className="text-[11px] min-w-0" style={{ color: muted ? 'var(--t3)' : 'var(--t2)' }}>{label}</span>
+        {pending ? <Loading /> : <StatusBadge variant="muted" label="UNKNOWN" dot={false} />}
       </div>
     );
   }
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-[5px] row-sep">
-      <span className="text-[11px] min-w-0" style={{ color: muted ? 'var(--t4)' : 'var(--t2)' }}>{label}</span>
+      <span className="text-[11px] min-w-0" style={{ color: muted ? 'var(--t3)' : 'var(--t2)' }}>{label}</span>
       <div className="flex items-baseline gap-1.5 ml-auto">
         <span className={`mono tabular ${large ? 'text-base' : 'text-[12px]'} font-medium`} style={{ color:'var(--t1)' }}>{sensitive ? <Sensitive>{value}</Sensitive> : value}</span>
         {unit && <span className="text-[10px]" style={{ color:'var(--t3)' }}>{unit}</span>}
@@ -90,11 +104,11 @@ export function SciValue({ value, unit, uncertainty, sub, highlight }: {
     <div className="flex flex-col">
       <div className="flex items-baseline gap-1.5">
         <span
-          className={`mono tabular font-medium ${highlight ? 'text-2xl' : 'text-sm'}`}
+          className={`mono tabular font-medium ${highlight ? 'text-xl' : 'text-base'}`}
           style={{ color: highlight ? 'var(--live)' : 'var(--t1)' }}
         >{value}</span>
         {unit        && <span className="text-[11px]" style={{ color:'var(--t3)' }}>{unit}</span>}
-        {uncertainty && <span className="text-[10px]" style={{ color:'var(--t4)' }}>±{uncertainty}</span>}
+        {uncertainty && <span className="text-[10px]" style={{ color:'var(--t3)' }}>±{uncertainty}</span>}
       </div>
       {sub && <span className="text-[10px]" style={{ color:'var(--t3)' }}>{sub}</span>}
     </div>
@@ -102,9 +116,25 @@ export function SciValue({ value, unit, uncertainty, sub, highlight }: {
 }
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
-export function Card({ children, className='' }: { children: ReactNode; className?: string }) {
+/** pending: this card's data hasn't arrived yet; its missing values show as loading. */
+export function Card({ children, className='', pending=false }: { children: ReactNode; className?: string; pending?: boolean }) {
+  const outer = useContext(PendingCtx);
   // Each card is a size container: grids inside it follow the card's width (@md:…), not the window's.
-  return <div className={`card-surface @container ${className}`}>{children}</div>;
+  return (
+    <div className={`card-surface @container ${className}`} aria-busy={pending || undefined}>
+      <PendingCtx.Provider value={pending || outer}>{children}</PendingCtx.Provider>
+    </div>
+  );
+}
+
+/** A chart, list or table area whose data is loading. */
+export function LoadingNote({ what }: { what: string }) {
+  return <div className="text-[10px] py-6 text-center" style={{ color:'var(--t3)' }} role="status" aria-busy="true">Loading {what}…</div>;
+}
+
+/** A chart, list or table area with nothing to show; says why. */
+export function EmptyNote({ children }: { children: ReactNode }) {
+  return <div className="text-[10px] py-6 text-center" style={{ color:'var(--t3)' }}>{children}</div>;
 }
 
 export function CardHeader({ title, badge, action, icon }: {
@@ -151,9 +181,9 @@ export function ELI5({ text }: { text: string }) {
     <div className="mt-1.5">
       <button onClick={() => setOpen(!open)}
         className="text-[9px] mono underline underline-offset-2 transition-colors"
-        style={{ color:'var(--t4)' }}
-        onMouseEnter={e=>(e.currentTarget.style.color='var(--t3)')}
-        onMouseLeave={e=>(e.currentTarget.style.color='var(--t4)')}>
+        style={{ color:'var(--t3)' }}
+        onMouseEnter={e=>(e.currentTarget.style.color='var(--t2)')}
+        onMouseLeave={e=>(e.currentTarget.style.color='var(--t3)')}>
         {open ? 'hide explanation' : 'what does this mean?'}
       </button>
       {open && (

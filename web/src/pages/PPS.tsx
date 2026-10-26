@@ -95,8 +95,8 @@ function EventRow({ e }: { e: TimingEvent }) {
         <span style={{ color: 'var(--t3)' }}>Satellites used: <span className="mono" style={{ color: 'var(--t2)' }}>
           {e.evidence.satellites_used_range ? e.evidence.satellites_used_range.join('–') : '—'}</span></span>
       </div>
-      {e.notes.length > 0 && <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>{e.notes.join(' ')}</div>}
-      {r?.note && <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>{r.note}</div>}
+      {e.notes.length > 0 && <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>{e.notes.join(' ')}</div>}
+      {r?.note && <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>{r.note}</div>}
     </div>
   );
 }
@@ -104,7 +104,7 @@ function EventRow({ e }: { e: TimingEvent }) {
 function Raw({ title, text }: { title: string; text: string | undefined }) {
   return (
     <div>
-      <div className="text-[9px] mono uppercase tracking-[0.14em] mb-1" style={{ color: 'var(--t3)' }}>{title}</div>
+      <div className="text-[9px] mono uppercase tracking-[0.12em] mb-1" style={{ color: 'var(--t3)' }}>{title}</div>
       <pre className="mono text-[10px] whitespace-pre overflow-x-auto p-2 rounded-[2px]"
         style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t2)' }}>{text || '(not available)'}</pre>
     </div>
@@ -217,7 +217,7 @@ export default function PPS() {
           <MetricRow label="Confidence" value={c.classification.confidence} />
           <MetricRow label="Boundary in the signal path" value={c.classification.boundary} />
           {c.classification.notes.map(n => <div key={n} className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>{n}</div>)}
-          <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>A classification names where in the path the evidence points, not a cause.</div>
+          <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>A classification names where in the path the evidence points, not a cause.</div>
         </Section>
       )}
 
@@ -229,7 +229,7 @@ export default function PPS() {
           <MetricRow label="sysfs path" value={p.metadata?.path ?? null} />
           <MetricRow label="Configured GPIO" value={p.boot_config?.gpio ?? null} />
           <MetricRow label="Assert edge" value={p.boot_config?.assert_edge ?? null} />
-          <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>GPIO and edge from {p.boot_config?.source ?? 'UNKNOWN'} (boot configuration, read-only).</div>
+          <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>GPIO and edge from {p.boot_config?.source ?? 'UNKNOWN'} (boot configuration, read-only).</div>
         </Section>
 
         <Section title="Live PPS (Linux kernel)" prov="observed">
@@ -248,7 +248,7 @@ export default function PPS() {
           <MetricRow label="Interval mean / min / max" value={stats ? `${sec(stats.mean)} / ${sec(stats.min)} / ${sec(stats.max)}` : null} provenance="calculated" />
           <MetricRow label="Interval std. dev." value={stats ? sec(stats.stdev) : null} provenance="calculated" />
           <MetricRow label="Thresholds degraded / lost" value={p.thresholds_s ? `${p.thresholds_s.degraded_after} s / ${p.thresholds_s.lost_after} s` : null} muted />
-          <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>Interval statistics are kernel timestamp spacing, not receiver or electrical PPS jitter.</div>
+          <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>Interval statistics are kernel timestamp spacing, not receiver or electrical PPS jitter.</div>
         </Section>
 
         <Section title="chrony PPS refclock" prov="observed">
@@ -266,7 +266,7 @@ export default function PPS() {
           <MetricRow label="NMEA lock refclock" value={ch.refclocks.pps_lock ? `${ch.refclocks.pps_lock} — ${ch.nmea_status}` : null} />
           <MetricRow label="Selected source" value={ch.selected ? `${ch.selected.name} (${ch.selected.kind})` : 'none'} />
           <MetricRow label="System stratum / reference" value={ch.tracking ? `${ch.tracking.stratum ?? '—'} / ${ch.tracking.reference ?? '—'}` : null} />
-          <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>chrony does not report why a source is rejected; no reason is inferred.</div>
+          <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>chrony does not report why a source is rejected; no reason is inferred.</div>
         </Section>
       </div>
 
@@ -305,10 +305,10 @@ export default function PPS() {
                 <>
                   <MetricRow label="Residual vs PPS-disciplined clock" value={signed(val(cal.residual_s!))} provenance="observed" />
                   <MetricRow label="Std. dev. / samples" value={`${fmtSeconds(val(cal.std_dev_s!)) ?? '—'} / ${val(cal.samples!)}`} provenance="observed" />
-                  <div className="text-[10px] mt-1" style={{ color: cal.change_worthwhile ? 'var(--t2)' : 'var(--t4)' }}>{cal.advice}</div>
+                  <div className="text-[10px] mt-1" style={{ color: cal.change_worthwhile ? 'var(--t2)' : 'var(--t3)' }}>{cal.advice}</div>
                 </>
               ) : null}
-              <div className="text-[10px] mt-1" style={{ color: 'var(--t4)' }}>
+              <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>
                 A positive residual means the serial time still arrives late. The station only reports this; it never edits chrony.conf.
                 The PPS refclock uses NMEA to number its seconds, so NMEA needs to be right to a fraction of a second, not better.
               </div>
@@ -320,7 +320,7 @@ export default function PPS() {
       <Section title="PPS outage events" prov="observed">
         {events.length ? events.map(e => <EventRow key={e.id} e={e} />)
           : <div className="text-[11px]" style={{ color: 'var(--t3)' }}>No PPS outages recorded.</div>}
-        <div className="text-[10px] mt-2" style={{ color: 'var(--t4)' }}>
+        <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>
           Max |correction| is the largest remaining correction chrony reported during the outage: chrony's estimate, not an independent error measurement.
         </div>
       </Section>

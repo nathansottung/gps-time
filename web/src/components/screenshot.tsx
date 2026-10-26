@@ -44,7 +44,7 @@ export function ScreenshotToggle(): ReactNode {
         ? { border:'1px solid var(--accent)', color:'var(--accent)', background:'var(--accent-dim)' }
         : { border:'1px solid var(--border)', color:'var(--t3)' }}>
       <span className="uppercase tracking-[0.08em]">Screenshot {hidden ? 'on' : 'off'}</span>
-      <span style={{ color: hidden ? 'var(--accent)' : 'var(--t4)' }}>display only</span>
+      <span style={{ color: hidden ? 'var(--accent)' : 'var(--t3)' }}>display only</span>
     </button>
   );
 }

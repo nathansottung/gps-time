@@ -78,8 +78,8 @@ function Header({ navOpen, onMenu }: { navOpen: boolean; onMenu: () => void }) {
           })}
         </svg>
         <span className="mono text-[12px] font-semibold tracking-tight" style={{ color:'var(--t1)' }}>GPS Time</span>
-        <span className="hidden sm:inline text-[9px] mono" style={{ color:'var(--t4)' }}>|</span>
-        <span className="hidden sm:inline text-[11px] truncate" style={{ color:'var(--t3)' }}><Sensitive>{stationName}</Sensitive></span>
+        <span aria-hidden className="hidden sm:inline text-[9px] mono" style={{ color:'var(--t4)' }}>|</span>
+        <span className="hidden sm:inline text-[11px] mono truncate" style={{ color:'var(--t3)' }}><Sensitive>{stationName}</Sensitive></span>
       </div>
 
       {/* Centre — station state chips (stratum and reference from 768 px) */}
@@ -151,7 +151,7 @@ function Sidebar({ active, onNavigate, open }: { active: string; onNavigate: (id
           return (
             <div key={group} className={group ? 'mt-1' : ''}>
               {group && (
-                <div className="px-4 pt-3 pb-1 text-[8px] mono uppercase tracking-[0.18em]" style={{ color:'var(--t4)' }}>
+                <div className="px-4 pt-3 pb-1 text-[8px] mono uppercase tracking-[0.18em]" style={{ color:'var(--t3)' }}>
                   {group}
                 </div>
               )}
@@ -162,13 +162,13 @@ function Sidebar({ active, onNavigate, open }: { active: string; onNavigate: (id
                   className={`nav-item w-full text-left flex items-center gap-2.5 px-4 py-[7px] text-[11px] ${active===item.id ? 'active' : ''}`}
                   style={{ color: active===item.id ? 'var(--t1)' : 'var(--t2)' }}
                 >
-                  <span className="nav-icon text-[12px] w-4 text-center flex-shrink-0"
+                  <span aria-hidden className="nav-icon text-[12px] w-4 text-center flex-shrink-0"
                     style={{ color: active===item.id ? 'var(--accent)' : 'var(--t4)' }}>
                     {item.icon}
                   </span>
                   <span className="truncate">{item.label}</span>
                   {item.maturity === 'research' && (
-                    <span className="ml-auto text-[7px] mono uppercase tracking-wider flex-shrink-0 px-1 py-0.5 rounded-[2px]"
+                    <span className="ml-auto text-[8px] mono uppercase tracking-[0.08em] flex-shrink-0 px-1 py-0.5 rounded-[2px]"
                       style={{ color:'var(--mod-text)', border:'1px solid var(--mod-border)', background:'var(--mod-bg)' }}>R</span>
                   )}
                 </button>
@@ -180,7 +180,7 @@ function Sidebar({ active, onNavigate, open }: { active: string; onNavigate: (id
 
       {/* Build info */}
       <div className="px-4 py-3" style={{ borderTop:'1px solid var(--border-dim)' }}>
-        <div className="text-[8px] mono leading-relaxed" style={{ color:'var(--t4)' }}>
+        <div className="text-[8px] mono leading-relaxed" style={{ color:'var(--t3)' }}>
           {versionLine(UI_VERSION, core.data ? core.data.versions.app : core.error ? null : undefined)} · MIT License
         </div>
       </div>

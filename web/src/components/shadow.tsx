@@ -147,7 +147,7 @@ export function ShadowPanel() {
             <div>
               <ShadowSkyMap map={d.map} sun={d.sun} picked={picked} onPick={setPicked} />
               <Legend />
-              <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
+              <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
                 Zenith at the centre, horizon at the edge, north up. The penumbra is a thin band. Click the map to ask about one direction.
               </div>
               {custom !== '' && !customKm && <div className="text-[9px] mt-1" style={{ color:'var(--warn-text)' }}>Shell height must be 100 to 50,000 km.</div>}
@@ -163,7 +163,7 @@ export function ShadowPanel() {
                     <MetricRow label="Distance to that point" value={fmtKm(d.query.range_km)} provenance="modeled" />
                     {d.query.state === 'PENUMBRA' && <MetricRow label="Sunlit fraction (estimate)" value={`${(d.query.sunlit_fraction * 100).toFixed(0)}%`} />}
                   </div>
-                : <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>Click a point on the map.</div>}
+                : <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Click a point on the map.</div>}
               <div className="text-[10px] mt-3" style={{ color:'var(--t3)' }}>{d.meaning}</div>
             </div>
           </div>
@@ -212,8 +212,8 @@ export function ShadowPanel() {
             </div>
           </div>
           <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{d.model}</div>
-          <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
-            As of {fmtUtc(d.as_of_utc)}.{d.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting.'}
+          <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
+            As of {fmtUtc(d.as_of_utc)}.{d.location_display === 'rounded' && ' Computed for the rounded-[2px] site (~11 km), per the privacy setting.'}
           </div>
           <ELI5 text="After sunset the ground is in the Earth's shadow, but a satellite hundreds of kilometres up can still catch the Sun and leave a bright trail in a photo. As the night deepens the shadow climbs, low satellites go dark overhead first, and sunlit ones remain only low in the sky toward where the Sun set." />
         </CardBody>
@@ -228,13 +228,13 @@ function PassRow({ p }: { p: SatellitePass }) {
   return (
     <tr className="row-sep">
       <td className="px-4 py-2 mono tabular whitespace-nowrap" style={{ color:'var(--t1)' }}>
-        {p.rise ? t(p.rise.utc) : 'under way'}<span style={{ color:'var(--t4)' }}> {p.rise ? compass(p.rise.azimuth_deg) : ''}</span>
+        {p.rise ? t(p.rise.utc) : 'under way'}<span style={{ color:'var(--t3)' }}> {p.rise ? compass(p.rise.azimuth_deg) : ''}</span>
       </td>
       <td className="px-4 py-2 mono tabular whitespace-nowrap" style={{ color:'var(--t2)' }}>
         {t(p.culmination.utc)} · {fmtDeg(p.culmination.altitude_deg, 0)} {compass(p.culmination.azimuth_deg)} · {fmtKm(p.culmination.range_km)}
       </td>
       <td className="px-4 py-2 mono tabular whitespace-nowrap" style={{ color:'var(--t2)' }}>
-        {p.set ? t(p.set.utc) : 'still up'}<span style={{ color:'var(--t4)' }}> {p.set ? compass(p.set.azimuth_deg) : ''}</span>
+        {p.set ? t(p.set.utc) : 'still up'}<span style={{ color:'var(--t3)' }}> {p.set ? compass(p.set.azimuth_deg) : ''}</span>
       </td>
       <td className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>
         {p.shadow_changes.length ? p.shadow_changes.map(c => `${c.kind} ${t(c.utc)}`).join(' · ') : `${stateLabel(p.culmination.state).toLowerCase()} throughout`}
@@ -242,7 +242,7 @@ function PassRow({ p }: { p: SatellitePass }) {
       <td className="px-4 py-2 text-[10px] whitespace-nowrap">
         {p.visible
           ? <span style={{ color:'var(--warn-text)' }}>{t(p.visible.start_utc)} to {t(p.visible.end_utc)} ({fmtDurationShort(p.visible.duration_s)}), up to {fmtDeg(p.visible.max_altitude_deg, 0)}</span>
-          : <span style={{ color:'var(--t4)' }}>none</span>}
+          : <span style={{ color:'var(--t3)' }}>none</span>}
       </td>
     </tr>
   );
@@ -315,7 +315,7 @@ export function SatellitesPanel() {
               {d.featured.map(s => <NowCard key={s.norad} s={s} />)}
               {d.satellite && !d.featured.some(f => f.norad === d.satellite!.norad) && <NowCard s={d.satellite} />}
             </div>
-            {!d.featured.length && !d.satellite && <div className="text-[10px]" style={{ color:'var(--t4)' }}>Search for a satellite below.</div>}
+            {!d.featured.length && !d.satellite && <div className="text-[10px]" style={{ color:'var(--t3)' }}>Search for a satellite below.</div>}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <input value={text} onChange={e => setText(e.target.value)} placeholder="name or NORAD number" aria-label="Search the cached satellites"
                 onKeyDown={e => { if (e.key === 'Enter') setQ(text.trim()); }}
@@ -328,7 +328,7 @@ export function SatellitesPanel() {
                 </button>
               ))}
             </div>
-            {q && !d.matches.length && <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>No cached satellite matches "{q}".</div>}
+            {q && !d.matches.length && <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>No cached satellite matches "{q}".</div>}
           </CardBody>
         </Card>
 
@@ -344,11 +344,11 @@ export function SatellitesPanel() {
               </tr></thead>
               <tbody>
                 {d.passes.map((p, i) => <PassRow key={i} p={p} />)}
-                {!d.passes.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>No passes above the horizon in this window.</td></tr>}
+                {!d.passes.length && <tr><td colSpan={5} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>No passes above the horizon in this window.</td></tr>}
               </tbody>
             </table></div>
-            <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
-              Times in {TZ}. {d.meaning}{d.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting: times can be off by several seconds.'}
+            <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>
+              Times in {TZ}. {d.meaning}{d.location_display === 'rounded' && ' Computed for the rounded-[2px] site (~11 km), per the privacy setting: times can be off by several seconds.'}
             </div>
           </CardBody>
         </Card>

@@ -17,7 +17,7 @@ export function DateNav({ date, today, onChange }: { date: string; today: string
         className="px-2 py-[5px] text-[10px] mono rounded-[2px]" style={BTN}>→</button>
       <button onClick={() => onChange(today)} disabled={date === today}
         className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={BTN}>Today</button>
-      <span className="text-[9px] mono" style={{ color:'var(--t4)' }}>{DATE_MIN.slice(0, 4)}–{DATE_MAX.slice(0, 4)} (JPL DE440s)</span>
+      <span className="text-[9px] mono" style={{ color:'var(--t3)' }}>{DATE_MIN.slice(0, 4)}–{DATE_MAX.slice(0, 4)} (JPL DE440s)</span>
     </div>
   );
 }
@@ -57,7 +57,7 @@ export function DayBarCard({ sun, tz }: { sun: SolarDay | null; tz: string }) {
           </div>
           <Legend states={[...new Set(pieces.map(p => p.state))].sort()} />
         </>}
-        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+        <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
           Standard refraction and a flat horizon; observed times vary with the atmosphere and the local horizon.
         </div>
       </CardBody>

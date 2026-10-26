@@ -112,14 +112,14 @@ export function PPSTimeline({ events }: { events: { date: string; durationS: num
           <rect key={i} x={o.xPct} y="6" width={o.wPct} height="10" fill="var(--err-text)" fillOpacity={0.45} rx="0.3"/>
         ))}
         {['00:00','06:00','12:00','18:00','24:00'].map((t,i)=>(
-          <text key={t} x={i*25} y="23" fontSize="5" fill="var(--t4)" fontFamily="JetBrains Mono" textAnchor={i===4?"end":i===0?"start":"middle"}>{t}</text>
+          <text key={t} x={i*25} y="23" fontSize="5" fill="var(--t3)" fontFamily="JetBrains Mono" textAnchor={i===4?"end":i===0?"start":"middle"}>{t}</text>
         ))}
       </svg>
       <div className="flex gap-4 mt-1">
-        <span className="flex items-center gap-1 text-[9px] mono" style={{ color:'var(--t4)' }}>
+        <span className="flex items-center gap-1 text-[9px] mono" style={{ color:'var(--t3)' }}>
           <span className="w-2.5 h-1 inline-block rounded-[1px]" style={{ background:'var(--good-bg)', border:'1px solid var(--good-border)' }}/>PPS LOCKED
         </span>
-        <span className="flex items-center gap-1 text-[9px] mono" style={{ color:'var(--t4)' }}>
+        <span className="flex items-center gap-1 text-[9px] mono" style={{ color:'var(--t3)' }}>
           <span className="w-2.5 h-1 inline-block rounded-[1px]" style={{ background:'var(--err-bg)', border:'1px solid var(--err-border)' }}/>OUTAGE
         </span>
       </div>
@@ -184,11 +184,11 @@ export function SkyPlot({ sats, hiddenNote }: { sats: { sys:string; svid:string;
         { l:'S', x:cx, y:sz-5, a:'middle' },
         { l:'W', x:9, y:cy+3, a:'start' },
       ].map(c => (
-        <text key={c.l} x={c.x} y={c.y} textAnchor={c.a as any} fontSize="8" fill="var(--t4)" fontFamily="JetBrains Mono">{c.l}</text>
+        <text key={c.l} x={c.x} y={c.y} textAnchor={c.a as any} fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">{c.l}</text>
       ))}
       {/* Elevation labels */}
-      <text x={cx+2} y={cy-r/3+2} fontSize="7" fill="var(--t4)" fontFamily="JetBrains Mono">60°</text>
-      <text x={cx+2} y={cy-r*2/3+2} fontSize="7" fill="var(--t4)" fontFamily="JetBrains Mono">30°</text>
+      <text x={cx+2} y={cy-r/3+2} fontSize="7" fill="var(--t3)" fontFamily="JetBrains Mono">60°</text>
+      <text x={cx+2} y={cy-r*2/3+2} fontSize="7" fill="var(--t3)" fontFamily="JetBrains Mono">30°</text>
       {hiddenNote && <text x={cx} y={cy+3} textAnchor="middle" fontSize="7" fill="var(--t3)" fontFamily="JetBrains Mono">{hiddenNote}</text>}
       {/* Satellites */}
       {sats.map(s => {
@@ -196,8 +196,9 @@ export function SkyPlot({ sats, hiddenNote }: { sats: { sys:string; svid:string;
         const col = SYSCOLOR[s.sys] || 'var(--t2)';
         const used = s.state === 'used';
         return (
-          <g key={s.sys + s.svid} opacity={used ? 1 : 0.35}>
-            <circle cx={x} cy={y} r={used?5:4} fill={col} fillOpacity={0.2} stroke={col} strokeWidth={used?1:0.75}/>
+          <g key={s.sys + s.svid}>
+            {/* tracked-only: a dimmer, smaller circle; the label stays legible (4.5:1) either way */}
+            <circle cx={x} cy={y} r={used?5:4} fill={col} fillOpacity={used ? 0.2 : 0.07} stroke={col} strokeWidth={used?1:0.75} strokeOpacity={used ? 1 : 0.35}/>
             <text x={x} y={y-7} textAnchor="middle" fontSize="6.5" fill={col} fontFamily="JetBrains Mono">{s.svid}</text>
           </g>
         );
