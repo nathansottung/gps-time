@@ -65,6 +65,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Web prototype
 - `../web/` — the station UI (React/Vite), served at `/app/` (`/` redirects there) and wired to the API through a typed client (`web/src/api/`). The legacy pages were removed after v1.4.0 (#99).
+- `dashboard/design-review-2026-10-26.md` — DONE (#130): the web UI checked against the guidelines (contrast, type scale, numbers, focus, loading and empty states, colour tokens, radii); 16 deviations and their fixes
 - `dashboard/web-ui-parity.md` — CLOSED: every legacy feature ported to `/app/` or dropped by the owner, with the PRs
 - `dashboard/legacy-removal-plan.md` — DONE (#99): what the legacy pages were, the code that existed only for them, the order followed, rollback
 - `../web/guidelines/Guidelines.md` — UI guidelines all project UI must follow

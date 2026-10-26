@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5 } from './ui';
 import { StabilityChart } from './charts';
 import { ApiErrorNote } from './planned';
-import { useStation, usePoll } from '../api/station';
+import { useStation, usePoll, isPending } from '../api/station';
 import {
   METRIC_LABEL, chartRows, fmtDeviation, fmtInterval, type StabilityMetric,
 } from '../lib/stability';
@@ -26,7 +26,7 @@ export function StabilityPanel() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card pending={isPending(st)}>
         <CardHeader
           title={`Frequency Stability — ${METRIC_LABEL[metric]}`}
           badge={<ProvenanceTag type="calculated" />}
@@ -36,22 +36,22 @@ export function StabilityPanel() {
           <ApiErrorNote error={st.error} />
           {rows.length
             ? <StabilityChart rows={rows} metric={metric} />
-            : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
+            : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>
                 {s ? (s.reason ?? 'No value at any averaging time yet for this statistic.') : 'Stability data not loaded.'}
               </div>}
           <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
             {s?.measurement_layer ?? 'System clock against kernel PPS timestamps (the Linux/chrony view of PPS).'}
           </div>
           {metric === 'adev'
-            ? <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
+            ? <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
                 Bars: {s ? `${(s.confidence.level * 100).toFixed(0)}%` : '68%'} confidence interval. {s?.confidence.method}
               </div>
-            : <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>No confidence interval is calculated for {sel}.</div>}
+            : <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>No confidence interval is calculated for {sel}.</div>}
           {s?.notes.map(n => <div key={n} className="text-[9px] mt-1" style={{ color:'var(--warn-text)' }}>{n}</div>)}
         </CardBody>
       </Card>
 
-      <Card>
+      <Card pending={isPending(st)}>
         <CardHeader title="Key Points" badge={<ProvenanceTag type="calculated" />} />
         <CardBody className="p-0">
           <div className="table-scroll"><table className="w-full text-[11px]">
@@ -74,21 +74,21 @@ export function StabilityPanel() {
                     </td>
                     <td className="px-4 py-2 mono tabular text-right whitespace-nowrap" style={{ color:'var(--t3)' }}>{k.point.adev_terms}</td>
                   </> : (
-                    <td colSpan={6} className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>UNKNOWN — {k.reason}</td>
+                    <td colSpan={6} className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>UNKNOWN — {k.reason}</td>
                   )}
                 </tr>
               ))}
-              {!s && <tr><td colSpan={7} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Stability data not loaded.</td></tr>}
+              {!s && <tr><td colSpan={7} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>Stability data not loaded.</td></tr>}
             </tbody>
           </table></div>
-          <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
+          <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>
             ADEV and MDEV are fractional frequency deviations (dimensionless). "Assumed" means too few points at that
             averaging time to identify the noise type; the type found at a shorter one was kept.
           </div>
         </CardBody>
       </Card>
 
-      <Card>
+      <Card pending={isPending(st)}>
         <CardHeader title="Data Behind These Values" badge={<ProvenanceTag type="observed" />} />
         <CardBody>
           <MetricRow label="History since" value={fmtUtc(s?.since_utc)} />

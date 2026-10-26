@@ -51,8 +51,32 @@ Weights 300–600 only. The 700 weight is not shipped.
 - All numeric measurements: `font-family: var(--font-mono); font-variant-numeric: tabular-nums`
 - Use CSS class `.mono` for monospace + tabular, `.tabular` for tabular-only
 - Section headers: `text-[9px] font-semibold uppercase tracking-[0.18em]` in `--t3` color
+- Sizes come from the type scale below; letter-spacing from its set
 - Never use weight 700 (it is not shipped; the browser would synthesize a fake bold). Use 600 only for headings
 - Never mix mono and sans within a single value+unit pair — keep units in sans at `--t3` alongside mono value
+
+### Type scale
+
+Every font size on screen is one of these (checked in the browser by `e2e/design.spec.ts`):
+
+| Size | Class | Use |
+|---|---|---|
+| 8px | `text-[8px]` | provenance tags, research badge |
+| 9px | `text-[9px]` | section headers, sub-labels, badges, chips, chart ticks |
+| 10px | `text-[10px]` | tabs, units, notes, small tables |
+| 11px | `text-[11px]` | labels, card text, tables |
+| 12px | `text-[12px]` | `MetricRow` values |
+| 13px | (body) | prose default |
+| 14px | `text-sm` | page title (`h1`, `font-semibold`, `--t1`), one per page |
+| 16px | `text-base` | a large value (`MetricRow large`, `SciValue`) |
+| 20px | `text-xl` | a featured value (`SciValue highlight`, holdover figures) |
+| 36px | `fontSize:36` | the primary Δt reading |
+| 44px | `fontSize:44` | the station clock |
+| 72px | `fontSize:72` | the focus view's Δt |
+
+SVG plots may use smaller sizes inside the drawing (sky-plot labels 6.5–8px); they still meet the contrast rule.
+
+**Letter-spacing:** `tracking-[0.18em]` section headers and nav group labels; `tracking-[0.12em]` uppercase sub-labels inside a card; `tracking-[0.1em]` badges and tabs; `tracking-[0.08em]` chips and small toggles. Nothing else (the `GPS Time` wordmark keeps `tracking-tight`).
 
 ---
 
@@ -85,17 +109,21 @@ Use opacity-based borders rather than hex colors — they adapt to any surface c
 ### Text Hierarchy (4 levels)
 
 ```css
---t1: #e2e6ef;   /* Primary: live values, page headings, important data */
---t2: #8892aa;   /* Secondary: labels, field names, identifiers */
---t3: #4c5268;   /* Tertiary: section headers (uppercase), metadata, footnotes */
---t4: #282d3c;   /* Quaternary: barely-there markers, build info, placeholders */
+--t1: #e2e6ef;   /* Primary: live values, page headings, important data (13.5:1 or more) */
+--t2: #9fa7ba;   /* Secondary: labels, field names, identifiers (7.0:1 or more) */
+--t3: #8188a3;   /* Tertiary: section headers (uppercase), units, metadata, notes (4.8:1 or more) */
+--t4: #3a4052;   /* Quaternary: decorative marks only — dividers, inactive nav icons. Never text */
 ```
+
+**Contrast rule (WCAG 2.2 AA):** text is at least 4.5:1 against the surface it sits on (3:1 at 24px, or 18.66px semibold); the focus ring and meaningful graphics at least 3:1. The ratios above are the worst case over `--bg`, `--nav`, `--card`, `--card-hi` and `--float`. Don't dim text with `opacity`. Disabled controls are exempt. `e2e/design.spec.ts` checks every page.
 
 **Use the correct level:**
 - A measurement value → `--t1`
 - The label next to that value → `--t2`
-- A section title like "TIMING QUALITY" → `--t3`
-- A timestamp in a footer or version string → `--t4`
+- A section title like "TIMING QUALITY", a unit, a note, a version string → `--t3`
+- A divider glyph or an inactive nav icon (with `aria-hidden`) → `--t4`
+
+The red night theme lifts `--t2`–`--t4` further (`:root[data-theme="night"]`), because only the red channel survives its overlay.
 
 ### Live / Accent
 
@@ -131,7 +159,7 @@ All status colors are desaturated — they signal state without visually shoutin
 
 /* Error / loss / critical */
 --err:         #9e4040;
---err-text:    #c86060;
+--err-text:    #d06868;
 --err-bg:      rgba(158,64,64,0.08);
 --err-border:  rgba(158,64,64,0.20);
 
@@ -141,7 +169,7 @@ All status colors are desaturated — they signal state without visually shoutin
 --info-border: rgba(91,140,184,0.20);
 
 /* Muted / unknown / offline */
---muted-text:  #5a6278;
+--muted-text:  #8089a0;
 --muted-bg:    rgba(90,98,120,0.08);
 --muted-border:rgba(90,98,120,0.18);
 
@@ -174,7 +202,7 @@ When a value's origin cannot be established, do not pick a label to fill the gap
 --calc-text:  #6092c8;   --calc-bg: rgba(96,146,200,0.07);  --calc-border: rgba(96,146,200,0.18);
 
 /* MODELED — output of a physical or statistical model */
---mod-text:   #8870c0;   --mod-bg: rgba(136,112,192,0.07);  --mod-border: rgba(136,112,192,0.18);
+--mod-text:   #927dc6;   --mod-bg: rgba(136,112,192,0.07);  --mod-border: rgba(136,112,192,0.18);
 
 /* PREDICTED — forecast of a future value */
 --pred-text:  #c07898;   --pred-bg: rgba(192,120,152,0.07); --pred-border: rgba(192,120,152,0.18);
@@ -268,11 +296,13 @@ style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-di
 ```
 
 **Rules:**
-- Label: `text-[11px]` in `--t2` (or `--t4` if `muted`)
+- Label: `text-[11px]` in `--t2` (or `--t3` if `muted`)
 - Value: `mono tabular text-[12px] font-medium` in `--t1`
 - Unit: `text-[10px]` in `--t3`
 - Separator: `border-bottom: 1px solid var(--border-dim)` (`.row-sep` class), none on last row
 - All numbers must be monospace + tabular
+- No value (`null`/`undefined`): UNKNOWN once the data has arrived, the loading mark `…` before (see "Loading, empty and unknown")
+- Label and value wrap onto two lines when the card is narrow; they never overlap
 
 ### StatusBadge
 
@@ -356,9 +386,29 @@ Apply to any feature/module that is not fully production-supported.
 <ELI5 text="Plain-language explanation of the measurement above." />
 ```
 
-- Trigger link: `9px mono underline` in `--t4`, hover to `--t3`
+- Trigger link: `9px mono underline` in `--t3`, hover to `--t2`
 - Expanded panel: `rgba(255,255,255,0.025)` bg, `--border-dim` border, `--t2` italic text, `11px`
 - Place immediately after the metric it explains
+
+### Focus states
+
+- Every control shows keyboard focus: `outline: 1.5px solid var(--accent); outline-offset: 2px` on `:focus-visible` (index.css). Text fields (`input`, `select`, `textarea`) show it on any focus, including a date field's inner parts.
+- Never remove an outline without a replacement of at least 3:1.
+- Decorative glyphs inside controls get `aria-hidden`; tabs have `role="tab"` and `aria-selected`; the current nav item has `aria-current="page"`.
+- `e2e/design.spec.ts` tabs through every page and fails on a focused control without a visible ring.
+
+### Loading, empty and unknown
+
+Three different states; never show one as another:
+
+| State | When | Shown as |
+|---|---|---|
+| Loading | the request hasn't answered yet | `…` (`<Loading />`, `role="status"`, `aria-busy`), or `<LoadingNote what="the offset history" />` for a chart or list |
+| Unknown | the station answered and can't establish the value | `UNKNOWN` (`<StatusBadge variant="muted" />`, `MetricRow` with `null`) |
+| Empty | the station answered and there is nothing to show | `<EmptyNote>` with the reason ("No samples in this range", "chrony tracking log not available") |
+| Failed | the request failed | `<ApiErrorNote>` with the station's error; the last good values stay on screen |
+
+`MetricRow` shows loading by itself while the station's first answers arrive (`useStarting()`). A card whose data comes from its own request marks itself `<Card pending={isPending(poll)}>`. Never write "Not loaded." for a failed request.
 
 ---
 
@@ -463,9 +513,9 @@ function ChartTip({ active, payload, label, unit }: any) {
 - Concentric rings: `rgba(255,255,255,0.05)` stroke, 0.5px
 - Horizon ring: `rgba(255,255,255,0.05)` stroke, 1px
 - Azimuth spokes: same as rings
-- Cardinal labels: `8px JetBrains Mono`, `var(--t4)`
+- Cardinal and ring labels: `8px` / `7px JetBrains Mono`, `var(--t3)`
 - Satellite used: fill at 20% opacity, stroke at full opacity, `r=5`
-- Satellite tracked only: same but `opacity={0.35}`, `r=4`
+- Satellite tracked only: `r=4`, fill at 7% and stroke at 35% opacity; its label stays at full colour (contrast rule)
 - SVID labels: `6.5px JetBrains Mono`, satellite system color
 
 ---
@@ -553,10 +603,10 @@ Every page must work from 360 px wide (a phone) to 1920 px, including a window s
 ### Sidebar
 
 - Width: 188px fixed; a drawer below 1024 px (Narrow screens)
-- Group labels: `8px mono uppercase tracking-[0.18em]` in `--t4`
+- Group labels: `8px mono uppercase tracking-[0.18em]` in `--t3`
 - Nav items: `11px Inter`, `--t2` inactive, `--t1` active
 - Active item: `background: var(--accent-dim)`, `border-left: 2px solid var(--accent)`
-- Nav icon: `12px`, `--t4` inactive, `var(--accent)` active
+- Nav icon: `12px`, `aria-hidden`, `--t4` inactive (decorative: the label carries the meaning), `var(--accent)` active
 - Research items get a small `R` badge in `--mod-text`
 
 ---
@@ -652,7 +702,7 @@ Demo data must never appear to be real measurements. Always render `<DemoBanner 
 
 ### Do
 - Use `style={{ color:'var(--t2)' }}` for labels — inline styles for token values keep them visible in JSX
-- Use `.mono.tabular` on every numeric measurement
+- Use `.mono.tabular` on every numeric measurement, and on identifiers (hostnames, addresses)
 - Apply `.card-surface` to all panel elements
 - Reserve `--live-bright` for exactly one primary value per screen
 - Use `border-radius: 2px` (`rounded-[2px]`) consistently
@@ -671,3 +721,6 @@ Demo data must never appear to be real measurements. Always render `<DemoBanner 
 - Add box-shadow drop shadows to cards — only inset top highlights
 - Use emojis in the UI
 - Display synthetic demo values without the demo banner and `<MaturityBadge level="demo" />`
+- Use `--t4` for text, or `opacity` to dim text below the contrast rule
+- Show UNKNOWN while a value is still loading
+- Use radii other than 2px on panels, badges and buttons (`rounded-[2px]`; `rounded-full` only for dots and bars)

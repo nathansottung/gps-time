@@ -37,7 +37,7 @@ export function ConvergenceCard({ survey }: { survey: Survey | null }) {
             <span style={{ color:'var(--good-text)' }}>— horizontal</span><span>- - vertical</span>
           </div>
         </>}
-        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+        <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
           Standard error of the mean, computed as if the fixes were independent. GNSS errors are correlated over minutes to hours, so the real uncertainty of the mean is larger, and below about 1 m it is set by systematic error, not by the number of fixes.
         </div>
       </CardBody>
@@ -70,7 +70,7 @@ export function ScatterCard({ survey }: { survey: Survey | null }) {
           </svg>
           <div className="text-[10px] mt-2 text-center mono" style={{ color:'var(--t3)' }}>{survey!.fixes.length} fixes this session</div>
         </>}
-        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+        <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
           Dashed ring: per-fix scatter (1σ); grey rings 2σ and 3σ; green ring: standard error of the mean. Offsets from the mean only.
         </div>
       </CardBody>
@@ -97,7 +97,7 @@ export function IngestCard({ survey }: { survey: Survey | null }) {
         ))}
         <MetricRow label="Last rejection" value={ing ? (ing.last_reason ?? 'none') : null} />
         <MetricRow label="Accepted in total" value={survey ? survey.stats.n.toLocaleString() : null} />
-        <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+        <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
           Only fresh 3D fixes are accepted. Counters start again when the web service restarts.
         </div>
       </CardBody>

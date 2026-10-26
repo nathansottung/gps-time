@@ -5,7 +5,7 @@ import { ShadowPanel, SatellitesPanel } from '../components/shadow';
 import { fmtCount, fmtPerMin, fmtShare, requestSeries, serviceLabel, serviceVariant } from '../lib/ntpservice';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { Sensitive } from '../components/screenshot';
-import { useStation, usePoll, useBrowserClock } from '../api/station';
+import { useStation, usePoll, useBrowserClock, isPending } from '../api/station';
 import { allEvents, ntpClientCount } from '../api/view';
 import type { AdminAction, AdminResult, AuthState, LocationMode, LunarDay, SettingResult, SolarDay, SurveyStats } from '../api/types';
 import { ApiError } from '../api/client';
@@ -75,7 +75,7 @@ export function SunAstronomy() {
           <SkyMapCard sky={a?.sky} when={a?.sky_when ?? null} demo={a?.demo} />
           <ObjectLookupCard date={date} tz={TZ} at={at} onTarget={setTarget} />
         </div>
-        {a?.location_display === 'rounded' && <div className="text-[9px]" style={{ color:'var(--t4)' }}>Computed for the rounded site (~11 km), per the privacy setting.</div>}
+        {a?.location_display === 'rounded' && <div className="text-[9px]" style={{ color:'var(--t3)' }}>Computed for the rounded-[2px] site (~11 km), per the privacy setting.</div>}
       </>}
       {tab === 'Earth Shadow' && <ShadowPanel />}
       {tab === 'Satellites' && <SatellitesPanel />}
@@ -90,8 +90,8 @@ export function SunAstronomy() {
           <CardHeader title={isToday ? 'Sun / Daylight — Yesterday / Today / Tomorrow' : `Sun / Daylight — around ${date}`} badge={<ProvenanceTag type="predicted" />} />
           <CardBody>
             <SunDays almanac={a} labels={isToday ? undefined : ['Day before', date, 'Day after']} />
-            <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
-              Times in {TZ}.{a?.location_display === 'rounded' && ' Computed for the rounded site (~11 km), per the privacy setting.'}
+            <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
+              Times in {TZ}.{a?.location_display === 'rounded' && ' Computed for the rounded-[2px] site (~11 km), per the privacy setting.'}
             </div>
           </CardBody>
         </Card>
@@ -134,9 +134,9 @@ export function SunAstronomy() {
             <div className="text-[11px] mb-3" style={{ color:'var(--t2)' }}>
               Find what civil time on a different date corresponds to the same point in the solar day as a given time today.
             </div>
-            <div className="p-3 bg-cyan-400/5 border border-cyan-400/15 rounded-sm">
+            <div className="p-3 rounded-[2px]" style={{ background:'rgba(255,255,255,0.018)', border:'1px solid var(--border-dim)' }}>
               <div className="text-[10px] mb-1" style={{ color:'var(--t3)' }}>Equivalent civil time on target date (same solar phase)</div>
-              <div className="mono text-lg" style={{ color:'var(--live)' }}>08:14:33</div>
+              <div className="mono tabular text-base" style={{ color:'var(--t1)' }}>08:14:33</div>
             </div>
           </CardBody>
         </Card>
@@ -197,22 +197,22 @@ export function SunAstronomy() {
                 { event:'ISS transit (Sun)', time:'16:32:41', dur:'0.8s', note:'Requires safe solar equipment' },
                 { event:'ISS transit (Moon)', time:'Tomorrow 02:14', dur:'1.2s', note:'Naked-eye feasible' },
               ].map(e => (
-                <div key={e.event} className="p-2 rounded-sm text-[11px]" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
+                <div key={e.event} className="p-2 rounded-[2px] text-[11px]" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
                   <div className="flex justify-between"><span style={{ color:'var(--t2)' }}>{e.event}</span><span className="mono" style={{ color:'var(--live)' }}>{e.time}</span></div>
                   <div className="text-[10px]" style={{ color:'var(--t3)' }}>Duration: {e.dur} · {e.note}</div>
                 </div>
               ))}
             </div>
             {!safetyAck ? (
-              <div className="mt-3 p-2 bg-amber-400/8 border border-amber-400/20 rounded-sm">
-                <div className="text-[10px] text-amber-400/80 mb-2">Solar transit predictions are disabled until you acknowledge safe observing requirements.</div>
+              <div className="mt-3 p-2 rounded-[2px]" style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
+                <div className="text-[10px] mb-2">Solar transit predictions are disabled until you acknowledge safe observing requirements.</div>
                 <button onClick={() => setSafetyAck(true)}
-                  className="px-3 py-1 text-[10px] mono bg-amber-400/15 text-amber-400 border border-amber-400/30 rounded hover:bg-amber-400/25 transition-colors">
+                  className="px-3 py-1 text-[10px] mono rounded-[2px]" style={{ border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
                   I understand the hazard and am responsible for safe equipment
                 </button>
               </div>
             ) : (
-              <div className="mt-2 text-[10px] text-green-400/60">Solar transit predictions enabled. You are responsible for safe equipment.</div>
+              <div className="mt-2 text-[10px]" style={{ color:'var(--good-text)' }}>Solar transit predictions enabled. You are responsible for safe equipment.</div>
             )}
           </CardBody>
         </Card>
@@ -273,7 +273,7 @@ export function Network() {
             <MetricRow label="RTT (p95)" value={fmtMs(clk.p95RttMs)} />
             <MetricRow label="Jitter (RTT std. dev.)" value={fmtMs(clk.jitterMs)} provenance="calculated" />
             <MetricRow label="Est. browser Δt" value={clk.offsetMs === null ? null : `${(-clk.offsetMs).toFixed(1)} ms`} provenance="inferred" />
-            <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>{clk.samples.length} samples · positive = browser ahead of station</div>
+            <div className="text-[9px] mono mt-1" style={{ color:'var(--t3)' }}>{clk.samples.length} samples · positive = browser ahead of station</div>
             <ELI5 text="Using a four-timestamp exchange (like NTP), the browser's clock offset can be estimated. Accuracy is limited by asymmetric network paths and browser timer resolution." />
           </CardBody>
         </Card>
@@ -283,14 +283,14 @@ export function Network() {
             <MetricRow label="Internet" value={null} />
             <MetricRow label="Local timing" value={status?.headline ?? null} />
             <MetricRow label="GNSS fix" value={core.data ? (core.data.gps.stale ? 'STALE' : core.data.gps.fix) : null} />
-            <div className="mt-3 text-[10px]" style={{ color:'var(--t4)' }}>
+            <div className="mt-3 text-[10px]" style={{ color:'var(--t3)' }}>
               The station does not probe Internet connectivity, so it is shown as UNKNOWN. Timing does not depend on it.
             </div>
           </CardBody>
         </Card>
       </div>
 
-      <Card>
+      <Card pending={isPending(ntp)}>
         <CardHeader title="NTP Service (chrony serverstats)" badge={<ProvenanceTag type="observed" />}
           action={<StatusBadge variant={serviceVariant(svc?.state)} label={serviceLabel(svc?.state)} dot={false} />} />
         <CardBody>
@@ -310,12 +310,12 @@ export function Network() {
               <div className="text-[10px] mb-1" style={{ color:'var(--t3)' }}>Requests per minute</div>
               {reqSeries.length
                 ? <OffsetChart data={reqSeries} range="24h" unit="/min" />
-                : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
+                : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>
                     {svc?.available ? 'No history yet (one sample a minute).' : 'UNKNOWN'}
                   </div>}
             </div>
           </div>
-          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
             Totals count from when chronyd started{svc?.counter_resets ? ` (it restarted ${svc.counter_resets} time(s) while the station was watching)` : ''}.
             chrony does not count the replies it sent, so "not dropped" is the nearest figure to requests served.
             {svc?.state_basis ? ` Status is judged ${svc.state_basis}.` : ''}
@@ -344,8 +344,8 @@ export function Network() {
                   <td className="px-4 py-2 mono" style={{ color:'var(--t3)' }}>{/^\d+$/.test(c.last) ? `${fmtDuration(Number(c.last))} ago` : c.last}</td>
                 </tr>
               ))}
-              {!clients.length && <tr><td colSpan={4} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
-                {!core.data ? 'Not loaded.' : ntpClientCount(core.data, chain.data) === null ? 'chronyc not available: client list UNKNOWN.' : 'No NTP clients reported.'}</td></tr>}
+              {!clients.length && <tr><td colSpan={4} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>
+                {!core.data ? (core.error ? 'Not available: the station did not answer.' : 'Loading…') : ntpClientCount(core.data, chain.data) === null ? 'chronyc not available: client list UNKNOWN.' : 'No NTP clients reported.'}</td></tr>}
             </tbody>
           </table></div>
         </CardBody>
@@ -422,7 +422,7 @@ export function Aviation() {
                 { label:'ADS-B Direct', color:'var(--live)', note:'Position broadcast by aircraft' },
                 { label:'MLAT-derived', color:'var(--warn-text)', note:'Multi-lateration with peers' },
               ].map(s => (
-                <div key={s.label} className="p-2 rounded-sm" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
+                <div key={s.label} className="p-2 rounded-[2px]" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
                   <div className="mono" style={{ color: s.color }}>{s.label}</div>
                   <div className="text-[10px]" style={{ color:'var(--t3)' }}>{s.note}</div>
                 </div>
@@ -447,7 +447,7 @@ export function Distributed() {
         <MaturityBadge level="research" />
       </div>
 
-      <div className="p-3 bg-purple-400/5 border border-purple-400/15 rounded-sm text-[11px] text-purple-400/80">
+      <div className="p-3 rounded-[2px] text-[11px]" style={{ background:'var(--mod-bg)', border:'1px solid var(--mod-border)', color:'var(--mod-text)' }}>
         This is a future research area. Features shown below are conceptual designs and are not yet implemented. No data is transmitted without explicit per-request consent.
       </div>
 
@@ -465,7 +465,7 @@ export function Distributed() {
                   <MetricRow label="Requester" value="Example research group" />
                   <MetricRow label="Data product" value="IQ capture → derived Doppler" />
                 </div>
-                <div className="mb-3 p-2 rounded-sm text-[10px]" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
+                <div className="mb-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
                   <div className="font-medium mb-1.5" style={{ color:'var(--t3)' }}>Privacy settings for this request</div>
                   {['Share derived result (Doppler shift)', 'Use exact coordinates for solver', 'Raw IQ — local only, no upload'].map(p => (
                     <label key={p} className="flex items-center gap-2 py-0.5 cursor-pointer" style={{ color:'var(--t3)' }}>
@@ -475,8 +475,8 @@ export function Distributed() {
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setReqState('accepted')} className="px-4 py-1.5 text-[11px] mono bg-green-400/15 text-green-400 border border-green-400/30 rounded hover:bg-green-400/25 transition-colors">ACCEPT</button>
-                  <button onClick={() => setReqState('declined')} className="px-4 py-1.5 text-[11px] mono bg-red-400/10 text-red-400/70 border border-red-400/20 rounded hover:bg-red-400/20 transition-colors">DECLINE</button>
+                  <button onClick={() => setReqState('accepted')} className="px-4 py-1.5 text-[11px] mono rounded-[2px]" style={{ background:'var(--good-bg)', border:'1px solid var(--good-border)', color:'var(--good-text)' }}>ACCEPT</button>
+                  <button onClick={() => setReqState('declined')} className="px-4 py-1.5 text-[11px] mono rounded-[2px]" style={{ background:'var(--err-bg)', border:'1px solid var(--err-border)', color:'var(--err-text)' }}>DECLINE</button>
                 </div>
               </div>
             )}
@@ -527,7 +527,7 @@ export function DataLogs() {
       <ApiErrorNote error={sys.error ?? survey.error} />
 
       <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
-        <Card>
+        <Card pending={isPending(sys)}>
           <CardHeader title="Buffer & Storage" badge={<ProvenanceTag type="observed" />} />
           <CardBody>
             <MetricRow label="Tracking log" value={s?.ramlog ? (s.ramlog.in_ram ? 'in RAM' : 'on SD card') : null} />
@@ -561,7 +561,7 @@ export function DataLogs() {
                 <span style={{ color:'var(--t2)' }}>{fmtDuration(e.duration_s) ?? ''} · {e.classification ?? 'UNKNOWN'}</span>
               </div>
             ))}
-            {!events.length && <div className="px-3 py-3 text-[10px]" style={{ color:'var(--t4)' }}>{chain.data ? 'No events recorded.' : 'Not loaded.'}</div>}
+            {!events.length && <div className="px-3 py-3 text-[10px]" style={{ color:'var(--t3)' }}>{chain.data ? 'No events recorded.' : chain.error ? 'Not available: the station did not answer.' : 'Loading…'}</div>}
           </CardBody>
         </Card>
       </div>
@@ -638,7 +638,7 @@ export function Admin() {
       <ApiErrorNote error={sys.error} />
 
       <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
-        <Card>
+        <Card pending={isPending(sys)}>
           <CardHeader title="System" badge={<ProvenanceTag type="observed" />} />
           <CardBody>
             <MetricRow label="Model" value={s?.model ?? null} />
@@ -661,7 +661,7 @@ export function Admin() {
             <MetricRow label="Python" value={v?.python ?? null} />
           </CardBody>
         </Card>
-        <Card>
+        <Card pending={isPending(sys)}>
           <CardHeader title="Power" badge={<ProvenanceTag type="observed" />} />
           <CardBody>
             <MetricRow label="Core voltage" value={s?.core_volts ?? null} />
@@ -680,7 +680,7 @@ export function Admin() {
                       <td className="py-1" style={{ color:'var(--t2)' }}>{r.condition}</td>
                       {[r.now, r.sinceBoot].map((v, i) => (
                         <td key={i} className="py-1 mono text-right"
-                          style={{ color: v === null ? 'var(--t4)' : !v ? 'var(--t3)' : i === 0 ? 'var(--err-text)' : 'var(--warn-text)' }}>
+                          style={{ color: v === null ? 'var(--t3)' : !v ? 'var(--t3)' : i === 0 ? 'var(--err-text)' : 'var(--warn-text)' }}>
                           {v === null ? '—' : v ? 'YES' : 'no'}
                         </td>
                       ))}
@@ -688,7 +688,7 @@ export function Admin() {
                   ))}
                 </tbody>
               </table></div>
-              <div className="text-[9px] mono mt-1" style={{ color:'var(--t4)' }}>get_throttled = {s?.throttled?.raw}</div>
+              <div className="text-[9px] mono mt-1" style={{ color:'var(--t3)' }}>get_throttled = {s?.throttled?.raw}</div>
               {uv?.ever && (
                 <div className="text-[10px] mt-2 rounded-[2px] p-2" style={uv.now
                   ? { color:'var(--err-text)', background:'var(--err-bg)', border:'1px solid var(--err-border)' }
@@ -698,7 +698,7 @@ export function Admin() {
                 </div>
               )}
             </>}
-            {s?.power_note && <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>{s.power_note}</div>}
+            {s?.power_note && <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>{s.power_note}</div>}
           </CardBody>
         </Card>
       </div>
@@ -727,7 +727,7 @@ export function Admin() {
             ))}
           </div>
           {!canWrite && auth.data && (
-            <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>Changing this needs the admin token (Admin access, above).</div>
+            <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Changing this needs the admin token (Admin access, above).</div>
           )}
           {msg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{msg}</div>}
         </CardBody>
@@ -742,7 +742,7 @@ export function Admin() {
           <MetricRow label="Shown in" value={core.data ? shownZone.tz : null} />
           <MetricRow label="Source" value={core.data ? shownZone.label : null} />
           {stationZone && !stationZone.source && (
-            <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>Station: {stationZone.note}.</div>
+            <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>Station: {stationZone.note}.</div>
           )}
           <div className="flex gap-1 mt-3">
             <input value={tzInput} onChange={e => setTzInput(e.target.value.trim())} list="gtp-zones" placeholder="e.g. America/New_York"
@@ -759,12 +759,12 @@ export function Admin() {
               automatic
             </button>
           </div>
-          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
             Automatic: the zone is found offline from the station's position. With the location hidden it is not derived from the position;
             the override, or each browser's own zone, is used instead.
           </div>
           {!canWrite && auth.data && (
-            <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>Changing this needs the admin token (Admin access, above).</div>
+            <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>Changing this needs the admin token (Admin access, above).</div>
           )}
           {tzMsg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{tzMsg}</div>}
         </CardBody>
@@ -842,7 +842,7 @@ function AdminAccess({ auth }: { auth: Polled<AuthState> }) {
             {stored && <button onClick={forget} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Forget</button>}
           </div>
         )}
-        <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+        <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
           Everything the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page does is now on this page; it uses the same token.
         </div>
       </CardBody>
@@ -904,11 +904,11 @@ function StationActions({ canWrite, authKnown, onAuthError }: { canWrite: boolea
         )}
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: OUTCOME_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>These need the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>These need the admin token (Admin access, above).</div>
         )}
         <div className="mt-3 space-y-[2px]">
           {STATION_ACTIONS.map(a => (
-            <div key={a.action} className="text-[10px]" style={{ color:'var(--t4)' }}>
+            <div key={a.action} className="text-[10px]" style={{ color:'var(--t3)' }}>
               <span style={{ color:'var(--t3)' }}>{a.label}:</span> {a.effect}
             </div>
           ))}
@@ -973,7 +973,7 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
           </div>
         )}
         {s && s.modules.length === 0 && (
-          <div className="text-[10px] mt-3" style={{ color:'var(--t4)' }}>
+          <div className="text-[10px] mt-3" style={{ color:'var(--t3)' }}>
             No modules are installed on this station. The Pi bundle ships none; installing one: docs/modules/README.md.
           </div>
         )}
@@ -990,12 +990,12 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
                 return (
                   <tr key={r.name} className="row-sep align-top">
                     <td className="py-1.5 pr-2">
-                      <div className="mono" style={{ color:'var(--t1)' }}>{r.name}{r.version && <span style={{ color:'var(--t4)' }}> {r.version}</span>}</div>
-                      {r.summary && <div className="text-[10px]" style={{ color:'var(--t4)' }}>{r.summary}</div>}
+                      <div className="mono" style={{ color:'var(--t1)' }}>{r.name}{r.version && <span style={{ color:'var(--t3)' }}> {r.version}</span>}</div>
+                      {r.summary && <div className="text-[10px]" style={{ color:'var(--t3)' }}>{r.summary}</div>}
                       {r.errors.map(e => <div key={e} className="text-[10px] mono" style={{ color:'var(--err-text)' }}>{e}</div>)}
                       {r.reason && <div className="text-[10px] mono" style={{ color:'var(--t3)' }}>{r.reason}</div>}
                     </td>
-                    <td className="py-1.5 pr-2">{r.maturity ? <MaturityBadge level={r.maturity} /> : <span style={{ color:'var(--t4)' }}>—</span>}</td>
+                    <td className="py-1.5 pr-2">{r.maturity ? <MaturityBadge level={r.maturity} /> : <span style={{ color:'var(--t3)' }}>—</span>}</td>
                     <td className="py-1.5 pr-2 text-[10px]" style={{ color:'var(--t3)' }}>{permissionText(r)}</td>
                     <td className="py-1.5 pr-2"><StatusBadge variant={st.variant} label={st.label} dot={false} className="text-[9px]" /></td>
                     <td className="py-1.5 text-right">
@@ -1010,12 +1010,12 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
         )}
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: MOD_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {s && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
             Supervisor: {s.supervisor.detail}. {s.note} A module that needs a device or the network also needs a drop-in for gps-time-modules.service.
           </div>
         )}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>Changing these needs the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Changing these needs the admin token (Admin access, above).</div>
         )}
       </CardBody>
     </Card>
@@ -1076,7 +1076,7 @@ function SurveyReset({ survey, canWrite, authKnown, onDone, onAuthError }: {
         )}
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: RESET_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t4)' }}>This needs the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>This needs the admin token (Admin access, above).</div>
         )}
       </CardBody>
     </Card>

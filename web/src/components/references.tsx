@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardBody, ProvenanceTag, StatusBadge, ELI5 } from './ui';
 import { OffsetChart } from './charts';
 import { ApiErrorNote } from './planned';
-import { useStation, usePoll } from '../api/station';
+import { useStation, usePoll, isPending } from '../api/station';
 import { assessmentVariant, countsLine, fmtSigned, fmtSpan, historySeries, verdictVariant } from '../lib/references';
 import { fmtUtc } from '../lib/format';
 
@@ -29,7 +29,7 @@ export function ReferencesPanel() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card pending={isPending(rf)}>
         <CardHeader title="Independent References" badge={<ProvenanceTag type="calculated" />}
           action={<StatusBadge variant={verdictVariant(v?.code)} label={v?.headline ?? 'UNKNOWN'} dot={false} />} />
         <CardBody>
@@ -39,14 +39,14 @@ export function ReferencesPanel() {
             {countsLine(v)}{countsLine(v) && limit ? ' · ' : ''}{limit ? `limit ${limit}` : ''}
             {d?.as_of_utc ? ` · chrony read ${fmtUtc(d.as_of_utc)}` : ''}
           </div>
-          <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+          <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
             An independent reference is a server chrony measures but is not using to set the clock. The comparison
             reports agreement or disagreement between clocks. It does not say which clock is wrong, or why.
           </div>
         </CardBody>
       </Card>
 
-      <Card>
+      <Card pending={isPending(rf)}>
         <CardHeader title="Servers" badge={<ProvenanceTag type="external" />} />
         <CardBody className="p-0">
           <div className="table-scroll"><table className="w-full text-[11px]">
@@ -71,12 +71,12 @@ export function ReferencesPanel() {
                   <td className="px-4 py-2"><StatusBadge variant={assessmentVariant(r.assessment)} label={r.assessment} dot={false} className="text-[9px]" /></td>
                 </tr>
               ))}
-              {d && !refs.length && <tr><td colSpan={8} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
+              {d && !refs.length && <tr><td colSpan={8} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>
                 No independent servers. Add some with the installer (GTP_INDEPENDENT_REFS=1), or see the deploy guide.</td></tr>}
-              {!d && <tr><td colSpan={8} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>Reference data not loaded.</td></tr>}
+              {!d && <tr><td colSpan={8} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>Reference data not loaded.</td></tr>}
             </tbody>
           </table></div>
-          <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t4)' }}>
+          <div className="px-4 py-2 text-[10px]" style={{ color:'var(--t3)' }}>
             Offset: positive means the station's clock is ahead of that server. The bound is chrony's error bound for the
             server, which includes half the network delay. {d?.delay_note}
           </div>
@@ -89,26 +89,26 @@ export function ReferencesPanel() {
       </Card>
 
       <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
-        <Card>
+        <Card pending={isPending(rf)}>
           <CardHeader title={`Offset History — ${shown?.name ?? 'no server'} (${hist.offset.unit})`} badge={<ProvenanceTag type="external" />} />
           <CardBody>
             {hist.offset.data.length
               ? <OffsetChart data={hist.offset.data} range="24h" unit={hist.offset.unit} />
-              : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>No measurements recorded yet.</div>}
+              : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>No measurements recorded yet.</div>}
           </CardBody>
         </Card>
-        <Card>
+        <Card pending={isPending(rf)}>
           <CardHeader title={`Delay History — ${shown?.name ?? 'no server'} (${hist.delay.unit})`} badge={<ProvenanceTag type="external" />} />
           <CardBody>
             {hist.delay.data.length
               ? <OffsetChart data={hist.delay.data} range="24h" unit={hist.delay.unit} />
-              : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>
+              : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>
                   {d && !d.delay_available ? 'Delay is UNKNOWN: the chrony helper service is not publishing it.' : 'No measurements recorded yet.'}
                 </div>}
           </CardBody>
         </Card>
       </div>
-      <div className="text-[9px]" style={{ color:'var(--t4)' }}>
+      <div className="text-[9px]" style={{ color:'var(--t3)' }}>
         History: one point per new measurement, at most one a minute, up to {d?.history.max_points ?? 1440} points per server. {d?.history.storage}.
       </div>
       <ELI5 text="The station sets its clock from GPS. These are other clocks on the Internet that it only listens to. If the station and most of them tell a different time, something deserves a look — but the comparison alone can't tell you which side is off." />

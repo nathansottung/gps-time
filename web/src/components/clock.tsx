@@ -70,7 +70,7 @@ export function StationClockCard() {
       <CardBody>
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div>
-            <div className="text-[9px] mono uppercase tracking-[0.15em] mb-1" style={{ color: captionColor }}>{caption}</div>
+            <div className="text-[9px] mono uppercase tracking-[0.12em] mb-1" style={{ color: captionColor }}>{caption}</div>
             <div className="mono tabular font-medium leading-none" style={{ color:'var(--t1)', fontSize:'44px', letterSpacing:'0.01em' }}
               aria-label={`Local time ${t.local.time}`}>
               {t.local.time}
@@ -81,14 +81,14 @@ export function StationClockCard() {
               <span> · {t.local.offset}</span>
               {t.local.dst && <span> · DST</span>}
             </div>
-            <div className="mono tabular text-[15px] mt-3" style={{ color:'var(--t1)' }}>
+            <div className="mono tabular text-base mt-3" style={{ color:'var(--t1)' }}>
               <span style={{ color:'var(--t3)' }}>UTC</span> {formatUtc(t.now.at)}
             </div>
             <div className="mono tabular text-[11px] mt-1" style={{ color:'var(--t3)' }}>UNIX {unixSeconds(t.now.at)}</div>
           </div>
           <HourToggle t={t} />
         </div>
-        <div className="text-[9px] mt-3" style={{ color:'var(--t4)' }}>
+        <div className="text-[9px] mt-3" style={{ color:'var(--t3)' }}>
           {t.zone.tz} · {t.zone.label}. Local time is for display; the station keeps UTC.{' '}
           {station
             ? `The station's clock is read through this browser: offset ${clk.offsetMs! >= 0 ? '+' : '−'}${Math.abs(clk.offsetMs!).toFixed(1)} ms applied, ` +

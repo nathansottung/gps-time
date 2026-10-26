@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, StatusBadge, ELI5 } from './ui';
 import { ApiErrorNote } from './planned';
 import { useStationTime } from './clock';
-import { useStation, usePoll } from '../api/station';
+import { useStation, usePoll, isPending } from '../api/station';
 import { clockDiscipline } from '../lib/banner';
 import { formatUtc } from '../lib/localtime';
 import { fmtUtc } from '../lib/format';
@@ -23,11 +23,11 @@ export function TimeScalesPanel() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card pending={isPending(ts)}>
         <CardHeader title="Time Scales" badge={<ProvenanceTag type="calculated" />} />
         <CardBody>
           <ApiErrorNote error={ts.error} />
-          <div className="text-[9px] mono uppercase tracking-[0.15em] mb-2"
+          <div className="text-[9px] mono uppercase tracking-[0.12em] mb-2"
                style={{ color: station && disc.gps ? 'var(--good-text)' : 'var(--warn-text)' }}>
             {station ? disc.label : "THIS BROWSER'S CLOCK · STATION TIME NOT MEASURED YET"}
           </div>
@@ -56,7 +56,7 @@ export function TimeScalesPanel() {
       </Card>
 
       <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
-        <Card>
+        <Card pending={isPending(ts)}>
           <CardHeader title="Leap-Second Table" badge={<ProvenanceTag type="external" />}
             action={<StatusBadge variant={leapVariant(leap?.status)} label={leapLabel(leap?.status)} dot={false} />} />
           <CardBody>
@@ -70,14 +70,14 @@ export function TimeScalesPanel() {
             <MetricRow label="Next scheduled leap second"
               value={leap ? (leap.next ? `${leap.next.utc.slice(0, 10)} (${leap.next.kind ?? 'change'}, TAI − UTC becomes ${leap.next.tai_utc_s} s)` : (leap.next_note ?? null)) : null} />
             <MetricRow label="chrony leap status" value={leap?.chrony_leap_status.value ?? null} provenance={leap?.chrony_leap_status.value ? 'observed' : undefined} />
-            <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+            <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
               The table is published by IERS and installed with the operating system (tzdata). The station warns
               {leap ? ` ${leap.warn_days} days` : ''} before it expires.
             </div>
           </CardBody>
         </Card>
 
-        <Card>
+        <Card pending={isPending(ts)}>
           <CardHeader title="UT1 − UTC" badge={<ProvenanceTag type="external" />} />
           <CardBody>
             {d?.ut1.available
@@ -85,13 +85,13 @@ export function TimeScalesPanel() {
                   <MetricRow label="UT1 − UTC" value={fmtUt1(d.ut1.ut1_utc_s)} provenance="external" />
                   <MetricRow label="Kind" value={d.ut1.kind} />
                   <MetricRow label="Cached file dated" value={fmtUtc(d.ut1.file_date_utc)} />
-                  <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>{d.ut1.note}</div>
+                  <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>{d.ut1.note}</div>
                 </>
               : <div className="text-[10px] py-4" style={{ color:'var(--t3)' }}>
                   Not shown. {d ? d.ut1.reason : 'Time-scale data not loaded.'}
                   {d?.ut1.file_date_utc && <span> Cached file dated {fmtUtc(d.ut1.file_date_utc)}.</span>}
                 </div>}
-            <div className="text-[9px] mt-2" style={{ color:'var(--t4)' }}>
+            <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
               UT1 follows the Earth's rotation and can only come from IERS measurements. It is shown only from a file
               the operator has placed on the station.
             </div>

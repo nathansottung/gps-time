@@ -2,9 +2,9 @@ import { useState } from 'react';
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis,
 } from 'recharts';
-import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5 } from './ui';
+import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5, LoadingNote, EmptyNote } from './ui';
 import { ApiErrorNote } from './planned';
-import { useStation, usePoll } from '../api/station';
+import { useStation, usePoll, isPending } from '../api/station';
 import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays } from '../lib/oscillator';
 import { fmtUtc } from '../lib/format';
 
@@ -41,7 +41,7 @@ export function OscillatorPanel() {
     <div className="space-y-4">
       <ApiErrorNote error={osc.error} />
       <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
-        <Card>
+        <Card pending={isPending(osc)}>
           <CardHeader title="Frequency vs Temperature" badge={<ProvenanceTag type="observed" />}
             action={<RangeSelector ranges={['PPS only', 'All']} active={sel} onChange={setSel} />} />
           <CardBody>
@@ -59,14 +59,14 @@ export function OscillatorPanel() {
                     {line.length > 0 && <Scatter name="fit" data={line} line={{ stroke: 'var(--mod-text)', strokeWidth: 1.2 }} shape={() => null} />}
                   </ScatterChart>
                 </ResponsiveContainer>
-              : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t4)' }}>{d?.reason ?? 'No bins yet.'}</div>}
-            <div className="text-[9px] mt-1" style={{ color:'var(--t4)' }}>
+              : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>{d?.reason ?? 'No bins yet.'}</div>}
+            <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
               One point per 10-minute bin. Frequency is chrony's estimate of how fast the uncorrected clock runs (+ = fast).
             </div>
           </CardBody>
         </Card>
 
-        <Card>
+        <Card pending={isPending(osc)}>
           <CardHeader title="Temperature Coefficient" badge={<ProvenanceTag type="calculated" />} />
           <CardBody>
             <MetricRow label="Slope (straight-line fit)" value={fmtSlope(d?.fit.slope_ppm_per_c)} provenance="calculated" />
@@ -75,12 +75,12 @@ export function OscillatorPanel() {
             <MetricRow label="Temperature span" value={d?.fit.temp_span_c != null ? `${d.fit.temp_span_c} °C` : null} />
             {d?.fit.reason && <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>No slope yet: {d.fit.reason}.</div>}
             <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{d?.fit_note}</div>
-            <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>{d?.sensor}</div>
+            <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>{d?.sensor}</div>
           </CardBody>
         </Card>
       </div>
 
-      <Card>
+      <Card pending={isPending(osc)}>
         <CardHeader title="Temperature and Frequency over Time" badge={<ProvenanceTag type="observed" />} />
         <CardBody>
           {time.length > 1
@@ -102,11 +102,12 @@ export function OscillatorPanel() {
                   </div>
                 ))}
               </div>
-            : <div className="text-[10px] py-6 text-center" style={{ color:'var(--t4)' }}>{d?.reason ?? 'Not loaded.'}</div>}
+            : isPending(osc) ? <LoadingNote what="the oscillator log" />
+            : <EmptyNote>{d?.reason ?? 'Not available: the station did not answer (see the error above).'}</EmptyNote>}
         </CardBody>
       </Card>
 
-      <Card>
+      <Card pending={isPending(osc)}>
         <CardHeader title="Log" badge={<ProvenanceTag type="observed" />} />
         <CardBody>
           <MetricRow label="Latest bin" value={d?.latest ? `${fmtUtc(d.latest.bin_start_utc)} · ${d.latest.temp_c.value?.toFixed(1) ?? '—'} °C · ${d.latest.freq_ppm.value?.toFixed(3) ?? '—'} ppm` : null} />

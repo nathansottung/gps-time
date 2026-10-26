@@ -10,9 +10,6 @@ import { toSkySats, plottable, cn0Stats, satCounts } from '../api/view';
 const SYSCOLORS: Record<string,string> = {
   GPS:'var(--live)', GLONASS:'var(--warn-text)', GALILEO:'var(--mod-text)', BEIDOU:'var(--good-text)',
 };
-const SYSDOT: Record<string,string> = {
-  GPS:'bg-cyan-400', GLONASS:'bg-amber-400', GALILEO:'bg-purple-400', BEIDOU:'bg-green-400',
-};
 
 // Simulated obstruction heatmap cells (preview of a planned feature; demo only)
 const obstructionCells = Array.from({ length: 36 }, (_, ai) =>
@@ -45,14 +42,14 @@ function ObstructionHeatmap() {
         {[0,30,60,90].map(el => (
           <circle key={el} cx={cx} cy={cy} r={(1-el/90)*r} fill="none" stroke="#1a2040" strokeWidth={0.5}/>
         ))}
-        <text x={cx} y={9}  textAnchor="middle" fontSize="8" fill="#5a6480" fontFamily="JetBrains Mono">N</text>
-        <text x={size-5} y={cy+3} textAnchor="end" fontSize="8" fill="#5a6480" fontFamily="JetBrains Mono">E</text>
-        <text x={cx} y={size-3} textAnchor="middle" fontSize="8" fill="#5a6480" fontFamily="JetBrains Mono">S</text>
-        <text x={7} y={cy+3} fontSize="8" fill="#5a6480" fontFamily="JetBrains Mono">W</text>
+        <text x={cx} y={9}  textAnchor="middle" fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">N</text>
+        <text x={size-5} y={cy+3} textAnchor="end" fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">E</text>
+        <text x={cx} y={size-3} textAnchor="middle" fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">S</text>
+        <text x={7} y={cy+3} fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">W</text>
       </svg>
       <div className="flex gap-4 mt-1 text-[9px] mono" style={{ color:'var(--t3)' }}>
-        <span className="flex items-center gap-1"><span className="w-3 h-2 bg-cyan-400/40 inline-block rounded-sm"/>Open sky</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-2 bg-red-400/50 inline-block rounded-sm"/>Obstructed</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-2 inline-block rounded-[2px]" style={{ background:'color-mix(in srgb, var(--live) 40%, transparent)' }}/>Open sky</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-2 inline-block rounded-[2px]" style={{ background:'color-mix(in srgb, var(--err-text) 50%, transparent)' }}/>Obstructed</span>
       </div>
     </div>
   );
@@ -79,7 +76,7 @@ function CalibrationPanel() {
             <MetricRow label="Calibration state" value="PARTIAL" />
           </div>
         </div>
-        <div className="mt-3 p-2 bg-amber-400/5 border border-amber-400/15 rounded-sm text-[10px] text-amber-400/80">
+        <div className="mt-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
           Receiver internal delay has not been independently calibrated. Antenna cable correction applied.
         </div>
       </CardBody>
@@ -112,7 +109,7 @@ export default function GNSS() {
   const H = loc?.alt_msl ?? null;
   const N = h !== null && H !== null ? h - H : null;
   const privacy = loc?.mode === 'hidden' ? 'Location hidden by the station privacy setting.'
-    : loc?.mode === 'rounded' ? 'Location rounded by the station privacy setting (~11 km).' : null;
+    : loc?.mode === 'rounded' ? 'Location rounded-[2px] by the station privacy setting (~11 km).' : null;
 
   return (
     <div className="space-y-4 page-enter">
@@ -166,12 +163,13 @@ export default function GNSS() {
                       {Number.isFinite(s.cn0) ? (
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 rounded-full overflow-hidden max-w-[60px]" style={{ background:'var(--bg)' }}>
-                            <div className={`h-full rounded-full ${s.cn0>44?'bg-green-400/70':s.cn0>35?'bg-cyan-400/70':'bg-amber-400/70'}`}
-                              style={{ width:`${Math.min(100, (s.cn0/55)*100)}%`}}/>
+                            <div className="h-full rounded-full"
+                              style={{ width:`${Math.min(100, (s.cn0/55)*100)}%`, opacity:0.75,
+                                       background: s.cn0>44 ? 'var(--good-text)' : s.cn0>35 ? 'var(--live)' : 'var(--warn-text)' }}/>
                           </div>
                           <span className="mono tabular" style={{ color:'var(--t1)' }}>{s.cn0}</span>
                         </div>
-                      ) : <span className="mono" style={{ color:'var(--t4)' }}>—</span>}
+                      ) : <span className="mono" style={{ color:'var(--t3)' }}>—</span>}
                     </td>
                     <td className="px-4 py-2">
                       {s.state === 'used'    && <StatusBadge variant="good" label="USED" dot={false} className="text-[9px]" />}
@@ -179,7 +177,7 @@ export default function GNSS() {
                     </td>
                   </tr>
                 ))}
-                {!sats.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t4)' }}>
+                {!sats.length && <tr><td colSpan={6} className="px-4 py-3 text-[10px]" style={{ color:'var(--t3)' }}>
                   {gps ? (gps.sky_stale ? 'Sky data is stale.' : 'No satellites reported.') : 'GNSS data not loaded.'}</td></tr>}
               </tbody>
             </table></div>
@@ -196,7 +194,7 @@ export default function GNSS() {
               <div className="flex gap-4 mt-3 text-[10px]">
                 {Object.entries(SYSCOLORS).map(([sys, colorVar]) => (
                   <span key={sys} className="flex items-center gap-1">
-                    <span className={`w-2 h-2 rounded-full ${SYSDOT[sys]} inline-block`}/>
+                    <span aria-hidden className="w-2 h-2 rounded-full inline-block" style={{ background: colorVar }}/>
                     <span style={{ color: colorVar }}>{sys}</span>
                   </span>
                 ))}
@@ -239,7 +237,7 @@ export default function GNSS() {
                 <MetricRow label="Observation window" value="47 days, 3h 12m" />
                 <MetricRow label="Confidence" value="Medium" />
               </div>
-              <div className="mt-3 p-2 rounded-sm text-[10px]" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t3)' }}>
+              <div className="mt-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t3)' }}>
                 Derived from long-term C/N₀ and tracking success patterns. This is an RF/GNSS-derived horizon model, not a physical sky survey.
               </div>
             </CardBody>
@@ -267,7 +265,7 @@ export default function GNSS() {
             <CardBody>
               {privacy && <div className="text-[10px] mb-3" style={{ color:'var(--t3)' }}>{privacy}</div>}
               <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
-                <div className="rounded-sm p-3" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
+                <div className="rounded-[2px] p-3" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
                   <div className="text-[10px] mono uppercase mb-2" style={{ color:'var(--t3)' }}>
                     Position · {PROV_LABEL[core.data?.position_provenance ?? 'none'] ?? 'UNKNOWN'}
                   </div>
@@ -277,7 +275,7 @@ export default function GNSS() {
                   <MetricRow label="Fix" value={gps ? (gps.stale ? `stale (last ${gps.last_fix ?? '—'})` : gps.fix) : null} />
                   <MetricRow label="Data age" value={gps?.data_age_s == null ? null : `${gps.data_age_s.toFixed(1)} s`} provenance="calculated" />
                 </div>
-                <div className="rounded-sm p-3" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
+                <div className="rounded-[2px] p-3" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
                   <div className="text-[10px] mono uppercase mb-2" style={{ color:'var(--t3)' }}>Survey statistics</div>
                   <MetricRow label="Accepted fixes" value={survey ? survey.n.toLocaleString() : null} />
                   <MetricRow label="Fresh / legacy" value={survey?.n_fresh == null ? null : `${survey.n_fresh.toLocaleString()} / ${(survey.n_legacy ?? 0).toLocaleString()}`} />

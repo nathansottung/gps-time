@@ -69,6 +69,13 @@ interface StationContext {
   isDemo: boolean;
   /** Station−browser clock estimate from /api/ping; one loop for the whole app. */
   clock: BrowserClock;
+  /** The first /api or /api/timing-chain answer hasn't arrived yet (loading, not UNKNOWN). */
+  starting: boolean;
+}
+
+/** A poll that has neither data nor an error yet: still loading. */
+export function isPending(p: { data: unknown; error: string | null }): boolean {
+  return p.data === null && p.error === null;
 }
 
 const Ctx = createContext<StationContext | null>(null);
@@ -83,7 +90,13 @@ export function StationProvider({ api, children }: { api: StationApi; children: 
   const chain = usePoll(() => api.timingChain({ scenario }), 5000, [api, scenario]);
   const isDemo = api.source === 'demo' || core.data?.demo === true || !!chain.data?.demo;
   const clock = useBrowserClockLoop(api);
-  return <Ctx.Provider value={{ api, core, chain, isDemo, scenario, setScenario, clock }}>{children}</Ctx.Provider>;
+  const starting = isPending(core) || isPending(chain);
+  return <Ctx.Provider value={{ api, core, chain, isDemo, scenario, setScenario, clock, starting }}>{children}</Ctx.Provider>;
+}
+
+/** True while the station's first answers are loading; false outside a provider. */
+export function useStarting(): boolean {
+  return !!useContext(Ctx)?.starting;
 }
 
 export function useStation(): StationContext {

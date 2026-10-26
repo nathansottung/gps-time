@@ -1466,3 +1466,27 @@ Owner's request: check every `/app/` page at 360, 768, 1024, 1280 and 1920 px an
 - **CI:** `web.yml` installs Chromium and runs `pnpm run test:e2e` after the build. New dev dependency `@playwright/test` (browser downloaded at install time only; nothing at runtime).
 - **Guidelines:** Layout → "Narrow screens", and the grid patterns now use container queries.
 - **Tests:** `e2e/responsive.spec.ts` (96), `e2e/navigation.spec.ts` (4), `src/lib/route.test.ts` (3).
+
+## 2026-10-26 — design pass against Guidelines.md (#130)
+
+Owner's request: a design pass against the guidelines (spacing, type scale, number alignment, contrast, focus states, empty and loading states); list the deviations, then fix them. The list, with counts and fixes: `dashboard/design-review-2026-10-26.md`.
+
+- **Contrast.** The guidelines' own `--t3` and `--t4` were below WCAG AA (2.2–2.5:1 and 1.2–1.4:1), so about 1,840 text runs failed.
+  - Tokens raised, keeping hue and order: `--t2` #9fa7ba, `--t3` #8188a3 (4.8:1 worst case over all surfaces); `--muted-text`, `--mod-text` and `--err-text` lifted too.
+  - `--t4` is decorative only now; its 132 text uses moved to `--t3`.
+  - No text is dimmed with `opacity`.
+  - **The UI reads lighter**: labels, units and notes are brighter than before.
+- **Tokens, not palette classes:** about 35 Tailwind palette or hex colour classes replaced (GNSS, Radio & SDR, Secondary, Timing); 4px radii → 2px; a table row hover removed.
+- **Type:**
+  - one page-title size (14px);
+  - a display set (16, 20, 36, 44, 72px);
+  - the 7px badge → 8px;
+  - letter-spacing reduced to four values;
+  - the station name in mono.
+- **Loading is not UNKNOWN:**
+  - `MetricRow` shows `…` while the station's first answers (`useStarting()`) or the card's own request (`<Card pending>`) are pending;
+  - `LoadingNote` and `EmptyNote` replace ad-hoc messages;
+  - "Not loaded." after a failure now says the station did not answer.
+- **Focus:** the ring is documented. Fields show it on any focus, including a date field's calendar button, which showed none before.
+- **Guidelines.md:** new sections for the type scale, the contrast rule, focus states, and loading/empty/unknown. Tokens, the Do-not list, and the ELI5, sidebar and sky-plot entries are updated.
+- **Tests:** `e2e/design.spec.ts` (26): the design audit on every page and tab, focus on every page, loading versus a failed request.

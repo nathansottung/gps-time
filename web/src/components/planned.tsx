@@ -15,7 +15,7 @@ export function Planned({ title, needs, children }: { title: string; needs: stri
       <CardHeader title={title} badge={<MaturityBadge level="planned" />} />
       <CardBody>
         <div className="text-[11px]" style={{ color:'var(--t3)' }}>Not available from this station yet.</div>
-        <div className="text-[10px] mt-1" style={{ color:'var(--t4)' }}>Needs: {needs}</div>
+        <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>Needs: {needs}</div>
       </CardBody>
     </Card>
   );
