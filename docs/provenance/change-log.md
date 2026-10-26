@@ -1432,3 +1432,15 @@ Owner's request: bench kit list, second-station guide, coordinator skeleton for 
 - **`docs/deploy/second-station.md`:** shared-antenna, two-antenna and different-receiver setups and what each can and can't show; what differs from the fresh install (own hostname, token and station key; never copy `config.json`); comparing over NTP (`noselect`, the owner's step), with second pulses on a counter, and later through the coordinator.
 - **`docs/validation/bench-kit.md`:** counter or scope, probes, tee, line driver for 50 Ω inputs, independent references (second receiver, GPSDO, 10 MHz into the counter), splitter for a shared antenna, what to record. Examples, no prices.
 - **STATUS.md:** four done Repo rows; Feature G "Optional coordinator" stays planned, with a partial note.
+
+## 2026-10-26 — v1.5.0-rc.1 (#128)
+
+Owner's request: tag v1.5.0-rc.1 with notes and the deploy command.
+
+- **`docs/releases/v1.5.0-rc.1.md`:**
+  - the deploy command (Windows and Linux), and which checklist to follow with which substitution;
+  - what the upgrade changes on the station: `/` → `/app/` with the legacy pages removed; the `gps-time-mod` user and `gps-time-modules.service`, installed and not enabled; the station key, made once; `cryptography` in the venv;
+  - what's new since v1.4.0 (#96 to #127), what isn't verified on a Pi, the known open issues, and rollback to v1.4.0 (what stays behind and is ignored).
+- **Tag:** annotated `v1.5.0-rc.1` on this PR's merge commit, and a GitHub pre-release with the notes. Nothing deployed.
+- README, START-HERE, `ROADMAP.md`, INDEX: the pre-release is named next to the stable v1.4.0.
+- **STATUS.md:** a done "Tag v1.5.0-rc.1" row and a planned soak-run row. The next-5 list is unchanged.

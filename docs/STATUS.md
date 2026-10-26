@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-26 (docs/bench-second-station-coordinator, #127). Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-26 (docs/release-v1.5.0-rc.1, #128). The next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -112,7 +112,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: next, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 532 rows: 299 done, 0 in progress, 41 next, 192 planned.
+**Totals:** 534 rows: 300 done, 0 in progress, 41 next, 193 planned.
 
 ## Status table
 
@@ -645,6 +645,8 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Coordinator skeleton for TrueNAS SCALE (`coordinator/`, ADR-0008): signed join and event messages with the station key, pending until approved, replay refused, positions never stored, SQLite with retention, one container | done | owner, 2026-10-26; not yet run on TrueNAS; TLS, transport, station sender and event schema open | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Bench kit list (`validation/bench-kit.md`) | done | owner, 2026-10-26; examples, no prices | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Second-station guide (`deploy/second-station.md`): setups, build differences, comparing over NTP, second pulses and later the coordinator | done | owner, 2026-10-26; not yet done on hardware | [#127](https://github.com/nathansottung/gps-time/pull/127) |
+| Repo |  | Tag v1.5.0-rc.1 (pre-release) on the merge commit of the release notes PR, with the deploy command | done | owner, 2026-10-26; `releases/v1.5.0-rc.1.md`; not yet deployed | [#128](https://github.com/nathansottung/gps-time/pull/128) |
+| Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | planned | same criteria as #95 unless the owner changes them | [#128](https://github.com/nathansottung/gps-time/pull/128) |
 | Repo |  | Write-up of the 2026-10-17 outages (`incidents/2026-10-17-pps-gnss-outages.md`) | done | owner, 2026-10-26; from the records made at the time; cause not established | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | PPSM | Research 1b | Conservative uncertainty on short runs: 95 % upper bound on marker scatter (quadratic fit per block, chi-square) plus an interpolation floor; 95 % coverage tested over 200 seeded runs | done | owner; coverage 180/180 runs with a time (synthetic) | [#116](https://github.com/nathansottung/gps-time/pull/116) |
 | EXT | Safety+ | One user per module (all modules share `gps-time-mod` today) | planned | after module isolation | [#120](https://github.com/nathansottung/gps-time/pull/120) |
