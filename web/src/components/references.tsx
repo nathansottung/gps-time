@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, ProvenanceTag, StatusBadge, ELI5 } from './ui';
-import { OffsetChart } from './charts';
+import { ScaleToggle, TimeSeriesChart } from './charts';
 import { ApiErrorNote } from './planned';
 import { useStation, usePoll, isPending } from '../api/station';
 import { assessmentVariant, countsLine, fmtSigned, fmtSpan, historySeries, verdictVariant } from '../lib/references';
@@ -90,18 +90,18 @@ export function ReferencesPanel() {
 
       <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
         <Card pending={isPending(rf)}>
-          <CardHeader title={`Offset History — ${shown?.name ?? 'no server'} (${hist.offset.unit})`} badge={<ProvenanceTag type="external" />} />
+          <CardHeader title={`Offset History — ${shown?.name ?? 'no server'}`} badge={<ProvenanceTag type="external" />} action={<ScaleToggle chart="ref-offset" />} />
           <CardBody>
             {hist.offset.data.length
-              ? <OffsetChart data={hist.offset.data} range="24h" unit={hist.offset.unit} />
+              ? <TimeSeriesChart series={hist.offset} range="24h" chart="ref-offset" />
               : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>No measurements recorded yet.</div>}
           </CardBody>
         </Card>
         <Card pending={isPending(rf)}>
-          <CardHeader title={`Delay History — ${shown?.name ?? 'no server'} (${hist.delay.unit})`} badge={<ProvenanceTag type="external" />} />
+          <CardHeader title={`Delay History — ${shown?.name ?? 'no server'}`} badge={<ProvenanceTag type="external" />} action={<ScaleToggle chart="ref-delay" />} />
           <CardBody>
             {hist.delay.data.length
-              ? <OffsetChart data={hist.delay.data} range="24h" unit={hist.delay.unit} />
+              ? <TimeSeriesChart series={hist.delay} range="24h" chart="ref-delay" />
               : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>
                   {d && !d.delay_available ? 'Delay is UNKNOWN: the chrony helper service is not publishing it.' : 'No measurements recorded yet.'}
                 </div>}

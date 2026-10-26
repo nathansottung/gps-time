@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, RangeSelector, Tabs, ProvenanceTag, LoadingNote, EmptyNote } from '../components/ui';
-import { OffsetHistoryChart, PPSTimeline, HoldoverScatter, OutageBarChart } from '../components/charts';
+import { OffsetHistoryChart, PPSTimeline, HoldoverScatter, OutageBarChart, ScaleToggle } from '../components/charts';
 import { offsetRows } from '../lib/offset';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { StabilityPanel } from '../components/stability';
@@ -181,7 +181,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
             <CardHeader
               title="Time Offset History"
               badge={<ProvenanceTag type="observed" />}
-              action={<RangeSelector ranges={RANGES} active={range} onChange={setRange} />}
+              action={<div className="flex flex-wrap items-center gap-2"><ScaleToggle chart="offset-history" /><RangeSelector ranges={RANGES} active={range} onChange={setRange} /></div>}
             />
             <CardBody>
               <ApiErrorNote error={hist.error} />
@@ -202,7 +202,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
                 </label>
               </div>
               <div className="text-[9px] mt-1" style={{ color:'var(--t3)' }}>
-                From chrony's tracking log, one record per clock update: the offset chrony measured, ± its standard deviation of that offset (where chrony reported one; nothing is filled in), and ± chrony's maximum-error bound, which holds only if the reference is right. Symmetric-log scale: linear within ±1 µs, one step per decade beyond.
+                From chrony's tracking log, one record per clock update: the offset chrony measured, ± its standard deviation of that offset (where chrony reported one; nothing is filled in), and ± chrony's maximum-error bound, which holds only if the reference is right. Log: a symmetric-log scale, linear within ±1 µs and one step per decade beyond; Lin: a linear scale.
                 {hist.data && 'skipped_lines' in hist.data && hist.data.skipped_lines ? ` ${hist.data.note}` : ''}
               </div>
             </CardBody>
@@ -281,7 +281,7 @@ export default function Timing({ onNavigate }: { onNavigate?: (id: string) => vo
           <Planned title="Holdover Performance & Time-to-Error" needs="offset measured at PPS reacquisition, and a validated oscillator model">
           <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
             <Card>
-              <CardHeader title="Holdover Performance" badge={<ProvenanceTag type="observed" />} />
+              <CardHeader title="Holdover Performance" badge={<ProvenanceTag type="observed" />} action={<ScaleToggle chart="holdover" />} />
               <CardBody>
                 <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>Observed clock error upon PPS reacquisition vs. outage duration.</div>
                 <HoldoverScatter data={ppsOutages} />

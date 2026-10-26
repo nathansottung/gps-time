@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5 } from './ui';
-import { StabilityChart } from './charts';
+import { Card, CardHeader, CardBody, MetricRow, ProvenanceTag, RangeSelector, ELI5, LoadingNote, EmptyNote } from './ui';
+import { ScaleToggle, StabilityChart } from './charts';
 import { ApiErrorNote } from './planned';
 import { useStation, usePoll, isPending } from '../api/station';
 import {
@@ -30,15 +30,14 @@ export function StabilityPanel() {
         <CardHeader
           title={`Frequency Stability — ${METRIC_LABEL[metric]}`}
           badge={<ProvenanceTag type="calculated" />}
-          action={<RangeSelector ranges={Object.keys(METRICS)} active={sel} onChange={setSel} />}
+          action={<div className="flex flex-wrap items-center gap-2"><ScaleToggle chart="stability" /><RangeSelector ranges={Object.keys(METRICS)} active={sel} onChange={setSel} /></div>}
         />
         <CardBody>
           <ApiErrorNote error={st.error} />
           {rows.length
             ? <StabilityChart rows={rows} metric={metric} />
-            : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>
-                {s ? (s.reason ?? 'No value at any averaging time yet for this statistic.') : 'Stability data not loaded.'}
-              </div>}
+            : isPending(st) ? <LoadingNote what="the stability analysis" />
+            : <EmptyNote>{s ? (s.reason ?? 'No value at any averaging time yet for this statistic.') : 'Not available: the station did not answer (see the error above).'}</EmptyNote>}
           <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
             {s?.measurement_layer ?? 'System clock against kernel PPS timestamps (the Linux/chrony view of PPS).'}
           </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag, Tabs, Toggle } from '../components/ui';
-import { OffsetChart, SolarCurve } from '../components/charts';
+import { RateChart, SolarCurve } from '../components/charts';
 import { ShadowPanel, SatellitesPanel } from '../components/shadow';
 import { fmtCount, fmtPerMin, fmtShare, requestSeries, serviceLabel, serviceVariant } from '../lib/ntpservice';
 import { Planned, ApiErrorNote } from '../components/planned';
@@ -309,7 +309,7 @@ export function Network() {
             <div>
               <div className="text-[10px] mb-1" style={{ color:'var(--t3)' }}>Requests per minute</div>
               {reqSeries.length
-                ? <OffsetChart data={reqSeries} range="24h" unit="/min" />
+                ? <RateChart data={reqSeries} range="24h" unit="/min" />
                 : <div className="text-[10px] py-10 text-center" style={{ color:'var(--t3)' }}>
                     {svc?.available ? 'No history yet (one sample a minute).' : 'UNKNOWN'}
                   </div>}
