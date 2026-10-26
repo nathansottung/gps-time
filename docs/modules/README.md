@@ -97,4 +97,8 @@ On Windows (desktop demo) the sandbox isn't available. `python -m gps_time_pi.mo
 
 ## Example
 
-[`modules/sdr-pps-marker/`](../../modules/sdr-pps-marker/README.md) is the first module: a research source that finds the PPS pulse inside an SDR's samples. `python -m gps_time_pi.modkit demo sdr-pps-marker` runs it on synthetic data.
+- [`modules/sdr-pps-marker/`](../../modules/sdr-pps-marker/README.md), the first module: a research source that finds the PPS pulse inside an SDR's samples. `python -m gps_time_pi.modkit demo sdr-pps-marker` runs it on synthetic data.
+- [`modules/reference-adsb/`](../../modules/reference-adsb/README.md), the pattern for self-reported references: aircraft on 1090 and 978 MHz from a local decoder's `aircraft.json`.
+  - Positions are `external` and checked before use; rejections are counted by reason.
+  - It is both a `reference` (`list`, `predict`) and a `source`, because the host runs a module's `source` entry; the source emits what the reference computes.
+  - `python -m gps_time_pi.modkit demo reference-adsb` replays its synthetic fixtures.
