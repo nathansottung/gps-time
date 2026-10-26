@@ -1593,3 +1593,33 @@ Owner's request: the modeled holdover projection (closes GPS-008), export/import
   - HTTP: export needs no token, import needs it, a 90-day file fits under the route cap, demo mode.
   - `web/src/lib/oscillator.test.ts`: +8.
 - **Not yet:** run on a Pi; validation against real outages.
+
+## 2026-10-26 — reference-broadcast-towers module: FM, ATSC and NOAA from an offline cache (#136)
+
+Owner's request: reference-broadcast-towers, with FCC FM/ATSC/NOAA data cached offline, predicted delays from the surveyed site, and fixtures. This is SPEC-EXTENSIBILITY's second example reference module, finishing order of work 4.
+
+- **`modules/reference-broadcast-towers/`** (experimental): both `reference` (`TowerReference.list`, `predict`) and `source` (`TowerSource`). No network permission, no devices.
+- **Offline cache** (`gpstime-towers-cache/1`), built by the operator with `python -m reference_broadcast_towers.build_cache` from CSV exports of FCC FM Query, FCC TV Query and the NOAA Weather Radio list:
+  - columns are found by header name with common aliases, never by position. The FCC's text layout key couldn't be fetched to check field positions, so no positional parser was written;
+  - FM 88.1–107.9 MHz; ATSC by RF channel 2–36 (centre frequency); NOAA on its seven channels;
+  - each transmitter keeps its source file, SHA-256, retrieval date and record date (the trust spec's rule);
+  - rejected rows are counted by reason;
+  - `--near` is rounded to 0.1° and only that point is stored.
+- **Selection:** licensed only (a construction permit is left out), by service and within 150 km. Each rejection is counted.
+- **Predicted delay** (`calculated`): straight-line range (WGS84 ECEF) at c × (1 + 300 × 10⁻⁶). Heights are compared in one frame (radiation centre above sea level against the site's height above sea level). The approximate 95 % bound is the RSS of:
+  - position (30 m NAD83/WGS84; 100 m NAD27 or no datum);
+  - height (5, 60 or 300 m);
+  - refractivity (±60 × 10⁻⁶ of the range);
+  - the site's rounding.
+- **Line of sight** (`inferred`): from the 4/3-Earth radio horizon using HAAT. Beyond it, the delay is a lower bound.
+- **Not modelled,** and said in every note: multipath, over-the-horizon paths, and the transmitter's own emission timing. A record doesn't give that, so the analysis compares differences between towers.
+- **Emits** hourly (the cache is re-read only when it changes):
+  - a summary: per-service counts, rejections, the cache's age and staleness (over 365 days), any read problem, and whether a site was available;
+  - up to 10 references per service, best-bounded first.
+  - A hidden site gives counts only. Without a cache it emits the summary with the problem, and never invents a transmitter.
+- **Fixtures:** synthetic CSVs (call signs `SYN…`, invented positions around the US Naval Observatory). The FM file uses decimal columns; the TV file uses FCC-style degrees/minutes/seconds headers. There is one row per rejection reason, plus the cache built from them (marked SYNTHETIC; a test checks that it rebuilds identically). The demo emits the summary and 10 references.
+- **Tests:** `modules/reference-broadcast-towers/tests/test_reference_broadcast_towers.py` (18, run through `tests/test_modules.py`). They cover:
+  - build counts and rejections, sources and dates, the site never stored, DMS headers and channel frequencies, the rebuild, load problems;
+  - selection, the delay and bound, how the bound grows, beyond the horizon, the hidden site, re-reading only on change;
+  - the source cycle, the stale flag, hidden counts, no cache, the demo, synthetic fixtures.
+- **Not yet:** a cache from real exports, and measured arrival times (`analysis-tower-delay-check` next, then an SDR source).
