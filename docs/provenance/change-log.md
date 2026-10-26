@@ -1513,3 +1513,20 @@ Owner's request: a linear/log toggle on every time-offset and stability chart, r
   - The Stability card's "Stability data not loaded." is now a loading or failed state (#130's rule).
 - **Guidelines:** Charts → "Axis scale".
 - **Tests:** `src/lib/timeaxis.test.ts` (9), `src/lib/prefs.test.ts` (+3), `e2e/scale.spec.ts` (7: every toggle, tick labels with units in both modes, remembered across a reload, Overview views share the choice).
+
+## 2026-10-26 — the soak rule in the release docs; v1.5.0-rc.1 soaking (#132)
+
+Owner's request: check the Pi's version (read-only), schedule the soak check if it runs 1.5.0-rc.1, and put the soak rule in the release docs.
+
+- **The Pi** (read-only SSH): 1.5.0-rc.1, deployed by the owner. Service start 2026-10-26 18:16:55 UTC, `NRestarts=0`, no reboot since 2026-10-04.
+- **Scheduled check:** a task fires 2026-10-29 14:30 EDT, after the 72 h are up. It checks the preconditions, runs `tools/soak_check.py --expect 1.5.0-rc.1` once, and tags v1.5.0 on `709145f` (the rc.1 commit) only if clean; otherwise it records the run in a docs PR and reports. The UI work merged after rc.1 (#129–#131) isn't in v1.5.0.
+- **`docs/releases/README.md`:** the rule in one place, previously spread over #95, #97, #124 and STATUS decisions. It covers:
+  - how candidates are tagged;
+  - what makes a run valid (version, no restart, no reboot, 72 h from the service start; a restart starts a new run);
+  - the check and its criteria table;
+  - the decision (CLEAN: stable tag on the same commit; not clean: no tag, a recorded run, the owner decides);
+  - what never happens (relaxing or rerunning criteria, weakening outage detection, tagging a run that failed only on outages);
+  - who does what;
+  - the record of soak runs.
+- **Test:** `tests/test_soak_check.py` checks that the rule's criteria table lists exactly the criteria `soak_check.py` checks.
+- **Also:** CLAUDE.md points to the rule. STATUS: the v1.5.0-rc.1 soak row is in progress, plus a done row for the rule.

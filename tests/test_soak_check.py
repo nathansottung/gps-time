@@ -178,3 +178,19 @@ class MainTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RuleDocTest(unittest.TestCase):
+    """docs/releases/README.md (the soak rule) lists exactly the criteria the tool checks."""
+
+    def test_rule_lists_the_tools_criteria(self):
+        import re
+        from pathlib import Path
+        root = Path(__file__).resolve().parent.parent
+        tool = (root / "tools" / "soak_check.py").read_text(encoding="utf-8")
+        checked = set(re.findall(r'check\("([a-z]+)"', tool))
+        rule = (root / "docs" / "releases" / "README.md").read_text(encoding="utf-8")
+        table = rule.split("| Criterion | Clean when |", 1)[1].split("\n\n", 1)[0]
+        listed = set(re.findall(r"^\| ([a-z]+) \|", table, re.M))
+        self.assertEqual(listed, checked)
+        self.assertIn("--expect", rule)

@@ -107,6 +107,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `review/GPS-Time-Independent-Review-2026-09-27.md` — independent whole-repository review of the 2026-09-18 archive
 
 ## Releases
+- `releases/README.md` — how a candidate becomes a release: rc tags on the notes PR's merge commit; the soak rule (72 h unchanged run, the read-only check and its criteria, tag the same commit only if clean, otherwise report); the record of soak runs
 - `releases/v1.5.0-rc.1.md` — first 1.5 release candidate: legacy pages retired (`/` → `/app/`), optional modules with the Administration switch, station key and observation files, second pulse and soak check; the deploy command, what the upgrade changes on the station, rollback to v1.4.0 (pre-release)
 - `releases/v1.4.0.md` — first stable release of the 1.4 line, on the rc.11 commit: the clean soak result, what 1.4 contains relative to v1.3.0, known open issues
 - `releases/v1.4.0-rc.11.md` — chrony history semantics fixed (GPS-003/007), the legacy pages' features in `/app/`, TypeScript 7; the soak candidate, and the commit v1.4.0 is to be tagged on (pre-release)
