@@ -491,6 +491,23 @@ function ChartTip({ active, payload, label, unit }: any) {
 }
 ```
 
+### Axis scale (linear / log)
+
+Every chart of a time offset or a stability statistic has a `<ScaleToggle chart="…" />` (LIN | LOG) for its value axis, in the card header or beside the chart's label. The choice is remembered per chart in this browser (`gtp-chart-scales`, lib/prefs.ts); every view of the same chart follows it.
+
+| Chart | `chart` id | Starts on |
+|---|---|---|
+| Overview Δt, last hour (all three views) | `overview-dt` | linear |
+| Timing → time offset history | `offset-history` | log |
+| Timing → holdover error at reacquisition | `holdover` | linear |
+| References → offset, delay | `ref-offset`, `ref-delay` | linear |
+| Stability → ADEV / MDEV / TDEV | `stability` | log |
+
+- **Signed values (offsets)** on log use a symmetric-log axis: linear within ±lin, one decade per step beyond, so zero and both signs stay on the chart. lin is chosen from the data (`symThreshold`, lib/timeaxis.ts); the offset history keeps ±1 µs.
+- **Positive values** (delay, holdover error, ADEV) use a plain log axis; values ≤ 0 can't be drawn on it and are left out.
+- **Stability:** the toggle sets the value axis; τ stays logarithmic.
+- **Units on the ticks:** time axes label every tick with its own unit (`fmtTime`: "0", "850 ns", "1.5 µs", "−12 ms", "2 s"), so the axis needs no unit caption; ADEV and MDEV ticks are ×10⁻ⁿ (`10⁻⁷` on log, `2 × 10⁻⁷` on linear). Data are converted to seconds before drawing; never plot a series in one unit with ticks labelled in another.
+
 ### Chart color assignments
 
 | Data series | Color |

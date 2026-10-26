@@ -75,3 +75,37 @@ export function toggled(list: string[], id: string): string[] {
 export function visiblePage(page: string, m: Modules): string {
   return m.hiddenPages.includes(page) ? 'overview' : page;
 }
+
+// ─── Chart value-axis scale (lib/timeaxis.ts) ───────────────────────────────
+
+export type ChartScale = 'linear' | 'log';
+/** Charts with a linear/log toggle, and the scale each starts on. */
+export const CHART_SCALE_DEFAULTS = {
+  'overview-dt': 'linear',     // Overview: Δt over the last hour
+  'offset-history': 'log',     // Timing: chrony's offset history (symmetric log, as before)
+  'ref-offset': 'linear',      // References: offset of the picked server
+  'ref-delay': 'linear',       // References: delay of the picked server
+  'holdover': 'linear',        // Timing: error at PPS reacquisition
+  'stability': 'log',          // Stability: ADEV / MDEV / TDEV (log–log, as before)
+} as const satisfies Record<string, ChartScale>;
+export type ChartId = keyof typeof CHART_SCALE_DEFAULTS;
+export type ChartScales = Record<ChartId, ChartScale>;
+const SCALES_KEY = 'gtp-chart-scales';
+
+/** Known charts only, each 'linear' or 'log'; anything else falls back to its default. */
+export function sanitizeScales(v: unknown): ChartScales {
+  const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  const out = { ...CHART_SCALE_DEFAULTS } as ChartScales;
+  for (const id of Object.keys(CHART_SCALE_DEFAULTS) as ChartId[]) {
+    if (o[id] === 'linear' || o[id] === 'log') out[id] = o[id] as ChartScale;
+  }
+  return out;
+}
+
+export function loadScales(storage?: StorageLike | null): ChartScales {
+  try { return sanitizeScales(JSON.parse(store(storage)?.getItem(SCALES_KEY) ?? '{}')); } catch { return sanitizeScales({}); }
+}
+
+export function saveScales(s: ChartScales, storage?: StorageLike | null): void {
+  try { store(storage)?.setItem(SCALES_KEY, JSON.stringify(sanitizeScales(s))); } catch { /* lasts for this page */ }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import { loadModules, loadTheme, saveModules, saveTheme, type Modules, type Theme } from '../lib/prefs';
+import { loadModules, loadScales, loadTheme, saveModules, saveScales, saveTheme, type ChartId, type ChartScale, type ChartScales, type Modules, type Theme } from '../lib/prefs';
 
 // Two small page-wide stores (lib/prefs.ts): every reader re-renders when either changes.
 function makeStore<T>(initial: T, save: (v: T) => void) {
@@ -13,12 +13,18 @@ function makeStore<T>(initial: T, save: (v: T) => void) {
 }
 const themeStore = makeStore<Theme>(loadTheme(undefined, typeof window !== 'undefined' ? window.location.search : ''), t => saveTheme(t));
 const modulesStore = makeStore<Modules>(loadModules(), m => saveModules(m));
+const scalesStore = makeStore<ChartScales>(loadScales(), s => saveScales(s));
 
 export function useTheme(): [Theme, (t: Theme) => void] {
   return [useSyncExternalStore(themeStore.subscribe, themeStore.get), themeStore.set];
 }
 export function useModules(): [Modules, (m: Modules) => void] {
   return [useSyncExternalStore(modulesStore.subscribe, modulesStore.get), modulesStore.set];
+}
+/** A chart's linear/log value axis, remembered in this browser (every view of that chart follows it). */
+export function useChartScale(id: ChartId): [ChartScale, (s: ChartScale) => void] {
+  const all = useSyncExternalStore(scalesStore.subscribe, scalesStore.get);
+  return [all[id], (s: ChartScale) => scalesStore.set({ ...scalesStore.get(), [id]: s })];
 }
 
 /**

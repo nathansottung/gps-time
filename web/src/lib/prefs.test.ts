@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadModules, loadTheme, sanitizeModules, saveModules, saveTheme, toggled, visiblePage } from './prefs';
+import { loadModules, loadScales, loadTheme, sanitizeModules, sanitizeScales, saveModules, saveScales, saveTheme, toggled, visiblePage } from './prefs';
 
 function memStore() {
   const m = new Map<string, string>();
@@ -55,5 +55,29 @@ describe('modules', () => {
     expect(toggled(['a', 'b'], 'a')).toEqual(['b']);
     expect(visiblePage('aviation', { hiddenPages: ['aviation'], hiddenCards: [] })).toBe('overview');
     expect(visiblePage('gnss', { hiddenPages: ['aviation'], hiddenCards: [] })).toBe('gnss');
+  });
+});
+
+describe('chart scales', () => {
+  it('defaults: offsets linear, offset history and stability log', () => {
+    const s = sanitizeScales({});
+    expect(s['overview-dt']).toBe('linear');
+    expect(s['offset-history']).toBe('log');
+    expect(s.stability).toBe('log');
+  });
+  it('keeps known charts with a valid scale only', () => {
+    const s = sanitizeScales({ 'overview-dt': 'log', stability: 'cubic', unknown: 'log' });
+    expect(s['overview-dt']).toBe('log');
+    expect(s.stability).toBe('log');
+    expect('unknown' in s).toBe(false);
+  });
+  it('round-trips through storage and survives a broken value', () => {
+    const mem = new Map<string, string>();
+    const st = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => { mem.set(k, v); } };
+    saveScales({ ...sanitizeScales({}), holdover: 'log' }, st);
+    expect(loadScales(st).holdover).toBe('log');
+    mem.set('gtp-chart-scales', '{not json');
+    expect(loadScales(st).holdover).toBe('linear');
+    expect(loadScales(null)['ref-delay']).toBe('linear');
   });
 });

@@ -1490,3 +1490,26 @@ Owner's request: a design pass against the guidelines (spacing, type scale, numb
 - **Focus:** the ring is documented. Fields show it on any focus, including a date field's calendar button, which showed none before.
 - **Guidelines.md:** new sections for the type scale, the contrast rule, focus states, and loading/empty/unknown. Tokens, the Do-not list, and the ELI5, sidebar and sky-plot entries are updated.
 - **Tests:** `e2e/design.spec.ts` (26): the design audit on every page and tab, focus on every page, loading versus a failed request.
+
+## 2026-10-26 — linear/log toggle on time-offset and stability charts (#131)
+
+Owner's request: a linear/log toggle on every time-offset and stability chart, remembered per browser, with ns/µs/ms axis labels.
+
+- **Charts with the toggle** (LIN | LOG):
+  - Overview Δt over the last hour (all three views share one choice);
+  - Timing → time offset history;
+  - Timing → holdover error at reacquisition;
+  - References → offset and delay of the picked server;
+  - Stability → ADEV / MDEV / TDEV.
+  - Not on the NTP request-rate chart (a rate, not a time; now `RateChart`) or the oscillator and survey charts.
+- **Log on signed offsets** is a symmetric-log axis (linear near zero, a decade per step beyond), so zero and both signs stay visible. The linear zone comes from the data (the decade at or below the 10th percentile of |value|); the offset history keeps its ±1 µs.
+- **Log on positive values** (delay, holdover error, ADEV) is a plain log axis.
+- **Stability:** τ stays logarithmic; the toggle sets the value axis.
+- **Defaults** keep what each chart showed before: offset history and stability start on log, the rest on linear.
+- **Axis labels:** time ticks carry their own unit (ns, µs, ms, s; `fmtTime`), so captions like "(ns)" are gone. Series are converted to seconds before drawing. ADEV and MDEV ticks are ×10⁻ⁿ.
+- **Remembered** per chart in this browser (`localStorage` `gtp-chart-scales`, guarded; unknown values fall back to the default).
+- **Also:**
+  - The time-series X axis is a numeric time axis with five evenly spaced ticks; on the reference delay chart the old category axis let labels run together.
+  - The Stability card's "Stability data not loaded." is now a loading or failed state (#130's rule).
+- **Guidelines:** Charts → "Axis scale".
+- **Tests:** `src/lib/timeaxis.test.ts` (9), `src/lib/prefs.test.ts` (+3), `e2e/scale.spec.ts` (7: every toggle, tick labels with units in both modes, remembered across a reload, Overview views share the choice).

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, ELI5, ProvenanceTag, LoadingNote, EmptyNote } from '../components/ui';
-import { OffsetChart, SkyPlot, SolarCurve } from '../components/charts';
+import { ScaleToggle, SkyPlot, SolarCurve, TimeSeriesChart } from '../components/charts';
 import { Planned, ApiErrorNote } from '../components/planned';
 import { TimingChainCard } from '../components/timing';
 import { StationClockCard } from '../components/clock';
@@ -91,9 +91,12 @@ function TimingWidget() {
 
           {/* Offset history chart */}
           <div className="flex-1 min-w-0 border-t pt-3 @xl:border-t-0 @xl:pt-0 @xl:border-l @xl:pl-6" style={{ borderColor:'var(--border-dim)' }}>
-            <div className="text-[9px] mono uppercase tracking-[0.12em] mb-1" style={{ color:'var(--t3)' }}>Δt — last 1 hour ({s1h.unit})</div>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="text-[9px] mono uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Δt — last 1 hour</div>
+              <ScaleToggle chart="overview-dt" />
+            </div>
             {s1h.data.length
-              ? <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
+              ? <TimeSeriesChart series={s1h} range="1h" chart="overview-dt" />
               : isPending(hist) ? <LoadingNote what="the offset history" />
               : <EmptyNote>
                   {hist.error && !hist.data ? 'Not available: the station did not answer (see the error above).' : hist.data && !hist.data.available ? 'chrony tracking log not available' : 'No samples in the last hour'}
@@ -486,8 +489,11 @@ function VariantB() {
           ))}
         </div>
         <div className="mt-4">
-          <div className="mono text-[9px] mb-1.5 uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Δt — last 1 hour ({s1h.unit})</div>
-          <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="mono text-[9px] uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Δt — last 1 hour</div>
+            <ScaleToggle chart="overview-dt" />
+          </div>
+          <TimeSeriesChart series={s1h} range="1h" chart="overview-dt" />
         </div>
         <div className="mt-3 grid grid-cols-1 @md:grid-cols-2 gap-6">
           <div>
@@ -536,8 +542,11 @@ function VariantC() {
       </div>
 
       <div className="mb-8">
-        <OffsetChart data={s1h.data} range="1h" unit={s1h.unit} />
-        <div className="text-center mono text-[9px] mt-1" style={{ color:'var(--t3)' }}>Δt — last 60 minutes ({s1h.unit})</div>
+        <TimeSeriesChart series={s1h} range="1h" chart="overview-dt" />
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <span className="mono text-[9px]" style={{ color:'var(--t3)' }}>Δt — last 60 minutes</span>
+          <ScaleToggle chart="overview-dt" />
+        </div>
       </div>
 
       <div style={{ borderTop:'1px solid var(--border-dim)' }}>

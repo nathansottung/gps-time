@@ -6,6 +6,10 @@ import {
 } from 'recharts';
 import { decadeTicks, fmtDeviation, fmtInterval, fmtTau, valueExtent, type StabilityMetric, type StabilityRow } from '../lib/stability';
 import { fmtSeconds as fmtSym, symDomain, symexp, symTicks, type OffsetRow } from '../lib/offset';
+import { fmtTime, linearTicks, logTicks, positiveOnly, symAxis, symlog, symThreshold, symTimeLabel, UNIT_S } from '../lib/timeaxis';
+import { fmtSci } from '../lib/units';
+import { useChartScale } from './prefs';
+import type { ChartId } from '../lib/prefs';
 
 // Shared tick style
 const TICK = { fontSize: 9, fontFamily: 'JetBrains Mono', fill: 'var(--t3)' } as const;
@@ -26,8 +30,80 @@ function ChartTip({ active, payload, label, unit='ns' }: any) {
   );
 }
 
-// ─── Time-offset area chart ───────────────────────────────────────────────────
-export function OffsetChart({ data, range, unit='ns' }: { data: any[]; range: string; unit?: string }) {
+// ─── Value-axis scale toggle (remembered per browser, lib/prefs.ts) ──────────
+/** LIN | LOG for one chart's value axis. Every view of that chart follows the choice. */
+export function ScaleToggle({ chart }: { chart: ChartId }) {
+  const [scale, setScale] = useChartScale(chart);
+  return (
+    <div className="flex gap-1" role="group" aria-label="Value axis scale">
+      {(['linear', 'log'] as const).map(v => (
+        <button key={v} onClick={() => setScale(v)} aria-pressed={scale === v}
+          title={v === 'linear' ? 'Linear value axis' : 'Logarithmic value axis (symmetric around zero for signed values)'}
+          className="px-2 py-[3px] text-[9px] mono rounded-[2px] uppercase"
+          style={scale === v
+            ? { border:'1px solid var(--accent)', color:'var(--accent)', background:'var(--accent-dim)' }
+            : { border:'1px solid var(--border)', color:'var(--t3)' }}>
+          {v === 'linear' ? 'Lin' : 'Log'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Time series (offsets, delays) with a linear or symmetric-log value axis ──
+/** A series in a unit ('ns', 'µs', 'ms', 's'); drawn in seconds, every tick labelled with its own unit. */
+export function TimeSeriesChart({ series, range, chart, height = 160 }: {
+  series: { unit: string; data: { ts: number; dt: number }[] }; range: string; chart: ChartId; height?: number;
+}) {
+  const [scale] = useChartScale(chart);
+  const k = UNIT_S[series.unit] ?? 1;
+  const secs = series.data.map(d => d.dt * k);
+  const lin = symThreshold(secs);
+  const log = scale === 'log';
+  const rows = series.data.map((d, i) => ({ ts: d.ts, s: secs[i], y: log ? symlog(secs[i], lin) : secs[i] }));
+  const lt = log ? [] : linearTicks(Math.min(0, ...secs), Math.max(0, ...secs));
+  const ax = log ? symAxis(secs, lin) : { domain: [lt[0], lt[lt.length - 1]] as [number, number], ticks: lt };
+  const fmtX = (ts: number) => {
+    const d = new Date(ts);
+    return range === '1h' || range === '24h'
+      ? d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:false })
+      : d.toLocaleDateString('en-GB', { month:'short', day:'numeric' });
+  };
+  const gid = `ts-fill-${chart}`;
+  const xTicks = rows.length > 1 ? [0, 1, 2, 3, 4].map(i => rows[0].ts + (rows[rows.length - 1].ts - rows[0].ts) * i / 4) : [];
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={rows} margin={{ top:8, right:4, left:0, bottom:0 }}>
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--live)" stopOpacity={0.18}/>
+            <stop offset="100%" stopColor="var(--live)" stopOpacity={0}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
+        <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} interval="preserveStartEnd" minTickGap={8}
+          tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
+        <YAxis domain={ax.domain} ticks={ax.ticks} allowDataOverflow tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={52}
+          tickFormatter={(v: number) => log ? symTimeLabel(v, lin) : fmtTime(v)}/>
+        <Tooltip content={({ active, payload }: any) => {
+          if (!active || !payload?.length) return null;
+          const r = payload[0].payload;
+          return (
+            <div className="chart-tip">
+              <div style={{ color:'var(--t3)', marginBottom:2 }}>{fmtX(r.ts)}</div>
+              <div style={{ color:'var(--live)' }}>{fmtTime(r.s)}</div>
+            </div>
+          );
+        }}/>
+        <ReferenceLine y={0} stroke={AXIS} strokeDasharray="2 4" strokeOpacity={0.6}/>
+        <Area type="monotone" dataKey="y" baseValue={0} stroke="var(--live)" strokeWidth={1.5} fill={`url(#${gid})`} dot={false} isAnimationActive={false} activeDot={{ r:3, fill:'var(--live)', strokeWidth:0 }}/>
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Linear area chart for other quantities (e.g. request rates) ──────────────
+export function RateChart({ data, range, unit='ns' }: { data: any[]; range: string; unit?: string }) {
   const fmtX = (ts: number) => {
     const d = new Date(ts);
     if (range === '1h' || range === '24h')
@@ -69,9 +145,19 @@ function OffsetHistoryTip({ active, payload }: any) {
   );
 }
 
-/** Symmetric-log offset chart: line = chrony's offset, band = ± its offset SD, dashed = ± max error. */
-export function OffsetHistoryChart({ rows, range, showMaxErr }: { rows: OffsetRow[]; range: string; showMaxErr: boolean }) {
-  const dom = symDomain(rows, showMaxErr);
+/** Offset chart: line = chrony's offset, band = ± its offset SD, dashed = ± max error.
+ *  Log: the symmetric-log rows from lib/offset.ts (linear within ±1 µs). Linear: the same values in seconds. */
+export function OffsetHistoryChart({ rows: symRows, range, showMaxErr }: { rows: OffsetRow[]; range: string; showMaxErr: boolean }) {
+  const [scale] = useChartScale('offset-history');
+  const log = scale === 'log';
+  const rows: OffsetRow[] = log ? symRows : symRows.map(r => ({
+    ...r, y: r.offset,
+    band: r.sd === null || r.sd < 0 ? null : [r.offset - r.sd, r.offset + r.sd],
+    maxErr: r.maxError === null || r.maxError < 0 ? null : [-r.maxError, r.maxError],
+  }));
+  const linVals = rows.flatMap(r => [r.y, ...(r.band ?? []), ...(showMaxErr && r.maxErr ? r.maxErr : [])]);
+  const lt = log ? [] : linearTicks(Math.min(0, ...linVals), Math.max(0, ...linVals));
+  const dom: [number, number] = log ? symDomain(rows, showMaxErr) : [lt[0], lt[lt.length - 1]];
   const xTicks = rows.length > 1 ? [0, 1, 2, 3, 4].map(i => rows[0].ts + (rows[rows.length - 1].ts - rows[0].ts) * i / 4) : [];
   const fmtX = (ts: number) => {
     const d = new Date(ts);
@@ -84,8 +170,8 @@ export function OffsetHistoryChart({ rows, range, showMaxErr }: { rows: OffsetRo
       <ComposedChart data={rows} margin={{ top:8, right:4, left:0, bottom:0 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
         <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} ticks={xTicks} tickFormatter={fmtX} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}/>
-        <YAxis domain={dom} ticks={symTicks(dom)} allowDataOverflow tickFormatter={(v: number) => fmtSym(symexp(v))}
-          tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={48}/>
+        <YAxis domain={dom} ticks={log ? symTicks(dom) : lt} allowDataOverflow tickFormatter={(v: number) => log ? fmtSym(symexp(v)) : fmtTime(v)}
+          tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={52}/>
         <Tooltip content={<OffsetHistoryTip/>}/>
         <ReferenceLine y={0} stroke={AXIS} strokeOpacity={0.8}/>
         <Area dataKey="band" stroke="none" fill="var(--good-text)" fillOpacity={0.16} connectNulls={false} isAnimationActive={false} activeDot={false}/>
@@ -129,25 +215,30 @@ export function PPSTimeline({ events }: { events: { date: string; durationS: num
 
 // ─── Holdover scatter ─────────────────────────────────────────────────────────
 export function HoldoverScatter({ data }: { data: { durationS: number; errorNsOnRecovery: number }[] }) {
+  const [scale] = useChartScale('holdover');
+  const log = scale === 'log';
+  const all = data.map(d => ({ ...d, err: d.errorNsOnRecovery * 1e-9 }));
+  const rows = log ? positiveOnly(all, r => r.err).rows : all;
+  const ticks = log ? logTicks(rows.map(r => r.err)) : linearTicks(0, Math.max(0, ...rows.map(r => r.err)));
   return (
     <ResponsiveContainer width="100%" height={140}>
       <ScatterChart margin={{ top:8, right:4, left:0, bottom:16 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID}/>
         <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="durationS" name="Duration" unit="s" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}
           label={{ value:'Outage duration (s)', position:'insideBottom', offset:-8, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
-        <YAxis dataKey="errorNsOnRecovery" name="Error" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={48}
-          label={{ value:'Error (ns)', angle:-90, position:'insideLeft', offset:0, dx:-2, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
+        <YAxis dataKey="err" name="Error" type="number" scale={log ? 'log' : 'linear'} domain={[ticks[0], ticks[ticks.length - 1]]} ticks={ticks}
+          allowDataOverflow tickFormatter={fmtTime} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={52}/>
         <Tooltip cursor={{ stroke:'var(--border-em)' }} content={({ active, payload }) => {
           if (!active || !payload?.length) return null;
           const d = payload[0]?.payload;
           return (
             <div className="chart-tip">
               <div style={{ color:'var(--t3)' }}>{d.durationS}s outage</div>
-              <div style={{ color:'var(--live)' }}>+{d.errorNsOnRecovery} ns recovered error</div>
+              <div style={{ color:'var(--live)' }}>+{fmtTime(d.err)} error at reacquisition</div>
             </div>
           );
         }}/>
-        <Scatter data={data} fill="var(--live)" fillOpacity={0.7} r={4}/>
+        <Scatter data={rows} fill="var(--live)" fillOpacity={0.7} r={4}/>
       </ScatterChart>
     </ResponsiveContainer>
   );
@@ -271,9 +362,13 @@ function StabilityTip({ active, payload, metric }: any) {
 }
 
 export function StabilityChart({ rows, metric }: { rows: StabilityRow[]; metric: StabilityMetric }) {
+  const [scale] = useChartScale('stability');
+  const log = scale === 'log';
   const extent = valueExtent(rows);
   if (!extent) return null;
-  const yTicks = decadeTicks(extent[0], extent[1]);
+  // τ stays logarithmic; the toggle sets the value axis. TDEV is a time (ns/µs/ms); ADEV and MDEV are ×10⁻ⁿ.
+  const yTicks = log ? decadeTicks(extent[0], extent[1]) : linearTicks(0, extent[1]);
+  const yLabel = (v: number) => metric === 'tdev' ? (log ? fmtDeviation(v, 'tdev') ?? '' : fmtTime(v)) : log ? pow10(v) : (v === 0 ? '0' : fmtSci(v, 2));
   const xTicks = decadeTicks(rows[0].tau, rows[rows.length - 1].tau);
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -281,9 +376,9 @@ export function StabilityChart({ rows, metric }: { rows: StabilityRow[]; metric:
         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false}/>
         <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="tau" type="number" scale="log" domain={[xTicks[0], xTicks[xTicks.length - 1]]} ticks={xTicks}
                tickFormatter={fmtTau} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} allowDataOverflow/>
-        <YAxis type="number" scale="log" domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks}
-               tickFormatter={metric === 'tdev' ? (v: number) => fmtDeviation(v, 'tdev') ?? '' : pow10}
-               tick={TICK} tickLine={false} axisLine={false} width={metric === 'tdev' ? 46 : 34} allowDataOverflow/>
+        <YAxis type="number" scale={log ? 'log' : 'linear'} domain={[yTicks[0], yTicks[yTicks.length - 1]]} ticks={yTicks}
+               tickFormatter={yLabel}
+               tick={TICK} tickLine={false} axisLine={false} width={metric === 'tdev' || !log ? 64 : 34} allowDataOverflow/>
         <Tooltip content={<StabilityTip metric={metric}/>}/>
         <Line type="linear" dataKey="v" stroke="var(--live)" strokeWidth={1.5} isAnimationActive={false}
               dot={{ r:2, fill:'var(--live)', strokeWidth:0 }} activeDot={{ r:3, fill:'var(--live)', strokeWidth:0 }}>
