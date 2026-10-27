@@ -1,12 +1,12 @@
 import {
   AreaChart, Area, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
-  ScatterChart, Scatter, BarChart, Bar, Cell, ErrorBar,
+  ScatterChart, Scatter, ZAxis, BarChart, Bar, Cell, ErrorBar,
   ResponsiveContainer,
 } from 'recharts';
 import { decadeTicks, fmtDeviation, fmtInterval, fmtTau, valueExtent, type StabilityMetric, type StabilityRow } from '../lib/stability';
 import { fmtSeconds as fmtSym, symDomain, symexp, symTicks, type OffsetRow } from '../lib/offset';
-import { fmtTime, linearTicks, logTicks, positiveOnly, symAxis, symlog, symThreshold, symTimeLabel, UNIT_S } from '../lib/timeaxis';
+import { fmtDurationTick, fmtTime, linearTicks, logTicks, positiveOnly, symAxis, symlog, symThreshold, symTimeLabel, UNIT_S } from '../lib/timeaxis';
 import { fmtSci } from '../lib/units';
 import { useChartScale } from './prefs';
 import type { ChartId } from '../lib/prefs';
@@ -192,15 +192,17 @@ export function PPSTimeline({ events }: { events: { date: string; durationS: num
   }));
   return (
     <div className="w-full">
-      <svg width="100%" height="24" viewBox="0 0 100 24" preserveAspectRatio="none">
-        <rect x="0" y="6" width="100" height="10" fill="var(--good-bg)" rx="0.5"/>
+      {/* The bar stretches to the width (preserveAspectRatio none); its hour labels are HTML so the
+          text keeps its shape at every width. */}
+      <svg width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">
+        <rect x="0" y="1" width="100" height="10" fill="var(--good-bg)" rx="0.5"/>
         {outages.map((o,i) => (
-          <rect key={i} x={o.xPct} y="6" width={o.wPct} height="10" fill="var(--err-text)" fillOpacity={0.45} rx="0.3"/>
-        ))}
-        {['00:00','06:00','12:00','18:00','24:00'].map((t,i)=>(
-          <text key={t} x={i*25} y="23" fontSize="5" fill="var(--t3)" fontFamily="JetBrains Mono" textAnchor={i===4?"end":i===0?"start":"middle"}>{t}</text>
+          <rect key={i} x={o.xPct} y="1" width={o.wPct} height="10" fill="var(--err-text)" fillOpacity={0.45} rx="0.3"/>
         ))}
       </svg>
+      <div className="flex justify-between text-[9px] mono mt-0.5" style={{ color:'var(--t3)' }}>
+        {['00:00','06:00','12:00','18:00','24:00'].map(t => <span key={t}>{t}</span>)}
+      </div>
       <div className="flex gap-4 mt-1">
         <span className="flex items-center gap-1 text-[9px] mono" style={{ color:'var(--t3)' }}>
           <span className="w-2.5 h-1 inline-block rounded-[1px]" style={{ background:'var(--good-bg)', border:'1px solid var(--good-border)' }}/>PPS LOCKED
@@ -220,12 +222,16 @@ export function HoldoverScatter({ data }: { data: { durationS: number; errorNsOn
   const all = data.map(d => ({ ...d, err: d.errorNsOnRecovery * 1e-9 }));
   const rows = log ? positiveOnly(all, r => r.err).rows : all;
   const ticks = log ? logTicks(rows.map(r => r.err)) : linearTicks(0, Math.max(0, ...rows.map(r => r.err)));
+  const dTicks = logTicks(rows.map(r => r.durationS));
   return (
     <ResponsiveContainer width="100%" height={140}>
       <ScatterChart margin={{ top:8, right:4, left:0, bottom:16 }}>
         <CartesianGrid strokeDasharray="2 4" stroke={GRID}/>
-        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="durationS" name="Duration" unit="s" tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}
-          label={{ value:'Outage duration (s)', position:'insideBottom', offset:-8, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
+        {/* A numeric axis (a category axis put the outages in list order and dropped points at narrow
+            widths); durations span decades, so it is logarithmic. */}
+        <XAxis dataKey="durationS" name="Duration" type="number" scale="log" domain={[dTicks[0], dTicks[dTicks.length - 1]]}
+          ticks={dTicks} allowDataOverflow tickFormatter={fmtDurationTick} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }}
+          label={{ value:'Outage duration', position:'insideBottom', offset:-8, fontSize:8, fill:'var(--t3)', fontFamily:'JetBrains Mono' }}/>
         <YAxis dataKey="err" name="Error" type="number" scale={log ? 'log' : 'linear'} domain={[ticks[0], ticks[ticks.length - 1]]} ticks={ticks}
           allowDataOverflow tickFormatter={fmtTime} tick={TICK} tickLine={false} axisLine={{ stroke:AXIS }} width={52}/>
         <Tooltip cursor={{ stroke:'var(--border-em)' }} content={({ active, payload }) => {
@@ -238,7 +244,8 @@ export function HoldoverScatter({ data }: { data: { durationS: number; errorNsOn
             </div>
           );
         }}/>
-        <Scatter data={rows} fill="var(--live)" fillOpacity={0.7} r={4}/>
+        <ZAxis range={[50, 50]}/>
+        <Scatter data={rows} fill="var(--live)" fillOpacity={0.7}/>
       </ScatterChart>
     </ResponsiveContainer>
   );

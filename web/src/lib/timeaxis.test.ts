@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtTime, linearTicks, logTicks, positiveOnly, symAxis, symThreshold, symTimeLabel, UNIT_S } from './timeaxis';
+import { fmtDurationTick, fmtTime, linearTicks, logTicks, positiveOnly, symAxis, symThreshold, symTimeLabel, UNIT_S } from './timeaxis';
 import { symlog } from './offset';
 
 describe('fmtTime', () => {
@@ -61,5 +61,11 @@ describe('log axis', () => {
   it('knows the units series are scaled to', () => {
     expect(UNIT_S['µs']).toBe(1e-6);
     expect(UNIT_S.ns).toBe(1e-9);
+  });
+});
+
+describe('fmtDurationTick', () => {
+  it('labels log-axis durations', () => {
+    expect([10, 100, 1000, 10000].map(fmtDurationTick)).toEqual(['10s', '100s', '16m 40s', '2h 46m']);
   });
 });

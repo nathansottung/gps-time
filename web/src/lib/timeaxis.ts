@@ -6,6 +6,7 @@
 // step beyond, so zero and both signs stay on the chart. Positive data (delays, holdover error,
 // ADEV) use a plain log axis. Nothing here changes the data; it only places and labels it.
 import { symexp, symlog } from './offset';
+import { fmtDuration } from './format';
 
 export type AxisScale = 'linear' | 'log';
 
@@ -97,3 +98,8 @@ export function positiveOnly<T>(rows: T[], value: (r: T) => number): { rows: T[]
 }
 
 export { symexp, symlog };
+
+/** Duration ticks on a log axis (seconds): 10 → "10s", 100 → "100s", 1000 → "16m 40s", 10000 → "2h 46m". */
+export function fmtDurationTick(s: number): string {
+  return s < 1000 ? `${s}s` : (fmtDuration(s) ?? `${s}s`);
+}

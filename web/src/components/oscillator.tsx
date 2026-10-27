@@ -8,6 +8,7 @@ import { useStation, usePoll, isPending } from '../api/station';
 import {
   BINDING_LABEL, exportFilename, fitLine, fmtBytes, fmtSlope, fmtTerm, HOLDOVER_LABEL, holdoverRows, importOutcome, MODEL_LABEL,
   oscPoints, profileCurve, scatterPoints, spanDays,
+  dayTicks,
 } from '../lib/oscillator';
 import type { Oscillator, ProfileImportResult } from '../api/types';
 import { ApiError } from '../api/client';
@@ -43,6 +44,7 @@ export function OscillatorPanel() {
   const curve = profileCurve(prof);
   const span = spanDays(pts);
   const time = pts.map(p => ({ ts: p.ts, temp: p.temp, freq: p.freq }));
+  const days = time.length > 1 ? dayTicks(time[0].ts, time[time.length - 1].ts) : [];
   const fmtT = (ts: number) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
@@ -130,7 +132,7 @@ export function OscillatorPanel() {
                     <ResponsiveContainer width="100%" height={150}>
                       <LineChart data={time} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false} />
-                        <XAxis interval="preserveStartEnd" minTickGap={8} dataKey="ts" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fmtT} tick={TICK} tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
+                        <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} ticks={days} tickFormatter={fmtT} tick={TICK} tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
                         <YAxis domain={['auto', 'auto']} tick={TICK} tickLine={false} axisLine={false} width={40}
                                tickFormatter={(v: number) => k === 'temp' ? v.toFixed(0) : v.toFixed(2)} />
                         <Tooltip content={<Tip />} />
@@ -189,8 +191,8 @@ export function HoldoverCard({ d, pending }: { d: Oscillator | null | undefined;
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.threshold} style={{ borderBottom:'1px solid var(--border-dim)' }}>
-                      <td className="py-1.5 mono" style={{ color:'var(--t2)' }}>{r.threshold}</td>
-                      {r.cells.map(c => <td key={c.name} className="py-1.5 pl-3 mono text-right tabular-nums" style={{ color: c.text === '—' ? 'var(--t3)' : HOLD_COLOR[c.name] }}>{c.text}</td>)}
+                      <td className="py-1.5 mono whitespace-nowrap" style={{ color:'var(--t2)' }}>{r.threshold}</td>
+                      {r.cells.map(c => <td key={c.name} className="py-1.5 pl-3 mono text-right tabular-nums whitespace-nowrap" style={{ color: c.text === '—' ? 'var(--t3)' : HOLD_COLOR[c.name] }}>{c.text}</td>)}
                     </tr>
                   ))}
                 </tbody>

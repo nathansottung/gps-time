@@ -175,3 +175,16 @@ export function demoImport(doc: unknown, stationHash: string | null): ProfileImp
     : "the board can't be confirmed (no serial hash on the file or the station): kept for reference only";
   return { ok: true, binding, bins: rows.length, used, simulated: true, detail: `demo mode, nothing was saved. On a station: ${what}` };
 }
+
+/** Date ticks for the time charts: local midnights inside [lo, hi] (ms), one per day, or every
+ *  n-th day so there are at most `max`; each date appears once (a label per day, never repeated). */
+export function dayTicks(lo: number, hi: number, max = 7): number[] {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return [];
+  const d = new Date(lo);
+  d.setHours(0, 0, 0, 0);
+  if (d.getTime() < lo) d.setDate(d.getDate() + 1);
+  const all: number[] = [];
+  for (; d.getTime() <= hi; d.setDate(d.getDate() + 1)) all.push(d.getTime());
+  const step = Math.max(1, Math.ceil(all.length / max));
+  return all.filter((_, i) => i % step === 0);
+}

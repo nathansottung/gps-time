@@ -10,7 +10,8 @@
     "format": "oxfmt",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:station": "playwright test -c playwright.station.config.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
