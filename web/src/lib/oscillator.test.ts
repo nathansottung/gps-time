@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OscillatorBin } from '../api/types';
-import { fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve, bindingFor, demoImport, exportFilename, fmtHoldTime, fmtThreshold, holdoverRows, holdoverTimes, importOutcome } from './oscillator';
+import { dayTicks, fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve, bindingFor, demoImport, exportFilename, fmtHoldTime, fmtThreshold, holdoverRows, holdoverTimes, importOutcome } from './oscillator';
 import { demoApi } from '../api/demo';
 
 const bin = (t: string, temp: number | null, freq: number | null, pps = 10): OscillatorBin => ({
@@ -151,5 +151,18 @@ describe('demo adapter', () => {
     const o = await api.oscillator();
     expect(o.holdover.projections.map(p => p.name)).toEqual(['free_running', 'trained_skew', 'profile']);
     expect(o.holdover.projections.every(p => p.provenance === 'modeled')).toBe(true);
+  });
+});
+
+describe('dayTicks', () => {
+  it('one tick per local midnight inside the span, never a repeated date', () => {
+    const t0 = new Date(2026, 9, 24, 15, 0).getTime(), t1 = new Date(2026, 9, 27, 3, 0).getTime();
+    const ticks = dayTicks(t0, t1);
+    expect(ticks.map(t => new Date(t).getDate())).toEqual([25, 26, 27]);
+    expect(ticks.every(t => new Date(t).getHours() === 0)).toBe(true);
+    const long = dayTicks(new Date(2026, 9, 1).getTime(), new Date(2026, 9, 30).getTime());
+    expect(long.length).toBeLessThanOrEqual(7);
+    expect(new Set(long.map(t => new Date(t).toDateString())).size).toBe(long.length);
+    expect(dayTicks(5, 5)).toEqual([]);
   });
 });

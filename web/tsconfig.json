@@ -18,5 +18,5 @@
     "strict": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "e2e", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
+  "include": ["src", "e2e", "e2e-station", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.station.config.ts"]
 }

@@ -842,9 +842,6 @@ function AdminAccess({ auth }: { auth: Polled<AuthState> }) {
             {stored && <button onClick={forget} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Forget</button>}
           </div>
         )}
-        <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
-          Everything the legacy <a href="../admin" style={{ color:'var(--t3)' }}>/admin</a> page does is now on this page; it uses the same token.
-        </div>
       </CardBody>
     </Card>
   );

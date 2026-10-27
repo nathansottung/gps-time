@@ -1784,3 +1784,20 @@ Owner's request: the v1.5.1 items on main; item 2, the flaky-test fix.
 - **The fix:** times (`2026-10-27T02:11:38.92…Z`, `02:11:38.92…`) are replaced with `<time>` before the check. A position is never written as a time of day, so a real leak still fails.
 - **A new test** shows that both hold: a time passes, while a time next to `lat 38.9217` or `-77.0669` still fails.
 - **Scope:** tests only. Nothing in the script or the redaction changed.
+
+## 2026-10-27 — Desktop UI review of the v1.5.1 candidate (#144)
+
+Owner's request: the v1.5.1 items on main; item 3, the desktop UI review. Record: `docs/dashboard/ui-review-2026-10-27.md`.
+
+- **How:** the built UI served by the Python demo station, which uses the station's own demo API, not the client-side adapter the browser tests use. The new opt-in check `web/e2e-station/` (`corepack pnpm run test:station`; `GTP_STATION_URL`) covers every page and tab: layout at 360–1920 px, design at 1280 px, no console errors, screenshot mode never showing the demo position, and the night-theme layout. 72/72 pass. Full-height screenshots were then looked at by eye.
+- **Fixed:**
+  1. **Timing's PPS state bar:** the hour labels were drawn stretched (SVG text in a `preserveAspectRatio="none"` graphic); they are now HTML.
+  2. **Holdover performance:** a category x-axis (outages in list order, 2 of 5 points at 360 px) is now a numeric log duration axis, with dot size restored.
+  3. **Holdover projection:** values no longer break across lines.
+  4. **Oscillator time charts:** date ticks repeated; now one per local midnight (`dayTicks`).
+  5. **Administration:** a sentence linking the removed legacy `/admin` page is gone.
+  6. **Night tooltip and Configure:** "shared with the legacy pages" removed.
+- **Not changed (for the owner):**
+  - night-theme legibility of green and cyan values, left alone on purpose by the 2026-10-26 design review;
+  - the station server's listen queue of 5: requests were refused with several browsers at once, none with one (GPS-018).
+- **Tests:** `dayTicks` and `fmtDurationTick` unit tests; the browser suites pass.

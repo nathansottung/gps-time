@@ -43,7 +43,7 @@ export function ThemeToggle() {
   return (
     <button onClick={() => setTheme(night ? 'dark' : 'night')} aria-pressed={night}
       aria-label={night ? 'Night theme on; switch to dark' : 'Switch to the red night theme'}
-      title="Red night theme for observing: only red light, dimmed. Remembered in this browser (shared with the legacy pages)."
+      title="Red night theme for observing: only red light, dimmed. Remembered in this browser."
       className="px-1.5 py-[3px] text-[9px] mono rounded-[2px] whitespace-nowrap uppercase tracking-[0.08em]"
       style={night
         ? { border:'1px solid var(--accent)', color:'var(--accent)', background:'var(--accent-dim)' }

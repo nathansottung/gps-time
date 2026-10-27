@@ -72,7 +72,7 @@ export default function Configure() {
                 ))}
               </div>
               <div className="text-[9px] mt-2" style={{ color:'var(--t3)' }}>
-                Night shows only red light, dimmed, to keep dark adaptation while observing. Also in the header (Night). Shared with the legacy pages in this browser.
+                Night shows only red light, dimmed, to keep dark adaptation while observing. Also in the header (Night). Remembered in this browser.
               </div>
             </CardBody>
           </Card>
