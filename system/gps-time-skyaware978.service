@@ -1,0 +1,44 @@
+[Unit]
+Description=skyaware978 for GPS Time's reference-adsb module (978 MHz aircraft.json in /run/skyaware978)
+Documentation=file:///opt/gps-time-pi/docs/deploy/sdr-stack.md
+BindsTo=gps-time-dump978.service
+After=gps-time-dump978.service
+
+# Installed by scripts/sdr-stack.sh (sudo GTP_SDR=1 ... bash install.sh) and enabled only when
+# GTP_SDR_978_SERIAL names an RTL-SDR serial in /etc/default/gps-time-sdr (docs/deploy/sdr-stack.md).
+# Nothing here touches gpsd, chrony or the PPS line, and no receiver position is given.
+# Reads dump978-fa on 127.0.0.1 and writes JSON to RAM. No --lat/--lon: no receiver position.
+
+[Service]
+ExecStart=/usr/local/lib/gps-time-sdr/skyaware978 --connect 127.0.0.1:30978 --reconnect-interval 30   --json-dir /run/skyaware978 --history-count 4 --history-interval 30
+Restart=on-failure
+RestartSec=10
+RuntimeDirectory=skyaware978
+RuntimeDirectoryMode=0755
+UMask=0022
+Nice=5
+DynamicUser=yes
+PrivateDevices=yes
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_UNIX
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+MemoryMax=64M
+CPUQuota=20%
+
+[Install]
+WantedBy=multi-user.target

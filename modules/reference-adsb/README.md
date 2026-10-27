@@ -13,6 +13,8 @@ It covers both links:
 
 Each decoder needs its own SDR. The module reads only those files; it has no network permission and no device.
 
+**Installing the decoders:** `sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=... GTP_SDR_978_SERIAL=... bash install.sh` installs readsb and builds dump978-fa with skyaware978. Both write to the default paths above, in RAM, with no outside network and no station position (`docs/deploy/sdr-stack.md`).
+
 ## What it does with each aircraft
 
 Checks, in order:

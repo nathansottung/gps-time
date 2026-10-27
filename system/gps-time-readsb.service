@@ -1,0 +1,47 @@
+[Unit]
+Description=readsb for GPS Time's reference-adsb module (1090 MHz; aircraft.json in /run/readsb, no network)
+Documentation=file:///opt/gps-time-pi/docs/deploy/sdr-stack.md
+
+# Installed by scripts/sdr-stack.sh (sudo GTP_SDR=1 ... bash install.sh) and enabled only when
+# GTP_SDR_1090_SERIAL names an RTL-SDR serial in /etc/default/gps-time-sdr (docs/deploy/sdr-stack.md).
+# Nothing here touches gpsd, chrony or the PPS line, and no receiver position is given.
+# No --net: readsb opens no listeners at all. No --lat/--lon: the station's position is never
+# given, and --json-location-accuracy 0 keeps any receiver location out of the JSON.
+
+[Service]
+EnvironmentFile=/etc/default/gps-time-sdr
+ExecStart=/usr/bin/readsb --quiet --device-type rtlsdr --device ${GTP_SDR_1090_SERIAL} --gain -10   --write-json /run/readsb --write-json-every 1 --json-location-accuracy 0
+Restart=on-failure
+RestartSec=10
+# RAM only; readable by gps-time-mod (the module user), which reads aircraft.json.
+RuntimeDirectory=readsb
+RuntimeDirectoryMode=0755
+UMask=0022
+Nice=5
+DynamicUser=yes
+SupplementaryGroups=plugdev
+DevicePolicy=closed
+DeviceAllow=char-usb_device rw
+
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+MemoryMax=192M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target

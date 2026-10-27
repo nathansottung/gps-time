@@ -140,6 +140,15 @@ id gps-time-mod >/dev/null 2>&1 || useradd --system --no-create-home --home-dir 
 install -m 0644 system/gps-time-modules.service /etc/systemd/system/gps-time-modules.service
 systemctl daemon-reload
 
+echo "== SDR stack (optional, off unless asked for) =="
+# rtl_tcp, readsb (1090 MHz) and dump978 (978 MHz) for the SDR modules, each on the loopback
+# address only or with no network. Nothing is installed unless GTP_SDR is set:
+#   sudo GTP_SDR=1 GTP_SDR_PPS_SERIAL=... GTP_SDR_1090_SERIAL=... GTP_SDR_978_SERIAL=... bash install.sh
+#   sudo GTP_SDR=0 bash install.sh        remove the units again (packages are kept)
+# A failure here leaves the station as it was; it never stops the install (docs/deploy/sdr-stack.md).
+bash scripts/sdr-stack.sh \
+  || echo "Warning: the SDR stack was not changed (see the message above)."
+
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
 # Debian's polkitd package owns this directory and sets its owner and mode.
 # Create it only if it is missing; never change an existing one.
