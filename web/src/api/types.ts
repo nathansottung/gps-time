@@ -892,6 +892,7 @@ export type SettingResult =
   | { ok: true; modules_experimental: boolean; modules_enabled: string[] }
   | { ok: true; module: string; enabled: boolean; modules_enabled: string[] }
   | { ok: true; module: string; config: Record<string, unknown> }
+  | { ok: true; sky_quality_share: boolean }
   | { ok: false };
 
 // ─── GET /api/modules ────────────────────────────────────────────────────────
@@ -983,6 +984,64 @@ export interface SdrStatus {
   dongles: SdrDongle[] | null;
   feeds: SdrFeed[];
   note: string;
+}
+
+// ─── GET /api/sky-obstruction ────────────────────────────────────────────────
+// The learned sky-obstruction map (gps_time_pi/skymap.py): cells of 10° azimuth × 5° elevation,
+// each against the rest of its elevation band. Inferred; off in hidden mode.
+
+export type SkyCellClass = 'clear' | 'attenuated' | 'blocked' | 'unknown';
+export interface SkyCell {
+  az0: number; el0: number; samples: number;
+  tracked_pct: number | null; used_pct: number | null;
+  cn0_mean: number | null; cn0_sd: number | null; band_median: number | null; delta_db: number | null;
+  class: SkyCellClass;
+}
+export type SkySectorState = 'clear' | 'attenuated' | 'obstructed' | 'unknown';
+export interface SkySector {
+  sector: string; az_centre: number; state: SkySectorState; text: string; below_deg: number | null;
+  cells_classified: number; cells: number; cn0_median: number | null; provenance: 'inferred';
+}
+export type SkyLossClass = 'EXPECTED' | 'NOT EXPLAINED' | 'UNKNOWN' | 'SET';
+export interface SkyLoss {
+  utc: string; gnss: string; sat: number | null; az: number; el: number; cn0_before: number;
+  class: SkyLossClass; note: string; provenance: 'inferred';
+}
+export interface SkyWideDrop { utc: string; satellites: number; of: number; quadrants: number; note: string; provenance: 'inferred' }
+export interface SkyObstruction {
+  available: true; format: string; az_step: number; el_step: number;
+  summary: { days: number; satellite_minutes: number; reports_sampled: number; cells_total: number;
+    cells_with_data: number; cells_classified: number; clear_pct: number | null;
+    state: 'learning' | 'learned'; untracked_reported: boolean };
+  sectors: SkySector[];
+  cells: SkyCell[];
+  losses: { counts: Record<SkyLossClass, number>; recent: SkyLoss[]; since: string };
+  sky_wide: { count: number; recent: SkyWideDrop[] };
+  thresholds: { min_cell_samples: number; blocked_db: number; attenuated_db: number;
+    blocked_tracked: number; attenuated_tracked: number; learned_days: number };
+  file: { name: string; last_write_utc: string | null; unsaved: boolean; problems: string[] };
+  note: string; provenance: 'inferred';
+  location_display: LocationMode;
+}
+export type SkyObstructionResult = SkyObstruction | { available: false; reason: string; location_display: LocationMode };
+
+// ─── GET /api/capability ─────────────────────────────────────────────────────
+// The station's capability record (gps_time_pi/capability.py). Never an exact position.
+export interface SkyQuality {
+  state: 'learning' | 'learned'; days: number; clear_pct: number | null; cells_classified: number;
+  sectors: { sector: string; state: SkySectorState; below_deg: number | null }[];
+  provenance: 'inferred'; note: string;
+}
+export interface Capability {
+  format: string; generated_utc: string; station_id: string | null; software_version: string;
+  timing: { state: string | null; source: string | null; provenance: 'calculated' };
+  gnss: { driver: string | null; firmware: string | null };
+  sdr: { installed: boolean | null; receivers: { role: string }[] };
+  location: { precision: string; lat: number | null; lon: number | null; note?: string };
+  sky_quality_opt_in: boolean;
+  sky_quality: SkyQuality | null;
+  sky_quality_note: string | null;
+  availability: string;
 }
 
 // ─── GET /api/admin ──────────────────────────────────────────────────────────

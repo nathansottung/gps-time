@@ -1873,3 +1873,38 @@ Owner's request (v1.6.0, item 3): add the SDR load to the soak record, with CPU,
   - the record never changes CLEAN;
   - its reads never fail the check;
   - `main()` against the stub with `/api/sdr`.
+
+## 2026-10-27 — Learned sky-obstruction map and the capability record (#148)
+
+Owner's request: build the learned sky-obstruction map (addendum §10–11): bin C/N₀ by azimuth and elevation over days, save a capped grid to the SD card, show a polar heatmap on GNSS & Site, and mark satellite loss in blocked sectors as expected. Add an opt-in sky-quality summary to the capability record and the export. Off in hidden mode. For v1.6.0-rc.1.
+
+- **Collection** (`gps_time_pi/skymap.py`):
+  - the GNSS collector passes each fresh SKY report to the map (`gps.add_sky_listener`); HTTP traffic never feeds it;
+  - once a minute each listed satellite is counted in its 10° × 5° cell: listed, tracked, used, and the sum and sum of squares of C/N₀ (observed).
+- **Storage:**
+  - `sky-obstruction.json` next to `config.json`, written atomically once an hour and on a clean stop, only when changed;
+  - a fixed grid of 648 cells; a cell's counters are halved at 20 000 samples, and at most 400 day numbers are kept (about 25 KB when full);
+  - no position and no time of day. An unreadable file is set aside.
+- **Inference** (`inferred`):
+  - each cell against the median of its elevation band (±5°): blocked at 8 dB below or tracked < 50 %, attenuated at 4 dB or < 80 %;
+  - the tracked share only when the receiver lists untracked satellites;
+  - eight sectors ("Expected obstruction below ~N°", "Intermittent attenuation a–b°", "Mostly clear", "Not enough data"); learned after 2 days.
+- **Losses (§11):**
+  - each lost satellite is EXPECTED, NOT EXPLAINED, SET or UNKNOWN from its last direction;
+  - a sky-wide C/N₀ drop above 30° in three or more quadrants is flagged with "the evidence does not establish a cause";
+  - kept in RAM, never a cause.
+- **Privacy:** in hidden mode nothing is collected, served or exported; the file on the card is kept.
+- **Capability record** (`gps_time_pi/capability.py`, `GET /api/capability`):
+  - station ID, version, timing state, receiver and SDR roles;
+  - a location only in rounded mode, at 0.1°; none in exact or hidden;
+  - the sky-quality summary (sectors only) when `sky_quality_share` is on (`POST /api/setting`, admin token, default off), never in hidden mode. The same summary ends `GET /api/diagnostics`;
+  - not sent anywhere yet.
+- **UI:**
+  - GNSS & Site → Sky Obstruction replaces the preview with the station's map: a polar heatmap shaded by class or by mean C/N₀, the sectors and the satellite-loss table;
+  - Administration → Capability record has the opt-in switch.
+- **Tests:**
+  - `tests/test_skymap.py` (21): cells, the one-a-minute sampling, hidden mode, classes, sectors, a uniformly weak sky, the cell cap, each loss class, the sky-wide drop, the hourly file and its reload, a set-aside file, the capability record's location and opt-in, the routes;
+  - `web/src/lib/skymap.test.ts` (5);
+  - `web/e2e/skymap.spec.ts` (7).
+- **Also fixed:** GNSS & Site → Survey's convergence chart had four full date-time labels, which collided at 360 px depending on the time of day (the layout audit failed on `main` too). It now has three: start, middle and end.
+- **Not yet run on a Pi.** The thresholds come from synthetic tests and the demo.

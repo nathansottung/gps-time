@@ -31,7 +31,7 @@ This is the canonical place for ideas raised during project scoping. A feature a
 | Time-block averaging and covariance/error ellipse | Planned |
 | Accepted/locked station coordinate | Planned |
 | Live vs candidate vs accepted position | Planned |
-| Learned sky-obstruction / RF horizon map from az/el/C/N₀ | Planned |
+| Learned sky-obstruction / RF horizon map from az/el/C/N₀ | Done (`architecture/sky-obstruction-map.md`) |
 | Satellite constellation/health/orbit metadata when receiver exposes it | Planned |
 | Antenna status/open/short diagnostics when supported | Planned |
 | Ellipsoidal height h / orthometric height H / geoid undulation N | Planned |

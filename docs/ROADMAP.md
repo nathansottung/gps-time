@@ -35,7 +35,7 @@ What a timed, fixed station can measure and calculate on its own, offline.
 | Document | What it covers | Status |
 |---|---|---|
 | [`specs/SPEC-TIMING-METROLOGY.md`](specs/SPEC-TIMING-METROLOGY.md) | Allan deviation, time scales, independent references; then NTS and PTP | In progress (20 done, 9 scheduled; NTS and PTP not started) |
-| [`specs/ADDENDUM-SKY-SOLAR-SATELLITE.md`](specs/ADDENDUM-SKY-SOLAR-SATELLITE.md) | Earth shadow and satellite illumination, solar geometry, sky obstruction | In progress (11 done, 24 planned) |
+| [`specs/ADDENDUM-SKY-SOLAR-SATELLITE.md`](specs/ADDENDUM-SKY-SOLAR-SATELLITE.md) | Earth shadow and satellite illumination, solar geometry, sky obstruction | In progress (15 done, 20 planned) |
 | [`roadmap/feature-registry.md`](roadmap/feature-registry.md) | The full feature inventory, sections A–J | In progress (15 done, 1 scheduled, 92 planned) |
 | [`hardware/zed-f9-dual-band.md`](hardware/zed-f9-dual-band.md) | A dual-band u-blox receiver profile (ZED-F9T or ZED-F9P): fewer outages, more satellites, raw data for PPP | Next (plan) |
 | [`hardware/HARDWARE-REFERENCE-NODE.md`](hardware/HARDWARE-REFERENCE-NODE.md) | A reference parts list in four tiers (timing station, precision station, RF node, sensor add-ons), so results from different owners are comparable | Draft (part numbers are examples) |

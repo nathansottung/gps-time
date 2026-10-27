@@ -656,3 +656,50 @@ def sdr_status() -> dict:
                    "age_s": q(1.4, "s", "observed"), "aircraft": q(3, "count", "observed"), "fresh": True}],
         "note": "Demo: synthetic values, not a station's.",
     }
+
+
+_DEMO_SKY = {}
+
+
+def sky_map(mode=lambda: "exact"):
+    """A sample sky-obstruction map: 12 synthetic days with a western obstruction below about
+    30° (240–310°) and a weaker sector to the south-east. Never written to disk."""
+    import tempfile
+    from . import skymap as sm
+    if "map" in _DEMO_SKY:
+        _DEMO_SKY["map"]._mode = mode
+        return _DEMO_SKY["map"]
+    now = time.time()
+    m = sm.SkyMap(path=os.path.join(tempfile.gettempdir(), "gtp-demo-sky", "never-written.json"),
+                  clock=lambda: now, monotonic=lambda: 0.0, mode=mode)
+    m.cells, m.problems = {}, []
+    for ai in range(sm.N_AZ):
+        az = ai * sm.AZ_STEP + 5
+        for ei in range(1, sm.N_EL):
+            el = ei * sm.EL_STEP + 2.5
+            if el > 62 and (az > 320 or az < 40):        # the orbits' northern hole at mid latitudes
+                continue
+            n = 120 + (ai * 37 + ei * 11) % 90
+            cn0 = 30 + 16 * math.sin(math.radians(el)) + ((ai * 7 + ei * 13) % 5 - 2) * 0.6
+            track = 0.97
+            if 240 <= az <= 310 and el < 30:
+                cn0, track = cn0 - 11, 0.35
+            elif 120 <= az <= 150 and 10 <= el < 20:
+                cn0, track = cn0 - 5, 0.75
+            t = round(n * track)
+            m.cells[(ai, ei)] = [float(n), float(t), float(round(t * 0.8)), t * cn0, t * (cn0 * cn0 + 4.0)]
+    m.samples, m.untracked_seen = 12 * 1440, True
+    m.days = [int(now // 86400) - 11 + i for i in range(12)]
+    m.last_write, m.dirty = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"), False
+    classes = m.classified()
+    stamp = datetime.now(timezone.utc)
+    for i, (gnss, sat, az, el) in enumerate([("GPS", 14, 272.0, 18.0), ("Galileo", 7, 251.0, 22.0),
+                                            ("GPS", 30, 133.0, 14.0), ("GLONASS", 3, 95.0, 41.0),
+                                            ("GPS", 9, 301.0, 3.0)]):
+        kind, note = sm.SkyMap._loss_class(classes, az, el)
+        m.loss_counts[kind] += 1
+        m.losses.append({"utc": (stamp - timedelta(minutes=40 * (5 - i))).isoformat(timespec="seconds")
+                         .replace("+00:00", "Z"), "gnss": gnss, "sat": sat, "az": az, "el": el,
+                         "cn0_before": 24.0, "class": kind, "note": note, "provenance": "inferred"})
+    _DEMO_SKY["map"] = m
+    return m

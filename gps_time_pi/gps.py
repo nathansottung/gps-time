@@ -43,6 +43,7 @@ _ingest = {"last_epoch": None, "last_accept_mono": None, "accepted": 0,
            "rejected": dict.fromkeys(_REJECT_REASONS, 0), "last_reason": None}
 _FIXES = []  # (epoch, lat, lon) ring of survey-accepted fixes, session-scoped
 _collector = {"thread": None, "stop": None}
+_SKY_LISTENERS = []
 _monotonic = time.monotonic  # indirection so tests can drive a fake clock
 
 
@@ -134,6 +135,7 @@ def poll_once():
     and offer the fresh TPV (if any) to the survey. Returns the ingest reason."""
     with _POLL_LOCK:
         tpv, sky, ver, dev = _poll()
+        _notify_sky(sky)                 # only a report that arrived in this poll
         now = _monotonic()
         with _STATE_LOCK:
             _cache["polls"] += 1
@@ -214,6 +216,36 @@ def ingest_status():
                 "collector_running": bool(_collector["thread"] and _collector["thread"].is_alive())}
 
 
+def sats_from_sky(sky):
+    """gpsd SKY satellites -> [{id, gnss, el, az, snr, used}], used first, then by C/N0."""
+    sats = []
+    for s in sky.get("satellites", []):
+        sats.append({"id": s.get("PRN"),
+                     "gnss": GNSS.get(s.get("gnssid", -1),
+                                      "SBAS" if (s.get("PRN") or 0) > 32 else "GPS"),
+                     "el": s.get("el"), "az": s.get("az"),
+                     "snr": s.get("ss", 0), "used": bool(s.get("used"))})
+    sats.sort(key=lambda x: (-x["used"], -(x["snr"] or 0)))
+    return sats
+
+
+def add_sky_listener(fn):
+    """fn(sats) is called by the collector with each fresh SKY report (the sky-obstruction map)."""
+    if fn not in _SKY_LISTENERS:
+        _SKY_LISTENERS.append(fn)
+
+
+def _notify_sky(sky):
+    if not sky or not _SKY_LISTENERS:
+        return
+    sats = sats_from_sky(sky)
+    for fn in list(_SKY_LISTENERS):
+        try:
+            fn(sats)
+        except Exception:  # noqa: BLE001 — a listener never stops the collector
+            pass
+
+
 def _age(rx, now):
     return None if rx is None else round(now - rx, 1)
 
@@ -238,14 +270,7 @@ def snapshot():
                 "alt_msl": tpv.get("altMSL"), "alt_hae": tpv.get("altHAE", tpv.get("alt")),
                 "time": tpv.get("time")}
 
-    sats = []
-    for s in sky.get("satellites", []):
-        sats.append({"id": s.get("PRN"),
-                     "gnss": GNSS.get(s.get("gnssid", -1),
-                                      "SBAS" if (s.get("PRN") or 0) > 32 else "GPS"),
-                     "el": s.get("el"), "az": s.get("az"),
-                     "snr": s.get("ss", 0), "used": bool(s.get("used"))})
-    sats.sort(key=lambda x: (-x["used"], -(x["snr"] or 0)))
+    sats = sats_from_sky(sky)
 
     return {
         "fix": None if tpv_stale else last_fix,

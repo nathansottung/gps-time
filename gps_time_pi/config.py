@@ -32,6 +32,7 @@ DEFAULTS = {
     "location_display": "exact",   # exact | rounded | hidden
     "site": None,
     "timezone": None,              # IANA name: operator override for local-time display; None = automatic
+    "sky_quality_share": False,    # opt-in: the sky-quality summary in the capability record and the export
 }
 
 

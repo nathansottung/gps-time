@@ -16,6 +16,7 @@ import { canToggle, outputHeading, outputLines, permissionText, rowStatus, setti
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { ModuleReadiness, ModuleSettings, SdrReceivers } from '../components/sdr';
+import { CapabilityCard } from '../components/skymap';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { DateNav, DayBarCard, NightCard } from '../components/almanac';
 import { timeOnDay, todayIn } from '../lib/almanac';
@@ -735,6 +736,8 @@ export function Admin() {
           {msg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{msg}</div>}
         </CardBody>
       </Card>
+
+      <CapabilityCard canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
 
       <Card>
         <CardHeader title="Local time zone" badge={shownZone.source === 'position' ? <ProvenanceTag type="calculated" /> : undefined} />
