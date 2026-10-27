@@ -891,6 +891,7 @@ export type SettingResult =
   | { ok: true; reset_site: true }
   | { ok: true; modules_experimental: boolean; modules_enabled: string[] }
   | { ok: true; module: string; enabled: boolean; modules_enabled: string[] }
+  | { ok: true; module: string; config: Record<string, unknown> }
   | { ok: false };
 
 // ─── GET /api/modules ────────────────────────────────────────────────────────
@@ -915,7 +916,15 @@ export interface ModuleRow {
   state: string | null;        // observed from gps-time-modules; null = UNKNOWN (not reporting)
   reason: string | null;
   latest?: ModuleLatest | null; // the newest item it emitted; null when the supervisor isn't reporting
+  config?: Record<string, unknown>;              // the owner's settings (module_config); {} = the manifest's defaults
+  config_schema?: Record<string, ModuleConfigField>; // what the manifest declares under [config]
+  readiness?: ReadinessCheck[] | null;           // what it needs that the station can observe (SDR modules); null = none known
 }
+
+export interface ModuleConfigField { type?: string; unit?: string; default?: unknown; description?: string }
+
+/** One readiness check: ok true/false is observed by the station; null is UNKNOWN (not observable). */
+export interface ReadinessCheck { check: string; ok: boolean | null; detail: string }
 
 /** A module's newest observation or result, as the station passes it on: labeled scalar values only,
  *  never a position (gps_time_pi/modkit/settings.py latest_item). */
@@ -932,6 +941,47 @@ export interface ModulesState {
   experimental: boolean;
   modules: ModuleRow[];
   supervisor: { reporting: boolean; age_s: number | null; detail: string };
+  note: string;
+}
+
+// ─── GET /api/sdr ────────────────────────────────────────────────────────────
+// The optional SDR stack, read only (gps_time_pi/sdr.py; docs/deploy/sdr-stack.md).
+
+export interface SdrUnit {
+  unit: string;
+  what: string;
+  active: Measured<string>;
+  sub: string | null;
+  enabled: string | null;
+  restarts: Measured<number>;
+  cpu_s: Measured<number>;
+  cpu_avg_pct: Measured<number>;
+  memory_mib: Measured<number>;
+}
+
+export interface SdrDongle {
+  port: string;
+  serial: string | null;
+  product: string | null;
+  role: string | null;          // from the installer's serials; null = no role
+  speed_mbps: Measured<number>;
+  dvb_driver: Measured<boolean>;
+}
+
+export interface SdrFeed {
+  band: '1090' | '978';
+  path: string;
+  present: boolean;
+  age_s: Measured<number>;
+  aircraft: Measured<number>;
+  fresh: boolean;
+}
+
+export interface SdrStatus {
+  installed: boolean | null;    // null: systemctl couldn't be read (UNKNOWN)
+  units: SdrUnit[] | null;
+  dongles: SdrDongle[] | null;
+  feeds: SdrFeed[];
   note: string;
 }
 

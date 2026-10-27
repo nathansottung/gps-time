@@ -9,7 +9,9 @@ Routes:
   /api/timing-chain  GNSS -> PPS -> chrony stage-by-stage status, PPS state, events (JSON)
   /api/diagnostics   copyable plain-text diagnostic snapshot (privacy mode applied)
   /api/modules       installed modules (from their manifests; code is never imported), the
-                     experimental switch and each module's setting; changed by POST /api/setting
+                     experimental switch, each module's setting and settings, the SDR modules'
+                     readiness; changed by POST /api/setting
+  /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
   /app/        the web UI: the built React app from web/dist (GTP_WEB_DIST to override)
 
 Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
@@ -34,6 +36,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
+from . import sdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -188,6 +191,13 @@ _MEMO = {}
 _MEMO_LOCK = threading.Lock()
 _MEMO_INFLIGHT = {}
 MEMO_MAX = 64
+
+
+def sdr_payload():
+    """/api/sdr: read only; at most one systemctl call every 5 s however many pages poll."""
+    if DEMO_MODE:
+        return demo.sdr_status()
+    return memo(("sdr",), 5.0, sdr.status)
 
 
 def memo(key, ttl_s, build):
@@ -695,7 +705,10 @@ class Handler(BaseHTTPRequestHandler):
             elif p == "/api/survey":
                 self._json(survey_api())
             elif p == "/api/modules":
-                self._json(modsettings.listing(config.load()))
+                cfg = config.load()
+                self._json(modsettings.listing(cfg, readiness=sdr.readiness(sdr_payload(), cfg)))
+            elif p == "/api/sdr":
+                self._json(sdr_payload())
             else:
                 self.send_error(404)
         except BrokenPipeError:

@@ -14,10 +14,10 @@ import { UI_VERSION } from '../lib/version';
 import type { StationApi } from './client';
 import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
-import { applySetting } from '../lib/modules';
+import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -54,6 +54,7 @@ export function demoApi(): StationApi {
   let locationMode: LocationMode = 'exact';
   let tzOverride: string | null = null;
   const mods = { experimental: false, enabled: [] as string[] };   // the station's rules: lib/modules.ts
+  const modConfig: Record<string, Record<string, unknown>> = {};   // module_config, this tab only
   const delay = <T,>(v: T) => new Promise<T>(res => setTimeout(() => res(v), 60));
 
   function displayed() {
@@ -128,7 +129,9 @@ export function demoApi(): StationApi {
         experimental: mods.experimental,
         modules: DEMO_MODULES.map(r => ({ ...r, enabled: mods.enabled.includes(r.name), runs: running(r),
           // a canned sample of what the module's own synthetic demo emits; no module runs here
-          state: running(r) ? 'finished' : null, latest: running(r) ? demoModuleLatest() : null })),
+          state: running(r) ? 'finished' : null,
+          latest: running(r) && r.name === 'sdr-pps-marker' ? demoModuleLatest() : null,
+          config: modConfig[r.name] ?? {}, readiness: demoReadiness(r.name, modConfig) })),
         supervisor: any
           ? { reporting: true, age_s: 2, detail: "demo: a canned sample of the module's synthetic demo, not a running supervisor" }
           : { reporting: false, age_s: null, detail: 'demo: no module supervisor runs here' },
@@ -138,6 +141,16 @@ export function demoApi(): StationApi {
     setModulesExperimental: (on) => delay(applySetting(mods, DEMO_VALID, { modules_experimental: on })),
     setModule: (name, enabled) => { try { return delay(applySetting(mods, DEMO_VALID, { module: name, enabled })); }
                                     catch (e) { return Promise.reject(e); } },
+    setModuleConfig: (name, config) => {
+      const row = DEMO_MODULES.find(r => r.name === name);
+      if (!row) return Promise.reject(new Error(`no module named ${name} is installed`));
+      if (config === null) { delete modConfig[name]; return delay({ ok: true as const, module: name, config: {} }); }
+      const problem = configProblem(config, row.config_schema);
+      if (problem) return Promise.reject(new Error(problem));
+      modConfig[name] = config;
+      return delay({ ok: true as const, module: name, config });
+    },
+    sdr: () => delay(demoSdr()),
     admin: (action) => delay({ ok: true, action, simulated: true as const, detail: `demo adapter: ${action} was not executed` }),
     auth: () => delay({ demo: true, auth_required: false, admin_configured: false, authenticated: true }),
     token: tokenStore(null),
@@ -146,13 +159,83 @@ export function demoApi(): StationApi {
 
 // ─── payload builders ────────────────────────────────────────────────────────
 
-/** The first module, as its manifest describes it (modules/sdr-pps-marker/module.toml). */
+/** The two SDR modules, as their manifests describe them (modules/<name>/module.toml). */
 const DEMO_MODULES: ModuleRow[] = [{
   name: 'sdr-pps-marker', installed: true, valid: true, errors: [], version: '0.2.0', maturity: 'research',
   types: ['source'], summary: 'PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model; live capture from an RTL-SDR through rtl_tcp, timed windows written as observation files',
   permissions: { network: true, devices: [], storage: 'ram' }, enabled: false, runs: false, host_runs: true,
   state: null, reason: null, latest: null,
+  config_schema: {
+    fs_nominal: { type: 'float', unit: 'Hz', description: 'SDR sample rate as set' },
+    pulse_width_s: { type: 'float', unit: 's', default: 0.1, description: 'PPS pulse width, to tell falling edges from markers' },
+    marker_delay_s: { type: 'float', unit: 's', default: 0.0, description: 'calibrated delay from the PPS edge to the marker in the samples' },
+    false_alarms_per_hour: { type: 'float', default: 1.0, description: 'detector threshold' },
+    ppm_limit: { type: 'float', unit: 'ppm', default: 200.0, description: 'intervals further from nominal are flagged' },
+    station_id: { type: 'string', default: 'gps-time-station', description: 'station ID written into the observation files' },
+    rtl_tcp: { type: 'table', default: {}, description: 'live capture: host, port, sample_rate_hz, gain_tenth_db (none: automatic), settle_s, cycle_s, retry_s, keep_files, and plan: [{center_hz, dwell_s, windows: [{at_s, duration_s}], label}] (README)' },
+  },
+}, {
+  name: 'reference-adsb', installed: true, valid: true, errors: [], version: '0.1.0', maturity: 'experimental',
+  types: ['reference', 'source'], summary: 'Aircraft on 1090 MHz (ADS-B 1090ES) and 978 MHz (UAT) as self-reported references: positions from a local decoder, predicted delays to the station with a bound',
+  permissions: { network: false, devices: [], storage: 'none' }, enabled: false, runs: false, host_runs: true,
+  state: null, reason: null, latest: null,
+  config_schema: {
+    aircraft_json_1090: { type: 'path', default: '/run/readsb/aircraft.json', description: 'readsb or dump1090-fa output (empty: no 1090 MHz feed)' },
+    aircraft_json_978: { type: 'path', default: '/run/skyaware978/aircraft.json', description: 'skyaware978 output (empty: no 978 MHz feed)' },
+    interval_s: { type: 'float', unit: 's', default: 10.0, description: 'how often the files are read' },
+    max_age_s: { type: 'float', unit: 's', default: 5.0, description: 'older positions are rejected as stale' },
+    min_nac_p: { type: 'int', default: 8, description: 'minimum NACp (8: 95 % position bound under 92.6 m)' },
+    max_range_km: { type: 'float', unit: 'km', default: 450.0, description: 'farther aircraft are rejected' },
+    max_speed_mps: { type: 'float', unit: 'm/s', default: 700.0, description: 'a faster jump between positions is rejected' },
+    max_per_band: { type: 'int', default: 10, description: 'aircraft emitted per band per cycle, best-bounded first' },
+  },
 }];
+
+/** The station's readiness checks (gps_time_pi/sdr.py readiness) against the demo SDR answer. */
+function demoReadiness(name: string, cfg: Record<string, Record<string, unknown>>): ReadinessCheck[] | null {
+  if (name === 'sdr-pps-marker') {
+    const c = cfg[name] ?? {};
+    const plan = c.rtl_tcp as Record<string, unknown> | undefined;
+    const live = !!plan && Object.keys(plan).length > 0 && c.fs_nominal !== undefined && c.fs_nominal !== null;
+    return [
+      { check: 'rtl_tcp running', ok: true, detail: 'active' },
+      { check: 'live capture configured', ok: live, detail: live ? 'fs_nominal and an rtl_tcp plan are set'
+        : "needs fs_nominal and an rtl_tcp plan in the module's settings (its README)" },
+      { check: 'PPS injected at the dongle', ok: null, detail: "not observable from here: the module's marker count shows it" },
+    ];
+  }
+  if (name === 'reference-adsb') {
+    return [
+      { check: '1090 MHz feed', ok: true, detail: 'written 0.6 s ago' },
+      { check: '978 MHz feed', ok: true, detail: 'written 1.4 s ago' },
+      { check: 'at least one feed', ok: true, detail: '2 of 2 fresh' },
+    ];
+  }
+  return null;
+}
+
+/** /api/sdr in the station's shapes (gps_time_pi/demo.py sdr_status): synthetic. */
+function demoSdr(): SdrStatus {
+  const m = <T,>(value: T, unit: string | null, provenance: Provenance = 'observed') => ({ value, unit, provenance });
+  const unit = (name: string, what: string, cpu: number, avg: number, mem: number) => ({
+    unit: name, what, active: m('active', null), sub: 'running', enabled: 'enabled', restarts: m(0, 'count'),
+    cpu_s: m(cpu, 's'), cpu_avg_pct: m(avg, '% of one core', 'calculated'), memory_mib: m(mem, 'MiB') });
+  const dongle = (port: string, serial: string, role: string) => ({
+    port, serial, product: 'RTL2838UHIDIR', role, speed_mbps: m(480, 'Mb/s'), dvb_driver: m(false, null) });
+  return {
+    installed: true,
+    units: [unit('gps-time-rtl-tcp.service', 'rtl_tcp (PPS markers)', 812.4, 6.3, 9.8),
+            unit('gps-time-readsb.service', 'readsb (1090 MHz)', 2950.1, 22.8, 21.4),
+            unit('gps-time-dump978.service', 'dump978-fa (978 MHz)', 4120.7, 31.9, 18.2),
+            unit('gps-time-skyaware978.service', 'skyaware978 (978 MHz)', 61.0, 0.5, 4.1),
+            unit('gps-time-modules.service', 'module supervisor', 140.2, 1.1, 58.0)],
+    dongles: [dongle('1-1.1', '00000pps', 'PPS markers'), dongle('1-1.2', '00001090', '1090 MHz'),
+              dongle('1-1.3', '00000978', '978 MHz')],
+    feeds: [{ band: '1090', path: '/run/readsb/aircraft.json', present: true, age_s: m(0.6, 's'), aircraft: m(23, 'count'), fresh: true },
+            { band: '978', path: '/run/skyaware978/aircraft.json', present: true, age_s: m(1.4, 's'), aircraft: m(3, 'count'), fresh: true }],
+    note: "Demo: synthetic values, not a station's.",
+  };
+}
 
 /** What `python -m gps_time_pi.modkit demo sdr-pps-marker` emits for its "clean" scenario (synthetic). */
 function demoModuleLatest(): ModuleLatest {

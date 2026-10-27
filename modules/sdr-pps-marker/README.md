@@ -131,7 +131,7 @@ RTL-SDR (with the injected PPS) ──USB──► rtl_tcp (gps-time-rtl-tcp.ser
 1. **The injection build:** see the spec, "Physical build". Without the PPS at the SDR's input there are no markers, and the module writes nothing.
 2. **rtl_tcp:** `sudo GTP_SDR=1 GTP_SDR_PPS_SERIAL=<the dongle's serial> bash install.sh` (`docs/deploy/sdr-stack.md`). It installs `rtl-sdr` and `gps-time-rtl-tcp.service`, which listens on 127.0.0.1 only and has its own sandbox: USB devices and the loopback address.
 3. **The localhost drop-in for the module service** comes with step 2 (`gps-time-modules.service.d/gps-time-sdr.conf`: `IPAddressAllow=localhost`). The service keeps `IPAddressDeny=any`, so loopback is all it can reach. The manifest's `network = true` is for this only.
-4. **Enable the module** and set its config (above).
+4. **Enable the module** and set its config (above): Administration → Experimental modules → `sdr-pps-marker` → Settings. The row lists what it needs and whether the station sees it.
 5. **Watch the timing chain** while it runs. The capture adds USB and CPU load. It doesn't touch gpsd, chrony or the PPS line, but its effect on the station's timing hasn't been measured.
 
 **Without hardware:**

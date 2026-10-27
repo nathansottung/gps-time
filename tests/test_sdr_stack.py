@@ -155,6 +155,7 @@ class TestScript(unittest.TestCase):
         calls = self.calls()
         self.assertIn("systemctl mask readsb.service", calls)
         self.assertIn("systemctl enable gps-time-readsb.service", calls)
+        self.assertIn("systemctl enable gps-time-modules.service", calls)   # runs nothing until the switch
         self.assertIn("systemctl disable --now gps-time-rtl-tcp.service", calls)
         self.assertIn("systemctl disable --now gps-time-dump978.service gps-time-skyaware978.service", calls)
         self.assertTrue((self.root / "usr/local/lib/gps-time-sdr/dump978-fa").is_file())
