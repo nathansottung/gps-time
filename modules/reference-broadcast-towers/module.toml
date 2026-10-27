@@ -3,7 +3,7 @@
 # Demo: python -m gps_time_pi.modkit demo reference-broadcast-towers
 
 name = "reference-broadcast-towers"
-version = "0.1.0"
+version = "0.2.0"
 types = ["reference", "source"]
 maturity = "experimental"
 summary = "FM, ATSC and NOAA Weather Radio transmitters from an offline cache of public licence records, with predicted delays from the surveyed site and a bound"
@@ -15,7 +15,7 @@ reference = "reference_broadcast_towers.reference:TowerReference"
 source = "reference_broadcast_towers.source:TowerSource"
 
 [hardware]
-required = "none: the cache is built by the operator from exported FCC and NOAA records (build_cache.py)"
+required = "none: the cache is built by the operator from the national FCC and NOAA lists (fetch.py, then build_cache.py, off the station)"
 planned = "an SDR source and analysis-tower-delay-check to measure arrival times against these predictions"
 
 [timing]
@@ -49,4 +49,4 @@ schema_version = "observation/1"
 
 [licence]
 code = "MIT"
-bundled_data = "none (fixtures are synthetic, generated for this module); a cache built from FCC or NOAA records carries those records' terms (US government works)"
+bundled_data = "none (fixtures are synthetic, generated for this module); a cache built from FCC or NOAA records carries those records' terms (US government works) and is never committed"

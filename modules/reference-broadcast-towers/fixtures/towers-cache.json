@@ -13,6 +13,7 @@
    "service": "FM",
    "file": "fm-synthetic.csv",
    "sha256": "1cb4d36cd61e29041ec3f4c925b421911e91a7a944c67b33a985064d5887479c",
+   "format": "csv",
    "retrieved": "2026-10-26",
    "rows_kept": 5
   },
@@ -20,6 +21,7 @@
    "service": "ATSC",
    "file": "tv-synthetic.csv",
    "sha256": "038f807fb0195799746233b1f13bb5c186fdd6da5b338f3085a7e3d703e17e55",
+   "format": "csv",
    "retrieved": "2026-10-26",
    "rows_kept": 4
   },
@@ -27,6 +29,7 @@
    "service": "NOAA",
    "file": "noaa-synthetic.csv",
    "sha256": "d26df9cb5045bd296f4a24fb1c8fbba8ec1c47118ded53e31480bbc718be5778",
+   "format": "csv",
    "retrieved": "2026-10-26",
    "rows_kept": 2
   }
@@ -36,6 +39,7 @@
   "no_position": 1,
   "bad_position": 0,
   "bad_frequency": 3,
+  "service_not_used": 0,
   "duplicate": 1,
   "out_of_area": 1
  },

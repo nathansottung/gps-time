@@ -1654,3 +1654,28 @@ Owner's request: analysis-tower-delay-check, comparing a marker-timed capture wi
   - schema and labels, coverage over 24 seeds;
   - the CLI round trip (synth → `obsformat validate` → check), the demo, synthetic fixtures.
 - **Not yet:** a real broadcast waveform, an SDR source writing marker-timed captures, a real capture.
+
+## 2026-10-27 — A real tower cache: FCC and NOAA lists downloaded nationally, read by the FCC's key (#138)
+
+Owner's request: build a real tower cache. Download the FCC FM/TV and NOAA exports for the rounded site, fix the header mapping, and keep the cache out of git.
+
+- **The header mapping was the problem.** The FCC's text output (`list=4`) has no header row: it is pipe-delimited by position. So the header-name parser from #136 couldn't read a real export.
+  - The FCC's key ("Text output option for AM, FM, and TV Queries", updated 2024-02-02) was readable in a browser this time. `cache.py` now holds its field names in order: 38 for FM, 39 for TV.
+  - The positions we read come from those names. They were checked against real rows: a station's coordinates against its FCC detail page, and RF against virtual channels for known stations.
+  - Real lines carry one more trailing identifier than the key lists; it is ignored.
+  - Both query result pages state "Coordinates are NAD83".
+- **NOAA:** the station listing's data file `ccl-data.js` (`var cclData = [...]`) gives call sign, position, frequency and status for about 1,000 transmitters. It has no height and no datum. `NORMAL` counts as in service.
+- **`fetch.py` (new, operator tool)** downloads the three national lists.
+  - **No location goes into any request.** The area is chosen offline by `build_cache.py`, from the site rounded to 0.1°.
+  - **Manifest:** it writes atomically, with `fetch-manifest.json` (URL, retrieval time, size, SHA-256).
+  - **Failures:** a failed or too-short reply keeps the previous file.
+  - **The module itself still has no network permission.**
+- **`build_cache.py --downloads DIR`** checks each file against the manifest's SHA-256. It takes each retrieval date from the manifest, and carries the SHA-256 into the cache.
+- **Records:**
+  - **FCC services:** full-power FM only. TV keeps DTV, DCA, LPD and DRT. DTS (synchronized transmitters, no single delay) and analog LPT are left out, as `service_not_used`.
+  - **ATSC flags:** ATSC 3.0 stations are flagged `atsc3` (no ATSC 1.0 field sync), and the virtual channel is kept.
+  - **Duplicates:** when a facility has a permit or application on the same frequency as its licence, the licensed record wins.
+- **A real cache was built** (2026-10-27, 150 km): 334 transmitters (FM 187, ATSC 136, NOAA 11). The module accepts 273 of them as licensed or in service. Neither the area nor the cache is in the repository: `.gitignore` now ignores `towers-cache*.json`, `towers-downloads/` and `fetch-manifest.json`, except the synthetic fixture. Nothing was deployed.
+- **Fixtures:** `fm-fcc-synthetic.txt`, `tv-fcc-synthetic.txt` and `nwr-synthetic.js`, synthetic rows in the real layouts.
+- **Tests:** 11 new ones (formats, the key positions, services, duplicates, NOAA status, fetch with no location, the manifest, a failed download, a changed file).
+- **Module:** version 0.2.0.
