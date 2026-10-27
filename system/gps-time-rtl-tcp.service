@@ -1,26 +1,25 @@
 [Unit]
 Description=rtl_tcp for GPS Time's sdr-pps-marker module (an RTL-SDR served on 127.0.0.1:1234)
-Documentation=file:///opt/gps-time-pi/modules/sdr-pps-marker/README.md
+Documentation=file:///opt/gps-time-pi/docs/deploy/sdr-stack.md
 After=network.target
 
-# NOT installed or enabled by install.sh. For the sdr-pps-marker module's live capture
-# (research step 2), on a station with an RTL-SDR and the injected PPS (the module's README):
-#   sudo apt install rtl-sdr     # rtl_tcp, and the blacklist for the DVB kernel driver
-#   sudo install -m 0644 system/gps-time-rtl-tcp.service /etc/systemd/system/
-#   sudo systemctl enable --now gps-time-rtl-tcp
-# The module (in gps-time-modules.service) connects to it; that service also needs a drop-in
-# allowing localhost (README). Nothing here touches gpsd, chrony or the PPS line.
+# Installed by scripts/sdr-stack.sh (sudo GTP_SDR=1 ... bash install.sh) and enabled only when
+# GTP_SDR_PPS_SERIAL names an RTL-SDR serial in /etc/default/gps-time-sdr (docs/deploy/sdr-stack.md).
+# Nothing here touches gpsd, chrony or the PPS line, and no receiver position is given.
+# The module (in gps-time-modules.service) connects to it through the installer's drop-in,
+# which allows 127.0.0.1 and nothing else.
 
 [Service]
-ExecStart=/usr/bin/rtl_tcp -a 127.0.0.1 -p 1234 -s 2400000
+EnvironmentFile=/etc/default/gps-time-sdr
+ExecStart=/usr/bin/rtl_tcp -a 127.0.0.1 -p 1234 -s 2400000 -d ${GTP_SDR_PPS_SERIAL}
 Restart=on-failure
 RestartSec=10
 DynamicUser=yes
 SupplementaryGroups=plugdev
-
-# The USB device and the loopback address, nothing else.
 DevicePolicy=closed
 DeviceAllow=char-usb_device rw
+
+# The USB device and the loopback address, nothing else.
 IPAddressAllow=localhost
 IPAddressDeny=any
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK

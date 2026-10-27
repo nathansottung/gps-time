@@ -1801,3 +1801,19 @@ Owner's request: the v1.5.1 items on main; item 3, the desktop UI review. Record
   - night-theme legibility of green and cyan values, left alone on purpose by the 2026-10-26 design review;
   - the station server's listen queue of 5: requests were refused with several browsers at once, none with one (GPS-018).
 - **Tests:** `dayTicks` and `fmtDurationTick` unit tests; the browser suites pass.
+
+## 2026-10-27 — Optional SDR stack in the installer: `GTP_SDR=1` (#145)
+
+Owner's request (v1.6.0, item 1): an optional installer flag for rtl-sdr, the rtl_tcp unit, readsb (1090 MHz) and dump978 (978 MHz), all localhost only. Guide: `docs/deploy/sdr-stack.md`.
+
+- **What it installs** (`scripts/sdr-stack.sh`, run by `install.sh`; nothing unless `GTP_SDR` is set):
+  - `rtl-sdr` with `gps-time-rtl-tcp.service` (127.0.0.1:1234);
+  - Debian's `readsb` as `gps-time-readsb.service`, with no network listeners at all and `aircraft.json` in `/run/readsb`;
+  - `dump978-fa` and `skyaware978`, built as `nobody` from FlightAware's v11.1 at a checked commit, on 127.0.0.1:30978/30979, with `aircraft.json` in `/run/skyaware978`;
+  - a drop-in that lets `gps-time-modules.service` reach 127.0.0.1 only.
+- **Dongles by serial:** one RTL-SDR per role, by USB serial (`GTP_SDR_PPS_SERIAL`, `GTP_SDR_1090_SERIAL`, `GTP_SDR_978_SERIAL`, kept in `/etc/default/gps-time-sdr`). A role with no serial is installed, not enabled. Bad or shared serials change nothing.
+- **readsb's own unit** is masked before the package is installed, so it can't take the PPS dongle. An instance the owner already runs is left alone.
+- **Never touched:** gpsd, chrony, PPS and `/boot`. No decoder is given a position.
+- **Failures:** a failure warns and never stops the install. `GTP_SDR=0` removes the units.
+- **Tests:** `tests/test_sdr_stack.py`: units fenced to the loopback or no network, listeners on 127.0.0.1, no position, serials, the pinned commit; the script under stub commands (POSIX only).
+- **Not verified:** the installs, the build and the units have not run on a Pi.

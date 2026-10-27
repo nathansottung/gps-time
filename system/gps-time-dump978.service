@@ -1,0 +1,44 @@
+[Unit]
+Description=dump978-fa for GPS Time's reference-adsb module (978 MHz UAT on 127.0.0.1:30978 and :30979)
+Documentation=file:///opt/gps-time-pi/docs/deploy/sdr-stack.md
+After=network.target
+
+# Installed by scripts/sdr-stack.sh (sudo GTP_SDR=1 ... bash install.sh) and enabled only when
+# GTP_SDR_978_SERIAL names an RTL-SDR serial in /etc/default/gps-time-sdr (docs/deploy/sdr-stack.md).
+# Nothing here touches gpsd, chrony or the PPS line, and no receiver position is given.
+# Built by the installer from FlightAware's source at a pinned commit (/usr/local/lib/gps-time-sdr).
+
+[Service]
+EnvironmentFile=/etc/default/gps-time-sdr
+ExecStart=/usr/local/lib/gps-time-sdr/dump978-fa --sdr driver=rtlsdr,serial=${GTP_SDR_978_SERIAL} --sdr-auto-gain   --raw-port 127.0.0.1:30978 --json-port 127.0.0.1:30979
+Restart=on-failure
+RestartSec=10
+Nice=5
+DynamicUser=yes
+SupplementaryGroups=plugdev
+DevicePolicy=closed
+DeviceAllow=char-usb_device rw
+
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+MemoryMax=192M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
