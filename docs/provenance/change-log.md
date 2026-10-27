@@ -1776,3 +1776,11 @@ Owner's request: build the v1.5.1 items now on main (no tag until the v1.5.0 soa
   - `tests/test_modules_toggle.py` (+3): the newest item with its labels, no position and no unlabeled value, bounds and staleness.
   - `web/src/lib/modules.test.ts` (+2, and the demo test).
   - `web/e2e/modules.spec.ts` (new): the card with output at 360, 768 and 1280 px, layout and design audits, and off again.
+## 2026-10-27 — A flaky test: wall-clock times matched as positions (#143)
+
+Owner's request: the v1.5.1 items on main; item 2, the flaky-test fix.
+
+- **The failure:** `tests/test_pps_evidence_capture.py` checks that no output of the evidence script carries the example position's digits (`38.92`, `77.06`, …). The script's output also has wall-clock times, and one CI run of #140 failed on `…02:11:38.925…`.
+- **The fix:** times (`2026-10-27T02:11:38.92…Z`, `02:11:38.92…`) are replaced with `<time>` before the check. A position is never written as a time of day, so a real leak still fails.
+- **A new test** shows that both hold: a time passes, while a time next to `lat 38.9217` or `-77.0669` still fails.
+- **Scope:** tests only. Nothing in the script or the redaction changed.

@@ -40,6 +40,22 @@ GPSD_LINES = [json.dumps(o) for o in (
 
 # What would reveal the example position in any file of the archive.
 POSITION_TEXT = re.compile(r"38\.92|77\.06|3855\.3|07704\.0|1115000|4844000|3986000|-10\.9")
+# Wall-clock times in the script's output ("2026-10-27T02:11:38.921289162Z") can contain those
+# digits by chance (a CI run failed on "…:38.92…"). They are replaced before the check: a
+# position is never written as a time of day.
+TIMES = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?|\d{2}:\d{2}:\d{2}(?:\.\d+)?")
+
+
+def without_times(text):
+    return TIMES.sub("<time>", text)
+
+
+class TestPositionCheck(unittest.TestCase):
+    def test_times_are_not_positions_but_positions_still_fail(self):
+        self.assertNotRegex(without_times("2026-10-27T02:11:38.925960970Z pps0 1792602000.000000812#4711"), POSITION_TEXT)
+        self.assertNotRegex(without_times("at 14:38:92.1150001"), POSITION_TEXT)
+        self.assertRegex(without_times("2026-10-27T02:11:00Z lat 38.9217"), POSITION_TEXT)
+        self.assertRegex(without_times('{"lon": -77.0669, "time": "2026-10-27T02:11:38.92Z"}'), POSITION_TEXT)
 
 
 class TestConfigMode(unittest.TestCase):
@@ -69,7 +85,7 @@ class TestRedact(unittest.TestCase):
         for m in gpsd_redact.MODES:
             for obj in (TPV, POLL):
                 text = json.dumps(gpsd_redact.redact(obj, m))
-                self.assertNotRegex(text, POSITION_TEXT, m)
+                self.assertNotRegex(without_times(text), POSITION_TEXT, m)
             out = gpsd_redact.redact(TPV, m)
             self.assertEqual({k: out[k] for k in ("time", "mode", "epx", "speed")},
                              {k: TPV[k] for k in ("time", "mode", "epx", "speed")}, "timing fields stay")
@@ -80,7 +96,7 @@ class TestRedact(unittest.TestCase):
         self.assertEqual((r["lat"], r["lon"], r["altMSL"]), (38.9, -77.1, 90.0))
         for k in ("altHAE", "alt", "geoidSep", "magvar", "ecefx"):
             self.assertNotIn(k, r, "rounded mode shows no ellipsoidal height or finer detail")
-        self.assertNotRegex(json.dumps(gpsd_redact.redact(TPV, "hidden", True)), POSITION_TEXT)
+        self.assertNotRegex(without_times(json.dumps(gpsd_redact.redact(TPV, "hidden", True))), POSITION_TEXT)
 
     def test_satellite_directions_only_hidden_in_hidden_mode(self):
         sats = gpsd_redact.redact(SKY, "hidden")["satellites"]
@@ -101,7 +117,7 @@ class TestRedact(unittest.TestCase):
             self.assertEqual(gpsd_redact.main(["--mode", "rounded"]), 0)
         rows = [json.loads(l) for l in out.getvalue().splitlines()]
         self.assertEqual([r["class"] for r in rows], ["VERSION", "TPV", "SKY", "POLL", "PPS"])
-        self.assertNotRegex(out.getvalue(), POSITION_TEXT)
+        self.assertNotRegex(without_times(out.getvalue()), POSITION_TEXT)
         self.assertIn("kept: 5; dropped (not JSON objects): 3", err.getvalue())
 
     def test_cli_prints_the_config_mode(self):
@@ -232,7 +248,7 @@ class TestScriptRun(unittest.TestCase):
             classes = [json.loads(l)["class"] for l in files["gpsd.json"].splitlines()]
             self.assertEqual(classes, ["VERSION", "TPV", "SKY", "POLL", "PPS"], mode)
             for name, text in files.items():
-                self.assertNotRegex(text, POSITION_TEXT, f"{mode}: {name}")
+                self.assertNotRegex(without_times(text), POSITION_TEXT, f"{mode}: {name}")
 
     def test_include_position_follows_the_mode(self):
         rounded = self.run_script("rounded", "--include-position")
@@ -240,7 +256,7 @@ class TestScriptRun(unittest.TestCase):
         self.assertEqual((tpv["lat"], tpv["lon"]), (38.9, -77.1))
         hidden = self.run_script("hidden", "--include-position")
         for name, text in hidden.items():
-            self.assertNotRegex(text, POSITION_TEXT, name)
+            self.assertNotRegex(without_times(text), POSITION_TEXT, name)
         sats = json.loads(hidden["gpsd.json"].splitlines()[2])["satellites"]
         self.assertIsNone(sats[0]["az"])
 
