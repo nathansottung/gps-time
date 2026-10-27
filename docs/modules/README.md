@@ -63,10 +63,10 @@ Modules are off by default, behind two settings: the **experimental modules swit
 
 On a station:
 
-1. Copy the module to `/opt/gps-time-pi/modules/<name>/`, readable by everyone (`sudo chmod -R a+rX`).
-2. In the web UI, **Administration → Experimental modules** (admin token): turn the switch on, then turn the module on. Or by hand in the station config: `{"modules_experimental": true, "modules_enabled": ["my-sensor"]}`. Optional: `"module_config": {"my-sensor": {...}}`, and `"module_limits"` to lower the host's maximums.
+1. The bundled modules are copied to `/opt/gps-time-pi/modules/` by `install.sh` (all off). Another module: copy it to `/opt/gps-time-pi/modules/<name>/`, readable by everyone (`sudo chmod -R a+rX`).
+2. In the web UI, **Administration → Experimental modules** (admin token): turn the switch on, then turn the module on. Its **Settings** set `module_config` (only the keys its manifest declares, with their types; never a position). Or by hand in the station config: `{"modules_experimental": true, "modules_enabled": ["my-sensor"]}`, `"module_config": {"my-sensor": {...}}`, and `"module_limits"` to lower the host's maximums.
 3. If it needs a device or the network, also add a drop-in to the service (`sudo systemctl edit gps-time-modules`): `PrivateDevices=no` plus `DeviceAllow=/dev/...`, or `IPAddressAllow=...`. The manifest permission alone isn't enough.
-4. `sudo systemctl enable --now gps-time-modules`. Status (RAM): `/run/gps-time-modules/status.json`, also shown on the Administration card.
+4. `sudo systemctl enable --now gps-time-modules` (done by `GTP_SDR=1`, `docs/deploy/sdr-stack.md`). Status (RAM): `/run/gps-time-modules/status.json`, also shown on the Administration card.
 
 The supervisor checks the config file at each 10 s status publish and restarts its set of modules when the module settings change, so the switches take effect without restarting the service. The web service only reads manifests for the card; it never imports module code.
 

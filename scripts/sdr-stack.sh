@@ -179,5 +179,8 @@ if [ "$HAVE978" = 1 ]; then
 else
   systemctl disable --now gps-time-dump978.service gps-time-skyaware978.service >/dev/null 2>&1 || true
 fi
-say "gps-time-modules.service may reach 127.0.0.1 ($DROPIN). Modules stay off until turned on in Administration."
+# The supervisor runs nothing while the experimental switch is off, so with the SDR stack asked
+# for it is enabled: then turning a module on in Administration is all that's left.
+systemctl enable gps-time-modules.service >/dev/null 2>&1 && systemctl start gps-time-modules.service   && say "gps-time-modules.service enabled; it runs no module until one is turned on in Administration."   || say "gps-time-modules.service could not be enabled (journalctl -u gps-time-modules)."
+say "gps-time-modules.service may reach 127.0.0.1 ($DROPIN)."
 exit 0

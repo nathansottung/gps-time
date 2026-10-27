@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ModuleRow, ModulesState } from '../api/types';
-import { applySetting, canToggle, fmtModuleValue, outputHeading, outputLines, permissionText, rowStatus, settingOutcome } from './modules';
+import { applySetting, canToggle, configProblem, configText, fmtModuleValue, outputHeading, outputLines, parseConfig, permissionText, readinessLines, rowStatus, schemaRows, settingOutcome } from './modules';
 import { demoApi } from '../api/demo';
 
 const row = (o: Partial<ModuleRow> = {}): ModuleRow => ({
@@ -116,5 +116,59 @@ describe('latest output', () => {
       { name: 'state', value: 'OK', unit: '', provenance: 'calculated', note: 'n' }]);
     expect(outputHeading(lt)).toBe('Latest observation 1m 15s ago · 20 kept in RAM · 2 values not shown (unlabeled, not a single value, a position, or over the limit)');
     expect(outputHeading({ ...lt, age_s: null, left_out: 0 })).toBe('Latest observation time UNKNOWN · 20 kept in RAM');
+  });
+});
+
+describe('readiness', () => {
+  it('shows MISSING for false and UNKNOWN for null, never OK by default', () => {
+    expect(readinessLines(null)).toEqual([]);
+    expect(readinessLines([{ check: 'a', ok: true, detail: 'x' }, { check: 'b', ok: false, detail: 'y' },
+      { check: 'c', ok: null, detail: 'z' }]).map(l => [l.mark, l.variant]))
+      .toEqual([['OK', 'good'], ['MISSING', 'warn'], ['UNKNOWN', 'muted']]);
+  });
+});
+
+describe('module settings', () => {
+  const schema = { fs_nominal: { type: 'float', unit: 'Hz' }, station_id: { type: 'string', default: 'gps-time-station' },
+    min_nac_p: { type: 'int', default: 8 }, rtl_tcp: { type: 'table', default: {} } };
+
+  it('starts from what the station has', () => {
+    expect(configText(undefined)).toBe('{}');
+    expect(configText({ fs_nominal: 2400000 })).toBe('{\n  "fs_nominal": 2400000\n}');
+  });
+
+  it('lists the manifest keys with their defaults', () => {
+    expect(schemaRows(schema).map(r => [r.name, r.type, r.dflt])).toEqual([
+      ['fs_nominal', 'float, Hz', 'none: must be set'], ['station_id', 'string', '"gps-time-station"'],
+      ['min_nac_p', 'int', '8'], ['rtl_tcp', 'table', '{}']]);
+  });
+
+  it('applies the station rules before sending', () => {
+    expect(parseConfig('', schema)).toEqual({ ok: true, value: {} });
+    expect(parseConfig('{"fs_nominal": 2400000, "rtl_tcp": {"plan": []}}', schema).ok).toBe(true);
+    const err = (text: string) => { const r = parseConfig(text, schema); return r.ok ? null : r.error; };
+    expect(err('{nope')).toMatch(/not valid JSON/);
+    expect(err('[]')).toMatch(/JSON object/);
+    expect(err('{"x": 1}')).toMatch(/no setting x/);
+    expect(err('{"fs_nominal": "fast"}')).toMatch(/fs_nominal must be a float/);
+    expect(err('{"min_nac_p": 8.5}')).toMatch(/min_nac_p must be a int/);
+    expect(err('{"rtl_tcp": []}')).toMatch(/rtl_tcp must be a table/);
+    expect(err('{"rtl_tcp": {"plan": [{"lat": 38.9217}]}}')).toMatch(/rtl_tcp.plan.0.lat: positions are not set here/);
+    expect(configProblem({ station_id: 'x'.repeat(301) }, schema)).toMatch(/at most 300/);
+  });
+
+  it('the demo adapter keeps them per tab and checks them the same way', async () => {
+    const api = demoApi();
+    const before = (await api.modules()).modules.find(r => r.name === 'sdr-pps-marker')!;
+    expect(before.readiness?.find(c => c.check === 'live capture configured')?.ok).toBe(false);
+    await expect(api.setModuleConfig('sdr-pps-marker', { lat: 1 })).rejects.toThrow(/no setting lat/);
+    await api.setModuleConfig('sdr-pps-marker', { fs_nominal: 2400000, rtl_tcp: { plan: [{ center_hz: 88800000, dwell_s: 10 }] } });
+    const after = (await api.modules()).modules.find(r => r.name === 'sdr-pps-marker')!;
+    expect(after.config).toEqual({ fs_nominal: 2400000, rtl_tcp: { plan: [{ center_hz: 88800000, dwell_s: 10 }] } });
+    expect(after.readiness?.find(c => c.check === 'live capture configured')?.ok).toBe(true);
+    expect(after.enabled).toBe(false);                       // settings never turn a module on
+    await api.setModuleConfig('sdr-pps-marker', null);
+    expect((await api.modules()).modules[0].config).toEqual({});
+    expect((await api.modules()).modules.map(r => r.name)).toEqual(['sdr-pps-marker', 'reference-adsb']);
   });
 });

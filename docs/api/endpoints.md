@@ -480,6 +480,7 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
 | `{"modules_experimental": true \| false}` | the experimental modules switch. Either way `modules_enabled` is cleared, so every module is off afterwards | `{"ok": true, "modules_experimental": <bool>, "modules_enabled": []}` |
 | `{"module": "<name>", "enabled": true \| false}` | one module on or off. On needs the switch (**409** otherwise), an installed module (**404**) and a valid manifest (**409**). Off always works | `{"ok": true, "module": "<name>", "enabled": <bool>, "modules_enabled": [...]}` |
+| `{"module": "<name>", "config": {...} \| null}` | the module's settings (`module_config.<name>`); `null` clears them, back to the manifest defaults. Never turns a module on. Refused with **400**: not an object, over 8 KiB, a key the manifest's `[config]` doesn't declare, a value of the wrong type (`float`, `int`, `string`/`path` up to 300 characters, `table`), or a position-like key at any depth (`lat`, `lon`, `alt_m`, `site`…); **404** not installed; **409** invalid manifest. A change restarts the supervisor's module set | `{"ok": true, "module": "<name>", "config": {...}}` |
 | anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone, reset_site, modules_experimental or module"}` |
 
 The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation). The module settings are on Administration → Experimental modules.
@@ -494,6 +495,10 @@ The experimental modules switch, every module installed in the modules folder an
               "maturity": "research", "types": ["source"], "summary": "...",
               "permissions": {"network": false, "devices": [], "storage": "none"},
               "enabled": true, "runs": true, "host_runs": true, "state": "running", "reason": null,
+              "config": {"fs_nominal": 2400000},
+              "config_schema": {"fs_nominal": {"type": "float", "unit": "Hz", "description": "SDR sample rate as set"}},
+              "readiness": [{"check": "rtl_tcp running", "ok": true, "detail": "active"},
+                            {"check": "PPS injected at the dongle", "ok": null, "detail": "not observable from here: ..."}],
               "latest": {"kind": "observation", "time_ns": 1793026812000000000, "age_s": 3.0, "items_kept": 20,
                          "values": {"markers": {"value": 10, "unit": null, "provenance": "observed"},
                                     "clock_error_ppm": {"value": 23.0, "unit": "ppm", "provenance": "calculated"}},
@@ -509,6 +514,38 @@ The experimental modules switch, every module installed in the modules folder an
   - **What it gives:** `kind` (`observation` or `result`), `time_ns`, `age_s`, `items_kept`, and up to 40 `values`, each with its unit, its provenance label and any note (cut to 300 characters).
   - **What is left out, and counted in `left_out`:** a value without one of the six provenance labels (never relabeled), one that isn't a single value, and **any position-like value** (`lat`, `lon`, `alt_m`, `position` and the like). Positions aren't shown here, whatever a module emits.
 - A module named in `modules_enabled` but not installed is listed with `installed: false`.
+- `config`: the owner's settings for it (`module_config`; `{}` = the manifest's defaults). `config_schema`: what its manifest declares under `[config]` (type, unit, default, description).
+- `readiness`: for the SDR modules, what each needs that the station can observe, from `/api/sdr` (`gps_time_pi/sdr.py`); `null` for other modules. `ok` is `true` or `false` as observed, and `null` (UNKNOWN) for what can't be observed from the web service, such as the PPS injected at the dongle.
+  - `sdr-pps-marker`: `gps-time-rtl-tcp.service` active; `fs_nominal` and an `rtl_tcp` plan in its settings; the injected PPS (always `null`).
+  - `reference-adsb`: the 1090 and 978 MHz `aircraft.json` written within 60 s; at least one of them.
+
+## GET /api/sdr
+
+The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The web service starts, stops and configures none of it. Code: `gps_time_pi/sdr.py`; type `SdrStatus`. Built at most once every 5 s, with one `systemctl show` (no privilege needed).
+
+```json
+{"installed": true,
+ "units": [{"unit": "gps-time-readsb.service", "what": "readsb (1090 MHz)",
+            "active": {"value": "active", "unit": null, "provenance": "observed"}, "sub": "running", "enabled": "enabled",
+            "restarts": {"value": 0, "unit": "count", "provenance": "observed"},
+            "cpu_s": {"value": 2950.1, "unit": "s", "provenance": "observed"},
+            "cpu_avg_pct": {"value": 22.8, "unit": "% of one core", "provenance": "calculated"},
+            "memory_mib": {"value": 21.4, "unit": "MiB", "provenance": "observed"}}],
+ "dongles": [{"port": "1-1.2", "serial": "00001090", "product": "RTL2838UHIDIR", "role": "1090 MHz",
+              "speed_mbps": {"value": 480, "unit": "Mb/s", "provenance": "observed"},
+              "dvb_driver": {"value": false, "unit": null, "provenance": "observed"}}],
+ "feeds": [{"band": "1090", "path": "/run/readsb/aircraft.json", "present": true,
+            "age_s": {"value": 0.6, "unit": "s", "provenance": "observed"},
+            "aircraft": {"value": 23, "unit": "count", "provenance": "observed"}, "fresh": true}],
+ "note": "Read only: ..."}
+```
+
+- `units`: the four SDR units, readsb's own package unit and the module supervisor, when installed. For a running unit:
+  - `cpu_s` and `memory_mib` come from its cgroup (`cpu.stat`, `memory.current`);
+  - `cpu_avg_pct` is CPU time divided by the time since the unit started, in % of one core (calculated).
+  - `null` (UNKNOWN) when not running or not readable. `units` is `null` when `systemctl` can't be run, and then `installed` is `null` too.
+- `dongles`: RTL2832U devices (USB IDs `0bda:2838`, `0bda:2832`) from `/sys/bus/usb/devices`. `role` is the role whose serial matches `/etc/default/gps-time-sdr`. `dvb_driver` is true when the DVB-T driver holds the device. `null` when sysfs can't be read.
+- `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s.
 
 ## POST /api/admin
 

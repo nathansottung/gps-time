@@ -1817,3 +1817,29 @@ Owner's request (v1.6.0, item 1): an optional installer flag for rtl-sdr, the rt
 - **Failures:** a failure warns and never stops the install. `GTP_SDR=0` removes the units.
 - **Tests:** `tests/test_sdr_stack.py`: units fenced to the loopback or no network, listeners on 127.0.0.1, no position, serials, the pinned commit; the script under stub commands (POSIX only).
 - **Not verified:** the installs, the build and the units have not run on a Pi.
+
+## 2026-10-27 — The SDR modules from Administration (#146)
+
+Owner's request (v1.6.0, item 2): enable sdr-pps-marker and reference-adsb from Administration.
+
+- **What was missing on a station:**
+  - `install.sh` never copied `modules/` to `/opt/gps-time-pi/modules`, so Administration listed none;
+  - the supervisor service was never enabled;
+  - `sdr-pps-marker` needs settings (`fs_nominal`, an `rtl_tcp` plan) that could only be set by editing `config.json`.
+- **Now:**
+  - **The modules are installed:** `install.sh` copies the modules (read only, all off).
+  - **The supervisor is on with the SDR stack:** `GTP_SDR=1` enables `gps-time-modules.service`, which runs nothing while the switch is off.
+  - **Settings from Administration:** each module's settings can be set there (`POST /api/setting {"module", "config"}`). They are checked against the manifest's `[config]` keys and types, at most 8 KiB, with no position-like key at any depth. A change never turns a module on.
+- **Readiness on the card:**
+  - `sdr-pps-marker`: rtl_tcp running and the live plan set; the injected PPS is UNKNOWN, since it can't be observed from the web service;
+  - `reference-adsb`: each feed fresh.
+- **New card: SDR receivers.** `/api/sdr` (`gps_time_pi/sdr.py`), read only, shows:
+  - unit states, CPU and memory from the cgroups, and restarts;
+  - RTL-SDR dongles from sysfs, with serial, role, speed and whether the DVB-T driver holds one;
+  - the decoders' `aircraft.json` age and aircraft count, never a position.
+- **Tests:**
+  - `tests/test_sdr_status.py` (new): temp sysfs and cgroup tree, a fake `systemctl`;
+  - `tests/test_modules_toggle.py` (+5): settings rules, listing, HTTP with the token;
+  - `web/src/lib/sdr.test.ts` (new) and `modules.test.ts` (+5);
+  - `web/e2e/modules.spec.ts` (+2): readiness, settings refused and saved, and the receivers card at 360 and 1280 px, with the layout and design audits.
+- **Not verified:** not run on a Pi. The cgroup paths assume cgroup v2 (Debian 12 and 13).

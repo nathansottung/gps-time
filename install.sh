@@ -131,11 +131,17 @@ for f in config.json config.json.prev timing-events.json; do
   if [ -f "$DEST/$f" ]; then chown gps-time:gps-time "$DEST/$f"; fi
 done
 
-echo "== Optional modules: user and service (installed, not enabled) =="
+echo "== Optional modules: code, user and service (installed, not enabled) =="
 # Modules run as gps-time-mod, which is in no group of the station's, so it can't
 # read the config (exact position), the admin token or the station key. The
 # supervisor service is installed but NOT enabled: no module runs until the owner
 # enables it (docs/modules/README.md).
+# The modules themselves: read-only to everyone, all off until turned on in Administration.
+# The old copy goes first, so a module removed from the bundle doesn't linger.
+rm -rf "$DEST/modules"
+cp -r modules "$DEST/"
+find "$DEST/modules" -name __pycache__ -type d -prune -exec rm -rf {} +
+chmod -R a+rX,go-w "$DEST/modules"
 id gps-time-mod >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin gps-time-mod
 install -m 0644 system/gps-time-modules.service /etc/systemd/system/gps-time-modules.service
 systemctl daemon-reload

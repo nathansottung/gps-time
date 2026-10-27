@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, Shadow, Stability, Survey, SystemDiagnostics,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -58,6 +58,10 @@ export interface StationApi {
   setModulesExperimental(on: boolean): Promise<SettingResult>;
   /** One module on or off (on needs the switch). Admin token. */
   setModule(name: string, enabled: boolean): Promise<SettingResult>;
+  /** A module's settings (keys from its manifest); null clears them. Admin token. */
+  setModuleConfig(name: string, config: Record<string, unknown> | null): Promise<SettingResult>;
+  /** The optional SDR stack, read only. */
+  sdr(): Promise<SdrStatus>;
   admin(action: AdminAction): Promise<AdminResult>;
   /** Whether admin is enabled on the station and whether the stored token is accepted. */
   auth(): Promise<AuthState>;
@@ -166,6 +170,8 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     modules: () => json('/api/modules'),
     setModulesExperimental: (on) => json('/api/setting', post({ modules_experimental: on })),
     setModule: (name, enabled) => json('/api/setting', post({ module: name, enabled })),
+    setModuleConfig: (name, config) => json('/api/setting', post({ module: name, config })),
+    sdr: () => json('/api/sdr'),
     admin: (action) => json('/api/admin', post({ action })),
     auth: () => json('/api/auth', { headers: authHeader(token.get()) }),
     token,

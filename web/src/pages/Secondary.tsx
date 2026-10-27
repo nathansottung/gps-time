@@ -15,6 +15,7 @@ import { throttleRows, underVoltage } from '../lib/throttle';
 import { canToggle, outputHeading, outputLines, permissionText, rowStatus, settingOutcome, switchConfirm, type Outcome as ModOutcome } from '../lib/modules';
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
+import { ModuleReadiness, ModuleSettings, SdrReceivers } from '../components/sdr';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { DateNav, DayBarCard, NightCard } from '../components/almanac';
 import { timeOnDay, todayIn } from '../lib/almanac';
@@ -709,6 +710,8 @@ export function Admin() {
 
       <ExperimentalModules canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
 
+      <SdrReceivers />
+
       <Card>
         <CardHeader title="Location privacy" />
         <CardBody>
@@ -971,7 +974,7 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
         )}
         {s && s.modules.length === 0 && (
           <div className="text-[10px] mt-3" style={{ color:'var(--t3)' }}>
-            No modules are installed on this station. The Pi bundle ships none; installing one: docs/modules/README.md.
+            No modules are installed on this station. install.sh copies the bundled ones to /opt/gps-time-pi/modules; adding another: docs/modules/README.md.
           </div>
         )}
         {s && s.modules.length > 0 && (
@@ -1001,6 +1004,14 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
                         onChange={v => send(`${r.name} ${v ? 'on' : 'off'}`, () => api.setModule(r.name, v))} />
                     </td>
                   </tr>
+                  {(r.readiness?.length || Object.keys(r.config_schema ?? {}).length > 0) && (
+                    <tr className="row-sep">
+                      <td colSpan={5} className="pb-1">
+                        <ModuleReadiness row={r} />
+                        <ModuleSettings row={r} canWrite={canWrite} busy={busy} send={send} />
+                      </td>
+                    </tr>
+                  )}
                   {r.latest && (
                     <tr className="row-sep">
                       <td colSpan={5} className="pb-2">
@@ -1024,7 +1035,7 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: MOD_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {s && (
           <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
-            Supervisor: {s.supervisor.detail}. {s.note} A module that needs a device or the network also needs a drop-in for gps-time-modules.service.
+            Supervisor: {s.supervisor.detail}. {s.note} A module that needs a device or the network also needs a drop-in for gps-time-modules.service (GTP_SDR=1 adds the one for 127.0.0.1).
           </div>
         )}
         {!canWrite && authKnown && (

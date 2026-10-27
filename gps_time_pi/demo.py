@@ -626,3 +626,33 @@ def timing_chain(scenario="pps_selected"):
                      "description": sc["desc"], "scenarios": sorted(TIMING_SCENARIOS),
                      "note": "synthetic data — not a measurement"}
     return chain
+
+
+def sdr_status() -> dict:
+    """/api/sdr in demo mode: synthetic, in the station's shapes (gps_time_pi/sdr.py)."""
+    from .labels import q
+
+    def unit(name, what, cpu_s, avg, mem):
+        return {"unit": name, "what": what, "active": q("active", None, "observed", "demo"), "sub": "running",
+                "enabled": "enabled", "restarts": q(0, "count", "observed"),
+                "cpu_s": q(cpu_s, "s", "observed"), "cpu_avg_pct": q(avg, "% of one core", "calculated"),
+                "memory_mib": q(mem, "MiB", "observed")}
+
+    def dongle(port, serial, role):
+        return {"port": port, "serial": serial, "product": "RTL2838UHIDIR", "role": role,
+                "speed_mbps": q(480, "Mb/s", "observed"), "dvb_driver": q(False, None, "observed")}
+    return {
+        "installed": True,
+        "units": [unit("gps-time-rtl-tcp.service", "rtl_tcp (PPS markers)", 812.4, 6.3, 9.8),
+                  unit("gps-time-readsb.service", "readsb (1090 MHz)", 2950.1, 22.8, 21.4),
+                  unit("gps-time-dump978.service", "dump978-fa (978 MHz)", 4120.7, 31.9, 18.2),
+                  unit("gps-time-skyaware978.service", "skyaware978 (978 MHz)", 61.0, 0.5, 4.1),
+                  unit("gps-time-modules.service", "module supervisor", 140.2, 1.1, 58.0)],
+        "dongles": [dongle("1-1.1", "00000pps", "PPS markers"), dongle("1-1.2", "00001090", "1090 MHz"),
+                    dongle("1-1.3", "00000978", "978 MHz")],
+        "feeds": [{"band": "1090", "path": "/run/readsb/aircraft.json", "present": True,
+                   "age_s": q(0.6, "s", "observed"), "aircraft": q(23, "count", "observed"), "fresh": True},
+                  {"band": "978", "path": "/run/skyaware978/aircraft.json", "present": True,
+                   "age_s": q(1.4, "s", "observed"), "aircraft": q(3, "count", "observed"), "fresh": True}],
+        "note": "Demo: synthetic values, not a station's.",
+    }

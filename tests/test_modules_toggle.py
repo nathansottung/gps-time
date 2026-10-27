@@ -120,6 +120,55 @@ class TestApply(ModulesDir):
         self.assertEqual(cfg["modules_enabled"], [])
 
 
+class TestModuleConfig(ModulesDir):
+    """A module's settings from Administration: only its manifest's keys and types, no position."""
+
+    def apply(self, cfg, body):
+        return settings.apply(cfg, body, root=self.root)
+
+    def test_set_and_clear(self):
+        cfg = {}
+        live = {"fs_nominal": 2400000, "rtl_tcp": {"plan": [{"center_hz": 88800000, "dwell_s": 10}]}}
+        r = self.apply(cfg, {"module": "sdr-pps-marker", "config": live})
+        self.assertEqual(r, {"ok": True, "module": "sdr-pps-marker", "config": live})
+        self.assertEqual(cfg["module_config"]["sdr-pps-marker"], live)
+        self.assertNotIn("modules_enabled", cfg)                # settings never turn a module on
+        self.apply(cfg, {"module": "sdr-pps-marker", "config": None})
+        self.assertEqual(cfg["module_config"], {})
+
+    def test_refusals(self):
+        bad = [({"module": "sdr-pps-marker", "config": []}, 400),
+               ({"module": "sdr-pps-marker", "config": {"nope": 1}}, 400),
+               ({"module": "sdr-pps-marker", "config": {"fs_nominal": "fast"}}, 400),
+               ({"module": "sdr-pps-marker", "config": {"fs_nominal": True}}, 400),
+               ({"module": "sdr-pps-marker", "config": {"station_id": "x" * 301}}, 400),
+               ({"module": "sdr-pps-marker", "config": {"rtl_tcp": "127.0.0.1"}}, 400),
+               ({"module": "sdr-pps-marker", "config": {"rtl_tcp": {"plan": [{"lat": 38.9217}]}}}, 400),
+               ({"module": "sdr-pps-marker", "config": {"station_id": "x", "rtl_tcp": {"p": "y" * 9000}}}, 400),
+               ({"module": "nope", "config": {}}, 404),
+               ({"module": "broken", "config": {}}, 409)]
+        for body, code in bad:
+            cfg = {}
+            with self.subTest(body=str(body)[:80]):
+                with self.assertRaises(settings.SettingError) as e:
+                    self.apply(cfg, body)
+                self.assertEqual(e.exception.code, code)
+                self.assertEqual(cfg, {})
+
+    def test_listing_shows_settings_schema_and_readiness(self):
+        cfg = {"module_config": {"sdr-pps-marker": {"fs_nominal": 2400000}}}
+        ready = {"sdr-pps-marker": [{"check": "rtl_tcp running", "ok": True, "detail": "active"}]}
+        rows = {m["name"]: m for m in settings.listing(cfg, root=self.root, status_path=self.status,
+                                                       readiness=ready)["modules"]}
+        row = rows["sdr-pps-marker"]
+        self.assertEqual(row["config"], {"fs_nominal": 2400000})
+        self.assertEqual(row["config_schema"]["fs_nominal"], {"type": "float", "unit": "Hz",
+                                                              "description": "SDR sample rate as set"})
+        self.assertEqual(row["config_schema"]["pulse_width_s"]["default"], 0.1)
+        self.assertEqual(row["readiness"], ready["sdr-pps-marker"])
+        self.assertEqual((rows["broken"]["config_schema"], rows["broken"]["readiness"]), ({}, None))
+
+
 class TestListing(ModulesDir):
     def listing(self, cfg, now=None):
         return settings.listing(cfg, root=self.root, status_path=self.status, now=now)
@@ -253,6 +302,25 @@ class TestHttp(AuthBase):
         self.assertEqual(self.post("/api/setting", {"module": "nope", "enabled": True})[0], 404)
         self.post("/api/setting", {"modules_experimental": False})
         self.assertEqual(self.saved()["modules_enabled"], [])
+
+    def test_settings_need_the_token_and_are_saved(self):
+        live = {"fs_nominal": 2400000}
+        if not self.demo:    # demo mode takes no token, as for every setting
+            self.assertEqual(self.post("/api/setting", {"module": "sdr-pps-marker", "config": live}, token=None)[0], 401)
+            self.assertNotIn("module_config", self.saved())
+        status, _, body = self.post("/api/setting", {"module": "sdr-pps-marker", "config": live})
+        self.assertEqual((status, body["config"]), (200, live))
+        self.assertEqual(self.saved()["module_config"], {"sdr-pps-marker": live})
+        status, _, body = self.req("GET", "/api/modules")
+        row = body["modules"][0]
+        self.assertEqual(row["config"], live)
+        self.assertEqual([c["check"] for c in row["readiness"]][:2], ["rtl_tcp running", "live capture configured"])
+        self.assertEqual(self.post("/api/setting", {"module": "sdr-pps-marker", "config": {"lat": 1.0}})[0], 400)
+
+    def test_sdr_status_is_read_only_and_needs_no_token(self):
+        status, _, body = self.req("GET", "/api/sdr")
+        self.assertEqual(status, 200)
+        self.assertEqual(set(body), {"installed", "units", "dongles", "feeds", "note"})
 
     def test_get_on_setting_still_405(self):
         self.assertEqual(self.req("GET", "/api/setting?modules_experimental=true")[0], 405)

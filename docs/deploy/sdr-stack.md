@@ -8,7 +8,7 @@ The receivers that the SDR modules read, installed by `install.sh` only when ask
 | 1090 MHz ADS-B (`reference-adsb`) | `readsb` (Debian `readsb`) | `gps-time-readsb.service` | none: no `--net`, `IPAddressDeny=any` | `/run/readsb/aircraft.json` (RAM) |
 | 978 MHz UAT (`reference-adsb`) | `dump978-fa` and `skyaware978`, built from FlightAware's source at v11.1 (commit `f40aa9a`) | `gps-time-dump978.service`, `gps-time-skyaware978.service` | 127.0.0.1:30978 (raw) and :30979 (JSON) | `/run/skyaware978/aircraft.json` (RAM) |
 
-A drop-in for `gps-time-modules.service` lets the modules reach 127.0.0.1 (for `rtl_tcp`) and nothing else. Every unit keeps `IPAddressDeny=any`; where it has `IPAddressAllow=`, it is `localhost`.
+A drop-in for `gps-time-modules.service` lets the modules reach 127.0.0.1 (for `rtl_tcp`) and nothing else. The module supervisor itself is enabled too: it runs no module while the experimental switch is off. Every unit keeps `IPAddressDeny=any`; where it has `IPAddressAllow=`, it is `localhost`.
 
 Script: `scripts/sdr-stack.sh`. Units: `system/gps-time-*.service`, `system/gps-time-modules-sdr.conf`. Tests: `tests/test_sdr_stack.py`.
 
@@ -47,10 +47,21 @@ sudo GTP_SDR=0 bash install.sh
 
 This stops and removes the four units and the drop-in. It keeps the packages, `/etc/default/gps-time-sdr`, the dump978 build and the mask on `readsb.service` (`sudo systemctl unmask readsb` lifts it).
 
-## Then
+## Then: turn the modules on in Administration
 
-- **Turn the modules on:** Administration → Experimental modules.
-- **`sdr-pps-marker`** also needs the PPS injected at its dongle's input, and its `rtl_tcp` plan: see its README.
+With the admin token, on Administration:
+
+1. **SDR receivers** (read only) shows:
+   - each unit's state, CPU and memory;
+   - the dongles found on USB, with the role of each serial; a dongle held by the DVB-T driver or on a slow port is flagged;
+   - each decoder's `aircraft.json` age and aircraft count.
+2. **Experimental modules:** turn the switch on, then each module by itself. Each SDR module lists what it needs and whether the station sees it:
+   - **`reference-adsb`:** at least one fresh feed. The defaults (`/run/readsb`, `/run/skyaware978`) fit the stack, so it needs no settings.
+   - **`sdr-pps-marker`:** rtl_tcp running, and `fs_nominal` with an `rtl_tcp` plan in its **Settings** (the README has an example). The PPS injected at its dongle's input can't be observed from the web service, so it shows UNKNOWN. The module's marker count shows it once it runs.
+3. **Settings:**
+   - **What can be set:** only the keys the module's manifest declares, with their types.
+   - **Never accepted:** positions. A module gets the station's site, privacy-filtered, from the station.
+   - **Effect:** a change restarts the module set within about 10 s. Settings never turn a module on.
 - **Watch the timing chain:** the decoders add USB and CPU load. Their effect on PPS timing is what the soak record measures; it hasn't been measured yet.
 
 ## Not verified

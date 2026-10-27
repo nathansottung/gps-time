@@ -25,6 +25,11 @@ from . import loader
 
 MASTER = "modules_experimental"
 ENABLED = "modules_enabled"
+CONFIG = "module_config"
+# A module's settings as set from Administration: bounded, and only the keys its manifest declares.
+MAX_CONFIG_BYTES = 8192
+CONFIG_TYPES = {"float": (int, float), "int": (int,), "string": (str,), "path": (str,), "table": (dict,),
+                "bool": (bool,)}
 STATUS_PATH = Path(os.environ.get("GTP_MODULES_STATUS", "/run/gps-time-modules/status.json"))
 # The supervisor publishes every 10 s; older than this, its states are not shown as current.
 STATUS_FRESH_S = 60.0
@@ -104,9 +109,69 @@ def latest_item(item, kept, now):
             "items_kept": kept, "values": values, "left_out": left_out}
 
 
-def listing(cfg, root=None, status_path=None, now=None):
+def config_schema(m):
+    """The manifest's [config] table as the page shows it: type, unit, default, description."""
+    out = {}
+    for k, v in ((m.data.get("config") or {}) if m else {}).items():
+        if isinstance(v, dict):
+            out[k] = {f: v.get(f) for f in ("type", "unit", "default", "description") if f in v}
+    return out
+
+
+def module_config(cfg, name):
+    mc = cfg.get(CONFIG) if isinstance(cfg, dict) else None
+    v = mc.get(name) if isinstance(mc, dict) else None
+    return v if isinstance(v, dict) else {}
+
+
+def _position_key(v, path=""):
+    """The first key, at any depth, that names a position; None when there is none."""
+    if isinstance(v, dict):
+        for k, x in v.items():
+            if str(k).lower() in POSITION_KEYS:
+                return f"{path}{k}"
+            hit = _position_key(x, f"{path}{k}.")
+            if hit:
+                return hit
+    elif isinstance(v, list):
+        for i, x in enumerate(v):
+            hit = _position_key(x, f"{path}{i}.")
+            if hit:
+                return hit
+    return None
+
+
+def check_config(m, value):
+    """Raises SettingError unless value is a settings object the manifest allows."""
+    if not isinstance(value, dict):
+        raise SettingError("config must be an object, or null to clear it")
+    if len(json.dumps(value)) > MAX_CONFIG_BYTES:
+        raise SettingError(f"config is larger than {MAX_CONFIG_BYTES} bytes")
+    schema = config_schema(m)
+    unknown = sorted(k for k in value if k not in schema)
+    if unknown:
+        raise SettingError(f"{m.name} has no setting {', '.join(unknown)} (its manifest declares: "
+                           f"{', '.join(schema) or 'none'})")
+    pos = _position_key(value)
+    if pos:
+        raise SettingError(f"{pos}: positions are not set here; a module gets the station's site, "
+                           "privacy-filtered, from the station")
+    for k, v in value.items():
+        want = CONFIG_TYPES.get(schema[k].get("type"))
+        if v is None or want is None:
+            continue
+        if isinstance(v, bool) and bool not in want:
+            raise SettingError(f"{k} must be a {schema[k]['type']}, not true/false")
+        if not isinstance(v, want):
+            raise SettingError(f"{k} must be a {schema[k]['type']}")
+        if isinstance(v, str) and len(v) > MAX_TEXT:
+            raise SettingError(f"{k} is longer than {MAX_TEXT} characters")
+
+
+def listing(cfg, root=None, status_path=None, now=None, readiness=None):
     """Master switch, every installed module with its manifest facts and setting,
-    and the supervisor's state per module when it is reporting."""
+    and the supervisor's state per module when it is reporting. readiness: {module: checks}
+    from the station (sdr.py), shown as they are."""
     now = time.time() if now is None else now
     on = master_on(cfg)
     enabled = enabled_names(cfg)
@@ -135,16 +200,21 @@ def listing(cfg, root=None, status_path=None, now=None):
             "reason": st.get("reason") if st else None,
             # the newest item the module emitted (supervisor's RAM copy); None when it isn't reporting
             "latest": latest_item(st.get("_latest"), st.get("_kept", 0), now) if st else None,
+            # settings: the owner's (module_config), and what the manifest declares
+            "config": module_config(cfg, name),
+            "config_schema": config_schema(m),
+            "readiness": (readiness or {}).get(name),
         })
     for name in enabled:
         if name not in seen:
             rows.append({"name": name, "installed": False, "valid": False, "errors": [f"{name}: not installed"],
                          "version": None, "maturity": None, "types": [], "summary": None, "permissions": None,
                          "enabled": True, "runs": False, "host_runs": False, "state": None, "reason": None,
-                         "latest": None})
+                         "latest": None, "config": module_config(cfg, name), "config_schema": {},
+                         "readiness": (readiness or {}).get(name)})
     return {"experimental": on, "modules": rows, "supervisor": sup,
-            "note": "Changes are read by gps-time-modules.service within about 10 s. The service is installed "
-                    "but not enabled; until it runs, no module runs."}
+            "note": "Changes are read by gps-time-modules.service within about 10 s. Until that service runs, "
+                    "no module runs: install.sh installs it, and GTP_SDR=1 enables it."}
 
 
 def apply(cfg, body, root=None):
@@ -156,6 +226,23 @@ def apply(cfg, body, root=None):
         cfg[MASTER] = on
         cfg[ENABLED] = []          # on or off, every module starts off again
         return {"ok": True, MASTER: on, ENABLED: []}
+    if "module" in body and "config" in body:
+        name, value = body.get("module"), body.get("config")
+        if not isinstance(name, str):
+            raise SettingError("expected {\"module\": \"<name>\", \"config\": {...}|null}")
+        found = {(m.name if m else f.name): m for f, m, _ in loader.discover(root)}
+        if name not in found:
+            raise SettingError(f"no module named {name!r} is installed", code=404)
+        if found[name] is None:
+            raise SettingError(f"{name}: the manifest is invalid, so it has no settings", code=409)
+        mc = cfg.get(CONFIG) if isinstance(cfg.get(CONFIG), dict) else {}
+        if value is None:
+            mc.pop(name, None)
+        else:
+            check_config(found[name], value)
+            mc[name] = value
+        cfg[CONFIG] = mc
+        return {"ok": True, "module": name, "config": mc.get(name, {})}
     if "module" in body:
         name, want = body.get("module"), body.get("enabled")
         if not isinstance(name, str) or not isinstance(want, bool):
