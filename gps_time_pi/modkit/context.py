@@ -71,6 +71,20 @@ class CappedStorage:
     def read(self, name):
         return self._path(name).read_bytes()
 
+    def names(self):
+        """The module's files, oldest first (by modification time)."""
+        files = [p for p in self.root.iterdir() if p.is_file() and not p.name.startswith(".")]
+        return [p.name for p in sorted(files, key=lambda p: (p.stat().st_mtime_ns, p.name))]
+
+    def delete(self, name):
+        """Remove one of the module's files; False if it wasn't there."""
+        p = self._path(name)
+        try:
+            p.unlink()
+        except FileNotFoundError:
+            return False
+        return True
+
 
 class ModuleContext:
     def __init__(self, name, *, config=None, emit=None, timing_quality=None, site=None,

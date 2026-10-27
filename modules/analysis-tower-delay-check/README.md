@@ -127,7 +127,7 @@ Tests: `tests/test_tower_delay_check.py`, run with the station's (`tests/test_mo
 
 ## Next
 
-- **An SDR source writing marker-timed captures:** the `source-rtlsdr-pps` module.
+- **Real captures:** from `sdr-pps-marker`'s live capture (RTL-SDR through `rtl_tcp`, #140), once the PPS injection is built.
 - **A bench check:** two receivers on one antenna (the TDOA should be zero), then two sites. This follows SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.
 - **The pilot:** for coarse carrier tracking, if real captures need it.
 

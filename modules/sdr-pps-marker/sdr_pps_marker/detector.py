@@ -88,41 +88,37 @@ def _refine(x, c):
     return c + j0 + off, b
 
 
-def detect(samples, fs_nominal, *, false_alarms_per_hour=1.0, pulse_width_s=0.1,
-           edge_tolerance_s=0.002):
-    """Rising-edge PPS markers in the stream, in order.
+def noise_level(sigma, fs_nominal, false_alarms_per_hour):
+    """The high-pass threshold for a false-alarm rate (Rayleigh tail)."""
+    return sigma * math.sqrt(2 * math.log(fs_nominal * 3600 / false_alarms_per_hour))
 
-    The threshold makes noise alone cross it about false_alarms_per_hour times
-    per hour of samples (Rayleigh tail); spurious markers that still get through
-    are discarded by the time model (less than half a second apart)."""
-    x = samples
-    n = len(x)
+
+def spikes_from(x, hp, candidates, level, sigma, n):
+    """Spikes from the high-pass test, scanning from each candidate index (sorted) exactly as
+    the sample-by-sample loop would: group nearby crossings, refine the strongest."""
     lo, hi = FLANK
     edge = max(HP_LAG, hi) + 2
-    hp = [0.0] * n
-    for i in range(HP_LAG, n - HP_LAG):
-        hp[i] = abs(x[i] - 0.5 * (x[i - HP_LAG] + x[i + HP_LAG]))
-    sigma = _noise_sigma(hp[HP_LAG:n - HP_LAG])
-    level = sigma * math.sqrt(2 * math.log(fs_nominal * 3600 / false_alarms_per_hour))
-
     spikes = []
     i = edge
-    while i < n - edge:
-        if hp[i] > level:
-            j = i
-            best = i
-            while j < n - edge and j - best < GROUP:
-                if hp[j] > hp[best]:
-                    best = j
-                j += 1
-            ref = _refine(x, best)
-            if ref is not None:
-                pos, amp = ref
-                spikes.append(Marker(pos, amp, hp[best] / sigma))
-            i = max(j, best + 2 * HP_LAG + 2)   # past the high-pass echo at best + HP_LAG
-        else:
-            i += 1
+    for c in candidates:
+        if c < i or c >= n - edge:
+            continue
+        j = c
+        best = c
+        while j < n - edge and j - best < GROUP:
+            if hp[j] > hp[best]:
+                best = j
+            j += 1
+        ref = _refine(x, best)
+        if ref is not None:
+            pos, amp = ref
+            spikes.append(Marker(pos, amp, float(hp[best]) / sigma))
+        i = max(j, best + 2 * HP_LAG + 2)   # past the high-pass echo at best + HP_LAG
+    return spikes
 
+
+def classify_edges(spikes, fs_nominal, pulse_width_s=0.1, edge_tolerance_s=0.002):
+    """Rising edges only (see the module docstring, step 3)."""
     if not pulse_width_s:
         return spikes
     width = pulse_width_s * fs_nominal
@@ -151,3 +147,25 @@ def detect(samples, fs_nominal, *, false_alarms_per_hour=1.0, pulse_width_s=0.1,
                 continue
         rising.append(s)
     return rising
+
+
+def detect(samples, fs_nominal, *, false_alarms_per_hour=1.0, pulse_width_s=0.1,
+           edge_tolerance_s=0.002):
+    """Rising-edge PPS markers in the stream, in order.
+
+    The threshold makes noise alone cross it about false_alarms_per_hour times
+    per hour of samples (Rayleigh tail); spurious markers that still get through
+    are discarded by the time model (less than half a second apart). fast.detect
+    is the same with numpy, for real sample rates."""
+    x = samples
+    n = len(x)
+    lo, hi = FLANK
+    edge = max(HP_LAG, hi) + 2
+    hp = [0.0] * n
+    for i in range(HP_LAG, n - HP_LAG):
+        hp[i] = abs(x[i] - 0.5 * (x[i - HP_LAG] + x[i + HP_LAG]))
+    sigma = _noise_sigma(hp[HP_LAG:n - HP_LAG])
+    level = noise_level(sigma, fs_nominal, false_alarms_per_hour)
+    candidates = [i for i in range(edge, n - edge) if hp[i] > level]
+    spikes = spikes_from(x, hp, candidates, level, sigma, n)
+    return classify_edges(spikes, fs_nominal, pulse_width_s, edge_tolerance_s)

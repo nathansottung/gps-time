@@ -321,22 +321,29 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(m["name"], HERE.name)
         self.assertEqual(m["types"], ["source"])
         self.assertEqual(m["maturity"], "research")
-        self.assertEqual(m["hardware"]["required"], "none")
-        self.assertFalse(m["permissions"]["network"])
+        self.assertIn("rtl_tcp", m["hardware"]["required"])
+        # live mode talks to rtl_tcp on localhost only; the USB device is rtl_tcp's, storage is RAM
+        self.assertTrue(m["permissions"]["network"])
+        self.assertEqual((m["permissions"]["devices"], m["permissions"]["storage"]), ([], "ram"))
         self.assertEqual(m["emits"]["time_source"], TIME_SOURCE)
         self.assertEqual(m["licence"]["code"], "MIT")
         root = HERE.parents[1]
         self.assertTrue((root / m["spec"]).is_file())
 
     def test_standard_library_only(self):
-        allowed = {"cmath", "math", "random", "dataclasses", "json", "pathlib", "gps_time_pi"}
+        # The step-1 core stays standard library; numpy only in the fast path, the live capture
+        # and the fake server; sockets only in the rtl_tcp client and the fake server.
+        allowed = {"cmath", "math", "random", "dataclasses", "json", "pathlib", "gps_time_pi", "threading"}
+        extra = {"fast.py": {"numpy"}, "capture.py": {"time"}, "fakesdr.py": {"numpy", "socket", "struct", "time", "argparse"},
+                 "rtltcp.py": {"socket", "struct"}}
         for f in (HERE / "sdr_pps_marker").glob("*.py"):
+            ok = allowed | extra.get(f.name, set())
             for line in f.read_text(encoding="utf-8").splitlines():
                 s = line.strip()
                 if s.startswith("import ") or (s.startswith("from ") and " import " in s):
                     mod = s.split()[1].split(".")[0]
                     if mod:   # "from .x import" gives ""
-                        self.assertIn(mod, allowed, f"{f.name}: {s}")
+                        self.assertIn(mod, ok, f"{f.name}: {s}")
 
 
 if __name__ == "__main__":

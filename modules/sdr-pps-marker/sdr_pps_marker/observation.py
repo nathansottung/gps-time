@@ -104,3 +104,90 @@ def to_observation(samples, model, *, station_id, frequency_hz, timing=None, pos
             "position": pos, "provenance": "observed", "request_id": request_id, "licence": licence,
         })
     return meta, obsformat.encode(samples, datatype)
+
+
+def window_observation(raw_cu8, model, start, count, *, station_id, frequency_hz, timing=None, position=None,
+                       hw=None, request_id=None, licence="CC-BY-4.0", version="0.2.0", gain=None):
+    """(meta, data bytes) for one window of a longer cu8 stream: samples start..start+count-1.
+
+    The time model was built over the whole stream (markers on both sides of the window give it
+    time); the file keeps only the window, stored as the RTL-SDR's own unsigned 8-bit samples
+    (cu8: stored value = 127.5 + 127.5 × sample, gpstime:calibration says so). Captures and
+    annotations are those of the stream, cut to the window and renumbered from 0. Raises
+    ValueError when no sample in the window has a time."""
+    summary = model.summary()
+    if summary["state"] != "OK":
+        raise ValueError("the time model has no time for these samples (state UNKNOWN); not writing an observation")
+    n_total = len(raw_cu8) // 2
+    start, end = int(start), min(int(start) + int(count), n_total)
+    if start < 0 or end <= start:
+        raise ValueError("the window is outside the stream")
+    m = model.markers
+    f = float(frequency_hz)
+    pieces = [(0, None)]                                   # (stream index, (datetime ns, rate) or None)
+    for iv in model.intervals:
+        a = math.ceil(m[iv.first])
+        t = None if iv.flagged else model.utc(a)
+        pieces.append((a, None if t is None else (t.ns, iv.count / iv.seconds)))
+    if m:
+        pieces.append((math.ceil(m[-1]), None))
+    caps = []
+    for k, (a, tv) in enumerate(pieces):
+        b = pieces[k + 1][0] if k + 1 < len(pieces) else n_total
+        lo, hi = max(a, start), min(b, end)
+        if hi <= lo:
+            continue
+        if tv is None:
+            c = {"core:sample_start": lo - start, "core:frequency": f, "gpstime:time_valid": False}
+        else:
+            t = model.utc(lo)
+            if t is None:
+                c = {"core:sample_start": lo - start, "core:frequency": f, "gpstime:time_valid": False}
+            else:
+                c = {"core:sample_start": lo - start, "core:frequency": f, "core:datetime": obsformat.format_ns(t.ns),
+                     "gpstime:sample_rate": tv[1]}
+        if caps and caps[-1]["core:sample_start"] == c["core:sample_start"]:
+            caps[-1] = c
+        else:
+            caps.append(c)
+    if not any("core:datetime" in c for c in caps):
+        raise ValueError("no sample in the window has a time (outside the markers, or in a flagged interval)")
+    notes = []
+    for k, p in enumerate(m):
+        s = max(start, math.floor(p) - MARKER_HALF_WINDOW)
+        e = min(end, math.floor(p) + MARKER_HALF_WINDOW + 1)
+        if e > s:
+            notes.append({"core:sample_start": s - start, "core:sample_count": e - s, "core:label": "pps_marker",
+                          "core:comment": "PPS marker energy: blank before analysis",
+                          "gpstime:utc_second": model.seconds[k]})
+    for iv in model.intervals:
+        if iv.flagged:
+            a, b = math.ceil(m[iv.first]), math.floor(m[iv.first + 1]) + 1
+            lo, hi = max(a, start), min(b, end)
+            if hi > lo:
+                diff = iv.count - iv.expected
+                notes.append({"core:sample_start": lo - start, "core:sample_count": hi - lo,
+                              "core:label": "samples_missing" if diff < 0 else "samples_extra",
+                              "gpstime:samples": round(abs(diff))})
+    notes.sort(key=lambda x: x["core:sample_start"])
+    ppm = summary["clock_error_ppm"]["value"]
+    pos = position or {"privacy": "hidden", "lat": None, "lon": None}
+    gt = {
+        "station_id": station_id, "sensor": "rf", "quantity": "complex baseband voltage",
+        "unit": "relative (full scale = 1)", "channels": [{"name": "IQ"}],
+        "time_source": "pps_marker",
+        "time_offset_bound_s": (timing or {}).get("offset_bound_s"),
+        "sample_time_uncertainty_s": summary["sample_time_uncertainty_s"]["value"],
+        "frequency_reference": {"state": "calibrated" if ppm is not None else "free",
+                                "error_ppm": ppm, "source": "pps_marker"},
+        "calibration": {"marker_delay_s": model.marker_delay_s, "sample_scale": 127.5, "sample_offset": 127.5,
+                        "gain_tenth_db": gain,
+                        "note": "cu8 as the RTL-SDR delivers it: stored value = 127.5 + 127.5 x sample; "
+                                "marker_delay_s: injection path delay, 0 until bench calibration (research step 2)"},
+        "position": pos, "provenance": "observed", "request_id": request_id, "licence": licence,
+    }
+    meta = obsformat.build_meta(
+        datatype="cu8", sample_rate=model.fs_nominal, captures=caps, annotations=notes,
+        recorder=f"{RECORDER} {version}", hw=hw,
+        description="RTL-SDR capture window timed by PPS markers in the samples (research)", gpstime=gt)
+    return meta, bytes(raw_cu8[2 * start:2 * end])
