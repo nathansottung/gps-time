@@ -63,7 +63,7 @@ Reads only; it never changes chrony, gpsd or PPS configuration. Outage events ar
 
 ## GET /api/diagnostics
 
-A plain-text (`text/plain; charset=utf-8`) snapshot for support: status, PPS, GNSS, chrony, location, recent events and raw chronyc output. The location line follows the privacy mode. Takes the same `scenario` query as `/api/timing-chain` in demo mode. The new UI shows it under Timing → Timing Chain → "Generate & copy".
+A plain-text (`text/plain; charset=utf-8`) snapshot for support: status, PPS, GNSS, chrony, location, recent events and raw chronyc output. The location line follows the privacy mode. At the end, the "sky quality" lines: the learned sky-obstruction map's sectors when the owner has opted in (`sky_quality_share`) and the mode is not `hidden`; otherwise one line saying why they are not included. Takes the same `scenario` query as `/api/timing-chain` in demo mode. The new UI shows it under Timing → Timing Chain → "Generate & copy".
 
 ## GET /api/history
 
@@ -477,13 +477,14 @@ Changes a station setting. JSON body; admin token (outside demo). `GET /api/sett
 |---|---|---|
 | `{"location_display": "exact" \| "rounded" \| "hidden"}` | sets the location privacy mode in `config.json` | `{"ok": true, "location_display": "<mode>"}` |
 | `{"timezone": "<IANA name>"}` or `{"timezone": null}` | sets or clears the local-time display zone override in `config.json`. Display only; the system clock stays on UTC. An unknown name gets **400**. | `{"ok": true, "timezone": "<name>" \| null}` |
+| `{"sky_quality_share": true \| false}` | opt-in (default off): the sky-quality summary in `GET /api/capability` and `GET /api/diagnostics`. Never in `hidden` mode. A value that isn't a boolean gets **400** | `{"ok": true, "sky_quality_share": <bool>}` |
 | `{"reset_site": true}` | **discards the stored position survey** | `{"ok": true, "reset_site": true}` |
 | `{"modules_experimental": true \| false}` | the experimental modules switch. Either way `modules_enabled` is cleared, so every module is off afterwards | `{"ok": true, "modules_experimental": <bool>, "modules_enabled": []}` |
 | `{"module": "<name>", "enabled": true \| false}` | one module on or off. On needs the switch (**409** otherwise), an installed module (**404**) and a valid manifest (**409**). Off always works | `{"ok": true, "module": "<name>", "enabled": <bool>, "modules_enabled": [...]}` |
 | `{"module": "<name>", "config": {...} \| null}` | the module's settings (`module_config.<name>`); `null` clears them, back to the manifest defaults. Never turns a module on. Refused with **400**: not an object, over 8 KiB, a key the manifest's `[config]` doesn't declare, a value of the wrong type (`float`, `int`, `string`/`path` up to 300 characters, `table`), or a position-like key at any depth (`lat`, `lon`, `alt_m`, `site`…); **404** not installed; **409** invalid manifest. A change restarts the supervisor's module set | `{"ok": true, "module": "<name>", "config": {...}}` |
-| anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone, reset_site, modules_experimental or module"}` |
+| anything else | nothing | **400** `{"ok": false, "error": "expected location_display, timezone, sky_quality_share, reset_site, modules_experimental or module"}` |
 
-The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation). The module settings are on Administration → Experimental modules.
+The new UI uses `location_display` (Administration → Location privacy) and `timezone` (Administration → Local time zone). `reset_site` is on Administration → Position survey (typed confirmation). The module settings are on Administration → Experimental modules. `sky_quality_share` is on Administration → Capability record.
 
 ## GET /api/modules
 
@@ -547,6 +548,57 @@ The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The we
 - `dongles`: RTL2832U devices (USB IDs `0bda:2838`, `0bda:2832`) from `/sys/bus/usb/devices`. `role` is the role whose serial matches `/etc/default/gps-time-sdr`. `dvb_driver` is true when the DVB-T driver holds the device. `null` when sysfs can't be read.
 - `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s.
 
+## GET /api/sky-obstruction
+
+The learned sky-obstruction map (addendum §10–11; `architecture/sky-obstruction-map.md`). No token. Code: `gps_time_pi/skymap.py`; type `SkyObstructionResult`. Everything in it is `inferred` from observed C/N₀; it never names a cause.
+
+```json
+{"available": true, "format": "gps-time-sky-obstruction/1", "az_step": 10, "el_step": 5,
+ "summary": {"days": 12, "satellite_minutes": 92592, "reports_sampled": 17280, "cells_total": 648,
+             "cells_with_data": 564, "cells_classified": 564, "clear_pct": 93, "state": "learned", "untracked_reported": true},
+ "sectors": [{"sector": "W", "az_centre": 270, "state": "obstructed", "text": "Expected obstruction below ~30°",
+              "below_deg": 30, "cells_classified": 68, "cells": 68, "cn0_median": 32.5, "provenance": "inferred"}],
+ "cells": [{"az0": 270, "el0": 20, "samples": 64, "tracked_pct": 35, "used_pct": 28, "cn0_mean": 31.6, "cn0_sd": 2.0,
+            "band_median": 42.6, "delta_db": -11.0, "class": "blocked"}],
+ "losses": {"counts": {"EXPECTED": 3, "NOT EXPLAINED": 1, "UNKNOWN": 0, "SET": 1}, "since": "service start",
+            "recent": [{"utc": "2026-10-27T11:20:00Z", "gnss": "GPS", "sat": 14, "az": 272.0, "el": 18.0, "cn0_before": 24.0,
+                        "class": "EXPECTED", "note": "expected environmental loss: this direction is normally blocked here",
+                        "provenance": "inferred"}]},
+ "sky_wide": {"count": 0, "recent": []},
+ "thresholds": {"min_cell_samples": 20, "blocked_db": 8.0, "attenuated_db": 4.0, "blocked_tracked": 0.5,
+                "attenuated_tracked": 0.8, "learned_days": 2},
+ "file": {"name": "sky-obstruction.json", "last_write_utc": "2026-10-27T11:00:00Z", "unsaved": true, "problems": []},
+ "note": "Learned from this station's own satellites: ...", "provenance": "inferred", "location_display": "exact"}
+```
+
+- `cells`: every cell with data. `class` is `clear`, `attenuated`, `blocked` or `unknown` (too few samples or no reference). `delta_db` is the cell's mean C/N₀ minus the median of its elevation band (±5°). `tracked_pct` is used for the class only when `summary.untracked_reported` is true (the receiver lists satellites it isn't tracking).
+- `sectors`: eight 45° sectors; `state` `obstructed` (with `below_deg`), `attenuated`, `clear` or `unknown`.
+- `losses`: a satellite tracked in one fresh report and gone (or at C/N₀ 0) in the next, at most 30 s later: `EXPECTED` (the cell is blocked or attenuated), `NOT EXPLAINED` (the cell is clear), `SET` (below 5°), `UNKNOWN` (too little data there). RAM only, the last 200, counted since the service started.
+- `sky_wide`: a report where at least 4 satellites above 30°, in at least 3 quadrants and at least half of those tracked there, were lost or dropped by 10 dB. The note says the map does not explain it and that the evidence does not establish a cause.
+- **Hidden mode:** `{"available": false, "reason": "...", "location_display": "hidden"}`. Nothing is collected either.
+
+## GET /api/capability
+
+The station's capability record (`gps_time_pi/capability.py`), the form a coordinator join will carry. No token. It never holds an exact position. Type `Capability`.
+
+```json
+{"format": "gps-time-capability/1", "generated_utc": "2026-10-27T12:00:00Z",
+ "station_id": "ed25519:<sha-256 of the public key>", "software_version": "1.6.0-rc.1",
+ "timing": {"state": "GPS_PPS", "source": "PPS", "provenance": "calculated"},
+ "gnss": {"driver": "u-blox", "firmware": "..."},
+ "sdr": {"installed": true, "receivers": [{"role": "1090 MHz"}]},
+ "location": {"precision": "exact", "lat": null, "lon": null,
+              "note": "exact positions are never published in the capability record; choose rounded to share one"},
+ "sky_quality_opt_in": false, "sky_quality": null,
+ "sky_quality_note": "off (opt-in: POST /api/setting {\"sky_quality_share\": true})",
+ "availability": "owner only"}
+```
+
+- `station_id`: from `station-key.pub`; `null` without a key.
+- `location`: latitude and longitude only in `rounded` mode, to 0.1°; `null` in `exact` and `hidden`.
+- `sdr.receivers`: roles only, never serials.
+- `sky_quality`: when opted in and not `hidden`: `{state, days, clear_pct, cells_classified, sectors: [{sector, state, below_deg}], provenance: "inferred", note}`. Never the grid, any time, or losses.
+
 ## POST /api/admin
 
 Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside demo). `GET /api/admin` returns 405. Actions are fixed argv lists (`system.ACTIONS`, `system.DELAYED`), with no shell and no arguments taken from the request. Each is authorized by the polkit rule `system/50-gps-time-pi.rules`.
@@ -601,7 +653,8 @@ The new web UI: the React app built into `web/dist` (`cd web && corepack pnpm ru
   - `/api` → `sidereal`;
   - `/api` → `gps.sats`: azimuth and elevation are null in `hidden` (`config.privacy_sats()`); kept in `exact` and `rounded`;
   - `/api/almanac` and `/api/object`: rounded site in `rounded`, nothing in `hidden`;
-  - `/api/diagnostics`.
+  - `/api/diagnostics`;
+  - `/api/sky-obstruction`: nothing in `hidden` (not collected either); `/api/capability`: a position only in `rounded`, the sky-quality summary never in `hidden`.
   - Helper: `config.privacy_site()`, the same rounding as `config.displayed_location()`. Tests: `tests/test_location_privacy.py`.
 - **Not positions:** `/api/survey` → `fixes` are relative offsets; `stats` are scatter magnitudes.
 - **Residual, by design:** in `hidden` mode `/api` still lists which satellites are tracked and their C/N₀. The set of satellites above the horizon at a given time still narrows the position, but only coarsely: far more than the ~11 km of `rounded` mode. The precision has not been quantified. The list is kept so that GNSS health stays visible; drop it too if that residual is unacceptable.

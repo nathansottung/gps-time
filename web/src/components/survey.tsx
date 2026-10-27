@@ -12,7 +12,8 @@ const LOG_TICKS = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100];
 export function ConvergenceCard({ survey }: { survey: Survey | null }) {
   const pts = convergenceSeries(survey?.history);
   const dom = logDomain(pts);
-  const xTicks = pts.length > 1 ? [0, 1, 2, 3].map(i => pts[0].t + (pts[pts.length - 1].t - pts[0].t) * i / 3) : [];
+  // Three ticks (start, middle, end): four full date-time labels collide at 360 px.
+  const xTicks = pts.length > 1 ? [0, 1, 2].map(i => pts[0].t + (pts[pts.length - 1].t - pts[0].t) * i / 2) : [];
   const fmtT = (t: number) => new Date(t).toLocaleString('en-GB', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false });
   return (
     <Card>

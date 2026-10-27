@@ -12,6 +12,8 @@ Routes:
                      experimental switch, each module's setting and settings, the SDR modules'
                      readiness; changed by POST /api/setting
   /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
+  /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
+  /api/capability    the station's capability record (no exact position; opt-in sky quality)
   /app/        the web UI: the built React app from web/dist (GTP_WEB_DIST to override)
 
 Run: python3 -m gps_time_pi.server  (port 80 by default, GTP_PORT to override)
@@ -36,7 +38,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import sdr
+from . import capability, sdr, skymap
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -525,7 +527,38 @@ def diagnostics_text(qs):
     chain = timing_chain_payload(qs)
     cfg = config.load()
     live = DEMO_SITE if DEMO_MODE else gps.snapshot()["live"]
-    return timing_chain.diagnostic_snapshot(chain, config.displayed_location(cfg, live))
+    text = timing_chain.diagnostic_snapshot(chain, config.displayed_location(cfg, live))
+    # The opt-in sky-quality summary (sectors only; never in hidden mode).
+    lines = skymap.diagnostic_lines(sky_map(), cfg)
+    return text.rstrip("\n") + "\n\n" + "\n".join(lines) + "\n"
+
+
+def sky_map():
+    if DEMO_MODE:
+        return demo.sky_map(lambda: config.load().get("location_display", "exact"))
+    return skymap.service()
+
+
+def sky_obstruction_payload():
+    cfg = config.load()
+    return skymap.payload(sky_map(), cfg.get("location_display", "exact"))
+
+
+def capability_payload():
+    """GET /api/capability: the station's capability record (capability.py). No exact position."""
+    cfg = config.load()
+    if DEMO_MODE:
+        status = demo.core_api().get("timing_status")
+        receiver = {"driver": "u-blox", "firmware": "MAX-M8Q sample"}
+        site = DEMO_SITE
+    else:
+        snap = gps.snapshot()
+        status = timing_chain.timing_status(chrony.tracking(), chrony.sources(), gnss=snap,
+                                            refclocks=chrony.refclock_config())
+        receiver = snap.get("receiver")
+        site = cfg.get("site") or snap["live"]
+    return capability.record(cfg, version=__version__, status=status, receiver=receiver,
+                             sdr=sdr_payload(), site=site, sky=sky_map())
 
 
 HOST_REFUSED = ("Host not allowed. Use the station's IP address or hostname, or add this "
@@ -700,6 +733,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(references_payload(qs))
             elif p == "/api/timescales":
                 self._json(timescales_payload())
+            elif p == "/api/sky-obstruction":
+                self._json(sky_obstruction_payload())
+            elif p == "/api/capability":
+                self._json(capability_payload())
             elif p == "/api/diagnostics":
                 self._send(diagnostics_text(qs), "text/plain")
             elif p == "/api/survey":
@@ -795,6 +832,16 @@ class Handler(BaseHTTPRequestHandler):
                         cfg["timezone"] = tz
                         config.save(cfg)
                         self._json({"ok": True, "timezone": tz})
+                elif "sky_quality_share" in body:
+                    # Opt-in: the sky-quality summary in the capability record and the diagnostics export.
+                    share = body.get("sky_quality_share")
+                    if not isinstance(share, bool):
+                        self._json({"ok": False, "error": "sky_quality_share must be true or false"}, code=400)
+                    else:
+                        cfg = config.load()
+                        cfg["sky_quality_share"] = share
+                        config.save(cfg)
+                        self._json({"ok": True, "sky_quality_share": share})
                 elif body.get("reset_site") is True:
                     config.reset_site()
                     self._json({"ok": True, "reset_site": True})
@@ -809,8 +856,8 @@ class Handler(BaseHTTPRequestHandler):
                         config.save(cfg)
                         self._json(result)
                 else:
-                    self._json({"ok": False, "error": "expected location_display, timezone, reset_site, "
-                                                      "modules_experimental or module"}, code=400)
+                    self._json({"ok": False, "error": "expected location_display, timezone, sky_quality_share, "
+                                                      "reset_site, modules_experimental or module"}, code=400)
             else:
                 self.send_error(404)
         except Exception as e:  # noqa: BLE001
@@ -829,6 +876,7 @@ def main():
     if not DEMO_MODE:
         # GNSS sampling and survey ingestion run on their own schedule,
         # independent of how many pages or API clients are polling.
+        gps.add_sky_listener(skymap.service().observe)   # the learned sky-obstruction map
         gps.start_collector()
         timing_chain.service().start()
     ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()

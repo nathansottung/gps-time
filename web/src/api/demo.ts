@@ -16,6 +16,7 @@ import { tokenStore } from './auth';
 import { scaleValues } from '../lib/timescales';
 import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
+import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
 import type {
   Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
@@ -53,6 +54,7 @@ function iso(ms: number) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/
 export function demoApi(): StationApi {
   let locationMode: LocationMode = 'exact';
   let tzOverride: string | null = null;
+  let skyShare = false;
   const mods = { experimental: false, enabled: [] as string[] };   // the station's rules: lib/modules.ts
   const modConfig: Record<string, Record<string, unknown>> = {};   // module_config, this tab only
   const delay = <T,>(v: T) => new Promise<T>(res => setTimeout(() => res(v), 60));
@@ -117,7 +119,8 @@ export function demoApi(): StationApi {
       return delay(
         'GPS TIME PI DIAGNOSTIC SNAPSHOT (DEMO — synthetic data, not a measurement)\n' +
         `Generated: ${c.generated_utc}\n\nSTATUS: ${c.status.banner}\n  ${c.status.detail}\n` +
-        `PPS state: ${c.pps_state.value}\nSelected source: ${c.chrony.selected?.name ?? 'none'}\n`);
+        `PPS state: ${c.pps_state.value}\nSelected source: ${c.chrony.selected?.name ?? 'none'}\n\n` +
+        demoSkyLines(demoCapability(locationMode, skyShare, UI_VERSION)));
     },
     setLocationDisplay: (mode) => { locationMode = mode; return delay({ ok: true as const, location_display: mode }); },
     setTimezone: (tz) => { tzOverride = tz || null; return delay({ ok: true as const, timezone: tzOverride }); },
@@ -151,6 +154,12 @@ export function demoApi(): StationApi {
       return delay({ ok: true as const, module: name, config });
     },
     sdr: () => delay(demoSdr()),
+    // Mirrors the server: satellite directions over time reveal the position, so hidden mode has no map.
+    skyObstruction: () => delay(locationMode === 'hidden'
+      ? { available: false as const, reason: "Location privacy is hidden: satellite directions over time would reveal the station's position, so the sky-obstruction map is neither collected nor shown.", location_display: 'hidden' as const }
+      : demoSkyObstruction(locationMode)),
+    capability: () => delay(demoCapability(locationMode, skyShare, UI_VERSION)),
+    setSkyQualityShare: (on) => { skyShare = on; return delay({ ok: true as const, sky_quality_share: on }); },
     admin: (action) => delay({ ok: true, action, simulated: true as const, detail: `demo adapter: ${action} was not executed` }),
     auth: () => delay({ demo: true, auth_required: false, admin_configured: false, authenticated: true }),
     token: tokenStore(null),

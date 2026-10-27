@@ -5,55 +5,12 @@ import { Planned, ApiErrorNote } from '../components/planned';
 import { useStation, usePoll } from '../api/station';
 import type { Survey } from '../api/types';
 import { ConvergenceCard, IngestCard, ScatterCard } from '../components/survey';
+import { SkyObstructionPanel } from '../components/skymap';
 import { toSkySats, plottable, cn0Stats, satCounts } from '../api/view';
 
 const SYSCOLORS: Record<string,string> = {
   GPS:'var(--live)', GLONASS:'var(--warn-text)', GALILEO:'var(--mod-text)', BEIDOU:'var(--good-text)',
 };
-
-// Simulated obstruction heatmap cells (preview of a planned feature; demo only)
-const obstructionCells = Array.from({ length: 36 }, (_, ai) =>
-  Array.from({ length: 6 }, (_, ei) => ({
-    az: ai * 10,
-    el: ei * 15,
-    quality: ai >= 24 && ai <= 32 && ei <= 2 ? 0.15 : 0.75 + ((ai * 7 + ei * 13) % 20) / 100,
-  }))
-).flat();
-
-function ObstructionHeatmap() {
-  const size = 200;
-  const cx = size/2, cy = size/2, r = size/2 - 14;
-  return (
-    <div className="flex flex-col items-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ maxWidth:'100%', height:'auto' }} data-layout-ok="plot">
-        {obstructionCells.map(cell => {
-          const azR = (cell.az - 90) * Math.PI / 180;
-          const elR1 = (1 - cell.el/90) * r;
-          const elR2 = (1 - (cell.el+15)/90) * r;
-          const azR2 = ((cell.az + 10) - 90) * Math.PI / 180;
-          const x1 = cx + elR1*Math.cos(azR), y1 = cy + elR1*Math.sin(azR);
-          const x2 = cx + elR1*Math.cos(azR2), y2 = cy + elR1*Math.sin(azR2);
-          const x3 = cx + elR2*Math.cos(azR2), y3 = cy + elR2*Math.sin(azR2);
-          const x4 = cx + elR2*Math.cos(azR), y4 = cy + elR2*Math.sin(azR);
-          const q = cell.quality;
-          const fill = q > 0.6 ? `rgba(34,211,238,${q*0.4})` : `rgba(248,113,113,${(1-q)*0.6})`;
-          return <polygon key={`${cell.az}-${cell.el}`} points={`${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`} fill={fill} stroke="none"/>;
-        })}
-        {[0,30,60,90].map(el => (
-          <circle key={el} cx={cx} cy={cy} r={(1-el/90)*r} fill="none" stroke="#1a2040" strokeWidth={0.5}/>
-        ))}
-        <text x={cx} y={9}  textAnchor="middle" fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">N</text>
-        <text x={size-5} y={cy+3} textAnchor="end" fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">E</text>
-        <text x={cx} y={size-3} textAnchor="middle" fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">S</text>
-        <text x={7} y={cy+3} fontSize="8" fill="var(--t3)" fontFamily="JetBrains Mono">W</text>
-      </svg>
-      <div className="flex gap-4 mt-1 text-[9px] mono" style={{ color:'var(--t3)' }}>
-        <span className="flex items-center gap-1"><span className="w-3 h-2 inline-block rounded-[2px]" style={{ background:'color-mix(in srgb, var(--live) 40%, transparent)' }}/>Open sky</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-2 inline-block rounded-[2px]" style={{ background:'color-mix(in srgb, var(--err-text) 50%, transparent)' }}/>Obstructed</span>
-      </div>
-    </div>
-  );
-}
 
 // Calibration section (planned)
 function CalibrationPanel() {
@@ -224,39 +181,7 @@ export default function GNSS() {
         </div>
       )}
 
-      {tab === 'Sky Obstruction' && (
-        <Planned title="Learned Sky Obstruction" needs="long-term C/N₀ and tracking statistics per sky sector">
-        <div className="grid grid-cols-1 @3xl:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader title="Learned Sky Obstruction" badge={<ProvenanceTag type="inferred" />} />
-            <CardBody className="flex flex-col items-center py-4">
-              <ObstructionHeatmap />
-              <div className="mt-3 w-full space-y-1">
-                <MetricRow label="Open-sky estimate" value="78%" provenance="inferred" />
-                <MetricRow label="Primary obstruction" value="W / WNW (240–310°)" provenance="inferred" />
-                <MetricRow label="Observation window" value="47 days, 3h 12m" />
-                <MetricRow label="Confidence" value="Medium" />
-              </div>
-              <div className="mt-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t3)' }}>
-                Derived from long-term C/N₀ and tracking success patterns. This is an RF/GNSS-derived horizon model, not a physical sky survey.
-              </div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardHeader title="Obstruction Analysis" />
-            <CardBody>
-              <div className="text-[11px] mb-3" style={{ color:'var(--t2)' }}>
-                Lower C/N₀ and tracking success in the western sky (240–310° azimuth, below 30° elevation). The evidence does not establish what is blocking the signal.
-              </div>
-              <MetricRow label="Satellite loss events W-sector" value="143" />
-              <MetricRow label="Avg. C/N₀ west vs east" value="31 vs 44 dB-Hz" />
-              <MetricRow label="Tracking success W sector" value="54%" />
-              <MetricRow label="Tracking success overall" value="91%" />
-            </CardBody>
-          </Card>
-        </div>
-        </Planned>
-      )}
+      {tab === 'Sky Obstruction' && <SkyObstructionPanel />}
 
       {tab === 'Position' && (
         <div className="space-y-4">
