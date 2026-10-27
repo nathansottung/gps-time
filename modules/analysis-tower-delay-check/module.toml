@@ -3,10 +3,10 @@
 #   cd modules/analysis-tower-delay-check && python -m tower_delay_check demo
 
 name = "analysis-tower-delay-check"
-version = "0.1.0"
+version = "0.2.0"
 types = ["analysis"]
 maturity = "research"
-summary = "Measured against predicted tower delays: finds each tower's known waveform in a PPS-marker-timed capture and compares the delay with reference-broadcast-towers' prediction (synthetic data only so far)"
+summary = "Measured against predicted tower delays: finds the ATSC field sync, or an FM broadcast by correlation against a second site's capture, in PPS-marker-timed captures and compares the delays (or two sites' differences) with reference-broadcast-towers' predictions (synthetic data only so far)"
 spec = "docs/specs/SPEC-EXTENSIBILITY.md"
 interface = "1.0"
 
@@ -14,7 +14,7 @@ interface = "1.0"
 analysis = "tower_delay_check.check:TowerDelayCheck"
 
 [hardware]
-required = "none for the synthetic scenarios; real use needs an SDR capture timed by sdr-pps-marker (research step 2 onwards)"
+required = "none for the synthetic scenarios (numpy, a station dependency); real use needs SDR captures timed by PPS markers, one per tuning"
 planned = "an SDR source writing marker-timed observation files"
 
 [timing]
@@ -31,15 +31,17 @@ devices = []
 storage = "none"
 
 [config]
-mode = { type = "string", default = "common_offset", description = "absolute (emission times known) or common_offset (one unknown offset shared by the towers)" }
+mode = { type = "string", default = "common_offset", description = "absolute (emission times known), common_offset (one unknown offset shared by the towers), tdoa (two sites; emission cancels) or tdoa_common_offset (two sites, site b's clock offset estimated)" }
 search_s = { type = "float", unit = "s", default = 2e-5, description = "search half-width around the nominal arrival" }
+floor_s = { type = "float", unit = "s", default = 2e-4, description = "half-width of the correlation used for the noise floor" }
 min_snr = { type = "float", default = 25.0, description = "correlation peak power over its median floor needed to call a tower detected" }
 z_max = { type = "float", default = 3.0, description = "|residual| / sigma above this is a disagreement" }
 
 [emits]
-streams = ["transmitter", "detected", "verdict", "predicted_delay_s", "snr", "arrival_utc_ns", "measured_delay_s", "residual_s",
-           "residual_after_offset_s", "residual_tested_s", "z", "mode", "towers", "overall", "chi2", "dof",
-           "blanked_marker_samples", "time_offset_bound_s", "common_offset_s", "residual_rms_s"]
+streams = ["transmitter", "waveform", "detected", "verdict", "predicted_delay_s", "snr", "snr_a", "arrival_utc_ns",
+           "measured_delay_s", "arrival_a_utc_ns", "arrival_b_utc_ns", "predicted_tdoa_s", "measured_tdoa_s",
+           "residual_s", "residual_after_offset_s", "residual_tested_s", "z", "mode", "towers", "overall", "chi2",
+           "dof", "captures", "blanked_marker_samples", "time_offset_bound_s", "common_offset_s", "residual_rms_s"]
 events = []
 schema_version = "result/1"
 

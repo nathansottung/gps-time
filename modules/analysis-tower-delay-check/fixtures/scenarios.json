@@ -1,40 +1,93 @@
 {
-  "comment": "SYNTHETIC scenarios for analysis-tower-delay-check: captures are generated from these by tower_delay_check/synth.py (deterministic). The transmitters and their predicted delays come from predictions.jsonl, the reference-broadcast-towers demo (synthetic towers around the US Naval Observatory example site). The waveforms are pseudo-random test codes, not real broadcasts.",
+  "comment": "SYNTHETIC scenarios for analysis-tower-delay-check: captures are generated from these by tower_delay_check/synth.py (deterministic). The waveforms are real kinds (an ATSC A/53 8-VSB stream with its field syncs; an FM broadcast with noise for program audio), but every signal here is synthesized: not a recording, not a measurement. The transmitters and predicted delays come from predictions.jsonl (site a, the US Naval Observatory example point) and predictions-b.jsonl (site b, the Washington Monument example point), made by reference-broadcast-towers from its synthetic fixture cache. snr_db is per sample in the capture.",
   "scenarios": [
     {
-      "name": "absolute-agree",
-      "about": "emission times known exactly; every tower where predicted",
-      "mode": "absolute", "seed": 11, "fs_nominal": 2400000.0, "clock_ppm": 12.0, "frequency_hz": 521000000.0,
-      "t0_utc": "2026-10-26T15:00:00Z", "pre_marker_samples": 300, "duration_s": 0.003,
-      "noise_rms": 2.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": 0.0,
+      "name": "atsc-absolute-agree",
+      "about": "three ATSC towers, one capture each (one tuned off the channel centre, one partly outside the channel); field sync emission times known; every tower where predicted",
+      "mode": "absolute", "seed": 21, "t0_utc": "2026-10-26T15:00:00Z", "pre_marker_samples": 300, "duration_s": 0.003,
+      "noise_rms": 1.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": 0.0,
+      "captures": [
+        {"id": "a-593", "site": "a", "center_hz": 593000000.0, "fs_nominal": 2400000.0, "clock_ppm": 12.0},
+        {"id": "a-521", "site": "a", "center_hz": 521500000.0, "fs_nominal": 2400000.0, "clock_ppm": 12.0},
+        {"id": "a-189", "site": "a", "center_hz": 187800000.0, "fs_nominal": 2400000.0, "clock_ppm": 12.0}
+      ],
       "towers": [
-        {"transmitter": "FM:900001:88500", "waveform": {"kind": "prn", "seed": 101, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0004},
-        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "prn", "seed": 102, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0010},
-        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "prn", "seed": 103, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0016}
+        {"transmitter": "ATSC:900010:593000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0010, "snr_db": 0.0},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0012, "snr_db": -3.0, "middle_inverted": true},
+        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0008, "snr_db": 0.0}
       ]
     },
     {
-      "name": "common-offset-one-disagrees",
-      "about": "an unknown common emission offset of 2.5 µs; one tower arrives 4 µs late (injected)",
-      "mode": "common_offset", "seed": 12, "fs_nominal": 2400000.0, "clock_ppm": -7.5, "frequency_hz": 521000000.0,
-      "t0_utc": "2026-10-26T15:00:01Z", "pre_marker_samples": 300, "duration_s": 0.003,
-      "noise_rms": 2.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": 2.5e-6,
+      "name": "atsc-common-offset-one-disagrees",
+      "about": "an unknown common emission offset of 2.5 µs; one tower arrives 4 µs late at the site (injected)",
+      "mode": "common_offset", "seed": 22, "t0_utc": "2026-10-26T15:00:01Z", "pre_marker_samples": 300, "duration_s": 0.003,
+      "noise_rms": 1.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": 2.5e-6,
+      "captures": [
+        {"id": "a-593", "site": "a", "center_hz": 593000000.0, "fs_nominal": 2400000.0, "clock_ppm": -7.5},
+        {"id": "a-521", "site": "a", "center_hz": 521000000.0, "fs_nominal": 2400000.0, "clock_ppm": -7.5},
+        {"id": "a-189", "site": "a", "center_hz": 189000000.0, "fs_nominal": 2400000.0, "clock_ppm": -7.5}
+      ],
       "towers": [
-        {"transmitter": "FM:900001:88500", "waveform": {"kind": "prn", "seed": 101, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0004},
-        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "prn", "seed": 102, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0010},
-        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "prn", "seed": 103, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0016, "extra_delay_s": 4e-6}
+        {"transmitter": "ATSC:900010:593000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0010, "snr_db": 0.0},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0012, "snr_db": 0.0},
+        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0008, "snr_db": 0.0, "extra_delay_s": {"a": 4e-6}}
       ]
     },
     {
-      "name": "one-tower-too-weak",
+      "name": "atsc-one-tower-too-weak",
       "about": "common offset; one tower buried in noise, so not detected (unknown, nothing claimed)",
-      "mode": "common_offset", "seed": 13, "fs_nominal": 2400000.0, "clock_ppm": 3.0, "frequency_hz": 521000000.0,
-      "t0_utc": "2026-10-26T15:00:02Z", "pre_marker_samples": 300, "duration_s": 0.003,
-      "noise_rms": 2.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": -1.2e-6,
+      "mode": "common_offset", "seed": 23, "t0_utc": "2026-10-26T15:00:02Z", "pre_marker_samples": 300, "duration_s": 0.003,
+      "noise_rms": 1.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "emission_offset_s": -1.2e-6,
+      "captures": [
+        {"id": "a-593", "site": "a", "center_hz": 593000000.0, "fs_nominal": 2400000.0, "clock_ppm": 3.0},
+        {"id": "a-521", "site": "a", "center_hz": 521000000.0, "fs_nominal": 2400000.0, "clock_ppm": 3.0},
+        {"id": "a-189", "site": "a", "center_hz": 189000000.0, "fs_nominal": 2400000.0, "clock_ppm": 3.0}
+      ],
       "towers": [
-        {"transmitter": "FM:900001:88500", "waveform": {"kind": "prn", "seed": 101, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0004},
-        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "prn", "seed": 102, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0010, "amplitude": 0.02},
-        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "prn", "seed": 103, "chips": 255, "chip_rate_hz": 600000.0}, "emit_s": 0.0016}
+        {"transmitter": "ATSC:900010:593000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0010, "snr_db": 0.0},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0012, "snr_db": -26.0},
+        {"transmitter": "ATSC:900012:189000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0008, "snr_db": 0.0}
+      ]
+    },
+    {
+      "name": "fm-tdoa-agree",
+      "about": "FM correlation: three FM stations captured at two sites, each tuned a little off the station; a 2 ms segment of site a's capture is found in site b's; both clocks trusted",
+      "mode": "tdoa", "seed": 24, "t0_utc": "2026-10-26T15:00:03Z", "pre_marker_samples": 300, "duration_s": 0.004,
+      "noise_rms": 1.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "clock_offset_b_s": 0.0,
+      "captures": [
+        {"id": "a-88", "site": "a", "center_hz": 88800000.0, "fs_nominal": 2400000.0, "clock_ppm": 12.0},
+        {"id": "a-94", "site": "a", "center_hz": 93600000.0, "fs_nominal": 2400000.0, "clock_ppm": 12.0},
+        {"id": "a-101", "site": "a", "center_hz": 101400000.0, "fs_nominal": 2400000.0, "clock_ppm": 12.0},
+        {"id": "b-88", "site": "b", "center_hz": 88300000.0, "fs_nominal": 2400000.0, "clock_ppm": -4.0},
+        {"id": "b-94", "site": "b", "center_hz": 94100000.0, "fs_nominal": 2400000.0, "clock_ppm": -4.0},
+        {"id": "b-101", "site": "b", "center_hz": 100800000.0, "fs_nominal": 2400000.0, "clock_ppm": -4.0}
+      ],
+      "towers": [
+        {"transmitter": "FM:900001:88500", "waveform": {"kind": "fm_reference", "offset_s": 0.0005, "duration_s": 0.002}, "emit_s": 0.0, "snr_db": 10.0},
+        {"transmitter": "FM:900002:93900", "waveform": {"kind": "fm_reference", "offset_s": 0.0005, "duration_s": 0.002}, "emit_s": 0.0, "snr_db": 6.0},
+        {"transmitter": "FM:900003:101100", "waveform": {"kind": "fm_reference", "offset_s": 0.0005, "duration_s": 0.002}, "emit_s": 0.0, "snr_db": 3.0}
+      ]
+    },
+    {
+      "name": "mixed-tdoa-common-offset-one-disagrees",
+      "about": "two FM and two ATSC towers at two sites; site b's clock is off by a hidden 1.7 µs, estimated across the towers; one FM tower arrives 3 µs late at site b (injected)",
+      "mode": "tdoa_common_offset", "seed": 25, "t0_utc": "2026-10-26T15:00:04Z", "pre_marker_samples": 300, "duration_s": 0.004,
+      "noise_rms": 1.0, "time_offset_bound_s": 2e-8, "sample_time_uncertainty_s": 2e-8, "clock_offset_b_s": 1.7e-6,
+      "captures": [
+        {"id": "a-88", "site": "a", "center_hz": 88800000.0, "fs_nominal": 2400000.0, "clock_ppm": 5.0},
+        {"id": "a-94", "site": "a", "center_hz": 93600000.0, "fs_nominal": 2400000.0, "clock_ppm": 5.0},
+        {"id": "a-593", "site": "a", "center_hz": 593000000.0, "fs_nominal": 2400000.0, "clock_ppm": 5.0},
+        {"id": "a-521", "site": "a", "center_hz": 521000000.0, "fs_nominal": 2400000.0, "clock_ppm": 5.0},
+        {"id": "b-88", "site": "b", "center_hz": 88300000.0, "fs_nominal": 2400000.0, "clock_ppm": -9.0},
+        {"id": "b-94", "site": "b", "center_hz": 94100000.0, "fs_nominal": 2400000.0, "clock_ppm": -9.0},
+        {"id": "b-593", "site": "b", "center_hz": 593600000.0, "fs_nominal": 2400000.0, "clock_ppm": -9.0},
+        {"id": "b-521", "site": "b", "center_hz": 520400000.0, "fs_nominal": 2400000.0, "clock_ppm": -9.0}
+      ],
+      "towers": [
+        {"transmitter": "FM:900001:88500", "waveform": {"kind": "fm_reference", "offset_s": 0.0005, "duration_s": 0.002}, "emit_s": 0.0, "snr_db": 10.0},
+        {"transmitter": "FM:900002:93900", "waveform": {"kind": "fm_reference", "offset_s": 0.0005, "duration_s": 0.002}, "emit_s": 0.0, "snr_db": 8.0, "extra_delay_s": {"b": 3e-6}},
+        {"transmitter": "ATSC:900010:593000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0012, "snr_db": 0.0},
+        {"transmitter": "ATSC:900011:521000", "waveform": {"kind": "atsc_field_sync"}, "emit_s": 0.0015, "snr_db": 0.0}
       ]
     }
   ]
