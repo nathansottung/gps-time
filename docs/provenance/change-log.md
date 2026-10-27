@@ -1679,3 +1679,36 @@ Owner's request: build a real tower cache. Download the FCC FM/TV and NOAA expor
 - **Fixtures:** `fm-fcc-synthetic.txt`, `tv-fcc-synthetic.txt` and `nwr-synthetic.js`, synthetic rows in the real layouts.
 - **Tests:** 11 new ones (formats, the key positions, services, duplicates, NOAA status, fetch with no location, the manifest, a failed download, a changed file).
 - **Module:** version 0.2.0.
+
+## 2026-10-27 — Real waveforms for the tower delay check: ATSC field sync and FM correlation (#139)
+
+Owner's request: real waveforms, ATSC field sync and FM correlation, replacing the stand-in signal.
+
+- **The stand-in pseudo-random code is gone.** There are two kinds now.
+- **`atsc_field_sync`** follows ATSC A/53 Part 2:2011 §5.3, read from the standard (atsc.org).
+  - **Known symbols:** the segment sync, PN511, the first and third PN63, and the VSB-mode symbols for trellis-coded 8-VSB: 665 symbols, 68 µs.
+  - **Left out:** the middle PN63 (inverted on alternate fields), and the reserved and precode symbols.
+  - **Sequences:** the code holds the standard's printed PN511 and PN63, and a test regenerates both from their polynomials and preloads.
+  - **Signal model:** the 8-VSB model (pilot 1.25, root-raised cosine α = 0.1152, upper sideband) gives the complex baseband a_k·(−j)^k through a low-pass root-raised cosine of Nyquist Sr/4. It is derived from §5.4, and tests check where the pilot lands and that the band stays inside 6 MHz.
+- **`fm_reference`** is FM correlation. The template is a 2 ms segment of site a's capture, shifted to 0 Hz and band-limited to ±100 kHz, then found in site b's capture.
+- **Templates per capture:** each template is made for the capture's rate and tuning.
+  - **Tuning:** the tuner is taken to follow the marker-measured sample clock (one crystal, as on an RTL-SDR; `lo_follows_clock`).
+  - **Passband:** the SDR's filter is modelled as flat to 80 % of Nyquist with a raised-cosine edge.
+  - **Captures:** one per tuning. A tower is looked for in the capture holding most of its band.
+- **Peak refinement:** windowed-sinc interpolation of the complex correlation. The parabola it replaces was biased by up to 50 ns (0.12 sample) at these bandwidths, whatever the SNR. After the change, the mean error is within ±3 ns.
+- **FM's correlator SNR** comes from the coherence at the peak, m·ρ²/(1 − ρ²). Program audio correlates with itself away from the peak, which made the stated sigma about 10× too large.
+- **New modes:**
+  - `tdoa`: two sites; the emission time cancels, the realistic case. Both clocks are trusted to their bounds.
+  - `tdoa_common_offset`: site b's clock offset is estimated across the towers (the reference-transmitter method of the FM trial spec).
+  - The single-site modes need emission times from elsewhere. ATSC stations aren't required to align their fields to UTC.
+- **Synthetic scenarios (5):**
+  - ATSC arrival errors −12 to +15 ns against a 25–32 ns sigma.
+  - A hidden 2.5 µs common offset recovered within 9 ns, and a tower made 4 µs late flagged at z ≈ 64.
+  - A buried tower is `unknown`.
+  - FM TDOA errors −17 to +17 ns against 34–70 ns.
+  - Site b's hidden 1.7 µs clock offset recovered within 7 ns, and an FM tower made 3 µs late flagged at z ≈ 33.
+  - Coverage over 40 seeds: ATSC 100 % within 1.96 σ, FM 95 %.
+- **Fixtures:** predictions for site a (US Naval Observatory example) and site b (Washington Monument example), from `reference-broadcast-towers`' synthetic cache. A test recomputes them.
+- **numpy** is a station dependency. The tests skip without it, and a new CI step runs them in the station venv and fails if they skip.
+- **CLI:** `check --window W.json` (captures per site, predictions per site, emissions, mode); `synth --out DIR`.
+- **Not yet:** a real capture. An SDR source writing marker-timed captures is next.
