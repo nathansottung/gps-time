@@ -1760,6 +1760,22 @@ Owner's request: plan v1.5.1 (UI work) to follow the v1.5.0 soak.
 - **STATUS:** a v1.5.1 section and six rows (one done: this plan).
 - **Not touched:** the station, the v1.5.0 run and its scheduled check.
 
+## 2026-10-27 — Module output in the web UI (#142)
+
+Owner's request: build the v1.5.1 items now on main (no tag until the v1.5.0 soak passes); item 1, module output in the web UI.
+
+- **`/api/modules` gains `latest` per module:** the newest item the module emitted, from the status file the supervisor already writes in RAM (`/run/gps-time-modules/status.json`). Nothing new runs; the web service still never loads modules.
+  - **Fields:** `kind`, `time_ns`, `age_s`, `items_kept`, up to 40 labeled values (notes cut to 300 characters), and `left_out`.
+  - **Left out:** a value without one of the six provenance labels (never relabeled), one that isn't a single value, and any position-like value (`lat`, `lon`, `alt_m`, `position` and the like), whatever a module emits.
+  - **Freshness:** `null` while the supervisor isn't reporting, as `state` already was.
+- **Administration → Experimental modules** shows it under each module as labeled values with their age.
+  - **Formatting:** seconds in ns/µs/ms; very small or large numbers as ×10ⁿ; a value the module didn't establish shows UNKNOWN.
+- **Demo:** with the module turned on, the demo shows a canned sample of what the module's own synthetic demo emits, and says so ("a canned sample of the module's synthetic demo, not a running supervisor"). The demo's module row now matches its 0.2.0 manifest.
+- **STATUS:** the v1.5.0 known issue "module output isn't shown in the web UI yet" is closed, and so is the PPSM "Health" row (on Administration, not the Overview).
+- **Tests:**
+  - `tests/test_modules_toggle.py` (+3): the newest item with its labels, no position and no unlabeled value, bounds and staleness.
+  - `web/src/lib/modules.test.ts` (+2, and the demo test).
+  - `web/e2e/modules.spec.ts` (new): the card with output at 360, 768 and 1280 px, layout and design audits, and off again.
 ## 2026-10-27 — A flaky test: wall-clock times matched as positions (#143)
 
 Owner's request: the v1.5.1 items on main; item 2, the flaky-test fix.

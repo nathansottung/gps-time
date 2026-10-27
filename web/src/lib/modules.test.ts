@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ModuleRow, ModulesState } from '../api/types';
-import { applySetting, canToggle, permissionText, rowStatus, settingOutcome } from './modules';
+import { applySetting, canToggle, fmtModuleValue, outputHeading, outputLines, permissionText, rowStatus, settingOutcome } from './modules';
 import { demoApi } from '../api/demo';
 
 const row = (o: Partial<ModuleRow> = {}): ModuleRow => ({
@@ -71,8 +71,15 @@ describe('demo adapter', () => {
     await api.setModulesExperimental(true);
     expect((await api.modules()).modules.every(r => !r.enabled)).toBe(true);
     await api.setModule('sdr-pps-marker', true);
-    const m = (await api.modules()).modules[0];
-    expect([m.enabled, m.runs, m.state]).toEqual([true, true, null]);
+    const st = await api.modules();
+    const m = st.modules[0];
+    // the demo shows a canned sample of the module's synthetic demo, and says so
+    expect([m.enabled, m.runs, m.state]).toEqual([true, true, 'finished']);
+    expect(st.supervisor.detail).toMatch(/canned sample/);
+    expect(m.latest?.values.scenario.note).toMatch(/synthetic/);
+    await api.setModulesExperimental(false);
+    const off = (await api.modules());
+    expect([off.supervisor.reporting, off.modules[0].latest]).toEqual([false, null]);
   });
 });
 
@@ -83,5 +90,31 @@ describe('labels', () => {
     expect(settingOutcome('x', null, { message: 'm', status: null }).variant).toBe('warn');
     expect(settingOutcome('x', null, { message: 'm', status: 409 }).text).toContain('refused');
     expect(settingOutcome('x', { ok: true, module: 'm', enabled: true, modules_enabled: ['m'] }).variant).toBe('good');
+  });
+});
+
+describe('latest output', () => {
+  it('formats values without inventing any', () => {
+    expect(fmtModuleValue(null, 'ppm')).toEqual({ value: null, unit: 'ppm' });
+    expect(fmtModuleValue(true, null)).toEqual({ value: 'yes', unit: '' });
+    expect(fmtModuleValue('OK', null)).toEqual({ value: 'OK', unit: '' });
+    expect(fmtModuleValue(7, null)).toEqual({ value: '7', unit: '' });
+    expect(fmtModuleValue(-3, 'dB')).toEqual({ value: '−3', unit: 'dB' });
+    expect(fmtModuleValue(1.5363421906110658e-6, 's')).toEqual({ value: '1.5', unit: 'µs' });
+    expect(fmtModuleValue(-2.5e-8, 's')).toEqual({ value: '−25.0', unit: 'ns' });
+    expect(fmtModuleValue(0.03621951560894843, 'ppm')).toEqual({ value: '0.0362195', unit: 'ppm' });
+    expect(fmtModuleValue(1.2e-5, 'ppm').value).toBe('1.2 × 10⁻⁵');
+    expect(fmtModuleValue(521e6 + 0.5, 'Hz').value).toBe('5.21 × 10⁸');
+    expect(fmtModuleValue(Number.NaN, 'x').value).toBeNull();
+  });
+  it('lines keep labels and notes; the heading says what is left out', () => {
+    const lt = { kind: 'observation' as const, time_ns: 1, age_s: 75, items_kept: 20, left_out: 2,
+      values: { markers: { value: 9, unit: null, provenance: 'observed' as const },
+                state: { value: 'OK', unit: null, provenance: 'calculated' as const, note: 'n' } } };
+    expect(outputLines(lt)).toEqual([
+      { name: 'markers', value: '9', unit: '', provenance: 'observed' },
+      { name: 'state', value: 'OK', unit: '', provenance: 'calculated', note: 'n' }]);
+    expect(outputHeading(lt)).toBe('Latest observation 1m 15s ago · 20 kept in RAM · 2 values not shown (unlabeled, not a single value, a position, or over the limit)');
+    expect(outputHeading({ ...lt, age_s: null, left_out: 0 })).toBe('Latest observation time UNKNOWN · 20 kept in RAM');
   });
 });
