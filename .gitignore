@@ -30,3 +30,10 @@ generated/
 # Station signing key (made on the station by install.sh; never committed)
 station-key
 station-key.pub
+
+# Real tower caches and their downloads (reference-broadcast-towers): built per station, never committed.
+# The synthetic fixture cache is the one exception.
+towers-cache*.json
+!modules/reference-broadcast-towers/fixtures/towers-cache.json
+towers-downloads/
+fetch-manifest.json

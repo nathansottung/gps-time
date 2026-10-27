@@ -12,10 +12,12 @@ import os
 import shutil
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from gps_time_pi.modkit import ModuleContext, Transmitter
-from reference_broadcast_towers import build_cache, cache
+from reference_broadcast_towers import build_cache, cache, fetch
 from reference_broadcast_towers.geometry import C, slant_range
 from reference_broadcast_towers.reference import (REFRACTIVITY, TowerReference, radio_horizon_m, site_frame)
 from reference_broadcast_towers.source import EXAMPLE_SITE, FIXTURE_CACHE, TowerSource
@@ -51,7 +53,8 @@ class TestCacheBuild(unittest.TestCase):
         kept = {s: sum(1 for t in doc["towers"] if t["service"] == s) for s in cache.SERVICES}
         self.assertEqual(kept, {"FM": 5, "ATSC": 4, "NOAA": 2})
         self.assertEqual(doc["rejected"], {"no_callsign": 1, "no_position": 1, "bad_position": 0,
-                                           "bad_frequency": 3, "duplicate": 1, "out_of_area": 1})
+                                           "bad_frequency": 3, "service_not_used": 0, "duplicate": 1,
+                                           "out_of_area": 1})
         self.assertEqual([s["rows_kept"] for s in doc["sources"]], [5, 4, 2])
         self.assertTrue(all(len(s["sha256"]) == 64 for s in doc["sources"]))
 
@@ -237,6 +240,156 @@ class TestSource(unittest.TestCase):
         for f in ("fm-synthetic.csv", "tv-synthetic.csv", "noaa-synthetic.csv"):
             calls = [ln.split(",")[0] for ln in (FIX / f).read_text(encoding="utf-8").splitlines()[1:]]
             self.assertTrue(all(c == "" or c.startswith("SYN") for c in calls), f)
+        for f in ("fm-fcc-synthetic.txt", "tv-fcc-synthetic.txt"):
+            for ln in (FIX / f).read_text(encoding="utf-8").splitlines():
+                self.assertTrue(ln.split("|")[1].startswith("SYN"), ln[:20])
+                self.assertIn("SYNTHETIC LICENSEE", ln)
+        rows = json.loads(NWR_JS[NWR_JS.index("["):].rstrip().rstrip(";"))
+        self.assertTrue(all(r["callsign"].startswith("SYN") for r in rows))
+
+
+FCC_FM_TXT = (FIX / "fm-fcc-synthetic.txt").read_text(encoding="utf-8")
+FCC_TV_TXT = (FIX / "tv-fcc-synthetic.txt").read_text(encoding="utf-8")
+NWR_JS = (FIX / "nwr-synthetic.js").read_text(encoding="utf-8")
+
+
+class TestRealFormats(unittest.TestCase):
+    """The FCC text output and NOAA's ccl-data.js, in their real layouts (synthetic rows)."""
+
+    def test_detect(self):
+        self.assertEqual(cache.detect(FCC_FM_TXT), "fcc")
+        self.assertEqual(cache.detect(NWR_JS), "nwr")
+        self.assertEqual(cache.detect(CSV_FM), "csv")
+        self.assertEqual(cache.detect("\ufeff" + FCC_TV_TXT), "fcc")
+
+    def test_positions_follow_the_fcc_key(self):
+        # The FCC key's order: 38 FM fields, 39 TV fields; positions come from the key's names.
+        self.assertEqual((len(cache.FCC_FM_KEY), len(cache.FCC_TV_KEY)), (38, 39))
+        self.assertEqual(cache.FCC_FM_KEY[cache.FCC_FM["rc_amsl_m"] - 1], "RCAMSL horizontal (meters)")
+        self.assertEqual(cache.FCC_TV_KEY[cache.FCC_TV["virtual_channel"] - 1], "DTV Virtual Channel")
+        self.assertEqual((cache.FCC_FM["facility_id"], cache.FCC_FM["lat_deg"], cache.FCC_FM["lon_sec"]), (18, 20, 26))
+        self.assertEqual((cache.FCC_TV["channel"], cache.FCC_TV["atsc3"], cache.FCC_TV["rc_amsl_m"]), (4, 6, 31))
+        # Real lines carry one undocumented trailing identifier: 39 (FM) and 40 (TV) items plus the two ends.
+        self.assertEqual({len(ln.split("|")) for ln in FCC_FM_TXT.splitlines()}, {41})
+        self.assertEqual({len(ln.split("|")) for ln in FCC_TV_TXT.splitlines()}, {42})
+
+    def test_fm_text(self):
+        recs, rej = cache.parse_rows(FCC_FM_TXT, "FM")
+        self.assertEqual(rej["service_not_used"], 1)                    # the FX translator
+        r = recs[0]
+        self.assertEqual((r["callsign"], r["frequency_hz"], r["facility_id"], r["datum"]),
+                         ("SYN1FM", 88.5e6, "900001", "NAD83"))
+        self.assertEqual((r["erp_kw"], r["haat_m"], r["rc_amsl_m"], r["status"]), (50.0, 180.0, 250.0, "LIC"))
+        self.assertAlmostEqual(r["lat"], 38.95, places=4)
+        self.assertAlmostEqual(r["lon"], -77.08, places=4)
+
+    def test_tv_text(self):
+        recs, rej = cache.parse_rows(FCC_TV_TXT, "ATSC")
+        self.assertEqual((rej["service_not_used"], rej["bad_frequency"]), (2, 1))   # DTS, analog LPT; RF 50
+        tv = {r["callsign"]: r for r in recs}
+        self.assertEqual(sorted(tv), ["SYN20TV", "SYN21TV", "SYN22LD"])
+        self.assertEqual((tv["SYN20TV"]["channel"], tv["SYN20TV"]["frequency_hz"], tv["SYN20TV"]["virtual_channel"]),
+                         (34, 593e6, "20"))
+        self.assertFalse(tv["SYN20TV"]["atsc3"])
+        self.assertTrue(tv["SYN21TV"]["atsc3"])
+        self.assertIsNone(tv["SYN22LD"]["virtual_channel"])
+        self.assertEqual(tv["SYN22LD"]["haat_m"], 0.0)
+
+    def test_nwr_js(self):
+        recs, rej = cache.parse_rows(NWR_JS, "NOAA")
+        self.assertEqual(rej["bad_frequency"], 1)                        # 162.600 is not an NWR channel
+        self.assertEqual([(r["callsign"], r["status"], r["datum"], r["rc_amsl_m"]) for r in recs],
+                         [("SYNWX1", "NORMAL", None, None), ("SYNWX2", "OUT OF SERVICE", None, None)])
+
+    def build(self):
+        return cache.build([("FM", "fm.txt", FCC_FM_TXT), ("ATSC", "tv.txt", FCC_TV_TXT), ("NOAA", "nwr.js", NWR_JS)],
+                           (SITE["lat"], SITE["lon"]), 150, "2026-10-27", "2026-10-27T00:00:00+00:00")
+
+    def test_the_licence_wins_a_duplicate(self):
+        doc = self.build()
+        fm = [t for t in doc["towers"] if t["callsign"] == "SYN2FM"]
+        self.assertEqual([t["status"] for t in fm], ["LIC"])           # the permit came first
+        self.assertEqual(doc["rejected"]["duplicate"], 1)
+        self.assertEqual(doc["rejected"]["out_of_area"], 1)
+        self.assertEqual([s["rows_kept"] for s in doc["sources"]], [3, 3, 2])
+        self.assertEqual([s["format"] for s in doc["sources"]], ["fcc", "fcc", "nwr"])
+
+    def test_reference_uses_licensed_and_in_service_only(self):
+        ref = ref_for(self.build())
+        txs = ref.list(SITE)
+        ids = {t.id for t in txs}
+        self.assertIn("NOAA:SYNWX1:162550", ids)
+        self.assertNotIn("NOAA:SYNWX2:162475", ids)                     # out of service
+        self.assertEqual(ref.rejected["not_licensed"], 1)
+        tx = next(t for t in txs if t.id.startswith("ATSC:900022"))
+        self.assertIsNone(ref.predict(SITE, tx, NOW_NS)["line_of_sight"]["value"])   # HAAT 0: unknown
+
+
+class FakeFetch:
+    def __init__(self, bodies):
+        self.bodies, self.urls = bodies, []
+
+    def __call__(self, url):
+        self.urls.append(url)
+        body = self.bodies[url]
+        if isinstance(body, Exception):
+            raise body
+        return body
+
+
+def national(key):
+    """A download big enough to pass the size check: the fixture rows repeated."""
+    if key == "noaa":
+        return NWR_JS.encode() + b"/*" + b'"callsign"' * 200 + b"*/"
+    return ((FCC_FM_TXT if key == "fm" else FCC_TV_TXT) * 300).encode()
+
+
+class TestFetch(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.d, ignore_errors=True)
+        self.now = datetime(2026, 10, 27, 1, 0, tzinfo=timezone.utc)
+        self.urls = {k: url for k, (_s, _n, url) in fetch.SOURCES.items()}
+
+    def fetch_all(self):
+        return fetch.fetch(self.d, fetcher=FakeFetch({u: national(k) for k, u in self.urls.items()}), now=self.now)
+
+    def test_no_location_in_any_request(self):
+        for url in self.urls.values():
+            q = parse_qs(urlparse(url).query, keep_blank_values=True)
+            self.assertFalse({"dlat2", "dlon2", "mlat2", "slat2", "dist", "lat", "lon"} & set(q), url)
+            self.assertEqual(urlparse(url).scheme, "https")
+
+    def test_downloads_and_manifest_then_build(self):
+        manifest, problems = self.fetch_all()
+        self.assertEqual(problems, [])
+        self.assertEqual(sorted(manifest["files"]), ["fm", "noaa", "tv"])
+        m = manifest["files"]["fm"]
+        self.assertEqual((m["records"], m["retrieved_utc"]), (6 * 300, "2026-10-27T01:00:00+00:00"))
+        out = os.path.join(self.d, "towers-cache.json")
+        with contextlib.redirect_stdout(io.StringIO()):
+            build_cache.main(["--downloads", self.d, "--near", "38.9217,-77.0669", "--out", out])
+        doc = json.loads(Path(out).read_text(encoding="utf-8"))
+        self.assertEqual({s["retrieved"] for s in doc["sources"]}, {"2026-10-27"})
+        self.assertEqual([s["sha256"] for s in doc["sources"]],
+                         [manifest["files"][k]["sha256"] for k in ("fm", "noaa", "tv")])
+        self.assertNotIn("38.9217", json.dumps(doc))
+
+    def test_a_failed_or_short_download_keeps_the_previous_file(self):
+        self.fetch_all()
+        before = Path(self.d, "fm.txt").read_bytes()
+        bodies = {self.urls["fm"]: b"<html>Access Denied</html>", self.urls["tv"]: OSError("timed out"),
+                  self.urls["noaa"]: national("noaa")}
+        manifest, problems = fetch.fetch(self.d, fetcher=FakeFetch(bodies), now=self.now)
+        self.assertEqual(len(problems), 2)
+        self.assertEqual(Path(self.d, "fm.txt").read_bytes(), before)
+        self.assertEqual(manifest["files"]["fm"]["records"], 6 * 300)
+
+    def test_a_changed_download_is_refused(self):
+        self.fetch_all()
+        Path(self.d, "tv.txt").write_text("|edited", encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            build_cache.main(["--downloads", self.d, "--near", "38.9,-77.1", "--out", os.path.join(self.d, "c.json")])
 
 
 if __name__ == "__main__":

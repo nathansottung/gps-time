@@ -43,7 +43,7 @@ H_MSL_M, H_HAE_ONLY_M, H_UNKNOWN_M = 5.0, 60.0, 300.0
 RX_ANTENNA_M = 10.0
 K_EARTH = 4 / 3
 R_EARTH = 6_371_008.8
-LICENSED = ("LIC", "LICENSED")
+LICENSED = ("LIC", "LICENSED", "NORMAL")      # NORMAL: a NOAA transmitter in service
 REASONS = ("not_licensed", "service_off", "out_of_range")
 DEFAULTS = {"cache_path": "/var/lib/gps-time/towers-cache.json", "services": "FM,ATSC,NOAA",
             "max_range_km": 150.0, "max_cache_age_days": 365.0}
