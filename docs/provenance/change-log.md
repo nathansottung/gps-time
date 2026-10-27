@@ -1843,3 +1843,33 @@ Owner's request (v1.6.0, item 2): enable sdr-pps-marker and reference-adsb from 
   - `web/src/lib/sdr.test.ts` (new) and `modules.test.ts` (+5);
   - `web/e2e/modules.spec.ts` (+2): readiness, settings refused and saved, and the receivers card at 360 and 1280 px, with the layout and design audits.
 - **Not verified:** not run on a Pi. The cgroup paths assume cgroup v2 (Debian 12 and 13).
+
+## 2026-10-27 — SDR load in the soak record (#147)
+
+Owner's request (v1.6.0, item 3): add the SDR load to the soak record, with CPU, USB, temperature and PPS jitter.
+
+- **What the tool adds:** `tools/soak_check.py` prints, after the criteria, `[REC]` lines for the record (`docs/releases/README.md`, "The record"):
+  - **sdr:** each SDR unit's CPU now, from two `/api/sdr` samples 30 s apart (`--window`), CPU since its start, memory and restarts;
+  - **cpu:** the load averages;
+  - **usb:** the RTL-SDRs with serial, role and speed, and the throttled flags;
+  - **temperature:** the SoC temperature;
+  - **pps jitter:** chrony's PPS standard deviation, the RMS offset, and ADEV and TDEV at 1 s.
+- **The criteria are unchanged.** The record changes no exit status. Its reads go through their own error handling, so an unreadable `/api/sdr` or `/api/system` is recorded as UNKNOWN and never fails or stops the check.
+- **The v1.5.0 check:** v1.5.0-rc.1 has no `/api/sdr`, so its record says UNKNOWN for the SDR line and gives the other figures. Read-only against the station today:
+
+  | Record | Value |
+  |---|---|
+  | load averages | 0.19 / 0.27 / 0.24 |
+  | throttled flags | 0x0 |
+  | SoC temperature | 54.0 °C |
+  | chrony PPS std dev | 342 ns |
+  | RMS offset | 209 ns |
+  | ADEV(1 s) | 1.57 × 10⁻⁶ |
+  | TDEV(1 s) | 908 ns |
+- **Tests:** `tests/test_soak_check.py` (+6):
+  - rates from two samples;
+  - UNKNOWN without SDR status, never zero;
+  - no rate across a restart;
+  - the record never changes CLEAN;
+  - its reads never fail the check;
+  - `main()` against the stub with `/api/sdr`.

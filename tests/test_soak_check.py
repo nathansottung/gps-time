@@ -123,6 +123,80 @@ class EvaluateTest(unittest.TestCase):
         self.assertIn("[OK ] version", text)
 
 
+def sdr_answer(cpu_readsb, cpu_rtl):
+    def unit(name, cpu, avg):
+        return {"unit": name, "active": m("active"), "cpu_s": m(cpu), "cpu_avg_pct": m(avg),
+                "memory_mib": m(21.4), "restarts": m(0)}
+    return {"installed": True,
+            "units": [unit("gps-time-readsb.service", cpu_readsb, 22.8), unit("gps-time-rtl-tcp.service", cpu_rtl, 6.3)],
+            "dongles": [{"serial": "00001090", "role": "1090 MHz", "speed_mbps": m(480), "dvb_driver": m(False)}],
+            "feeds": []}
+
+
+SYSTEM = {"load": [0.5, 0.4, 0.3], "throttled": {"raw": "0x50000", "any_now": False, "any_ever": True,
+          "flags": [{"label": "Under-voltage occurred", "active": True}, {"label": "Throttled now", "active": False}]}}
+CHAIN_PPS = dict(CLEAN["chain"], chrony={"pps": {"std_dev_s": m(3.42e-7)}})
+CORE_T = dict(CLEAN["core"], cpu_temp_c=54.0, quality={"rms_offset_s": 2.09e-7})
+STAB_T = dict(CLEAN["stab"], key_points=[{"label": "1 s", "point": {"adev": 1.57e-6, "tdev_s": 9.08e-7}}])
+
+
+class RecordTest(unittest.TestCase):
+    """The SDR load record: printed beside the criteria, never one of them."""
+
+    def rec(self, sdr_a, sdr_b, dt=30.0, system=SYSTEM):
+        return dict(soak.record(CORE_T, CHAIN_PPS, STAB_T, system, sdr_a, sdr_b, dt))
+
+    def test_sdr_cpu_now_since_start_memory_restarts(self):
+        r = self.rec(sdr_answer(100.0, 10.0), sdr_answer(106.0, 10.6))
+        self.assertIn("2 of 2 units running; CPU of all of them 22.0 % of one core over the last 30 s", r["sdr"])
+        self.assertIn("gps-time-readsb.service: active; CPU 20.0 % over the last 30 s, 22.8 % since its start; 21 MiB; restarts 0", r["sdr"])
+        self.assertEqual(r["cpu"], "load averages 0.50 / 0.40 / 0.30 (1, 5, 15 min)")
+        self.assertEqual(r["usb"], "1 RTL-SDR: 00001090 (1090 MHz) 480 Mb/s; throttled flags 0x50000: Under-voltage occurred")
+        self.assertEqual(r["temperature"], "SoC 54.0 °C now")
+        self.assertEqual(r["pps jitter"], "chrony PPS std dev 342 ns; RMS offset 209 ns; ADEV(1 s) 1.57e-06; TDEV(1 s) 908 ns")
+
+    def test_a_station_without_the_sdr_status_is_unknown_not_zero(self):
+        for sdr in (None, {"available": True}, {"units": None}):
+            with self.subTest(sdr=sdr):
+                r = self.rec(sdr, sdr, dt=0.0, system={})
+                self.assertTrue(r["sdr"].startswith("UNKNOWN"))
+                self.assertEqual(r["cpu"], "load averages UNKNOWN")
+                self.assertEqual(r["usb"], "RTL-SDRs UNKNOWN; UNKNOWN")
+        r = dict(soak.record({}, {}, {}, {}, None, None, 0.0))
+        self.assertEqual(r["temperature"], "SoC UNKNOWN now")
+        self.assertEqual(r["pps jitter"], "chrony PPS std dev UNKNOWN; RMS offset UNKNOWN; ADEV(1 s) UNKNOWN; TDEV(1 s) UNKNOWN")
+
+    def test_a_unit_restarted_between_samples_has_no_rate(self):
+        r = self.rec(sdr_answer(100.0, 10.0), sdr_answer(2.0, 10.6))
+        self.assertIn("readsb.service: active; CPU UNKNOWN over the last 30 s", r["sdr"])
+
+    def test_the_record_never_changes_clean(self):
+        res = run()[1]
+        plain, clean = soak.report("http://station", res, when=NOW)
+        with_rec, clean_rec = soak.report("http://station", res, when=NOW,
+                                          rec=soak.record(CORE_T, CHAIN_PPS, STAB_T, SYSTEM, None, None, 0.0))
+        self.assertEqual((clean, clean_rec), (True, True))
+        self.assertTrue(with_rec.startswith(plain))
+        self.assertIn("Record (not criteria; no effect on CLEAN):", with_rec)
+        self.assertIn("[REC] usb:", with_rec)
+
+    def test_record_from_reads_twice_and_never_fails(self):
+        calls = []
+        answers = iter([SYSTEM, sdr_answer(100.0, 10.0), sdr_answer(103.0, 10.3)])
+
+        def fetch(base, path, timeout=20):
+            calls.append(path)
+            return next(answers)
+        rec = dict(soak.record_from("http://x", CORE_T, CHAIN_PPS, STAB_T, 0.0, fetch=fetch))
+        self.assertEqual(calls, ["/api/system", "/api/sdr", "/api/sdr"])
+        self.assertIn("2 of 2 units running", rec["sdr"])
+
+        def broken(base, path, timeout=20):
+            raise OSError("refused")
+        rec = dict(soak.record_from("http://x", CORE_T, CHAIN_PPS, STAB_T, 0.0, fetch=broken))
+        self.assertTrue(rec["sdr"].startswith("UNKNOWN"))
+
+
 class StubStation(BaseHTTPRequestHandler):
     answers = {}
 
@@ -167,6 +241,15 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 1)                 # the stub's poll count is from its own past, not 3 days here
         self.assertIn("[OK ] version", out)
         self.assertIn("NOT CLEAN", out)
+        self.assertIn("[REC] sdr: UNKNOWN", out)  # the stub has no SDR status: recorded as UNKNOWN
+
+    def test_the_record_reads_the_sdr_status_and_keeps_the_exit_code(self):
+        StubStation.answers = {"/api": CORE_T, "/api/timing-chain": CHAIN_PPS, "/api/stability": STAB_T,
+                               "/api/evidence": CLEAN["evid"], "/api/system": SYSTEM, "/api/sdr": sdr_answer(100.0, 10.0)}
+        code, out = self.main("--expect", "1.4.0-rc.11", "--window", "0")
+        self.assertEqual(code, 1)
+        self.assertIn("[REC] sdr: 2 of 2 units running", out)
+        self.assertIn("[REC] pps jitter: chrony PPS std dev 342 ns", out)
 
     def test_unreachable_exits_2(self):
         out = io.StringIO()
