@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-27 (docs/v151-plan, #141). v1.5.1 planned: the UI work merged after v1.5.0-rc.1, released after the v1.5.0 soak (`releases/v1.5.1-plan.md`); the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-27 (feat/module-output-ui, #142). v1.5.1 before rc.1, item 1 done: module output on Administration; the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -26,7 +26,7 @@ Owner, 2026-10-26: plan v1.5.1 (UI work) to follow the v1.5.0 soak. Plan: `relea
 - **Carries:** the UI work merged after v1.5.0-rc.1 (#129, #130, #131, and the UI of #135 and #137), with the rest of `main`.
 - **Gate:** only after the v1.5.0 check (scheduled 2026-10-29). If v1.5.0 isn't clean, the owner decides first.
 - **Before rc.1:**
-  1. module output in the web UI (closes the v1.5.0 known issue);
+  1. *done in [#142](https://github.com/nathansottung/gps-time/pull/142)* module output in the web UI (closes the v1.5.0 known issue);
   2. fix the flaky timestamp match in the PPS evidence test;
   3. a desktop UI review of the candidate.
 - **Then:** the release-notes PR and tag, the owner's deploy, and a 72 h soak with unchanged criteria.
@@ -123,7 +123,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: done, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 549 rows: 320 done, 1 in progress, 36 next, 192 planned.
+**Totals:** 549 rows: 322 done, 1 in progress, 35 next, 191 planned.
 
 ## Status table
 
@@ -655,7 +655,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | PPSM | MLAT 4 | Same timing for FM/ATSC towers, the FM two-tower trial and fox hunts | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | MLAT 5 | Coordinator integration: solver module, error ellipses, optional feed to MLAT networks | planned | research | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | PPSM | Outputs | Observation files: `time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows | done | `sdr_pps_marker/observation.py`; one capture per marker interval, file times match the time model to the ns | [#115](https://github.com/nathansottung/gps-time/pull/115) [#118](https://github.com/nathansottung/gps-time/pull/118) |
-| PPSM | Health | Dashboard health: markers per minute, sample-rate error, dropped-sample events | planned | the time model computes them; needs the module UI hook | [#118](https://github.com/nathansottung/gps-time/pull/118) |
+| PPSM | Health | Dashboard health: markers per minute, sample-rate error, dropped-sample events | done | shown on Administration → Experimental modules as the module's latest observation (labeled values, age); not on the Overview | [#118](https://github.com/nathansottung/gps-time/pull/118) [#142](https://github.com/nathansottung/gps-time/pull/142) |
 | PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#115](https://github.com/nathansottung/gps-time/pull/115) |
 | Repo |  | Coordinator skeleton for TrueNAS SCALE (`coordinator/`, ADR-0008): signed join and event messages with the station key, pending until approved, replay refused, positions never stored, SQLite with retention, one container | done | owner, 2026-10-26; not yet run on TrueNAS; TLS, transport, station sender and event schema open | [#127](https://github.com/nathansottung/gps-time/pull/127) |
@@ -664,7 +664,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Tag v1.5.0-rc.1 (pre-release) on the merge commit of the release notes PR, with the deploy command | done | owner, 2026-10-26; `releases/v1.5.0-rc.1.md`; not yet deployed | [#128](https://github.com/nathansottung/gps-time/pull/128) |
 | Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | in progress | deployed by the owner; service start 2026-10-26 18:16:55 UTC; the check is scheduled for 2026-10-29 14:30 EDT and tags v1.5.0 on `709145f` only if clean (`releases/README.md`) | [#128](https://github.com/nathansottung/gps-time/pull/128) [#132](https://github.com/nathansottung/gps-time/pull/132) |
 | Repo |  | Plan v1.5.1: the UI release after the v1.5.0 soak (scope, gates, before-rc items, checks on the Pi) | done | owner, 2026-10-26; `releases/v1.5.1-plan.md` | [#141](https://github.com/nathansottung/gps-time/pull/141) |
-| Repo |  | v1.5.1 before rc.1: module output in the web UI (each enabled module's latest observation and result on Administration, from the supervisor's status file) | next | closes the v1.5.0 known issue and the PPSM Health row's "needs the module UI hook" | [#141](https://github.com/nathansottung/gps-time/pull/141) |
+| Repo |  | v1.5.1 before rc.1: module output in the web UI (each enabled module's latest observation and result on Administration, from the supervisor's status file) | done | closes the v1.5.0 known issue and the PPSM Health row's "needs the module UI hook" | [#141](https://github.com/nathansottung/gps-time/pull/141) [#142](https://github.com/nathansottung/gps-time/pull/142) |
 | Repo |  | v1.5.1 before rc.1: the PPS evidence test matches wall-clock timestamps against the example position's digits (flaky; failed one run of #140) | next | strip timestamps before the position check | [#141](https://github.com/nathansottung/gps-time/pull/141) |
 | Repo |  | v1.5.1 before rc.1: desktop UI review of the candidate (demo at 360/768/1280/1920 px, both themes, screenshot mode) | next | bugs only | [#141](https://github.com/nathansottung/gps-time/pull/141) |
 | Repo |  | Tag v1.5.1-rc.1 (pre-release) on the merge commit of its release-notes PR | planned | only after a clean v1.5.0 check | [#141](https://github.com/nathansottung/gps-time/pull/141) |

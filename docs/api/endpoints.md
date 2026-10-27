@@ -493,7 +493,11 @@ The experimental modules switch, every module installed in the modules folder an
  "modules": [{"name": "sdr-pps-marker", "installed": true, "valid": true, "errors": [], "version": "0.1.0",
               "maturity": "research", "types": ["source"], "summary": "...",
               "permissions": {"network": false, "devices": [], "storage": "none"},
-              "enabled": true, "runs": true, "host_runs": true, "state": null, "reason": null}],
+              "enabled": true, "runs": true, "host_runs": true, "state": "running", "reason": null,
+              "latest": {"kind": "observation", "time_ns": 1793026812000000000, "age_s": 3.0, "items_kept": 20,
+                         "values": {"markers": {"value": 10, "unit": null, "provenance": "observed"},
+                                    "clock_error_ppm": {"value": 23.0, "unit": "ppm", "provenance": "calculated"}},
+                         "left_out": 0}}],
  "supervisor": {"reporting": false, "age_s": null, "detail": "no status from gps-time-modules (not running, or not readable)"},
  "note": "..."}
 ```
@@ -501,6 +505,9 @@ The experimental modules switch, every module installed in the modules folder an
 - `enabled`: the owner turned it on. `runs`: the switch is on, the module is enabled, its manifest is valid and it has a `source` entry, so the supervisor is asked to run it.
 - `host_runs`: whether the module host runs this module at all. It is `false` for a module without a `source` entry (an analysis, such as `analysis-tower-delay-check`, which runs from its own command line). The UI then says so, rather than showing a state.
 - `state`, `reason` (observed): from the supervisor's status file in `/run/gps-time-modules/` (`GTP_MODULES_STATUS`). Shown only while the supervisor reports, at most 60 s old; otherwise `null`, which the UI shows as UNKNOWN, never as stopped.
+- `latest`: the newest item the module emitted, from the same status file (the supervisor keeps each module's last 20 in RAM). `null` while the supervisor isn't reporting.
+  - **What it gives:** `kind` (`observation` or `result`), `time_ns`, `age_s`, `items_kept`, and up to 40 `values`, each with its unit, its provenance label and any note (cut to 300 characters).
+  - **What is left out, and counted in `left_out`:** a value without one of the six provenance labels (never relabeled), one that isn't a single value, and **any position-like value** (`lat`, `lon`, `alt_m`, `position` and the like). Positions aren't shown here, whatever a module emits.
 - A module named in `modules_enabled` but not installed is listed with `installed: false`.
 
 ## POST /api/admin

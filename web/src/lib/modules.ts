@@ -2,7 +2,9 @@
 // The rules are the station's (gps_time_pi/modkit/settings.py): off by default; with the
 // switch off nothing runs; turning the switch on or off leaves every module off, so each is
 // turned on by itself. The demo adapter applies the same rules through applySetting().
-import type { ModuleRow, ModulesState, SettingResult } from '../api/types';
+import type { ModuleLatest, ModuleRow, ModulesState, Provenance, SettingResult } from '../api/types';
+import { fmtDuration, fmtOffset } from './format';
+import { fmtSci } from './units';
 
 export type Variant = 'good' | 'warn' | 'error' | 'muted';
 
@@ -70,4 +72,39 @@ export function applySetting(s: { experimental: boolean; enabled: string[] }, va
     s.enabled = s.enabled.filter(n => n !== body.module);
   }
   return { ok: true, module: body.module, enabled: body.enabled, modules_enabled: s.enabled };
+}
+
+// ─── A module's latest output (ModuleRow.latest) ───────────────────────────
+
+export interface OutputLine { name: string; value: string | null; unit: string; provenance: Provenance; note?: string }
+
+/** One value as the page shows it; null stays null (MetricRow shows UNKNOWN). Seconds go to
+ *  ns/µs/ms; very small or large numbers in ×10ⁿ; everything else as the module gave it. */
+export function fmtModuleValue(v: string | number | boolean | null, unit: string | null): { value: string | null; unit: string } {
+  if (v === null || v === undefined) return { value: null, unit: unit ?? '' };
+  if (typeof v === 'boolean') return { value: v ? 'yes' : 'no', unit: '' };
+  if (typeof v === 'string') return { value: v, unit: unit ?? '' };
+  if (!Number.isFinite(v)) return { value: null, unit: unit ?? '' };
+  if (unit === 's' && v !== 0 && Math.abs(v) < 1) {
+    const o = fmtOffset(v, 1);
+    return o ? { value: o.value.replace('+', ''), unit: o.unit } : { value: null, unit: 's' };
+  }
+  const a = Math.abs(v);
+  if (Number.isInteger(v) && a < 1e12) return { value: String(v).replace('-', '−'), unit: unit ?? '' };
+  if (a !== 0 && (a < 1e-3 || a >= 1e7)) return { value: fmtSci(v, 4), unit: unit ?? '' };
+  return { value: String(Number(v.toPrecision(6))).replace('-', '−'), unit: unit ?? '' };
+}
+
+export function outputLines(lt: ModuleLatest): OutputLine[] {
+  return Object.entries(lt.values).map(([name, v]) => {
+    const f = fmtModuleValue(v.value, v.unit);
+    return { name, value: f.value, unit: f.unit, provenance: v.provenance, ...(v.note ? { note: v.note } : {}) };
+  });
+}
+
+/** "observation 12s ago · 20 kept in RAM", and what was left out. */
+export function outputHeading(lt: ModuleLatest): string {
+  const age = lt.age_s === null ? 'time UNKNOWN' : `${fmtDuration(lt.age_s)} ago`;
+  const left = lt.left_out ? ` · ${lt.left_out} value${lt.left_out === 1 ? '' : 's'} not shown (unlabeled, not a single value, a position, or over the limit)` : '';
+  return `Latest ${lt.kind} ${age} · ${lt.items_kept} kept in RAM${left}`;
 }
