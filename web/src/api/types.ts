@@ -914,6 +914,18 @@ export interface ModuleRow {
   host_runs?: boolean;         // false: no source entry (an analysis); the host never runs it, its CLI does
   state: string | null;        // observed from gps-time-modules; null = UNKNOWN (not reporting)
   reason: string | null;
+  latest?: ModuleLatest | null; // the newest item it emitted; null when the supervisor isn't reporting
+}
+
+/** A module's newest observation or result, as the station passes it on: labeled scalar values only,
+ *  never a position (gps_time_pi/modkit/settings.py latest_item). */
+export interface ModuleLatest {
+  kind: 'observation' | 'result';
+  time_ns: number | null;
+  age_s: number | null;
+  items_kept: number;          // items the supervisor keeps in RAM for this module
+  values: Record<string, { value: string | number | boolean | null; unit: string | null; provenance: Provenance; note?: string }>;
+  left_out: number;            // values not shown: unlabeled, not a scalar, position-like, or over the limit
 }
 
 export interface ModulesState {

@@ -17,7 +17,7 @@ import { scaleValues } from '../lib/timescales';
 import { applySetting } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleRow, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -121,13 +121,20 @@ export function demoApi(): StationApi {
     setLocationDisplay: (mode) => { locationMode = mode; return delay({ ok: true as const, location_display: mode }); },
     setTimezone: (tz) => { tzOverride = tz || null; return delay({ ok: true as const, timezone: tzOverride }); },
     resetSite: () => delay({ ok: true as const, reset_site: true as const }),
-    modules: () => delay({
-      experimental: mods.experimental,
-      modules: DEMO_MODULES.map(r => ({ ...r, enabled: mods.enabled.includes(r.name),
-        runs: mods.experimental && mods.enabled.includes(r.name) && r.valid })),
-      supervisor: { reporting: false, age_s: null, detail: 'demo: no module supervisor runs here' },
-      note: 'Demo: settings are kept in this tab only; no module runs.',
-    }),
+    modules: () => {
+      const running = (r: ModuleRow) => mods.experimental && mods.enabled.includes(r.name) && r.valid;
+      const any = DEMO_MODULES.some(running);
+      return delay({
+        experimental: mods.experimental,
+        modules: DEMO_MODULES.map(r => ({ ...r, enabled: mods.enabled.includes(r.name), runs: running(r),
+          // a canned sample of what the module's own synthetic demo emits; no module runs here
+          state: running(r) ? 'finished' : null, latest: running(r) ? demoModuleLatest() : null })),
+        supervisor: any
+          ? { reporting: true, age_s: 2, detail: "demo: a canned sample of the module's synthetic demo, not a running supervisor" }
+          : { reporting: false, age_s: null, detail: 'demo: no module supervisor runs here' },
+        note: 'Demo: settings are kept in this tab only; no module runs.',
+      });
+    },
     setModulesExperimental: (on) => delay(applySetting(mods, DEMO_VALID, { modules_experimental: on })),
     setModule: (name, enabled) => { try { return delay(applySetting(mods, DEMO_VALID, { module: name, enabled })); }
                                     catch (e) { return Promise.reject(e); } },
@@ -139,12 +146,36 @@ export function demoApi(): StationApi {
 
 // ─── payload builders ────────────────────────────────────────────────────────
 
-/** The repository's one module, as its manifest describes it (modules/sdr-pps-marker/module.toml). */
+/** The first module, as its manifest describes it (modules/sdr-pps-marker/module.toml). */
 const DEMO_MODULES: ModuleRow[] = [{
-  name: 'sdr-pps-marker', installed: true, valid: true, errors: [], version: '0.1.0', maturity: 'research',
-  types: ['source'], summary: 'PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model',
-  permissions: { network: false, devices: [], storage: 'none' }, enabled: false, runs: false, state: null, reason: null,
+  name: 'sdr-pps-marker', installed: true, valid: true, errors: [], version: '0.2.0', maturity: 'research',
+  types: ['source'], summary: 'PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model; live capture from an RTL-SDR through rtl_tcp, timed windows written as observation files',
+  permissions: { network: true, devices: [], storage: 'ram' }, enabled: false, runs: false, host_runs: true,
+  state: null, reason: null, latest: null,
 }];
+
+/** What `python -m gps_time_pi.modkit demo sdr-pps-marker` emits for its "clean" scenario (synthetic). */
+function demoModuleLatest(): ModuleLatest {
+  const v = (value: number | string, unit: string | null, provenance: Provenance, note?: string) =>
+    ({ value, unit, provenance, ...(note ? { note } : {}) });
+  return {
+    kind: 'observation', time_ns: Date.now() * 1e6 - 2e9, age_s: 2, items_kept: 7, left_out: 0,
+    values: {
+      scenario: v('clean', null, 'calculated', 'synthetic demo data, not a measurement'),
+      state: v('OK', null, 'calculated'),
+      time_source: v('pps_marker', null, 'calculated'),
+      markers: v(7, null, 'observed'),
+      markers_per_minute: v(60, '1/min', 'calculated'),
+      sample_rate_hz: v(24000.000869268377, 'Hz', 'calculated'),
+      clock_error_ppm: v(0.03621951560894843, 'ppm', 'calculated'),
+      drift_ppm_per_hour: v(48.111245788667084, 'ppm/h', 'calculated'),
+      marker_position_sd_samples: v(0.013057176233234644, 'samples', 'calculated', 'estimate from 4 degrees of freedom'),
+      sample_time_uncertainty_s: v(1.5363421906110658e-6, 's', 'calculated',
+        'marker fit only; PPS accuracy, injection path, SDR internal delay and antenna/cable delay are not included (bench calibration, research steps 2-4)'),
+      dropped_sample_events: v(0, null, 'calculated'),
+    },
+  };
+}
 const DEMO_VALID: ReadonlySet<string> = new Set(DEMO_MODULES.filter(r => r.valid).map(r => r.name));
 
 function core(location: CoreStatus['location']): CoreStatus {

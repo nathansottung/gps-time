@@ -161,6 +161,57 @@ class TestListing(ModulesDir):
         self.assertFalse(doc["supervisor"]["reporting"])
         self.assertIsNone(next(r for r in doc["modules"] if r["name"] == "sdr-pps-marker")["state"])
 
+    def status_with(self, items, updated=1000.0):
+        self.status.write_text(json.dumps({"updated": updated, "modules": [
+            {"name": "sdr-pps-marker", "state": "running", "reason": ""}],
+            "latest": {"sdr-pps-marker": items}}), encoding="utf-8")
+
+    def row(self, now=1005.0):
+        return next(r for r in self.listing({}, now=now)["modules"] if r["name"] == "sdr-pps-marker")
+
+    def test_latest_output_is_the_newest_item_with_its_labels(self):
+        old = {"schema": "observation/1", "time_ns": 990_000_000_000, "values": {
+            "markers": {"value": 3, "unit": None, "provenance": "observed"}}}
+        new = {"schema": "observation/1", "time_ns": 1_002_000_000_000, "values": {
+            "markers": {"value": 9, "unit": None, "provenance": "observed"},
+            "clock_error_ppm": {"value": 23.1, "unit": "ppm", "provenance": "calculated", "note": "n" * 500},
+            "state": {"value": "OK", "unit": None, "provenance": "calculated"}}}
+        self.status_with([old, new])
+        lt = self.row()["latest"]
+        self.assertEqual((lt["kind"], lt["time_ns"], lt["age_s"], lt["items_kept"], lt["left_out"]),
+                         ("observation", 1_002_000_000_000, 3.0, 2, 0))
+        self.assertEqual(lt["values"]["markers"], {"value": 9, "unit": None, "provenance": "observed"})
+        self.assertEqual(len(lt["values"]["clock_error_ppm"]["note"]), settings.MAX_TEXT)
+        self.status_with([{"analysis": "x", "time_ns": 1, "values": {}}])
+        self.assertEqual(self.row()["latest"]["kind"], "result")
+
+    def test_no_position_and_no_unlabeled_value_passes(self):
+        self.status_with([{"time_ns": 1_002_000_000_000, "values": {
+            "lat": {"value": 38.9217, "unit": "deg", "provenance": "external"},
+            "LON": {"value": -77.0669, "unit": "deg", "provenance": "external"},
+            "alt_m": {"value": 92.0, "unit": "m", "provenance": "external"},
+            "position": {"value": "38.9217,-77.0669", "unit": None, "provenance": "observed"},
+            "unlabeled": {"value": 1, "unit": None},
+            "relabeled": {"value": 1, "unit": None, "provenance": "measured"},
+            "nested": {"value": {"a": 1}, "unit": None, "provenance": "observed"},
+            "ok": {"value": 1.5, "unit": "s", "provenance": "calculated"}}}])
+        lt = self.row()["latest"]
+        self.assertEqual(list(lt["values"]), ["ok"])
+        self.assertEqual(lt["left_out"], 7)
+        self.assertNotIn("38.92", json.dumps(lt))
+        self.assertNotIn("77.06", json.dumps(lt))
+
+    def test_values_are_bounded_and_stale_status_shows_nothing(self):
+        self.status_with([{"time_ns": 1, "values": {f"v{i}": {"value": i, "unit": None, "provenance": "observed"}
+                                                    for i in range(settings.MAX_VALUES + 5)}}])
+        lt = self.row()["latest"]
+        self.assertEqual((len(lt["values"]), lt["left_out"]), (settings.MAX_VALUES, 5))
+        self.assertIsNone(self.row(now=1000.0 + settings.STATUS_FRESH_S + 1)["latest"])
+        self.status_with([])
+        self.assertIsNone(self.row()["latest"])
+        self.status_with(["not an item"])
+        self.assertIsNone(self.row()["latest"])
+
 
 class TestHttp(AuthBase):
     def setUp(self):

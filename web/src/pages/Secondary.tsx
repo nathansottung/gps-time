@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, ProvenanceTag, Tabs, Toggle } from '../components/ui';
 import { RateChart, SolarCurve } from '../components/charts';
 import { ShadowPanel, SatellitesPanel } from '../components/shadow';
@@ -12,7 +12,7 @@ import { ApiError } from '../api/client';
 import { STATION_ACTIONS, actionInfo, actionOutcome, type ActionOutcome } from '../lib/admin';
 import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome } from '../lib/survey';
 import { throttleRows, underVoltage } from '../lib/throttle';
-import { canToggle, permissionText, rowStatus, settingOutcome, switchConfirm, type Outcome as ModOutcome } from '../lib/modules';
+import { canToggle, outputHeading, outputLines, permissionText, rowStatus, settingOutcome, switchConfirm, type Outcome as ModOutcome } from '../lib/modules';
 import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { SunDays, MoonPhaseIcon } from './Overview';
@@ -988,7 +988,8 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
               {s.modules.map(r => {
                 const st = rowStatus(r, s);
                 return (
-                  <tr key={r.name} className="row-sep align-top">
+                  <Fragment key={r.name}>
+                  <tr className="row-sep align-top">
                     <td className="py-1.5 pr-2">
                       <div className="mono" style={{ color:'var(--t1)' }}>{r.name}{r.version && <span style={{ color:'var(--t3)' }}> {r.version}</span>}</div>
                       {r.summary && <div className="text-[10px]" style={{ color:'var(--t3)' }}>{r.summary}</div>}
@@ -1003,6 +1004,21 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
                         onChange={v => send(`${r.name} ${v ? 'on' : 'off'}`, () => api.setModule(r.name, v))} />
                     </td>
                   </tr>
+                  {r.latest && (
+                    <tr className="row-sep">
+                      <td colSpan={5} className="pb-2">
+                        <div className="text-[10px] mb-1" style={{ color:'var(--t3)' }}>{outputHeading(r.latest)}</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6" aria-label={`Latest output of ${r.name}`}>
+                          {outputLines(r.latest).map(l => (
+                            <div key={l.name} title={l.note}>
+                              <MetricRow label={l.name} value={l.value} unit={l.unit} provenance={l.provenance} />
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>

@@ -28,6 +28,14 @@ ENABLED = "modules_enabled"
 STATUS_PATH = Path(os.environ.get("GTP_MODULES_STATUS", "/run/gps-time-modules/status.json"))
 # The supervisor publishes every 10 s; older than this, its states are not shown as current.
 STATUS_FRESH_S = 60.0
+# A module's latest item as /api/modules shows it: bounded, labeled values only.
+MAX_VALUES = 40
+MAX_TEXT = 300
+PROVENANCE = ("observed", "calculated", "modeled", "predicted", "inferred", "external")
+# Never shown here, whatever a module emits: values that could carry a position. Modules get
+# the site already privacy-filtered, but this page is not the place for any position at all.
+POSITION_KEYS = {"lat", "lon", "latitude", "longitude", "alt", "alt_m", "alt_msl", "alt_hae", "height_m",
+                 "position", "site", "location", "x_m", "y_m", "z_m"}
 
 
 class SettingError(ValueError):
@@ -59,7 +67,41 @@ def _supervisor(status_path, now):
         return {"reporting": False, "age_s": round(age, 1),
                 "detail": f"last status from gps-time-modules is {age:.0f} s old"}, {}
     states = {m.get("name"): m for m in doc.get("modules", []) if isinstance(m, dict)}
+    latest = doc.get("latest") if isinstance(doc.get("latest"), dict) else {}
+    for name, items in latest.items():
+        if name in states and isinstance(items, list) and items:
+            states[name] = {**states[name], "_latest": items[-1], "_kept": len(items)}
     return {"reporting": True, "age_s": round(age, 1), "detail": "gps-time-modules is reporting"}, states
+
+
+def _text(v):
+    return v if not isinstance(v, str) or len(v) <= MAX_TEXT else v[:MAX_TEXT - 1] + "…"
+
+
+def latest_item(item, kept, now):
+    """A module's newest item, as the page shows it: its kind, time and age, and at most
+    MAX_VALUES labeled scalar values. A value without one of the six provenance labels, a
+    non-scalar value or a position-like name is left out and counted, never relabeled."""
+    if not isinstance(item, dict) or not isinstance(item.get("values"), dict):
+        return None
+    t_ns = item.get("time_ns")
+    t_ns = t_ns if isinstance(t_ns, int) and not isinstance(t_ns, bool) else None
+    values, left_out = {}, 0
+    for k, v in item["values"].items():
+        ok = (isinstance(k, str) and k.lower() not in POSITION_KEYS and isinstance(v, dict)
+              and v.get("provenance") in PROVENANCE
+              and (v.get("value") is None or isinstance(v.get("value"), (bool, int, float, str))))
+        if not ok or len(values) >= MAX_VALUES:
+            left_out += 1
+            continue
+        d = {"value": _text(v.get("value")), "unit": _text(v.get("unit")) if isinstance(v.get("unit"), str) else None,
+             "provenance": v["provenance"]}
+        if isinstance(v.get("note"), str) and v["note"]:
+            d["note"] = _text(v["note"])
+        values[k] = d
+    return {"kind": "result" if "analysis" in item else "observation",
+            "time_ns": t_ns, "age_s": None if t_ns is None else round(max(0.0, now - t_ns / 1e9), 1),
+            "items_kept": kept, "values": values, "left_out": left_out}
 
 
 def listing(cfg, root=None, status_path=None, now=None):
@@ -91,12 +133,15 @@ def listing(cfg, root=None, status_path=None, now=None):
             # observed from the supervisor; None (UNKNOWN) when it isn't reporting
             "state": st.get("state") if st else None,
             "reason": st.get("reason") if st else None,
+            # the newest item the module emitted (supervisor's RAM copy); None when it isn't reporting
+            "latest": latest_item(st.get("_latest"), st.get("_kept", 0), now) if st else None,
         })
     for name in enabled:
         if name not in seen:
             rows.append({"name": name, "installed": False, "valid": False, "errors": [f"{name}: not installed"],
                          "version": None, "maturity": None, "types": [], "summary": None, "permissions": None,
-                         "enabled": True, "runs": False, "host_runs": False, "state": None, "reason": None})
+                         "enabled": True, "runs": False, "host_runs": False, "state": None, "reason": None,
+                         "latest": None})
     return {"experimental": on, "modules": rows, "supervisor": sup,
             "note": "Changes are read by gps-time-modules.service within about 10 s. The service is installed "
                     "but not enabled; until it runs, no module runs."}
