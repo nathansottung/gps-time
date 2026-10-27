@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-27 (feat/rtlsdr-source, #140). Next-5 item 5 (modules): `sdr-pps-marker` gains live capture from an RTL-SDR through `rtl_tcp` (research step 2's software; no hardware yet); `source-weather` (order 3) and order 6 remain. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-27 (docs/v151-plan, #141). v1.5.1 planned: the UI work merged after v1.5.0-rc.1, released after the v1.5.0 soak (`releases/v1.5.1-plan.md`); the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -19,6 +19,17 @@ Re-ordered 2026-10-26 (#124): item 1, the rc.11 soak run, is done (clean; v1.4.0
 4. **Timing metrology, remaining** (TM §2 NTS, then §5 PTP): §1, §3, §4 and §6 are done (#55, #56, #57, #52, #58). Owner, 2026-10-04: stop before NTS and PTP and report; neither is started.
 5. **Module architecture and observation format** (owner, 2026-10-21): `specs/SPEC-EXTENSIBILITY.md`, then the format part of `specs/SPEC-OBSERVATION-FORMAT-AND-TASKING.md` (`gpstime:` schema, writer, reader, validator, converters). Module safety and API stability go with the loader. Its order of work, one PR each: interfaces, manifest, schemas, `ctx` and loader with no behaviour change; `tools/new_module.py` and the guide; `source-weather`; `reference-adsb` and `reference-broadcast-towers` (both done, #134, #136); `analysis-tower-delay-check` (done on synthetic data, #137); moving optional features to modules where it simplifies them. Steps 1-2 (kit, loader, scaffolder, guide) done in #117; the observation format's writer, reader and validator in #118, converters in #122.
 6. *Done in [#133](https://github.com/nathansottung/gps-time/pull/133) (fit) and [#135](https://github.com/nathansottung/gps-time/pull/135) (holdover projection, export/import, board binding, metadata). Not yet run on a Pi.* **Trained oscillator profile** (owner, 2026-10-21; `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` §1): fit the oscillator log (frequency vs temperature, aging), a modeled holdover projection beside the simple one (GPS-008), export/import as one JSON file, board binding by serial hash, metadata. With item 1 done, the list has five open items.
+
+## v1.5.1: plan
+
+Owner, 2026-10-26: plan v1.5.1 (UI work) to follow the v1.5.0 soak. Plan: `releases/v1.5.1-plan.md` ([#141](https://github.com/nathansottung/gps-time/pull/141)).
+- **Carries:** the UI work merged after v1.5.0-rc.1 (#129, #130, #131, and the UI of #135 and #137), with the rest of `main`.
+- **Gate:** only after the v1.5.0 check (scheduled 2026-10-29). If v1.5.0 isn't clean, the owner decides first.
+- **Before rc.1:**
+  1. module output in the web UI (closes the v1.5.0 known issue);
+  2. fix the flaky timestamp match in the PPS evidence test;
+  3. a desktop UI review of the candidate.
+- **Then:** the release-notes PR and tag, the owner's deploy, and a 72 h soak with unchanged criteria.
 
 ## v1.4.0-rc.9: to do
 
@@ -112,7 +123,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: done, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 543 rows: 319 done, 1 in progress, 33 next, 190 planned.
+**Totals:** 549 rows: 320 done, 1 in progress, 36 next, 192 planned.
 
 ## Status table
 
@@ -652,6 +663,12 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Second-station guide (`deploy/second-station.md`): setups, build differences, comparing over NTP, second pulses and later the coordinator | done | owner, 2026-10-26; not yet done on hardware | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Tag v1.5.0-rc.1 (pre-release) on the merge commit of the release notes PR, with the deploy command | done | owner, 2026-10-26; `releases/v1.5.0-rc.1.md`; not yet deployed | [#128](https://github.com/nathansottung/gps-time/pull/128) |
 | Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | in progress | deployed by the owner; service start 2026-10-26 18:16:55 UTC; the check is scheduled for 2026-10-29 14:30 EDT and tags v1.5.0 on `709145f` only if clean (`releases/README.md`) | [#128](https://github.com/nathansottung/gps-time/pull/128) [#132](https://github.com/nathansottung/gps-time/pull/132) |
+| Repo |  | Plan v1.5.1: the UI release after the v1.5.0 soak (scope, gates, before-rc items, checks on the Pi) | done | owner, 2026-10-26; `releases/v1.5.1-plan.md` | [#141](https://github.com/nathansottung/gps-time/pull/141) |
+| Repo |  | v1.5.1 before rc.1: module output in the web UI (each enabled module's latest observation and result on Administration, from the supervisor's status file) | next | closes the v1.5.0 known issue and the PPSM Health row's "needs the module UI hook" | [#141](https://github.com/nathansottung/gps-time/pull/141) |
+| Repo |  | v1.5.1 before rc.1: the PPS evidence test matches wall-clock timestamps against the example position's digits (flaky; failed one run of #140) | next | strip timestamps before the position check | [#141](https://github.com/nathansottung/gps-time/pull/141) |
+| Repo |  | v1.5.1 before rc.1: desktop UI review of the candidate (demo at 360/768/1280/1920 px, both themes, screenshot mode) | next | bugs only | [#141](https://github.com/nathansottung/gps-time/pull/141) |
+| Repo |  | Tag v1.5.1-rc.1 (pre-release) on the merge commit of its release-notes PR | planned | only after a clean v1.5.0 check | [#141](https://github.com/nathansottung/gps-time/pull/141) |
+| Repo |  | Soak run of v1.5.1-rc.1 on the Pi before v1.5.1 (owner deploys; `tools/soak_check.py --expect 1.5.1-rc.1` after three days) | planned | criteria of #95, unchanged | [#141](https://github.com/nathansottung/gps-time/pull/141) |
 | Repo |  | The soak rule written down: release candidates, the 72 h run and its validity, the check and its criteria, the decision, who does what, the record (`releases/README.md`); a test keeps its criteria table equal to the tool's | done | owner, 2026-10-26 | [#132](https://github.com/nathansottung/gps-time/pull/132) |
 | Web UI |  | Responsive layout: every `/app/` page from 360 to 1920 px and at half-screen widths (drawer navigation below 1024 px, container-query grids, wrapping rows, tables and tabs scroll inside their card), page in the URL hash; Playwright layout audit in CI | done | owner, 2026-10-26; Guidelines → Layout → Narrow screens | [#129](https://github.com/nathansottung/gps-time/pull/129) |
 | Web UI |  | Design pass against Guidelines.md: contrast (WCAG AA), type scale, letter-spacing, tabular figures, focus states, loading/empty/unknown states, colour tokens, radii; checked in CI (`e2e/design.spec.ts`) | done | owner, 2026-10-26; 16 deviations listed in `dashboard/design-review-2026-10-26.md`; text tokens lightened | [#130](https://github.com/nathansottung/gps-time/pull/130) |

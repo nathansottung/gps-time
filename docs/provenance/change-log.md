@@ -1742,3 +1742,20 @@ Owner's request: an SDR source module, rtl-sdr capture with PPS markers, written
   - **Also:** the kit test for storage names and delete.
   - **CI:** the station-venv step now fails if any module test that needs numpy is skipped.
 - **Not done:** no hardware. The PPS injection isn't built, nothing ran against a real RTL-SDR, and nothing was deployed.
+
+## 2026-10-27 — Plan for v1.5.1, the UI release after the v1.5.0 soak (#141)
+
+Owner's request: plan v1.5.1 (UI work) to follow the v1.5.0 soak.
+
+- **`docs/releases/v1.5.1-plan.md`** (new).
+- **Why:** the v1.5.0 tag goes on the soaked rc.1 commit (`709145f`), so the UI merged after it (#129 responsive layout, #130 design pass, #131 chart scale toggle, the holdover panel of #135, the modules label of #137) needs its own release.
+- **The station's changes since rc.1:** the oscillator fit, holdover and profile export/import, and small module-kit changes. Modules and the rtl_tcp unit stay in the repository, not on the station. The installer, requirements and service are unchanged.
+- **Gates:** a clean v1.5.0 check comes first. If it isn't clean, the owner decides, and a new candidate would carry this work.
+- **Before rc.1** (proposed, one PR each):
+  1. module output in the web UI: the supervisor already publishes the latest items; `/api/modules` and Administration would show them;
+  2. the flaky PPS evidence test: timestamps matched the example position's digits;
+  3. a desktop UI review.
+- **Then:** the notes PR, the tag, the owner's deploy, and a 72 h soak with the #95 criteria.
+- **Also in the plan:** the checks on the Pi after the deploy, and the candidates after v1.5.1 (PPS history views, tower check results, NTS/PTP state, the Updates page).
+- **STATUS:** a v1.5.1 section and six rows (one done: this plan).
+- **Not touched:** the station, the v1.5.0 run and its scheduled check.
