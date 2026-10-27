@@ -1,0 +1,46 @@
+[Unit]
+Description=rtl_tcp for GPS Time's sdr-pps-marker module (an RTL-SDR served on 127.0.0.1:1234)
+Documentation=file:///opt/gps-time-pi/modules/sdr-pps-marker/README.md
+After=network.target
+
+# NOT installed or enabled by install.sh. For the sdr-pps-marker module's live capture
+# (research step 2), on a station with an RTL-SDR and the injected PPS (the module's README):
+#   sudo apt install rtl-sdr     # rtl_tcp, and the blacklist for the DVB kernel driver
+#   sudo install -m 0644 system/gps-time-rtl-tcp.service /etc/systemd/system/
+#   sudo systemctl enable --now gps-time-rtl-tcp
+# The module (in gps-time-modules.service) connects to it; that service also needs a drop-in
+# allowing localhost (README). Nothing here touches gpsd, chrony or the PPS line.
+
+[Service]
+ExecStart=/usr/bin/rtl_tcp -a 127.0.0.1 -p 1234 -s 2400000
+Restart=on-failure
+RestartSec=10
+DynamicUser=yes
+SupplementaryGroups=plugdev
+
+# The USB device and the loopback address, nothing else.
+DevicePolicy=closed
+DeviceAllow=char-usb_device rw
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+MemoryMax=128M
+CPUQuota=40%
+
+[Install]
+WantedBy=multi-user.target

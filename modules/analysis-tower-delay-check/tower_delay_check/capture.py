@@ -4,7 +4,8 @@ Reads an observation file through gps_time_pi.obsformat. Only gpstime:time_sourc
 is accepted: the point of the check is the marker timing. Times come from the file's captures
 (core:datetime + (index − core:sample_start) / gpstime:sample_rate); samples in a capture with
 "gpstime:time_valid": false have none. Annotations labelled "pps_marker" are set to zero before
-correlating, as the marker writer asks.
+correlating, as the marker writer asks. cu8 files (the RTL-SDR's own samples, as sdr-pps-marker's
+live capture writes them) are centred with gpstime:calibration's sample_offset and sample_scale.
 
 Tuning: core:frequency of the timed capture is the nominal centre. An RTL-SDR's tuner and its
 ADC run from one crystal, so the tuner is off by the same fraction as the sample clock, which
@@ -24,6 +25,11 @@ class Capture:
             raise ValueError(f"not a marker-timed capture (gpstime:time_source is {g.get('gpstime:time_source')!r})")
         self.meta = meta
         self.samples = np.asarray(obsformat.decode(data, g["core:datatype"]), dtype=complex)
+        if g["core:datatype"] == "cu8":
+            # the RTL-SDR's raw counts: stored value = offset + scale × sample (gpstime:calibration)
+            cal = g.get("gpstime:calibration") or {}
+            off, scale = float(cal.get("sample_offset", 127.5)), float(cal.get("sample_scale", 127.5))
+            self.samples = (self.samples - complex(off, off)) / scale
         self.n = len(self.samples)
         self.sample_uncertainty_s = g.get("gpstime:sample_time_uncertainty_s")
         self.offset_bound_s = g.get("gpstime:time_offset_bound_s")

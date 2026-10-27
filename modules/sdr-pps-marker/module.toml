@@ -3,20 +3,20 @@
 # the station config). Off by default. Demo: python -m gps_time_pi.modkit demo sdr-pps-marker
 
 name = "sdr-pps-marker"
-version = "0.1.0"
+version = "0.2.0"
 types = ["source"]
 maturity = "research"
-summary = "PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model"
+summary = "PPS time markers in SDR sample streams: detector, sub-sample interpolation and sample-to-UTC time model; live capture from an RTL-SDR through rtl_tcp, timed windows written as observation files"
 spec = "docs/specs/SPEC-SDR-PPS-MARKER.md"
-research_step = 1   # synthetic only; bench steps 2-5 not started
+research_step = 2   # step 2 code (live capture through rtl_tcp) written and tested against a fake server; not yet run on hardware
 interface = "1.0"
 
 [entry]
 source = "sdr_pps_marker.source:MarkerSource"
 
 [hardware]
-required = "none"   # step 1 runs on synthetic data
-planned = "RTL-SDR-class receiver with the buffered, attenuated PPS injected at its input (spec: Physical build)"
+required = "none for the demo; live capture: an RTL-SDR served by rtl_tcp on this host (system/gps-time-rtl-tcp.service), with the buffered, attenuated PPS injected at its input (spec: Physical build); numpy (a station dependency)"
+planned = "bench calibration of the marker path delay (research step 2 measurements)"
 
 [timing]
 needed = "PPS on the station; the marker carries it into the samples"
@@ -27,9 +27,9 @@ memory_mib = 256
 cpu_percent = 50   # the demo computes in bursts; the share is measured over 60 s
 
 [permissions]
-network = false
-devices = []
-storage = "none"
+network = true      # live mode only: rtl_tcp on 127.0.0.1; the service drop-in allows localhost and nothing else (README)
+devices = []        # the USB device belongs to rtl_tcp, not to the module
+storage = "ram"     # timed windows, newest keep_files kept; never the SD card
 
 [config]
 fs_nominal = { type = "float", unit = "Hz", description = "SDR sample rate as set" }
@@ -37,11 +37,14 @@ pulse_width_s = { type = "float", unit = "s", default = 0.1, description = "PPS 
 marker_delay_s = { type = "float", unit = "s", default = 0.0, description = "calibrated delay from the PPS edge to the marker in the samples" }
 false_alarms_per_hour = { type = "float", default = 1.0, description = "detector threshold" }
 ppm_limit = { type = "float", unit = "ppm", default = 200.0, description = "intervals further from nominal are flagged" }
+station_id = { type = "string", default = "gps-time-station", description = "station ID written into the observation files" }
+rtl_tcp = { type = "table", default = {}, description = "live capture: host, port, sample_rate_hz, gain_tenth_db (none: automatic), settle_s, cycle_s, retry_s, keep_files, and plan: [{center_hz, dwell_s, windows: [{at_s, duration_s}], label}] (README)" }
 
 [emits]
 # Values in TimeModel.summary(), each with a provenance label.
 streams = ["markers", "markers_per_minute", "sample_rate_hz", "clock_error_ppm", "drift_ppm_per_hour",
-           "marker_position_sd_samples", "sample_time_uncertainty_s", "dropped_sample_events"]
+           "marker_position_sd_samples", "sample_time_uncertainty_s", "dropped_sample_events",
+           "center_hz", "dwell_s", "windows_written", "windows_skipped", "host_clock_offset_s"]
 events = ["samples_missing", "samples_extra"]
 time_source = "pps_marker"
 schema_version = "0"   # schemas come with the observation format (OBSF order 1)

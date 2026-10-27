@@ -1712,3 +1712,33 @@ Owner's request: real waveforms, ATSC field sync and FM correlation, replacing t
 - **numpy** is a station dependency. The tests skip without it, and a new CI step runs them in the station venv and fails if they skip.
 - **CLI:** `check --window W.json` (captures per site, predictions per site, emissions, mode); `synth --out DIR`.
 - **Not yet:** a real capture. An SDR source writing marker-timed captures is next.
+
+## 2026-10-27 — sdr-pps-marker: live RTL-SDR capture through rtl_tcp, timed windows as observation files (#140)
+
+Owner's request: an SDR source module, rtl-sdr capture with PPS markers, written as observation files, using numpy for speed.
+
+- **Where:** in `sdr-pps-marker` (0.2.0), whose source already held research step 1. Its README said step 2 needed "a faster path, for example numpy". The detector, time model and writer are shared, not copied.
+- **Why rtl_tcp:** the sandbox doesn't allow a module to start processes or load native libraries through ctypes, so neither `rtl_sdr` nor pyrtlsdr can be used.
+  - **The service:** `rtl_tcp` (osmocom) runs as its own service. `system/gps-time-rtl-tcp.service` is new: 127.0.0.1 only, USB devices only, and not installed or enabled by `install.sh`.
+  - **The client:** `rtltcp.py` speaks the protocol from `rtl_tcp.c`: the 12-byte header, 5-byte big-endian commands, cu8 samples.
+  - **Permissions:** the manifest now says `network = true`, used for localhost only. A drop-in on `gps-time-modules.service` (`IPAddressAllow=localhost`, documented) keeps the service's `IPAddressDeny=any` for everything else. `devices = []`, because the USB device is rtl_tcp's. `storage = "ram"`.
+- **`fast.py`:** a numpy version of the detector's high-pass test, noise level and threshold crossings. It feeds the same grouping, refinement and edge rules (`detector.py` refactored into `spikes_from` and `classify_edges`, unchanged in behaviour).
+  - **Equivalence:** on every fixture scenario it returns exactly the reference detector's markers, whole or in blocks.
+  - **Speed:** 10 s at 2.4 MS/s takes about 1 s on a desktop (not measured on a Pi).
+- **`capture.py` and live mode:** per plan entry, one dwell.
+  - **A new connection:** rtl_tcp then starts with an empty buffer. Otherwise samples queued while the previous dwell was processed would carry the wrong host time.
+  - **Settle, record:** tune and drop 0.3 s, then 10 s of cu8 in RAM.
+  - **Time:** markers, the time model, and a check that the host clock puts the markers within 0.25 s of whole seconds. Otherwise the UTC second is ambiguous and nothing is written.
+  - **Windows:** each one becomes an observation file (`window_observation`): cu8 with its offset and scale, `time_source` `pps_marker`, captures and annotations cut to the window, the privacy-filtered position.
+  - **Storage:** files go to RAM storage, newest `keep_files` (40) kept, never the SD card.
+  - **Health:** one observation per dwell.
+  - **Outages:** rtl_tcp down, or a lost connection, is reported as `UNKNOWN` with the reason and retried later.
+  - **The default dwell is 10 s:** 6 s with one USB drop left too few markers per run for the scatter estimate, and the model rightly gave no time.
+- **`fakesdr.py`:** a synthetic `rtl_tcp` on 127.0.0.1, with PPS edges, clock ppm and drops, used by the tests and runnable on a desktop (`python -m sdr_pps_marker.fakesdr`).
+- **Kit:** `CappedStorage.names()` and `delete()`, and `modkit demo` now gives a module that asks for storage a temporary folder.
+- **analysis-tower-delay-check:** reads cu8 files (centred with the calibration's offset and scale).
+- **Tests:** `modules/sdr-pps-marker/tests/test_live_capture.py` (11).
+  - **Covers:** fast against the reference detector, cu8, the rtl_tcp client and a non-rtl_tcp server, dwells against the truth (window times within 4 × the stated uncertainty), a USB drop annotated, no markers means no files, a host clock off by 0.45 s means no files, retention, rtl_tcp down, and the analysis reading a window.
+  - **Also:** the kit test for storage names and delete.
+  - **CI:** the station-venv step now fails if any module test that needs numpy is skipped.
+- **Not done:** no hardware. The PPS injection isn't built, nothing ran against a real RTL-SDR, and nothing was deployed.

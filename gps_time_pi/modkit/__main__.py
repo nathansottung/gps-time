@@ -8,7 +8,10 @@ demo   run one module, sandboxed, with {"demo": true} and print what it emits (J
 
 import argparse
 import json
+import os
+import shutil
 import sys
+import tempfile
 
 from . import loader
 
@@ -56,11 +59,17 @@ def main(argv=None):
     if unenforced:
         print("warning: the module sandbox isn't available on this platform; running the demo unenforced",
               file=sys.stderr)
+    # a module that asks for storage gets a temporary folder for the demo, removed afterwards
+    scratch = tempfile.mkdtemp(prefix="gtp-modkit-demo-")
     host = loader.ModuleHost(a.dir, [a.name], configs={a.name: {"demo": True}}, user=a.user,
-                             allow_unenforced=unenforced, emit=lambda name, item: out.append(item))
-    host.load()
-    host.start()
-    host.join(a.timeout)
+                             allow_unenforced=unenforced, emit=lambda name, item: out.append(item),
+                             storage_roots={"ram": os.path.join(scratch, "ram"), "disk": os.path.join(scratch, "disk")})
+    try:
+        host.load()
+        host.start()
+        host.join(a.timeout)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
     host.stop()
     for item in out:
         print(json.dumps(item, sort_keys=True))

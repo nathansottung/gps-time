@@ -58,7 +58,7 @@ jobs:
         run: |
           set -o pipefail
           "$RUNNER_TEMP/station-venv/bin/python" -m unittest tests.test_modules -v 2>&1 | tee "$RUNNER_TEMP/mod-tests.txt"
-          if grep -E "analysis_tower_delay_check.*skipped" "$RUNNER_TEMP/mod-tests.txt"; then echo "::error::tower delay check tests were skipped in the station venv"; exit 1; fi
+          if grep -E "skipped .numpy is needed" "$RUNNER_TEMP/mod-tests.txt"; then echo "::error::module tests that need numpy were skipped in the station venv"; exit 1; fi
       - name: Runtime dependencies have wheels for the Pi (aarch64) on this Python
         run: |
           # Wheels only: the station must never need a compiler. glibc: Bookworm 2.36, Trixie 2.41.

@@ -222,15 +222,31 @@ class TestHost(ModuleDir):
         self.assertEqual(s.read("a"), b"1234567890")
         self.assertEqual([p.name for p in (self.root / "cap").iterdir()], ["a"], "no temporary files left")
 
+    def test_capped_storage_names_and_delete(self):
+        s = CappedStorage(self.root / "cap2", 100)
+        s.write("old", b"1")
+        os.utime(self.root / "cap2" / "old", ns=(1_000_000_000, 1_000_000_000))
+        s.write("new", b"22")
+        self.assertEqual(s.names(), ["old", "new"])          # oldest first
+        self.assertTrue(s.delete("old"))
+        self.assertFalse(s.delete("old"))
+        self.assertEqual(s.names(), ["new"])
+        s.write("x", b"1" * 98)                               # the space came back
+        with self.assertRaises(ValueError):
+            s.delete("../new")
+
 
 class TestFirstModule(unittest.TestCase):
     """sdr-pps-marker is the first module the loader loads."""
 
     def test_loads_and_runs_its_demo(self):
         out = []
+        ram = tempfile.mkdtemp(prefix="gtp-ram-")
+        self.addCleanup(shutil.rmtree, ram, ignore_errors=True)
         h = loader.ModuleHost(REPO_MODULES, ["sdr-pps-marker"],
                               configs={"sdr-pps-marker": {"demo": True, "scenarios": ["clean", "usb-drop"]}},
-                              emit=lambda name, item: out.append(item), **HOST_KW)
+                              emit=lambda name, item: out.append(item),
+                              storage_roots={"ram": ram}, **HOST_KW)
         h.load()
         h.start(wait=True)
         st = next(s for s in h.status() if s["name"] == "sdr-pps-marker")
@@ -260,7 +276,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("sdr-pps-marker: ok", out)
         code, out, _ = self.run_cli("--dir", str(REPO_MODULES), "list")
-        self.assertIn("sdr-pps-marker 0.1.0 [research] source: disabled", out)
+        self.assertIn("sdr-pps-marker 0.2.0 [research] source: disabled", out)
 
     def test_check_fails_on_an_invalid_manifest(self):
         d = Path(tempfile.mkdtemp())
