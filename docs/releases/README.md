@@ -35,12 +35,24 @@ A restart, reboot or redeploy starts a new run; the 72 hours count from the new 
 
 Missing data fails a criterion: UNKNOWN is not clean.
 
+**The record** (from v1.6.0, owner 2026-10-27). After the criteria the tool prints `[REC]` lines. They are **not criteria**: they change no exit status, and nothing is clean or not clean because of them. They record what ran beside the timing core, so a later run can be compared:
+
+| Record | What it says | From |
+|---|---|---|
+| sdr | each SDR unit's state; its CPU now (two samples `--window` seconds apart, default 30) and since its start; memory; restarts; the total CPU now | `/api/sdr` (cgroup files) |
+| cpu | the load averages | `/api/system` |
+| usb | the RTL-SDRs on USB, with serial, role, speed and whether the DVB-T driver holds one; the throttled flags, now and since boot (under-voltage among them) | `/api/sdr`, `/api/system` |
+| temperature | the SoC temperature at the check | `/api` |
+| pps jitter | chrony's standard deviation for the PPS source, the RMS offset, ADEV and TDEV at 1 s | `/api/timing-chain`, `/api`, `/api/stability` |
+
+A station before v1.6.0 has no `/api/sdr`: the record says UNKNOWN there, never zero. Turning any of these into a criterion is a criteria change: the owner's, recorded in the change log before the run it applies to.
+
 **3. The decision.**
 - **CLEAN** (exit 0):
   - the stable tag `vX.Y.Z` goes on **the same commit as the soaked candidate** (`git rev-parse vX.Y.Z-rc.N^{commit}`), not on a later `main`;
-  - a docs PR adds `vX.Y.Z.md` with the soak numbers and the deployment record (`development/raspberry-pi-deploy.md`);
+  - a docs PR adds `vX.Y.Z.md` with the soak numbers, the `[REC]` lines, and the deployment record (`development/raspberry-pi-deploy.md`);
   - a GitHub release (not a pre-release) follows.
-- **NOT CLEAN** (exit 1) or unreadable (exit 2): no tag. A docs PR records the run: every criterion with its numbers, and each outage event with times, durations and the station's classification (an inferred boundary, never a cause). The owner decides what comes next: another run, or a new candidate.
+- **NOT CLEAN** (exit 1) or unreadable (exit 2): no tag. A docs PR records the run: every criterion with its numbers, the `[REC]` lines, and each outage event with times, durations and the station's classification (an inferred boundary, never a cause). The owner decides what comes next: another run, or a new candidate.
 
 **4. What never happens.**
 - The criteria aren't relaxed, reinterpreted or rerun to get a pass.

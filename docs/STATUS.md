@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-27 (feat/admin-sdr-modules, #146). v1.6.0 item 2: the SDR modules turned on and set from Administration, the SDR receivers card (`/api/sdr`), modules installed by install.sh; not yet run on a Pi; the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-27 (feat/soak-sdr-record, #147). v1.6.0 item 3: the SDR load in the soak record (`[REC]` lines: CPU, USB, temperature, PPS jitter; never a criterion); the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -123,7 +123,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: done, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 551 rows: 326 done, 3 in progress, 33 next, 189 planned.
+**Totals:** 552 rows: 327 done, 3 in progress, 33 next, 189 planned.
 
 ## Status table
 
@@ -657,6 +657,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | PPSM | Outputs | Observation files: `time_source = pps_marker`, measured uncertainty, SDR clock error, blanked marker windows | done | `sdr_pps_marker/observation.py`; one capture per marker interval, file times match the time model to the ns | [#115](https://github.com/nathansottung/gps-time/pull/115) [#118](https://github.com/nathansottung/gps-time/pull/118) |
 | PPSM | Health | Dashboard health: markers per minute, sample-rate error, dropped-sample events | done | shown on Administration → Experimental modules as the module's latest observation (labeled values, age); not on the Overview | [#118](https://github.com/nathansottung/gps-time/pull/118) [#142](https://github.com/nathansottung/gps-time/pull/142) |
 | PPSM | Kit | Open-hardware marker injector board (schematic, BOM; possibly pre-assembled) | planned | only after bench results | [#115](https://github.com/nathansottung/gps-time/pull/115) |
+| Repo |  | Soak record: the SDR load beside the criteria (`tools/soak_check.py` `[REC]` lines: each SDR unit's CPU now and since start, memory, restarts; load averages; RTL-SDRs on USB and the throttled flags; SoC temperature; chrony PPS std dev, RMS offset, ADEV and TDEV at 1 s); UNKNOWN on a station without `/api/sdr`; criteria unchanged | done | owner, 2026-10-27 | [#147](https://github.com/nathansottung/gps-time/pull/147) |
 | Repo |  | The SDR modules from Administration: install.sh installs the bundled modules (all off); `GTP_SDR=1` enables the supervisor; module settings from the page (`POST /api/setting {module, config}`: manifest keys and types, 8 KiB, no positions); readiness per SDR module (UNKNOWN for the injected PPS); SDR receivers card (`/api/sdr`: units, CPU and memory from cgroups, dongles from sysfs, feed ages and counts, read only) | done | owner, 2026-10-27; not yet run on a Pi | [#146](https://github.com/nathansottung/gps-time/pull/146) |
 | Repo |  | Installer: optional SDR stack (`GTP_SDR=1`): rtl-sdr with `gps-time-rtl-tcp`, readsb (1090 MHz), dump978-fa and skyaware978 (978 MHz) built at a pinned commit, a localhost drop-in for the module service; one RTL-SDR per role by serial; loopback only or no network; no position given to any decoder; `GTP_SDR=0` removes the units | done | owner, 2026-10-27; tested with stub commands (`tests/test_sdr_stack.py`); not yet run on a Pi | [#145](https://github.com/nathansottung/gps-time/pull/145) |
 | Repo |  | `modules/` directory; module tests run with the station's (`tests/test_modules.py`); CI compiles `modules/` | done | first module: `sdr-pps-marker` | [#115](https://github.com/nathansottung/gps-time/pull/115) |
