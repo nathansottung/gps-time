@@ -1759,3 +1759,12 @@ Owner's request: plan v1.5.1 (UI work) to follow the v1.5.0 soak.
 - **Also in the plan:** the checks on the Pi after the deploy, and the candidates after v1.5.1 (PPS history views, tower check results, NTS/PTP state, the Updates page).
 - **STATUS:** a v1.5.1 section and six rows (one done: this plan).
 - **Not touched:** the station, the v1.5.0 run and its scheduled check.
+
+## 2026-10-27 — A flaky test: wall-clock times matched as positions (#143)
+
+Owner's request: the v1.5.1 items on main; item 2, the flaky-test fix.
+
+- **The failure:** `tests/test_pps_evidence_capture.py` checks that no output of the evidence script carries the example position's digits (`38.92`, `77.06`, …). The script's output also has wall-clock times, and one CI run of #140 failed on `…02:11:38.925…`.
+- **The fix:** times (`2026-10-27T02:11:38.92…Z`, `02:11:38.92…`) are replaced with `<time>` before the check. A position is never written as a time of day, so a real leak still fails.
+- **A new test** shows that both hold: a time passes, while a time next to `lat 38.9217` or `-77.0669` still fails.
+- **Scope:** tests only. Nothing in the script or the redaction changed.
