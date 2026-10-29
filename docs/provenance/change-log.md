@@ -1908,3 +1908,12 @@ Owner's request: build the learned sky-obstruction map (addendum §10–11): bin
   - `web/e2e/skymap.spec.ts` (7).
 - **Also fixed:** GNSS & Site → Survey's convergence chart had four full date-time labels, which collided at 360 px depending on the time of day (the layout audit failed on `main` too). It now has three: start, middle and end.
 - **Not yet run on a Pi.** The thresholds come from synthetic tests and the demo.
+
+## 2026-10-29 — v1.5.0-rc.1 soak run: not clean, v1.5.0 not tagged (#149)
+
+Docs only. The scheduled read-only check of the Pi on 2026-10-29 at 18:30 UTC, 3.01 days after the rc.1 service start; nothing on the station was changed. Preconditions held (version 1.5.0-rc.1, no service restart, no reboot). `tools/soak_check.py` was run once with the unchanged criteria (#95).
+
+- **NOT CLEAN** (exit 1) on outages (four PPS_OUTAGE events, 46 s to 6,814 s, 8,596 s in all; no installer restart) and pulses (8,906 missed, 3.4 % of reads; 0 unread, 0 late reads). Version, runtime, timing, round trip and stability were OK.
+- The station's classifications (`inferred`, boundaries, not causes): three PPS PATH ANOMALY, one GNSS RECEPTION ANOMALY (the longest). chrony kept GPS as its reference through all four, with no fallback source; its largest remaining correction was 71 ns.
+- **Not done, by the owner's rule:** no v1.5.0 tag, no release notes for it, no v1.6.0-rc.1 (the branch `docs/release-v1.6.0-rc.1` is left as it is). A run that fails only on outages is reported to the owner, who decides about v1.5.0 and v1.6.0-rc.1. Outage detection is not weakened.
+- Recorded in `development/raspberry-pi-deploy.md` → "Soak run of v1.5.0-rc.1" (every criterion, the `[REC]` lines, the events, the state at the check), the Record table in `releases/README.md`, and the soak row in `STATUS.md`.
