@@ -72,4 +72,4 @@ Work merged after the candidate (on `main`) isn't in the stable release; it goes
 |---|---|---|---|
 | v1.4.0 | v1.4.0-rc.11 (`cbd891c`) | 2026-10-19 21:20 UTC → check 2026-10-26 (6 days 17 h) | CLEAN; tagged (#124) |
 | — | v1.4.0-rc.8 | 2026-10-04 → 2026-10-19 (14 days 20 h) | not clean: real outages on 2026-10-17; not tagged (#69) |
-| v1.5.0 | v1.5.0-rc.1 (`709145f`) | from 2026-10-26 18:16:55 UTC; check scheduled for 2026-10-29 14:30 EDT | pending |
+| — | v1.5.0-rc.1 (`709145f`) | 2026-10-26 18:16:55 UTC → check 2026-10-29 18:30 UTC (3.01 days) | not clean: four PPS outages (8,596 s) and 8,906 missed pulses; v1.5.0 not tagged; the owner decides (#149) |

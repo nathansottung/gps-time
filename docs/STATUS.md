@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-10-27 (feat/sky-obstruction-map, #148). The learned sky-obstruction map (addendum §10–11, AC11, AC12) and the station capability record with its opt-in sky-quality summary; the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-10-29 (docs/soak-v150-rc1-result, #149). The v1.5.0-rc.1 soak run is done and NOT CLEAN (four PPS outages, 8,906 missed pulses), so v1.5.0 is not tagged and v1.6.0-rc.1 waits on the owner; the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -123,7 +123,7 @@ Owner, 2026-10-19: queue the remaining parity items so the legacy pages can be r
 
 Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.md`, `roadmap/ROADMAP-SDR-RF-OBSERVATORY.md` (scoping), `roadmap/ROADMAP-WEB-UPDATES.md` (FUTURE, low priority; not before the station has run stably on v1.4.0), `roadmap/ROADMAP-OSCILLATOR-AND-MISC.md` (§1 oscillator profile: done, rows OSC; §4 script done; the rest FUTURE), `roadmap/ROADMAP-GEOPHYSICS-DISTRIBUTED-SCIENCE.md` (FUTURE, research; after v1.4.0 and the oscillator profile), `roadmap/ROADMAP-SENSOR-FUSION.md` (FUTURE; extends the geophysics roadmap), `specs/SPEC-COORDINATOR.md` (PLANNED; required before any multi-station feature), `specs/SPEC-RF-TASKING-AND-FM-TDOA-TRIAL.md` (OPTION, planned; extends the RF node spec), `specs/SPEC-RF-REFERENCE-SIGNALS-AND-TRUST.md` (OPTION, planned; extends the RF tasking spec), `specs/SPEC-SDR-PPS-MARKER.md` (RESEARCH; step 1 done, rows PPSM), `hardware/HARDWARE-REFERENCE-NODE.md` (DRAFT parts list). All of them, by phase, for outside readers: `ROADMAP.md`.
 
-**Totals:** 553 rows: 333 done, 3 in progress, 33 next, 184 planned.
+**Totals:** 553 rows: 334 done, 2 in progress, 33 next, 184 planned.
 
 ## Status table
 
@@ -666,7 +666,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Bench kit list (`validation/bench-kit.md`) | done | owner, 2026-10-26; examples, no prices | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Second-station guide (`deploy/second-station.md`): setups, build differences, comparing over NTP, second pulses and later the coordinator | done | owner, 2026-10-26; not yet done on hardware | [#127](https://github.com/nathansottung/gps-time/pull/127) |
 | Repo |  | Tag v1.5.0-rc.1 (pre-release) on the merge commit of the release notes PR, with the deploy command | done | owner, 2026-10-26; `releases/v1.5.0-rc.1.md`; not yet deployed | [#128](https://github.com/nathansottung/gps-time/pull/128) |
-| Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | in progress | deployed by the owner; service start 2026-10-26 18:16:55 UTC; the check is scheduled for 2026-10-29 14:30 EDT and tags v1.5.0 on `709145f` only if clean (`releases/README.md`) | [#128](https://github.com/nathansottung/gps-time/pull/128) [#132](https://github.com/nathansottung/gps-time/pull/132) |
+| Repo |  | Soak run of v1.5.0-rc.1 on the Pi before v1.5.0 (owner deploys; `tools/soak_check.py --expect 1.5.0-rc.1` after three days) | done | NOT CLEAN after 3.01 days (check 2026-10-29 18:30 UTC): four PPS outages, 8,596 s in all (outages criterion), and 8,906 missed pulses (pulses criterion); the other criteria OK. v1.5.0 not tagged and v1.6.0-rc.1 not released; the owner decides (`development/raspberry-pi-deploy.md` → "Soak run of v1.5.0-rc.1") | [#128](https://github.com/nathansottung/gps-time/pull/128) [#132](https://github.com/nathansottung/gps-time/pull/132) [#149](https://github.com/nathansottung/gps-time/pull/149) |
 | Repo |  | Plan v1.5.1: the UI release after the v1.5.0 soak (scope, gates, before-rc items, checks on the Pi) | done | owner, 2026-10-26; `releases/v1.5.1-plan.md` | [#141](https://github.com/nathansottung/gps-time/pull/141) |
 | Repo |  | v1.5.1 before rc.1: module output in the web UI (each enabled module's latest observation and result on Administration, from the supervisor's status file) | done | closes the v1.5.0 known issue and the PPSM Health row's "needs the module UI hook" | [#141](https://github.com/nathansottung/gps-time/pull/141) [#142](https://github.com/nathansottung/gps-time/pull/142) |
 | Repo |  | v1.5.1 before rc.1: the PPS evidence test matches wall-clock timestamps against the example position's digits (flaky; failed one run of #140) | done | strip timestamps before the position check | [#141](https://github.com/nathansottung/gps-time/pull/141) [#143](https://github.com/nathansottung/gps-time/pull/143) |
