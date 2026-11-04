@@ -2066,6 +2066,7 @@ Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the wa
   - With no password, `check` says so.
 - **Caught on the way:** the first draft named the new client `check`, which replaced the gate's password check of the same name, and every login crashed. The new test failed on it; the client is `check_station`.
 - **Docs:** `deploy/websdr.md` → "Check it from your PC".
+
 ## 2026-11-04 — FAA airband bookmarks for the web SDR, offline, with the NASR cycle date (#162)
 
 Owner's rc.3 list and design: NASR data; the cycle date shown on the bookmarks, flagged past 28 days; a "refresh now" admin button like the TLE cache.
