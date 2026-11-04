@@ -7,6 +7,7 @@ import { ApiErrorNote } from './planned';
 import { useStation, usePoll, isPending } from '../api/station';
 import {
   BINDING_LABEL, exportFilename, fitLine, fmtBytes, fmtSlope, fmtTerm, HOLDOVER_LABEL, holdoverRows, importOutcome, MODEL_LABEL,
+  recordLine, scorecardRows,
   oscPoints, profileCurve, scatterPoints, spanDays,
   dayTicks,
 } from '../lib/oscillator';
@@ -166,7 +167,7 @@ export function OscillatorPanel() {
 }
 
 // ─── Holdover projections (GPS-008; modeled) ─────────────────────────────────
-const HOLD_COLOR: Record<string, string> = { free_running: 'var(--warn-text)', trained_skew: 'var(--calc-text)', profile: 'var(--mod-text)' };
+const HOLD_COLOR: Record<string, string> = { free_running: 'var(--warn-text)', trained_skew: 'var(--calc-text)', profile: 'var(--mod-text)', scored: 'var(--mod-text)' };
 
 export function HoldoverCard({ d, pending }: { d: Oscillator | null | undefined; pending: boolean }) {
   const h = d?.holdover;
@@ -204,16 +205,69 @@ export function HoldoverCard({ d, pending }: { d: Oscillator | null | undefined;
                     {p.available
                       ? <>: {p.basis}{p.rate_ppm != null && <>. Rate {fmtSci(p.rate_ppm * 1e-6, 2)} ({p.rate_ppm.toFixed(4)} ppm)</>}{p.aging_ppm_per_day ? <>, aging {fmtSci(Math.abs(p.aging_ppm_per_day) * 1e-6, 2)} per day</> : null}.</>
                       : <>: not available, {p.reason}.</>}
+                    {recordLine(p.validated) && <> Against outages: {recordLine(p.validated)}.</>}
                   </div>
                 ))}
                 {prof?.available && prof.temp_assumed_c && <div className="text-[10px]" style={{ color:'var(--t3)' }}>Temperatures assumed for the profile: {prof.temp_assumed_c[0].toFixed(1)}–{prof.temp_assumed_c[1].toFixed(1)} °C ({prof.temp_source}), as if the worst of them were reached at once.</div>}
                 {prof?.caveat && <div className="text-[10px]" style={{ color:'var(--warn-text)' }}>Profile: {prof.caveat}.</div>}
               </div>
               <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{h.note}</div>
+              {h.scorecard && <ScorecardTable d={d} />}
             </>}
         <ELI5 text="If GPS disappeared, the clock would slowly drift. The first column is a clock nobody has trained. The second trusts chrony's learned rate. The third also allows for the temperature changing, using what this board has learned. They are estimates, not promises." />
       </CardBody>
     </Card>
+  );
+}
+
+/** Predicted against measured error at each outage (holdover_check). */
+function ScorecardTable({ d }: { d: Oscillator | null | undefined }) {
+  const sc = d?.holdover.scorecard;
+  const rows = scorecardRows(d?.holdover);
+  if (!sc) return null;
+  const models = Array.from(new Set(rows.flatMap(r => r.cells.map(c => c.name))));
+  return (
+    <div className="mt-4" aria-label="Holdover scorecard">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+        <span className="text-[9px] mono uppercase tracking-[0.12em]" style={{ color:'var(--t3)' }}>Scorecard: outages measured</span>
+        <span className="flex gap-1.5"><ProvenanceTag type="observed" /><ProvenanceTag type="modeled" /></span>
+      </div>
+      <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
+        {sc.entries} outage{sc.entries === 1 ? '' : 's'} recorded, {sc.eligible} scored{sc.network_ntp ? <>, {sc.network_ntp} with chrony on network NTP (not scored)</> : null}.
+        {' '}A scored projection needs {sc.score_min}.
+      </div>
+      {!rows.length ? <EmptyNote>No outage recorded yet. Each one adds a row when PPS comes back.</EmptyNote> : (
+        <div className="table-scroll"><table className="w-full text-[11px]">
+          <thead>
+            <tr style={{ borderBottom:'1px solid var(--border)' }}>
+              <th className="text-left py-1.5 font-normal" style={{ color:'var(--t3)' }}>Outage start</th>
+              <th className="text-right py-1.5 font-normal pl-3" style={{ color:'var(--t3)' }}>After</th>
+              <th className="text-right py-1.5 font-normal pl-3" style={{ color:'var(--t3)' }}>Measured</th>
+              {models.map(n => <th key={n} className="text-right py-1.5 font-normal pl-3" style={{ color:'var(--t3)' }}>{HOLDOVER_LABEL[n as keyof typeof HOLDOVER_LABEL] ?? n}</th>)}
+              <th className="text-left py-1.5 font-normal pl-3" style={{ color:'var(--t3)' }}>Scored</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.start} style={{ borderBottom:'1px solid var(--border-dim)' }}>
+                <td className="py-1.5 mono whitespace-nowrap" style={{ color:'var(--t2)' }}>{fmtUtc(r.start)}</td>
+                <td className="py-1.5 pl-3 mono text-right whitespace-nowrap" style={{ color:'var(--t2)' }}>{r.after}</td>
+                <td className="py-1.5 pl-3 mono text-right tabular-nums whitespace-nowrap" style={{ color:'var(--t1)' }}>{r.measured}</td>
+                {models.map(n => {
+                  const c = r.cells.find(x => x.name === n);
+                  return <td key={n} className="py-1.5 pl-3 mono text-right tabular-nums whitespace-nowrap"
+                    style={{ color: !c || !r.scored ? 'var(--t3)' : c.held ? 'var(--good-text)' : 'var(--err-text)' }}>
+                    {c ? `${c.predicted}${r.scored && c.held !== null ? (c.held ? ' held' : ' exceeded') : ''}` : '—'}</td>;
+                })}
+                <td className="py-1.5 pl-3 text-[10px]" style={{ color: r.network ? 'var(--warn-text)' : 'var(--t3)' }}>
+                  {r.scored ? 'yes' : `no: ${r.why}`}{r.flags.includes('service restarted') ? ' (service restarted)' : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      )}
+      <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>{sc.note}</div>
+    </div>
   );
 }
 

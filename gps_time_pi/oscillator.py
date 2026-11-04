@@ -186,6 +186,7 @@ class Log:
         self._latest = None                 # the last one-minute sample: freq, skew, temperature
         self.imported = None                # metadata of this board's imported profile file, in use
         self.reference = None               # another board's (or unverifiable) file: reference only
+        self.scorecard = None               # holdover_check.Scorecard, set by the timing-chain service
         self._load()
         self._load_profile_files()
 
@@ -519,8 +520,10 @@ class Log:
         temps = [b["temp_mean_c"] for b in day if b["temp_mean_c"] is not None]   # bin means, as the fit uses
         full_day = bool(day) and latest["t"] - day[0]["t"] >= 0.9 * 86400
         rng = (min(temps), max(temps)) if full_day and temps else None
+        card = self.scorecard.summary() if self.scorecard is not None else None
         out = oscprofile.holdover(self.profile(), latest["freq"] if latest else None,
-                                  latest["skew"] if latest else None, latest["temp"] if latest else None, rng)
+                                  latest["skew"] if latest else None, latest["temp"] if latest else None, rng,
+                                  scorecard=card)
         out["sample_utc"] = _iso(latest["t"]) if latest else None
         return out
 

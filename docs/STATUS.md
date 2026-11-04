@@ -334,6 +334,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature A |  | Source-loss / fallback / reacquisition timeline | next | partial: backend + event list | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Oscillator fractional-frequency history | done | chrony's frequency with the SoC temperature, 10-minute bins on the SD card (hourly, capped, board-bound); a straight-line slope. The trained profile (roadmap) is not built. Not yet run on a Pi | [#71](https://github.com/nathansottung/gps-time/pull/71) |
 | Feature A |  | Time-to-1 ms…1 s holdover estimates | planned | partial: legacy raw projection |  |
+| Feature A |  | Holdover validation: predicted against measured error at the first good PPS after each outage; a running scorecard fed into the projections (`scored`, from 3 outages); outages with chrony on network NTP flagged and not scored | done | owner, 2026-11-04; for rc.4; not yet run against a real outage; `architecture/oscillator-log.md` | [#168](https://github.com/nathansottung/gps-time/pull/168) |
 | Feature A |  | ADEV / MDEV / TDEV / TIE / MTIE | planned | partial: ADEV, MDEV, TDEV done (TM §1); TIE and MTIE not | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | Feature A |  | Error budget + light-distance | planned | partial: light-distance done | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Antenna/coax/user-delay calibration | planned |  |  |

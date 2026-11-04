@@ -2196,6 +2196,19 @@ Then (owner, "go."): every Beast feeder card gets the same amber line, "Shares y
 
 Owner's rc.4 list, item 1. The PiAware card on Administration now shows, in amber under the location warning: "Claiming this feeder on flightaware.com asks for your location; anything you enter there is shared with FlightAware." The same sentence is in `deploy/feeders.md`, under PiAware's feeder ID. It's on the PiAware card only (`claimNote()` in `web/src/lib/feeders.ts`); a Vitest case covers it. Nothing the station sends has changed.
 
+## 2026-11-04 — Holdover validation: a scorecard of predicted against measured error at each outage (#168)
+
+Owner's rc.4 list, item 2: "at each outage, log the predicted vs measured error at the first PPS after recovery, as a running scorecard fed into the fit. Flag outages where chrony switched to network NTP."
+
+- **New `gps_time_pi/holdover_check.py`.** When an outage opens, the holdover projections of that moment are kept in the open event (modeled). The measurement is the kernel PPS timestamp's distance from the whole second at the first good pulse after recovery (observed, integer ns): pulses back and GNSS healthy, after one of them had failed. Each model's predicted error at the same time since the start is compared with it (calculated: ratio, held or exceeded).
+- **Not scored, flagged instead:** chrony on network NTP during the outage; no prediction (boot, service start); measured only after chrony re-selected PPS; an error near half a second.
+- **The outage event itself** now records `recovery.network_ntp` (observed) and `network_ntp_sources`. The PPS page shows a line on such outages.
+- **Fed into the projections:** `/api/oscillator` → `holdover.scorecard`, and a `validated` record on each projection. A fourth projection, `scored`, appears after 3 scored outages: the profile's (else trained) rate times the worst measured/predicted ratio, never below ×1. The projection note now says how many outages it was checked against. The frequency–temperature profile fit itself is unchanged: the measurements scale the projection, they aren't fit points.
+- **The Holdover card** has a scorecard table: start, time since start, measured, each model's prediction with held/exceeded, and why an outage wasn't scored. The demo has three synthetic outages, one with network NTP.
+- **Storage:** `holdover-scorecard.json` next to the events checkpoint, written once per outage when it closes, plus one checkpoint write to keep the prediction. Capped at 200 entries, no position.
+- **Tests:** `tests/test_holdover_check.py` runs whole outages on the timing-chain rig (holdover, network failover, a chrony-only outage, an outage from boot, a half-second error, the checkpointed prediction, reload and a corrupt file) and the scoring math. Vitest covers the table rows and formats.
+- **Not changed:** chrony, gpsd and PPS. The station only reads the kernel PPS timestamps it already read.
+
 ## 2026-11-04 — Bench kit: station and RF parts with checked links and dated prices (#169)
 
 Owner's rc.4 list, item 3. `validation/bench-kit.md` keeps its timing-validation kit (Levels 1 and 2, no prices) and gains eight sections: GNSS receivers, antennas and a splitter, coax and connectors, lightning and surge protection, SDR gear, VLF, the all-sky camera, and the mast. Every linked page was opened on 2026-11-04 and showed the product, and each price is what that page showed then, in its currency. That reverses the doc's earlier "no prices" line at the owner's request; the dates say how old each price is. Parts whose page couldn't be opened that day (HTTP 403, 404 or 429) are named without a link or price.
