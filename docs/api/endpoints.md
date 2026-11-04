@@ -579,6 +579,20 @@ The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no 
 - `recent`: the last 10 sessions, newest first, from `websdr-sessions.jsonl` (one line per session, written when it ends; 100 kept).
 - The PPS figures are the system clock against kernel PPS timestamps (the `/api/stability` layer), in integer nanoseconds from the kernel on, so they resolve to 1 ns. They show what changed while the web SDR ran, not why.
 
+## GET /api/airband
+
+The web SDR's airband bookmarks (`docs/deploy/websdr.md` → "Airband bookmarks"). Read only, no token. Code: `gps_time_pi/airband.py`; type `AirbandStatus`.
+
+- `built_in`: the four channels that are the same everywhere.
+- `nasr`: the FAA set, or `null` before the first refresh. Its fields:
+  - `cycle` (effective date), `fetched_utc`, `radius_km`, `site_precision` (`exact` or `rounded`), `count`;
+  - `age_days` (`calculated`), and `stale` (true past 28 days);
+  - `bookmarks`, each `{name, frequency_hz, use, facility, distance_km, source}`.
+- `current_cycle`: the NASR cycle in effect today.
+- `refresh_allowed`: false in hidden mode. `refresh_note` explains what Refresh does.
+- `last_refresh`: `{ok, at_utc, cycle, count}`, or `{ok: false, at_utc, error}`.
+
+Refresh: `POST /api/admin {"action": "refresh_airband"}` (admin token) runs `systemctl start --no-block gps-time-airband-fetch.service` and returns at once; `last_refresh` shows the result.
 ## GET /api/time-quality
 
 Where this Pi's clock gets its time, for labelling timestamps (`docs/deploy/sdr-node.md`). Read only, no token. Code: `gps_time_pi/timequality.py`.
@@ -680,6 +694,7 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
 | `websdr_start` | `systemctl start gps-time-websdr.service` (the optional web SDR; stops readsb while it runs) | stderr/stdout |
 | `websdr_stop` | `systemctl stop gps-time-websdr.service` (readsb starts again) | stderr/stdout |
+| `refresh_airband` | `systemctl start --no-block gps-time-airband-fetch.service` (one fetch of the FAA's NASR frequencies; see `/api/airband`) | stderr/stdout |
 | other | nothing | `unknown action` (`ok: false`) |
 
 Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The web UI has these actions on Administration → Station actions (`/app/`); `websdr_start` and `websdr_stop` are on Radio & SDR → Devices → Web SDR. Without the web SDR installed they fail (`Unit gps-time-websdr.service not found`).

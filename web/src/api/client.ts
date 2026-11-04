@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -74,6 +74,8 @@ export interface StationApi {
   deleteClip(name: string): Promise<SettingResult>;
   /** The download link for one file of a clip. */
   clipUrl(name: string, ext: 'sigmf-meta' | 'sigmf-data' | 'wav'): string;
+  /** Airband bookmarks: built-ins and the FAA NASR set with its cycle; refreshed by admin('refresh_airband'). */
+  airband(): Promise<AirbandStatus>;
   /** The learned sky-obstruction map (inferred); unavailable in hidden mode. */
   skyObstruction(): Promise<SkyObstructionResult>;
   /** The station's capability record (no exact position). */
@@ -192,6 +194,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     sdr: () => json('/api/sdr'),
     websdr: () => json('/api/websdr'),
     timeQuality: () => json('/api/time-quality'),
+    airband: () => json('/api/airband'),
     clips: () => json('/api/clips'),
     recordClip: (req) => json('/api/setting', post({ clip: req })),
     deleteClip: (name) => json('/api/setting', post({ clip_delete: name })),

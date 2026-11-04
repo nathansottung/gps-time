@@ -4,7 +4,7 @@ import { sdrDevices } from '../api/previews';
 import { Planned } from '../components/planned';
 import { useStation } from '../api/station';
 import { fmtSci } from '../lib/units';
-import { WebSdrCard } from '../components/websdr';
+import { AirbandCard, WebSdrCard } from '../components/websdr';
 import { ClipsCard } from '../components/clips';
 
 const TIER_LABELS = [
@@ -123,6 +123,7 @@ export default function RadioSDR() {
       <Tabs tabs={['Devices','RF Modules','Timing Tiers']} active={tab} onChange={setTab} />
 
       {tab === 'Devices' && <WebSdrCard />}
+      {tab === 'Devices' && <AirbandCard />}
       {tab === 'Devices' && <ClipsCard />}
 
       {tab === 'Devices' && (

@@ -15,6 +15,8 @@ Routes:
   /api/time-quality  where this Pi's clock gets its time (refclock, or ntp on an SDR node) and chrony's bound
   /api/clips         recorded clips (audio, IQ) and their storage; /api/clips/file?name=&ext= downloads one;
                      recorded and deleted by POST /api/setting {clip} / {clip_delete}
+  /api/airband       airband bookmarks for the web SDR: built-ins and the FAA NASR set with its cycle
+                     and staleness; refreshed by the admin action refresh_airband
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
                      (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
@@ -43,7 +45,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import capability, clips, sdr, skymap, timequality, websdr
+from . import airband, capability, clips, sdr, skymap, timequality, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -780,6 +782,8 @@ class Handler(BaseHTTPRequestHandler):
                         self.wfile.write(body)
             elif p == "/api/time-quality":
                 self._json(demo.time_quality() if DEMO_MODE else memo(("timequality",), 5.0, timequality.current))
+            elif p == "/api/airband":
+                self._json(demo.airband_status(config.load()) if DEMO_MODE else airband.status(config.load()))
             else:
                 self.send_error(404)
         except BrokenPipeError:
