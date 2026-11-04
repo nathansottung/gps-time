@@ -225,7 +225,7 @@ export function CapabilityCard({ canWrite, authKnown, onAuthError }: { canWrite:
           <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>Opted in, but location privacy is hidden: nothing is included.</div>
         )}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Changing this needs the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Changing this needs an admin sign-in (Admin sign-in, at the top).</div>
         )}
         {msg && <div className="text-[10px] mono mt-2" style={{ color: 'var(--t3)' }}>{msg}</div>}
       </CardBody>

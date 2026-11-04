@@ -86,6 +86,21 @@ class TestApply(Tree):
         self.assertTrue((self.flags / "adsbfi.on").is_file())
         self.assertIn(["systemctl", "start", "gps-time-feed@adsbfi.service"], self.sysd.calls)
 
+    def test_several_feeders_run_at_once(self):
+        (self.conf / "custom2.conf").write_text("FEED_HOST=feed2.example.org\nFEED_PORT=30005\n")
+        for name, word in (("adsbfi", "adsb.fi"), ("airplaneslive", "airplanes.live"), ("custom", "feed.example.org"),
+                           ("custom2", "feed2.example.org")):
+            self.assertTrue(fd.apply({}, {"feeder": name, "enabled": True, "confirm": word}, run=self.sysd)["ok"], name)
+        rows = self.rows()
+        self.assertEqual({n for n, r in rows.items() if r["on"]}, {"adsbfi", "airplaneslive", "custom", "custom2"})
+        self.assertEqual(rows["custom2"]["service"], "the custom aggregator feed2.example.org")
+        self.assertEqual(rows["custom2"]["confirm"], "feed2.example.org")
+        # Turning one off leaves the others running.
+        fd.apply({}, {"feeder": "airplaneslive", "enabled": False}, run=self.sysd)
+        self.assertEqual({n for n, r in self.rows().items() if r["on"]}, {"adsbfi", "custom", "custom2"})
+        self.assertNotIn(["systemctl", "stop", "gps-time-feed@adsbfi.service"], self.sysd.calls)
+        self.assertIn("any number", fd.status({}, run=self.sysd)["note"].lower())
+
     def test_turning_off_needs_no_confirmation(self):
         fd.apply({}, {"feeder": "adsbfi", "enabled": True, "confirm": "adsb.fi"}, run=self.sysd)
         fd.apply({}, {"feeder": "adsbfi", "enabled": False}, run=self.sysd)
@@ -263,6 +278,25 @@ class TestScript(unittest.TestCase):
         self.assertIn("systemctl enable gps-time-feed@adsbfi.service", calls)
         self.assertFalse([c for c in calls if c.startswith("systemctl start")])
         self.assertFalse([c for c in calls if "piaware" in c])         # not asked for
+
+    def test_several_custom_aggregators(self):
+        r = self.run_script(GTP_FEEDERS="1", GTP_FEEDERS_CUSTOM="feed.example.org:30004,feed2.example.org:31004")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        conf = self.root / "etc/gps-time-feeders"
+        self.assertIn("FEED_HOST=feed2.example.org", (conf / "custom2.conf").read_text())
+        self.assertIn("FEED_PORT=31004", (conf / "custom2.conf").read_text())
+        self.assertIn("systemctl enable gps-time-feed@custom2.service", self.calls())
+        # A shorter list takes the extra one out again; its UUID stays.
+        r = self.run_script(GTP_FEEDERS="1", GTP_FEEDERS_CUSTOM="feed.example.org:30004")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((conf / "custom2.conf").exists())
+        self.assertTrue((conf / "custom2.uuid").exists())
+        self.assertTrue((conf / "custom.conf").exists())
+        for bad in ("a:1,b:2,c:3,d:4,e:5", "ok.example:30004,bad host:1", "x.example:0", "x.example:70000"):
+            with self.subTest(bad=bad):
+                r = self.run_script(GTP_FEEDERS="1", GTP_FEEDERS_CUSTOM=bad)
+                self.assertEqual(r.returncode, 1, r.stdout)
+                self.assertIn("nothing changed", r.stderr)
 
     def test_uuids_are_kept_between_runs(self):
         self.run_script(GTP_FEEDERS="1")

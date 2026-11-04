@@ -9,7 +9,7 @@
 
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
-  AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
+  AdminAction, AdminResult, Almanac, AuthState, LoginResult, AlmanacQuery, CoreStatus,
   EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus, FeedersStatus,
   TimeScales, TimingChain, Unavailable,
 } from './types';
@@ -91,6 +91,10 @@ export interface StationApi {
   admin(action: AdminAction): Promise<AdminResult>;
   /** Whether admin is enabled on the station and whether the stored token is accepted. */
   auth(): Promise<AuthState>;
+  /** The admin login page: the token buys a signed HttpOnly cookie; remember: 30 days, else until the browser closes. */
+  login(token: string, remember: boolean): Promise<LoginResult>;
+  /** Sign this browser out; all: every browser (needs to be signed in). */
+  logout(all?: boolean): Promise<{ ok: boolean; all: boolean; simulated?: boolean }>;
   /** Admin token for state-changing requests (POST + Bearer); kept per tab. */
   readonly token: TokenStore;
 }
@@ -213,6 +217,10 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     setSkyQualityShare: (on) => json('/api/setting', post({ sky_quality_share: on })),
     admin: (action) => json('/api/admin', post({ action })),
     auth: () => json('/api/auth', { headers: authHeader(token.get()) }),
+    login: (t, remember) => json('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({ token: t, remember }) }),
+    logout: (all = false) => json('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({ all }) }),
     token,
   };
 }

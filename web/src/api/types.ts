@@ -1232,5 +1232,8 @@ export interface AuthState {
   demo: boolean;
   auth_required: boolean;     // false only in demo mode
   admin_configured: boolean;  // a token hash exists on the station
-  authenticated: boolean;     // the Authorization header sent was valid (always true in demo)
+  authenticated: boolean;     // signed in (the cookie from POST /api/login) or a valid Bearer header; always true in demo
+  session?: { expires_utc: string; remembered: boolean };   // the sign-in cookie, when that's how
 }
+
+export interface LoginResult { ok: boolean; remembered?: boolean; expires_utc?: string; simulated?: boolean; detail?: string }

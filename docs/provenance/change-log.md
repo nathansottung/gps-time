@@ -2265,3 +2265,17 @@ The owner's rc.6 list, item 1: "Web SDR open to anyone on the LAN: no login, no 
 - **No login** stays the default (rc.5). The opt-in `GTP_WEBSDR_AUTH=1` is kept for later.
 - **Still LAN-only:** the gate's private ranges, OpenWebRX+ on the loopback. polkit is unchanged.
 - **Docs:** `deploy/websdr.md`, `api/endpoints.md`, ADR-0009 amended (anyone on the LAN can now pause ADS-B tracking for up to a session's limit).
+
+## 2026-11-04 — Admin login page, remembered per browser; several feeders at once (#174)
+
+The owner's rc.6 list, item 3: "Admin login page (token, remembered per browser) guarding feeders, MLAT, reboot, config, privacy, migration. Several feeders at once."
+
+- **Admin sign-in** (Administration, at the top): the token is entered once, with a **Remember this browser (30 days)** box.
+  - `POST /api/login` checks the token (same backoff and logging as Bearer) and sets a signed `gtp_admin` cookie (`HttpOnly; SameSite=Strict`). Unticked, it is a session cookie, refused after 12 h.
+  - The cookie is accepted wherever the Bearer token was, so it guards the same things: feeders and MLAT, reboot and restarts, settings and modules, location privacy, the survey reset, oscillator import and clips. Bearer headers still work.
+  - Migration stays a root command on the station; there is no web action for it.
+  - **Sign out** and **Sign out all browsers** (`POST /api/logout`, a new `admin-session.key`). A new admin token also signs every browser out.
+  - The page no longer keeps the token in `sessionStorage`.
+- **Several feeders at once:** they always had a unit and a switch each. Now `GTP_FEEDERS_CUSTOM` takes up to 4 `host:port` entries (`custom`, `custom2`, …), and a shorter list removes the extras. A test turns four feeders on together and one off again. The cards say any number can run at once.
+- **Docs:** `api/README.md` (sign-in cookie), `api/endpoints.md`, `deploy/feeders.md`, ADR-0005 amended.
+- **Tests:** `tests/test_admin_auth.py` covers the cookie's attributes and lifetimes, the guarded routes, tampering and expiry, a new token, sign-out and sign-out-all, cross-origin and form posts, the backoff, and the key file's mode. `tests/test_feeders.py` covers several feeders and several custom aggregators. Vitest covers the sign-in card's lines.

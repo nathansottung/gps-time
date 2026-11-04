@@ -311,7 +311,7 @@ function ProfileFileCard({ d, pending, onImported }: { d: Oscillator | null | un
       if (r.ok) onImported();
     } catch (e) {
       const auth = e instanceof ApiError && (e.status === 401 || e.status === 403);
-      setMsg({ ok: false, text: `Not imported: ${(e as Error).message}${auth ? ' (enter the admin token under Administration → Admin access)' : ''}.` });
+      setMsg({ ok: false, text: `Not imported: ${(e as Error).message}${auth ? ' (sign in under Administration → Admin sign-in)' : ''}.` });
     } finally {
       setBusy(false);
       if (input.current) input.current.value = '';

@@ -181,6 +181,8 @@ export function demoApi(): StationApi {
     setSkyQualityShare: (on) => { skyShare = on; return delay({ ok: true as const, sky_quality_share: on }); },
     admin: (action) => delay({ ok: true, action, simulated: true as const, detail: `demo adapter: ${action} was not executed` }),
     auth: () => delay({ demo: true, auth_required: false, admin_configured: false, authenticated: true }),
+    login: () => delay({ ok: true, simulated: true, detail: 'demo adapter: no token needed' }),
+    logout: (all = false) => delay({ ok: true, all, simulated: true }),
     token: tokenStore(null),
   };
 }

@@ -64,3 +64,13 @@ The station served state changes over unauthenticated GET routes: `/api/admin?ac
   - vcgencmd under `video`.
 
   The installer and unit are checked statically by `tests/test_admin_auth.py`. Verify these on a station before release.
+
+## Amendment, 2026-11-04 (rc.6): an admin login page
+
+Owner: "Admin login page (token, remembered per browser) guarding feeders, MLAT, reboot, config, privacy, migration."
+
+- **The token is entered once,** on Administration → Admin sign-in (`POST /api/login`). It buys a cookie: signed (HMAC-SHA256), `HttpOnly`, `SameSite=Strict`. Without "Remember this browser" it is a session cookie that the station refuses after 12 h; with it, it lasts 30 days. The page no longer keeps the token in `sessionStorage`.
+- **Revocation without state per browser:** the HMAC key is derived from a random `admin-session.key` and the stored token hash. A new token or "Sign out all browsers" (a new key) invalidates every cookie.
+- **The cookie is accepted wherever the Bearer token is,** so it guards exactly what the token did: feeders and MLAT, station actions (reboot, restarts, log flush), settings and modules, location privacy, survey reset, oscillator import, clips. Bearer headers still work for scripts. Migration was never a web action: it is a root command on the station (`deploy/migrate.md`), so nothing in the browser can start it.
+- **CSRF:** the cookie adds an ambient credential, so it relies on `SameSite=Strict` plus the existing Origin check and JSON-only POSTs. Any one of them stops a cross-site request.
+- **Exceptions, on purpose:** `websdr_start`/`websdr_stop` need no sign-in (ADR-0009, rc.6).

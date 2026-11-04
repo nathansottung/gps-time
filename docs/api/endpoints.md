@@ -463,11 +463,20 @@ Add a cache-busting query (`?n=<random>`); the server ignores it. The estimate a
 
 ## GET /api/auth
 
-Whether admin is enabled and whether the request's `Authorization` header is valid. It never returns the token or its hash. Type: `AuthState`.
+Whether admin is enabled and whether the request is signed in: a valid `Authorization` header, or the sign-in cookie from `POST /api/login`. It never returns the token, its hash or the cookie. Type: `AuthState`.
 
 ```json
-{"demo": false, "auth_required": true, "admin_configured": true, "authenticated": false}
+{"demo": false, "auth_required": true, "admin_configured": true, "authenticated": true,
+ "session": {"expires_utc": "2026-12-04T18:00:00+00:00", "remembered": true}}
 ```
+
+- `session` is there when the cookie signed the request in: its expiry, and whether "Remember this browser" was ticked.
+
+## POST /api/login, POST /api/logout
+
+The admin login page (Administration → Admin sign-in; `api/README.md` → "Sign-in cookie").
+- `POST /api/login {"token": "...", "remember": false}`: **200** with `Set-Cookie: gtp_admin=…; HttpOnly; SameSite=Strict` (plus `Max-Age=2592000` when `remember` is true) and `{"ok": true, "remembered": false, "expires_utc": "…"}`. A wrong token gets **401** and no cookie. The backoff gives **429**, and **403** comes when admin is disabled or the request is cross-origin.
+- `POST /api/logout {}`: clears this browser's cookie (`Max-Age=0`). `{"all": true}` needs to be signed in; it writes a new session key, which signs every browser out.
 
 - `auth_required` is false only in demo mode.
 - `authenticated` is always true in demo mode.

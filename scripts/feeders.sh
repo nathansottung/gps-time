@@ -4,7 +4,8 @@
 #                               feeder unit per aggregator, none running until turned on in
 #                               Administration (admin token and a typed confirmation)
 #   GTP_FEEDERS_PIAWARE=1       also FlightAware's PiAware, from FlightAware's apt repository
-#   GTP_FEEDERS_CUSTOM=host:port  also one aggregator of the owner's own ("custom")
+#   GTP_FEEDERS_CUSTOM=host:port[,host:port...]  also up to 4 aggregators of the owner's own
+#                               ("custom", "custom2", ...); any number of feeders may run at once
 #   GTP_FEEDERS=0               stop and remove the feeder units and drop-ins (packages, UUIDs kept)
 #   (unset)                     change nothing
 #
@@ -62,10 +63,21 @@ esac
 
 [ -f "$UNITS/gps-time-readsb.service" ] || fail "the feeders read readsb, and gps-time-readsb.service isn't installed (GTP_SDR=1 with GTP_SDR_1090_SERIAL)"
 CUSTOM="${GTP_FEEDERS_CUSTOM-}"
+CUSTOM_NAMES=""
 if [ -n "$CUSTOM" ]; then
-  [[ "$CUSTOM" =~ ^[A-Za-z0-9.-]{1,253}:[0-9]{1,5}$ ]] || fail "GTP_FEEDERS_CUSTOM='$CUSTOM' must be host:port"
-  CATALOG="$CATALOG
-custom ${CUSTOM%:*} ${CUSTOM##*:}"
+  i=0
+  IFS=',' read -r -a CUSTOM_LIST <<< "$CUSTOM"
+  [ "${#CUSTOM_LIST[@]}" -le 4 ] || fail "GTP_FEEDERS_CUSTOM lists ${#CUSTOM_LIST[@]} aggregators; at most 4"
+  for hp in "${CUSTOM_LIST[@]}"; do
+    [[ "$hp" =~ ^[A-Za-z0-9.-]{1,253}:[0-9]{1,5}$ ]] || fail "GTP_FEEDERS_CUSTOM entry '$hp' must be host:port"
+    port="${hp##*:}"
+    [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || fail "GTP_FEEDERS_CUSTOM entry '$hp': the port must be 1 to 65535"
+    i=$((i + 1))
+    name="custom"; [ "$i" -gt 1 ] && name="custom$i"
+    CUSTOM_NAMES="$CUSTOM_NAMES $name"
+    CATALOG="$CATALOG
+$name ${hp%:*} $port"
+  done
 fi
 PIAWARE="${GTP_FEEDERS_PIAWARE-}"
 case "$PIAWARE" in ""|0|1) ;; *) fail "GTP_FEEDERS_PIAWARE must be 1 or 0, not '$PIAWARE'" ;; esac
@@ -99,6 +111,18 @@ printf '%s\n' "$CATALOG" | while read -r name host port; do
   fi
   say "$name: $host:$port, installed."
 done
+# Custom aggregators no longer listed (GTP_FEEDERS_CUSTOM given with fewer entries) are taken out.
+if [ -n "$CUSTOM" ]; then
+  for f in "$CONF"/custom*.conf; do
+    [ -e "$f" ] || continue
+    n="$(basename "$f" .conf)"
+    case " $CUSTOM_NAMES " in *" $n "*) ;; *)
+      systemctl disable --now "gps-time-feed@$n.service" >/dev/null 2>&1 || true
+      rm -f "$f" "$FLAGS/$n.on"
+      say "$n: no longer listed in GTP_FEEDERS_CUSTOM; removed (its UUID is kept)." ;;
+    esac
+  done
+fi
 systemctl daemon-reload
 for f in "$CONF"/*.conf; do
   [ -e "$f" ] || continue

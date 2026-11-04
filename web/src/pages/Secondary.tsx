@@ -9,6 +9,7 @@ import { useStation, usePoll, useBrowserClock, isPending } from '../api/station'
 import { allEvents, ntpClientCount } from '../api/view';
 import type { AdminAction, AdminResult, AuthState, LocationMode, LunarDay, SettingResult, SolarDay, SurveyStats } from '../api/types';
 import { ApiError } from '../api/client';
+import { GUARDED, sessionLine, signInOutcome, signInState, type Variant as SignInVariant } from '../lib/signin';
 import { STATION_ACTIONS, actionInfo, actionOutcome, type ActionOutcome } from '../lib/admin';
 import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome } from '../lib/survey';
 import { throttleRows, underVoltage } from '../lib/throttle';
@@ -638,6 +639,7 @@ export function Admin() {
   return (
     <div className="space-y-4 page-enter">
       <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Administration / System</h1>
+      <AdminSignIn auth={auth} />
       <ApiErrorNote error={sys.error} />
 
       <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
@@ -706,7 +708,6 @@ export function Admin() {
         </Card>
       </div>
 
-      <AdminAccess auth={auth} />
 
       <StationActions canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
 
@@ -733,7 +734,7 @@ export function Admin() {
             ))}
           </div>
           {!canWrite && auth.data && (
-            <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Changing this needs the admin token (Admin access, above).</div>
+            <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Changing this needs an admin sign-in (Admin sign-in, at the top).</div>
           )}
           {msg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{msg}</div>}
         </CardBody>
@@ -772,7 +773,7 @@ export function Admin() {
             the override, or each browser's own zone, is used instead.
           </div>
           {!canWrite && auth.data && (
-            <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>Changing this needs the admin token (Admin access, above).</div>
+            <div className="text-[10px] mt-1" style={{ color:'var(--t3)' }}>Changing this needs an admin sign-in (Admin sign-in, at the top).</div>
           )}
           {tzMsg && <div className="text-[10px] mono mt-2" style={{ color:'var(--t3)' }}>{tzMsg}</div>}
         </CardBody>
@@ -815,41 +816,73 @@ export function Admin() {
   );
 }
 
-// ─── Admin access (admin token; review GPS-014) ──────────────────────────────
-function AdminAccess({ auth }: { auth: Polled<AuthState> }) {
+// ─── Admin sign-in (POST /api/login; review GPS-014; ADR-0005) ─────────────
+function AdminSignIn({ auth }: { auth: Polled<AuthState> }) {
   const { api } = useStation();
   const [input, setInput] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; variant: SignInVariant } | null>(null);
   const a = auth.data;
-  const stored = !!api.token.get();
-  const state = !a ? (auth.error ? 'UNKNOWN' : '…')
-    : a.demo ? 'DEMO: no token needed; host actions are simulated'
-    : !a.admin_configured ? 'DISABLED on this station'
-    : a.authenticated ? 'TOKEN ACCEPTED (this tab)'
-    : stored ? 'TOKEN NOT ACCEPTED' : 'NO TOKEN ENTERED';
-  const variant = !a ? 'muted' : a.demo || a.authenticated ? 'good' : !a.admin_configured ? 'muted' : 'warn';
-  const use = () => { api.token.set(input); setInput(''); auth.refresh(); };
-  const forget = () => { api.token.set(null); auth.refresh(); };
+  const state = signInState(a, !!auth.error);
+  const color: Record<SignInVariant, string> = { good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)' };
+  const signIn = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await api.login(input.trim(), remember);
+      api.token.set(null);             // the cookie replaces any token this tab kept from before
+      setInput(''); setMsg(signInOutcome(r));
+    } catch (e) {
+      setMsg(signInOutcome(null, { status: e instanceof ApiError ? e.status : null, message: (e as Error).message }));
+    } finally { setBusy(false); auth.refresh(); }
+  };
+  const signOut = async (all: boolean) => {
+    setBusy(true); setMsg(null);
+    try {
+      await api.logout(all); api.token.set(null);
+      setMsg({ text: all ? 'Every browser is signed out.' : 'Signed out.', variant: 'muted' });
+    } catch (e) { setMsg({ text: `Sign-out failed: ${(e as Error).message}`, variant: 'error' }); }
+    finally { setBusy(false); auth.refresh(); }
+  };
   const btn = { border:'1px solid var(--border)', color:'var(--t2)' };
+  const line = sessionLine(a);
   return (
     <Card>
-      <CardHeader title="Admin access" badge={<StatusBadge variant={variant as 'good' | 'warn' | 'muted'} label={state} dot={false} />} />
+      <CardHeader title="Admin sign-in" badge={<StatusBadge variant={state.variant} label={state.label} dot={false} />} />
       <CardBody>
         <ApiErrorNote error={auth.error} />
         <div className="text-[10px] mb-2" style={{ color:'var(--t3)' }}>
-          Settings changes and service actions need the station's admin token, sent only to this station over POST.
-          It is kept for this browser tab only. {a && !a.demo && !a.admin_configured &&
+          Sign in with the station's admin token to change {GUARDED}. The token goes to this station once, over POST;
+          the browser keeps only a signed cookie that page scripts can't read. Viewing needs no sign-in, and the web SDR's
+          Start and Stop are open to the LAN. {a && !a.demo && !a.admin_configured &&
             <>Admin is off until a token exists: run <span className="mono">sudo python3 -m gps_time_pi.admin_token</span> on the station.</>}
         </div>
-        {a && !a.demo && a.admin_configured && (
-          <div className="flex gap-1.5 items-center">
+        {a && !a.demo && a.admin_configured && !a.authenticated && (
+          <div className="flex flex-wrap gap-1.5 items-center">
             <input type="password" value={input} onChange={e => setInput(e.target.value)} placeholder="admin token"
-              autoComplete="off" spellCheck={false} aria-label="Admin token"
-              onKeyDown={e => { if (e.key === 'Enter' && input.trim()) use(); }}
-              className="mono text-[11px] px-2 py-1 rounded-[2px] w-72" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t1)' }} />
-            <button onClick={use} disabled={!input.trim()} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Use token</button>
-            {stored && <button onClick={forget} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Forget</button>}
+              autoComplete="current-password" spellCheck={false} aria-label="Admin token"
+              onKeyDown={e => { if (e.key === 'Enter' && input.trim() && !busy) signIn(); }}
+              className="mono text-[11px] px-2 py-1 rounded-[2px] w-72 max-w-full" style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--t1)' }} />
+            <label className="flex items-center gap-1.5 text-[11px]" style={{ color:'var(--t2)' }}>
+              <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />
+              Remember this browser (30 days)
+            </label>
+            <button onClick={signIn} disabled={!input.trim() || busy} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>
+              {busy ? 'Sign in…' : 'Sign in'}</button>
           </div>
         )}
+        {a && !a.demo && a.authenticated && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {line && <span className="text-[11px]" style={{ color:'var(--t2)' }}>{line}</span>}
+            <button onClick={() => signOut(false)} disabled={busy} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Sign out</button>
+            <button onClick={() => signOut(true)} disabled={busy} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>Sign out all browsers</button>
+          </div>
+        )}
+        {msg && <div className="text-[10px] mono mt-2" role="status" style={{ color: color[msg.variant] }}>{msg.text}</div>}
+        <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>
+          A new admin token signs every browser out. The page is plain HTTP on the LAN, so the token crosses it once in clear when you sign in.
+          Station migration is done on the station itself, as root (docs/deploy/migrate.md).
+        </div>
       </CardBody>
     </Card>
   );
@@ -909,7 +942,7 @@ function StationActions({ canWrite, authKnown, onAuthError }: { canWrite: boolea
         )}
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: OUTCOME_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>These need the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>These need an admin sign-in (Admin sign-in, at the top).</div>
         )}
         <div className="mt-3 space-y-[2px]">
           {STATION_ACTIONS.map(a => (
@@ -1044,7 +1077,7 @@ function ExperimentalModules({ canWrite, authKnown, onAuthError }: { canWrite: b
           </div>
         )}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Changing these needs the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>Changing these needs an admin sign-in (Admin sign-in, at the top).</div>
         )}
       </CardBody>
     </Card>
@@ -1105,7 +1138,7 @@ function SurveyReset({ survey, canWrite, authKnown, onDone, onAuthError }: {
         )}
         {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: RESET_COLOR[outcome.variant] }}>{outcome.text}</div>}
         {!canWrite && authKnown && (
-          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>This needs the admin token (Admin access, above).</div>
+          <div className="text-[10px] mt-2" style={{ color:'var(--t3)' }}>This needs an admin sign-in (Admin sign-in, at the top).</div>
         )}
       </CardBody>
     </Card>

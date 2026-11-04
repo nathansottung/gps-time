@@ -53,7 +53,7 @@ Anything else gets **403** with a plain-text explanation. This defeats DNS rebin
 - A POST must be `Content-Type: application/json` (else **415**) with a JSON object body of 1 B–256 kB (else **400**).
 - If `Origin` is present, it must be same-origin with `Host` or listed in `GTP_ALLOWED_ORIGINS` (else **403**). Browsers always send `Origin` on POST, so cross-site forms and fetches are refused.
 
-**Admin token (outside demo mode).** Every POST needs `Authorization: Bearer <token>`.
+**Admin token (outside demo mode).** Every POST needs `Authorization: Bearer <token>`, or the sign-in cookie (below). Exceptions: `POST /api/login` itself, and `POST /api/admin` with `websdr_start` or `websdr_stop`, which are open to the LAN (rc.6).
 - **No token configured:** if the station has no token hash file, admin is **disabled** and POSTs get **403**.
 - **Missing or wrong token:** **401** with `WWW-Authenticate: Bearer`.
 - **Comparison:** `hmac.compare_digest` on the SHA-256, so the check takes the same time whether or not the token matches.
@@ -69,7 +69,18 @@ Anything else gets **403** with a plain-text explanation. This defeats DNS rebin
   - Without a terminal, nothing is created.
   - `install.sh` does the same on first install. The deploy scripts open a remote terminal only when they run interactively.
   - Delete the file to disable admin.
-- **In the web UI** the token is entered on the Administration page. It is kept in `sessionStorage` for that tab only and never put in a URL.
+- **In the web UI** the token is entered once on Administration → **Admin sign-in** (`POST /api/login`). The page keeps no token.
+
+**Sign-in cookie (the admin login page, rc.6).**
+- `POST /api/login {"token": "...", "remember": bool}` checks the token like a Bearer header, with the same logging and backoff.
+- On success it sets `gtp_admin=<expiry>.<remembered>.<nonce>.<HMAC>`; Path=/; HttpOnly; SameSite=Strict`.
+  - Without `remember`, it is a session cookie: it lasts until the browser closes, and the station refuses it after 12 h.
+  - With `remember`, it has `Max-Age` of 30 days ("Remember this browser").
+- **Accepted** wherever the Bearer token is, but only when no `Authorization` header is sent.
+- **Key:** HMAC-SHA256 with a key derived from `admin-session.key` (32 random bytes, 0600, next to the token hash, made on the first sign-in) and the stored token hash. A new token therefore signs every browser out.
+- `POST /api/logout {}` clears this browser's cookie. `{"all": true}` (signed in) writes a new key: every browser signs in again.
+- **CSRF:** `SameSite=Strict` keeps other sites' requests from carrying the cookie, and the Origin check and JSON-only rule apply as for every POST.
+- **Plain HTTP:** the cookie can't be `Secure`. The token crosses the LAN once at sign-in, and the cookie on every request.
 
 **Demo mode** (`GTP_DEMO=1`) needs no token, because writes go to `.dev/` only. `POST /api/admin` is **simulated** (`"simulated": true`) and never touches the host. Method, Origin, Content-Type and Host checks still apply.
 

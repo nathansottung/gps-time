@@ -172,6 +172,101 @@ class TestOpenWebSdrActions(AuthBase):
         self.assertEqual(self.calls, [])
 
 
+class TestAdminLogin(AuthBase):
+    """The admin login page: the token buys a signed HttpOnly SameSite=Strict cookie."""
+
+    def login(self, token=TOKEN, remember=False, **kw):
+        return self.post("/api/login", {"token": token, "remember": remember}, token=None, **kw)
+
+    def cookie(self, headers):
+        return headers["Set-Cookie"].split(";")[0]
+
+    def test_a_wrong_token_gets_no_cookie(self):
+        status, headers, body = self.login("wrong")
+        self.assertEqual(status, 401)
+        self.assertNotIn("Set-Cookie", headers)
+        self.assertFalse(body["ok"])
+
+    def test_the_cookie_signs_this_browser_in_until_it_closes(self):
+        status, headers, body = self.login()
+        self.assertEqual(status, 200)
+        c = headers["Set-Cookie"]
+        for attr in ("gtp_admin=", "Path=/", "HttpOnly", "SameSite=Strict"):
+            self.assertIn(attr, c)
+        self.assertNotIn("Max-Age", c)                      # a session cookie
+        self.assertNotIn(TOKEN, c)
+        self.assertFalse(body["remembered"])
+        cookie = self.cookie(headers)
+        status, _, _ = self.post("/api/admin", {"action": "restart_gpsd"}, token=None, headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertEqual(self.calls, ["restart_gpsd"])
+        _, _, a = self.req("GET", "/api/auth", headers={"Cookie": cookie})
+        self.assertTrue(a["authenticated"])
+        self.assertFalse(a["session"]["remembered"])
+
+    def test_remember_this_browser_lasts_30_days(self):
+        _, headers, body = self.login(remember=True)
+        self.assertIn(f"Max-Age={30 * 86400}", headers["Set-Cookie"])
+        self.assertTrue(body["remembered"])
+        _, _, a = self.req("GET", "/api/auth", headers={"Cookie": self.cookie(headers)})
+        self.assertTrue(a["session"]["remembered"])
+
+    def test_guarded_routes_need_it(self):
+        for body in ({"location_display": "hidden"}, {"feeder": "adsbfi", "enabled": True},
+                     {"module": "reference-adsb", "enabled": True}):
+            self.assertIn(self.post("/api/setting", body, token=None, headers={"Cookie": "gtp_admin=1.9999999999.1.x.y"})[0], (401, 429))
+        self.assertIn(self.post("/api/admin", {"action": "reboot"}, token=None)[0], (401, 429))
+        self.assertEqual(self.calls, [])
+
+    def test_a_tampered_or_expired_cookie_is_refused(self):
+        _, headers, _ = self.login()
+        name, value = self.cookie(headers).split("=", 1)
+        v, exp, rem, nonce, mac = value.split(".")
+        for bad in (f"{v}.{int(exp) + 9999}.{rem}.{nonce}.{mac}", f"{v}.{exp}.1.{nonce}.{mac}", f"{v}.1.{rem}.{nonce}.{mac}", "junk"):
+            self.assertIn(self.post("/api/admin", {"action": "restart_gpsd"}, token=None,
+                                    headers={"Cookie": f"{name}={bad}"})[0], (401, 429), bad)
+        self.assertEqual(self.calls, [])
+
+    def test_a_new_token_signs_every_browser_out(self):
+        _, headers, _ = self.login(remember=True)
+        cookie = self.cookie(headers)
+        admin_token.write_token_hash(self.token_file, "another-token-0123456789-abcdefghij")
+        self.assertEqual(self.post("/api/admin", {"action": "restart_gpsd"}, token=None, headers={"Cookie": cookie})[0], 401)
+
+    def test_sign_out_and_sign_out_all(self):
+        _, headers, _ = self.login(remember=True)
+        mine = self.cookie(headers)
+        _, headers2, _ = self.login(remember=True)
+        other = self.cookie(headers2)
+        status, h, body = self.post("/api/logout", {}, token=None, headers={"Cookie": mine})
+        self.assertEqual(status, 200)
+        self.assertIn("Max-Age=0", h["Set-Cookie"])
+        # Sign out all needs to be signed in, and then revokes every browser's cookie.
+        self.assertIn(self.post("/api/logout", {"all": True}, token=None)[0], (401, 429))
+        self.assertEqual(self.post("/api/admin", {"action": "restart_gpsd"}, token=None, headers={"Cookie": other})[0], 200)
+        self.assertEqual(self.post("/api/logout", {"all": True}, token=None, headers={"Cookie": other})[0], 200)
+        self.assertEqual(self.post("/api/admin", {"action": "restart_gpsd"}, token=None, headers={"Cookie": other})[0], 401)
+        self.assertEqual(self.post("/api/admin", {"action": "restart_gpsd"}, token=None, headers={"Cookie": mine})[0], 401)
+        self.assertEqual(self.calls, ["restart_gpsd"])
+
+    def test_another_site_cannot_sign_in(self):
+        self.assertEqual(self.login(headers={"Origin": "http://evil.example"})[0], 403)
+        self.assertEqual(self.post("/api/login", None, raw=b"token=x", ctype="application/x-www-form-urlencoded", token=None)[0], 415)
+
+    def test_guessing_the_token_backs_off(self):
+        codes = [self.login(f"guess-{i}")[0] for i in range(12)]
+        self.assertIn(429, codes)
+        self.assertEqual(self.login()[0], 429)                # even the right token waits out the backoff
+
+    def test_the_session_key_is_private(self):
+        self.login()
+        path = Path(security.session_key_path())
+        self.assertTrue(path.is_file())
+        if os.name == "posix":
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn(TOKEN, path.read_text())
+
+
 class TestAdminDisabledByDefault(AuthBase):
     with_token = False
 
