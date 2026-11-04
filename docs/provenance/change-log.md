@@ -2221,3 +2221,13 @@ Found while checking:
 - the common coax ground blocks are 75 Ω F-type, so not for these feeds.
 
 The grounding section names what's needed and leaves the bond to a qualified electrician. It gives no wiring instructions.
+
+## 2026-11-04 — v1.6.0-rc.4: release notes (#170)
+
+The owner's rc.4 list (2026-11-04, "go. No deploys."), one PR each, all merged after CI:
+- #166: amber location warnings on every feeder card;
+- #167: the PiAware claim note;
+- #168: holdover validation, the scorecard, with network-NTP outages flagged;
+- #169: the bench kit with checked links and dated prices.
+
+`releases/v1.6.0-rc.4.md` lists them, what the upgrade changes without any flag (`holdover-scorecard.json`, written once per outage), the deploy command with the web SDR flags, what isn't verified, and rollback. The version lines in README, START-HERE, ROADMAP and INDEX are updated. The tag `v1.6.0-rc.4` goes on this PR's merge commit, with a GitHub pre-release.
