@@ -109,11 +109,9 @@ else
 fi
 apt-get install -y --no-install-recommends rtl-sdr readsb soapysdr-module-rtlsdr >/dev/null \
   || { say "apt-get could not install rtl-sdr, readsb and soapysdr-module-rtlsdr; nothing else changed." >&2; exit 1; }
-# The DVB-T driver claims RTL-SDRs. rtl-sdr's blacklist stops it at the next boot; unload it now.
-if grep -q '^dvb_usb_rtl28xxu ' /proc/modules 2>/dev/null; then
-  modprobe -r dvb_usb_rtl28xxu 2>/dev/null \
-    || say "the DVB-T driver (dvb_usb_rtl28xxu) is loaded and could not be unloaded; reboot before using the SDRs."
-fi
+# The DVB-T driver claims RTL-SDRs: our own blacklist file (kept when the stack is removed),
+# and unloaded now if it's loaded.
+bash "$(dirname "$0")/rtl-dvb-blacklist.sh" "$ROOT" || say "the DVB-T driver blacklist could not be written (see above)."
 
 echo "== SDR stack: dump978-fa and skyaware978 ($DUMP978_TAG) =="
 HAVE978=0

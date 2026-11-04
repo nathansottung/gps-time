@@ -160,6 +160,7 @@ class TestScript(unittest.TestCase):
         self.assertIn("systemctl disable --now gps-time-dump978.service gps-time-skyaware978.service", calls)
         self.assertTrue((self.root / "usr/local/lib/gps-time-sdr/dump978-fa").is_file())
         self.assertFalse([c for c in calls if "chrony" in c or "gpsd" in c])
+        self.assertIn("blacklist dvb_usb_rtl28xxu", (self.root / "etc/modprobe.d/gps-time-rtl-sdr.conf").read_text())
 
     def test_serials_are_kept_between_runs_and_none_clears_one(self):
         self.run_script(GTP_SDR="1", GTP_SDR_PPS_SERIAL="00000pps", GTP_SDR_978_SERIAL="00000978")
