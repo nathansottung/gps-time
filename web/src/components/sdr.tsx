@@ -6,7 +6,7 @@ import { ApiErrorNote } from './planned';
 import { useStation, usePoll } from '../api/station';
 import type { ModuleRow, SettingResult } from '../api/types';
 import { configText, parseConfig, readinessLines, schemaRows } from '../lib/modules';
-import { dongleRow, feedRow, sdrSummary, unitRows } from '../lib/sdr';
+import { dongleRow, feedRow, limitLine, sdrSummary, unitRows } from '../lib/sdr';
 
 const COLOR = { good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)' } as const;
 const btn = { border: '1px solid var(--border)', color: 'var(--t2)' };
@@ -107,6 +107,8 @@ export function SdrReceivers() {
         </div>
         {!st && !sdr.error && <div className="text-[11px]" style={{ color: 'var(--t3)' }}>…</div>}
         {st && sum && <div className="text-[11px] mb-2" style={{ color: COLOR[sum.variant] }}>{sum.text}</div>}
+        {st && limitLine(st) && (() => { const l = limitLine(st)!; return (
+          <div className="text-[10px] mb-2" aria-label="Dongle limit" style={{ color: COLOR[l.variant] }}>{l.text}</div>); })()}
         {st && st.units && st.units.length > 0 && (
           <div className="table-scroll"><table className="w-full text-[11px]" aria-label="SDR units">
             <thead><tr>

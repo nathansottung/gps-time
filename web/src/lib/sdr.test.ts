@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SdrStatus, SdrUnit } from '../api/types';
-import { dongleRow, feedRow, sdrSummary, unitRows, unitState } from './sdr';
+import { dongleRow, feedRow, limitLine, sdrSummary, unitRows, unitState } from './sdr';
 import { demoApi } from '../api/demo';
 
 const m = <T,>(value: T | null, unit: string | null = null) => ({ value, unit, provenance: 'observed' as const });
@@ -48,5 +48,24 @@ describe('SDR receivers', () => {
     expect(d.note).toMatch(/synthetic/);
     expect(d.units?.map(u => u.unit)).toContain('gps-time-readsb.service');
     expect(JSON.stringify(d)).not.toMatch(/38\.92|77\.06/);
+  });
+});
+
+describe('limitLine', () => {
+  const m = <T,>(value: T | null, unit: string | null = null) => ({ value, unit, provenance: 'observed' as const });
+  const base = (limit: SdrStatus['limit']): SdrStatus => ({ installed: true, units: [], dongles: [], feeds: [], note: '', limit });
+  it('is absent on an older station', () => {
+    expect(limitLine(base(undefined))).toBeNull();
+  });
+  it('is good within the Pi 4 limit and a warning over it', () => {
+    const l = { model: m('Raspberry Pi 4 Model B Rev 1.5'), max: 3, assigned: m(3, 'count'), plugged: m(3, 'count'), over: false, rule: 'at most 3' };
+    expect(limitLine(base(l))).toEqual({ variant: 'good', text: '3 dongles with a role, 3 on USB, of at most 3 on this Raspberry Pi 4 Model B Rev 1.5.' });
+    const over = limitLine(base({ ...l, assigned: m(4, 'count'), over: true }))!;
+    expect(over.variant).toBe('warn');
+    expect(over.text).toContain('more than 3');
+  });
+  it('says UNKNOWN and no limit when it cannot tell', () => {
+    const l = { model: m(null), max: null, assigned: m(1, 'count'), plugged: m(null, 'count'), over: false, rule: "the board model can't be read: no limit applied" };
+    expect(limitLine(base(l))).toEqual({ variant: 'muted', text: "1 dongle with a role, UNKNOWN on USB. The board model can't be read: no limit applied." });
   });
 });

@@ -2014,6 +2014,39 @@ Owner's rc.3 list. On 2026-11-04 the station's newly plugged-in dongle was held 
   - `tests/test_dvb_blacklist.py`: the station's own `/proc/modules` as a fixture; the file's contents and mode; the unload order; nothing loaded means no `modprobe`; a busy module; idempotent; no shared module, `/boot` or timing word in the script; both installers call it and never remove it.
   - The SDR-stack and web-SDR script tests check the file is written.
 
+## 2026-11-04 — Dongle roles by serial, at most 3 on a Pi 4 (#159)
+
+Owner's rc.3 list. Roles were already given by serial (PPS, 1090, 978, and the web SDR's), but nothing counted them across the two installers, and Administration didn't show the web SDR's.
+
+- **`scripts/dongle-roles.sh`**, sourced by `sdr-stack.sh` and `websdr.sh` before they change anything:
+  - counts distinct serials across every installed role (a role of a stack that isn't installed doesn't count; the web SDR sharing the 1090 MHz dongle adds none);
+  - refuses more than 3 on a Raspberry Pi 4, 400 or Compute Module 4 (the owner's limit: one USB 2.0 bus, shared power and CPU), from `/proc/device-tree/model`;
+  - other boards have no limit; an unreadable model applies none and says so.
+- **`/api/sdr`:** each dongle's role includes the web SDR (`1090 MHz + web SDR` when shared, `web SDR` alone). A new `limit` object gives the model (`observed`), the max, roles assigned (`calculated`), dongles plugged (`observed`), `over`, and the rule.
+- **Administration → SDR receivers:** a line with the roles, the dongles on USB, and the limit; a warning when over it.
+- **Tests:**
+  - `tests/test_dongle_roles.py`: the helper with a temp device tree (3 on a Pi 4 fine, 4 refused, shared counted once, no limit on a Pi 5 or an unknown model); both installers refuse a fourth dongle before any `apt-get` and accept a shared one;
+  - `tests/test_sdr_status.py`: roles and the limit;
+  - `web/src/lib/sdr.test.ts`: the limit line.
+- **Docs:** `deploy/sdr-stack.md` → "Roles and the limit", the web SDR guide, `/api/sdr`.
+
+## 2026-11-04 — Station migration: export and import in one encrypted file (#160)
+
+Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). Needed before the antenna move and for a second Pi.
+
+- **`python -m gps_time_pi.migrate export <file>` / `import <file> [--dry-run]`**, run with sudo in the station venv.
+- **Moves:** `config.json` (+ `.prev`), with the site survey, exact position, privacy mode, time zone and module settings; `station-key` and `.pub`; `admin-token.sha256`; the web SDR password hash; `oscillator-log.csv` and the two profile files.
+- **Never moves:** the event history and outage evidence (they describe the old install), and the sky-obstruction map (it describes the old antenna site).
+- **Oscillator:** the log keeps its board binding. On the same Pi it carries on; on another Pi the station sets it aside at start (`oscillator.py`, unchanged).
+- **Encrypted:** AES-256-GCM, with the key from scrypt (n = 2¹⁵, r = 8, p = 1). The header is authenticated as associated data. The passphrase is asked twice (at least 12 characters), never taken from arguments or the environment. The file is 0600 and handed to `SUDO_USER`; nothing is served over HTTP.
+- **Import:**
+  - refuses while `gps-time-pi` runs;
+  - verifies every file's SHA-256 and refuses entries it doesn't know, or with a path in their name;
+  - with root, checks the station's accounts exist before writing anything;
+  - keeps each replaced file as `<name>.before-migrate-<UTC>`, and writes atomically with `install.sh`'s owner and mode;
+  - is idempotent.
+- **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
+- **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
 ## 2026-11-04 — The web SDR's WebSockets through the gate: a test, and `websdr_gate check` (#158)
 
 Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the waterfall over a WebSocket (`/ws/`). The gate checks the first request of each connection and then pipes bytes both ways. Until now only a plain HTTP request was tested through it.

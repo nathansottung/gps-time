@@ -16,6 +16,7 @@ The web SDR uses one RTL-SDR, picked by serial. By default that is the 1090 MHz 
 - **Starting the web SDR stops readsb** (`Conflicts=gps-time-readsb.service readsb.service`, and `After=` waits for it to let go of the dongle). The ADS-B references in `reference-adsb` pause; its readiness shows the 1090 MHz feed as stale.
 - **Stopping it starts readsb again** (`ExecStopPost=` runs `websdr-handoff`, which starts readsb if it is enabled; not during a shutdown).
 - **Never the PPS or the 978 MHz dongle:** the installer refuses those serials.
+- **On a Pi 4, a dongle of its own counts toward the limit of 3** (`sdr-stack.md` → "Roles and the limit"). Sharing the 1090 MHz dongle doesn't.
 - **A session ends by itself** after `GTP_WEBSDR_MAX_HOURS` (default 4; `RuntimeMaxSec=`), so a forgotten web SDR doesn't keep readsb off. The unit then shows as failed (result `timeout`), and readsb comes back. There is no automatic restart.
 - **Not enabled at boot.** Start and stop it from the Radio page (admin token) or with `sudo systemctl start|stop gps-time-websdr`. Use start and stop, not restart: a restart briefly starts readsb between the two halves.
 
