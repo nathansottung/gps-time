@@ -1966,3 +1966,19 @@ Owner, 2026-11-04: "Tag v1.6.0-rc.1 from main with notes recording the soak find
 - **Owner, 2026-11-04: the formal soak waits for the antenna move.** The first run of rc.1 is for sector data and web SDR testing (`GTP_WEBSDR=1` allowed) and isn't a soak run. STATUS and the notes say so.
 - **Unchanged:** the soak criteria and outage detection. v1.6.0 needs a clean 72-hour run of v1.6.0-rc.1, after the antenna move.
 - **Tag:** `v1.6.0-rc.1` on this PR's merge commit, with a GitHub pre-release using these notes.
+
+## 2026-11-04 — The Pi bundle ships modules/; an install-from-bundle test; v1.6.0-rc.2 (#155)
+
+The owner's deploy of v1.6.0-rc.1 failed: `install.sh` stopped at `cp -r modules` ("cannot stat"), because the bundle had no `modules/`.
+
+- **Cause:** #146 made `install.sh` install the bundled modules, all off. But `tools/build_bundles.py`'s `PI_TOP` didn't list `modules`, and ADR-0007 still said the bundle ships none. Two tests (`test_modkit`, `test_modules`) asserted that `"modules"` wasn't in `build_bundles.py`, so CI passed.
+- **Fix:** `modules` is in `PI_TOP`, the two tests check the opposite, and ADR-0007 is amended.
+- **New: `tests/test_bundle_install.py`.**
+  - It builds the bundle (`build_pi_tar`, with a stand-in built UI), extracts it, and runs the bundle's own `install.sh` with bash.
+  - The script's destinations (`/etc/…`, `/opt/gps-time-pi`) point into a temporary root, and system commands are stubs. The venv's pip is skipped; everything else runs for real.
+  - It checks that the install finishes, that every bundled module, the code, UI, rollback file and units are installed, that `chrony.conf` got only the installer's edits, and that the service restart comes after chrony's.
+  - Any other absolute path in `install.sh` fails the test until it's listed, so the test never writes outside its root.
+  - With `modules` removed from `PI_TOP` it fails with the deploy's own error.
+  - It runs on POSIX in CI and skips on Windows. `install.sh` is unchanged.
+- **The station after the failed install** (read-only, `development/raspberry-pi-deploy.md`): timing recovered within about a minute of each chrony restart, with no clock step, but up to about 6 ms of drift while on a network source. The web service is still the v1.5.0-rc.1 process, over rc.1's files. The steps after `cp -r modules` didn't run.
+- **Release:** `releases/v1.6.0-rc.2.md`. `v1.6.0-rc.1.md` is marked can't-be-installed. Version lines updated. The tag `v1.6.0-rc.2` goes on this PR's merge commit, with a GitHub pre-release.

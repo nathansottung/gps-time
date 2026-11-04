@@ -17,7 +17,7 @@ Every feature after the timing core (sensors, reference signals, analyses, cards
 - **Modules live in `modules/<name>/`** with one layout. `tools/new_module.py` creates it with a working fake and passing tests.
 - **Off by default.** A module runs only when it is named in the station config (`modules_enabled`). The web service doesn't use the kit yet, so a station's behaviour is unchanged.
 - **Contained.** A module's exception fails that module only. Everything emitted is checked against the schemas. Modules get positions only through `ctx.site()` and can't reach chrony, gpsd or PPS settings through the kit.
-- **The Pi bundle** ships the kit and `schemas/`, but not `modules/`.
+- **The Pi bundle** ships the kit and `schemas/`, but not `modules/`. *Amended: since #146 (owner, 2026-10-27) `install.sh` installs the bundled modules, all off, so the bundle ships `modules/` too. That half was missed until v1.6.0-rc.1 failed to install (#155); `tests/test_bundle_install.py` now runs `install.sh` from a built bundle.*
 
 ## Consequences
 
