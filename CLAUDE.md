@@ -76,7 +76,7 @@ CI (`.github/workflows/`):
 - **Incidents** (write-ups from the records made at the time; never a cause the evidence can't establish): `docs/incidents/`. Second station: `docs/deploy/second-station.md`; bench kit: `docs/validation/bench-kit.md`.
 - **Specifications** (requirements, not implemented behavior): `docs/specs/`.
 - **Independent review and remaining findings:** `docs/review/GPS-Time-Independent-Review-2026-09-27.md`; the rc.6 security review and its open Medium/Low items: `docs/review/security-review-2026-11-04.md`.
-- **Admin security:** `gps_time_pi/security.py` (Host/Origin checks, token), `gps_time_pi/admin_token.py`, `gps-time-pi.service` (unprivileged), `system/50-gps-time-pi.rules` (polkit). Decision: ADR-0005.
+- **Admin security:** `gps_time_pi/security.py` (Host/Origin checks, token, the sign-in cookie from `POST /api/login`: HttpOnly SameSite=Strict, "Remember this browser" 30 days, keyed by `admin-session.key` and the token hash), Administration → Admin sign-in (`web/src/lib/signin.ts`), `gps_time_pi/admin_token.py`, `gps-time-pi.service` (unprivileged), `system/50-gps-time-pi.rules` (polkit). Decision: ADR-0005.
 - **HTTP API and new web UI:**
   - Reference for every route: `docs/api/`.
   - Typed client and demo adapter: `web/src/api/`.

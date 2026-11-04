@@ -592,17 +592,21 @@ HOST_REFUSED = ("Host not allowed. Use the station's IP address or hostname, or 
                 "name to GTP_ALLOWED_HOSTS (comma-separated) in the service environment.\n")
 ADMIN_DISABLED = ("admin is disabled: no admin token is configured on the station "
                   "(create one with: sudo python3 -m gps_time_pi.admin_token)")
-POST_ROUTES = ("/api/admin", "/api/setting", "/api/oscillator/profile")
+POST_ROUTES = ("/api/admin", "/api/setting", "/api/oscillator/profile", "/api/login", "/api/logout")
 # The retired legacy pages (removed after v1.4.0): their paths redirect to the web UI.
 LEGACY_PATHS = ("/legacy", "/almanac", "/history", "/admin", "/configure", "/zones")
 MAX_BODY = 256000
 ROUTE_MAX_BODY = {"/api/oscillator/profile": 2_000_000}   # a 90-day profile export
 
 
-def auth_payload(authenticated):
-    return {"demo": DEMO_MODE, "auth_required": not DEMO_MODE,
-            "admin_configured": security.admin_configured(),
-            "authenticated": DEMO_MODE or authenticated}
+def auth_payload(authenticated, session=None):
+    out = {"demo": DEMO_MODE, "auth_required": not DEMO_MODE,
+           "admin_configured": security.admin_configured(),
+           "authenticated": DEMO_MODE or authenticated}
+    if session:
+        out["session"] = {"expires_utc": datetime.fromtimestamp(session["expires"], timezone.utc).isoformat(timespec="seconds"),
+                          "remembered": session["remembered"]}
+    return out
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -636,10 +640,55 @@ class Handler(BaseHTTPRequestHandler):
         if security.verify_authorization(header):
             security.THROTTLE.success(ip)
             return True
+        if not header and security.session_from(self.headers.get("Cookie")):
+            return True                   # signed in on the admin login page (POST /api/login)
         security.note_auth_failure(ip, route, header)
         self._json({"ok": False, "error": "admin token required"}, code=401,
                    headers={"WWW-Authenticate": 'Bearer realm="gps-time"'})
         return False
+
+    def _login(self, body):
+        """POST /api/login {"token": "...", "remember": bool}: the admin login page. The token is
+        checked with the same backoff and logging as a Bearer header; it buys a signed cookie."""
+        if DEMO_MODE:
+            self._json({"ok": True, "simulated": True, "detail": "demo mode: no token needed"})
+            return
+        if not security.admin_configured():
+            self._json({"ok": False, "error": ADMIN_DISABLED}, code=403)
+            return
+        ip = self.client_address[0]
+        wait = security.THROTTLE.retry_after(ip)
+        if wait > 0:
+            self._json({"ok": False, "error": "too many failed attempts; try again later"}, code=429,
+                       headers={"Retry-After": str(math.ceil(wait))})
+            return
+        token = body.get("token")
+        header = f"Bearer {token.strip()}" if isinstance(token, str) and token.strip() else None
+        if not security.verify_authorization(header):
+            security.note_auth_failure(ip, "/api/login", header)
+            self._json({"ok": False, "error": "wrong admin token"}, code=401)
+            return
+        security.THROTTLE.success(ip)
+        remember = body.get("remember") is True
+        cookie, exp = security.new_session(remember)
+        security.log.info("admin signed in: ip=%s remembered=%s", ip, remember)
+        self._json({"ok": True, "remembered": remember,
+                    "expires_utc": datetime.fromtimestamp(exp, timezone.utc).isoformat(timespec="seconds")},
+                   headers={"Set-Cookie": cookie})
+
+    def _logout(self, body):
+        """POST /api/logout {"all": bool}: this browser's cookie cleared; with all (signed in), a new
+        session key signs every browser out."""
+        if body.get("all") is True and not DEMO_MODE:
+            if not security.admin_configured():
+                self._json({"ok": False, "error": ADMIN_DISABLED}, code=403)
+                return
+            if not self._check_token("/api/logout"):
+                return
+            security.rotate_session_key()
+            security.log.info("admin: every browser signed out (new session key): ip=%s", self.client_address[0])
+        self._json({"ok": True, "all": body.get("all") is True, **({"simulated": True} if DEMO_MODE else {})},
+                   headers={"Set-Cookie": security.SIGNED_OUT_COOKIE})
 
     def _send(self, body, ctype, code=200, cache=None):
         data = body if isinstance(body, bytes) else body.encode()
@@ -749,7 +798,8 @@ class Handler(BaseHTTPRequestHandler):
                     if self._check_token("/api/auth"):
                         self._json(auth_payload(True))
                 else:
-                    self._json(auth_payload(False))
+                    session = None if DEMO_MODE else security.session_from(self.headers.get("Cookie"))
+                    self._json(auth_payload(bool(session), session))
             elif p == WEB_PREFIX.rstrip("/") or p.startswith(WEB_PREFIX):
                 self._web(u)
             elif p == "/" or p in LEGACY_PATHS:
@@ -890,6 +940,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not isinstance(body, dict):
             self._json({"ok": False, "error": "JSON body must be an object"}, code=400)
+            return
+        if p == "/api/login":
+            self._login(body)
+            return
+        if p == "/api/logout":
+            self._logout(body)
             return
         open_action = p == "/api/admin" and body.get("action") in system.OPEN_ACTIONS
         if not DEMO_MODE and not open_action:
