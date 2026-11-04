@@ -34,7 +34,7 @@ A standard node others can build so results from different owners are comparable
 
 | Part | Example | Notes |
 |---|---|---|
-| SDR | RTL-SDR Blog V4 | Same model across nodes for comparisons |
+| SDR | RTL-SDR Blog V4 (end-of-life 2026; the V4L is its successor: see `validation/bench-kit.md`) | Same model across nodes for comparisons |
 | Antennas | Wideband discone; 1090 MHz for ADS-B | |
 | Filters/LNA | FM-band notch, 1090 MHz filter + LNA | Reduce overload |
 | Computer | Separate Pi 5 or mini PC | Keep SDR load off the timing station |
