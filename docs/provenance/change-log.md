@@ -1948,3 +1948,20 @@ Owner request, after #152: check whether the 2026-10-29 soak outages line up wit
   - the demo's PPS reader gives integer ns.
 - **No API change:** every payload keeps its shape and units (seconds where it had seconds).
 - **Tests:** existing PPS, stability and usage-log tests feed integer ns. New: an exact ±37 ns phase series and its ADEV, `phase_ns` at the rounding edges, a float refused, an interval of 1 s + 30 ns kept exactly, `read_assert` exact. The usage-log jitter test is now exact to 0.2 ns, not 250 ns.
+
+## 2026-11-04 — v1.6.0-rc.1: release notes; v1.5.0 skipped (#154)
+
+Owner, 2026-11-04: "Tag v1.6.0-rc.1 from main with notes recording the soak finding (v1.5.0 skipped, site-limited)". This replaces the rule of 2026-10-27 (tag v1.6.0-rc.1 once v1.5.0 is tagged).
+
+- **`releases/v1.6.0-rc.1.md`:** from the draft on `docs/release-v1.6.0-rc.1` (#148 era), brought up to date.
+  - The soak finding: not clean (#149); the owner's decision to skip v1.5.0, with the outages taken as this unit's antenna and site limit (the owner's assessment; the station names no cause); the USB check (#153) and the outage-timing comparison.
+  - #149 to #153 added: the web SDR (`GTP_WEBSDR=1`, opt-in, not for the soak run) and integer-ns PPS timestamps.
+  - "New since v1.5.0-rc.1"; rollback to v1.5.0-rc.1 or v1.4.0.
+- **Soak record** (`development/raspberry-pi-deploy.md` → "Soak run of v1.5.0-rc.1"): the outage-timing follow-up, read-only:
+  - 9 real outages on 5 evenings since 2026-10-04;
+  - the three measured drops of the receiver's solution to 0 satellites at GMST 21:28–21:29, UTC spread over 31 minutes;
+  - time of day nearly as close; SoC temperature a poor fit; C/N₀ by sector not recorded;
+  - stated as a lead from three points, with no cause.
+- **Version lines:** README, START-HERE, ROADMAP, INDEX; the release record in `releases/README.md`; STATUS rows for the tag and the next soak run. `v1.5.1-plan.md` marked superseded.
+- **Unchanged:** the soak criteria and outage detection. v1.6.0 needs a clean 72-hour run of v1.6.0-rc.1.
+- **Tag:** `v1.6.0-rc.1` on this PR's merge commit, with a GitHub pre-release using these notes.
