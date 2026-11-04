@@ -103,6 +103,11 @@ class TestStatic(unittest.TestCase):
                 self.assertLess(code.index(rm), code.index("build_bundles.py"))
 
 
+def _clean_env():
+    """This process's environment without GTP_* names: other test modules set some (tests/_env.py)."""
+    return {k: v for k, v in os.environ.items() if not k.upper().startswith("GTP_")}
+
+
 def _install_command(sha):
     """The remote command both scripts send for the verify-and-install step."""
     return ("set -e; cd ~/gps-time-deploy && "
@@ -173,7 +178,7 @@ class TestBashScript(unittest.TestCase):
             f.chmod(0o755)
 
     def run_script(self, **env):
-        e = dict(os.environ, PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}",
+        e = dict(_clean_env(), PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}",
                  FAKE_LOG=str(self.t.log), FAKE_HOME=str(self.t.home), **env)
         return subprocess.run(["bash", str(self.t.repo / "scripts" / SH.name), "pi.example", "pi"],
                               env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
@@ -290,7 +295,7 @@ class TestPowerShellScript(unittest.TestCase):
                                                    encoding="ascii")
 
     def run_script(self, **env):
-        e = dict(os.environ, PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.t.log), **env)
+        e = dict(_clean_env(), PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.t.log), **env)
         return subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                                str(self.t.repo / "scripts" / PS1.name), "-PiHost", "pi.example"],
                               env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
