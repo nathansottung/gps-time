@@ -1,9 +1,6 @@
 // Pure helpers for Timing → Oscillator (/api/oscillator). Tested in oscillator.test.ts.
 
-import type {
-  HoldoverProjection, OscillatorBin, OscillatorFit, OscillatorHoldover, OscillatorProfile, OscillatorProfileExport,
-  ProfileBinding, ProfileImportResult,
-} from '../api/types';
+import type { HoldoverProjection, OscillatorBin, OscillatorFit, OscillatorHoldover, OscillatorProfile, OscillatorProfileExport, ProfileBinding, ProfileImportResult, HoldoverModelRecord } from '../api/types';
 import { fmtSci } from './units';
 
 export interface OscPoint { ts: number; temp: number | null; freq: number | null; pps: boolean }
@@ -93,6 +90,7 @@ export const HOLDOVER_LABEL: Record<HoldoverProjection['name'], string> = {
   free_running: 'Free-running (untrained)',
   trained_skew: 'Trained (skew only)',
   profile: 'Profile (temperature, aging)',
+  scored: 'Scored (outages)',
 };
 
 /** Seconds for |error| = rate·τ + aging·τ²/2 to reach each threshold (mirrors oscprofile.holdover). */
@@ -130,6 +128,48 @@ export function holdoverRows(h: OscillatorHoldover | undefined): HoldoverRow[] {
     threshold: fmtThreshold(t),
     cells: h.projections.map(p => ({ name: p.name, text: p.available ? fmtHoldTime(p.times_s[i]) : '—' })),
   }));
+}
+
+// ─── Holdover scorecard (/api/oscillator → holdover.scorecard; holdover_check) ─
+
+export const CHECK_FLAG_LABEL: Record<string, string> = {
+  network_ntp: 'chrony on network NTP',
+  no_prediction: 'no prediction',
+  after_reselection: 'measured after re-selection',
+  ambiguous_second: 'whole second unclear',
+  service_restarted: 'service restarted',
+};
+
+/** "+2.0 µs", "−310 ns", "+1.20 ms": a signed error in seconds. */
+export function fmtSignedErr(s: number | null | undefined): string {
+  if (s === null || s === undefined || !Number.isFinite(s)) return '—';
+  const a = Math.abs(s), sign = s < 0 ? '−' : '+';
+  const [div, u] = a >= 1 ? [1, 's'] : a >= 1e-3 ? [1e-3, 'ms'] : a >= 1e-6 ? [1e-6, 'µs'] : [1e-9, 'ns'];
+  return `${sign}${+(a / div).toPrecision(3)} ${u}`;
+}
+
+export interface ScoreRow {
+  start: string; measured: string; after: string; scored: boolean; network: boolean;
+  cells: { name: string; predicted: string; held: boolean | null }[]; why: string | null; flags: string[];
+}
+
+/** One row per outage, newest first: measured error, each model's predicted error, and why it wasn't scored. */
+export function scorecardRows(h: OscillatorHoldover | undefined): ScoreRow[] {
+  const sc = h?.scorecard;
+  if (!sc) return [];
+  return sc.recent.map(e => ({
+    start: e.start_utc, measured: fmtSignedErr(e.measured_error_s.value as number | null),
+    after: fmtHoldTime(e.time_since_start_s.value as number | null), scored: e.eligible, network: e.network_ntp,
+    cells: e.predictions.map(p => ({ name: p.name, predicted: fmtSignedErr(p.predicted_error_s.value as number | null).replace(/^\+/, '±'), held: p.held })),
+    why: e.not_scored_because ? e.not_scored_because.join('; ') : null,
+    flags: e.flags.map(f => CHECK_FLAG_LABEL[f] ?? f),
+  }));
+}
+
+/** "Held 2 of 3 (worst 1.8× the prediction)" for a model's record; null without one. */
+export function recordLine(r: HoldoverModelRecord | null | undefined): string | null {
+  if (!r || !r.n) return null;
+  return `held ${r.held} of ${r.n} scored outage${r.n === 1 ? '' : 's'} (worst ${r.worst_ratio.toPrecision(2)}× the prediction, median ${r.median_ratio.toPrecision(2)}×)`;
 }
 
 // ─── Profile export / import (board binding by serial hash) ──────────────────

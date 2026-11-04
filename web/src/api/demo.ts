@@ -17,11 +17,7 @@ import { scaleValues } from '../lib/timescales';
 import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
-import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, ClipsStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus, FeedersStatus, FeederRow,
-  SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
-  Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
-} from './types';
+import type { Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, ClipsStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus, FeedersStatus, FeederRow, SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState, Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage, HoldoverCheckEntry, HoldoverScorecard } from './types';
 
 const SITE = { lat: 38.9217, lon: -77.0669, alt_msl: 92.0, alt_hae: 59.0 };
 
@@ -479,19 +475,22 @@ const STAGES_FAILOVER: StageRow[] = STAGES_OK.map(([id, label, st, sum]): StageR
 
 // Classifications/boundaries/confidence are copied from timing_chain.classify(); never invent causes.
 function closedOutage(startMs: number, durationS: number, cls: string, boundary: string, confidence: string | null,
-                      maxAbs: number, toAccept: number, toSelect: number): TimingEvent {
+                      maxAbs: number, toAccept: number, toSelect: number, network = true): TimingEvent {
+  const nets = network ? ['192.0.2.10'] : [];
   return {
     schema: 'gps-time.event/1', id: `pps-outage-${Math.floor(startMs / 1000)}`, type: 'PPS_OUTAGE',
     start_epoch: startMs / 1000, start_utc: iso(startMs), end_utc: iso(startMs + durationS * 1000),
     duration_s: durationS, open: false, severity: 'critical', classification: cls, initial_classification: cls,
     confidence, boundary, classification_provenance: 'inferred',
-    evidence: { fallback_sources: ['192.0.2.10'], max_abs_system_time_s: maxAbs, satellites_used_range: [8, 11] },
+    evidence: { fallback_sources: nets, network_ntp_sources: nets, max_abs_system_time_s: maxAbs, satellites_used_range: [8, 11] },
     recovery: {
       recovered_utc: iso(startMs + durationS * 1000),
       duration_s: m(durationS, 's', 'calculated'),
       time_to_accept_s: m(toAccept, 's', 'calculated'),
       time_to_select_s: m(toSelect, 's', 'calculated'),
-      fallback_sources: ['192.0.2.10'],
+      fallback_sources: nets,
+      network_ntp: m(network, null, 'observed', 'chrony selected a network NTP source during the outage'),
+      network_ntp_sources: nets,
       max_abs_system_time_s: m(maxAbs, 's', 'observed', "largest chrony remaining-correction seen; chrony estimate, not an independent error measurement"),
     },
     notes: ['Demo event — synthetic.'],
@@ -515,8 +514,8 @@ function timingChain(scenario: string = 'pps_selected'): TimingChain {
   });
   const recent = [
     closedOutage(now - 9.0 * day, 1387, 'PPS AND GNSS TELEMETRY UNAVAILABLE', 'unknown', 'low', 2.1e-4, 21.0, 63.0),
-    closedOutage(now - 5.4 * day, 72, 'GNSS RECEPTION ANOMALY', 'GNSS reception / receiver solution', 'low', 3.4e-6, 8.0, 34.0),
-    closedOutage(now - 2.1 * day - (failover ? 3 * day : 0), 34, 'PPS PATH ANOMALY', 'receiver PPS output / GPIO / kernel PPS interface', 'moderate', 1.1e-6, 6.0, 31.0),
+    closedOutage(now - 5.4 * day, 72, 'GNSS RECEPTION ANOMALY', 'GNSS reception / receiver solution', 'low', 3.4e-6, 8.0, 34.0, false),
+    closedOutage(now - 2.1 * day - (failover ? 3 * day : 0), 34, 'PPS PATH ANOMALY', 'receiver PPS output / GPIO / kernel PPS interface', 'moderate', 1.1e-6, 6.0, 31.0, false),
   ].reverse();
   const openEvent: TimingEvent | null = failover ? {
     schema: 'gps-time.event/1', id: `pps-outage-${Math.floor(openStart / 1000)}`, type: 'PPS_OUTAGE',
@@ -843,6 +842,7 @@ function demoHoldover(tempNow: number, sampleUtc: string): OscillatorHoldover {
   return {
     provenance: 'modeled', thresholds_s: HOLD_THRESHOLDS, sample_utc: sampleUtc,
     note: 'Projections of how long the clock would take to drift past each error if GPS and PPS went away now and chrony kept running on its last frequency estimate. All three are models, not measurements and not guarantees: none has been checked against a real outage yet (that needs the offset measured when PPS comes back).',
+    scorecard: demoScorecard(skew, Math.abs(free)),
     projections: [
       proj('free_running', Math.abs(free), { basis: '|chrony Frequency|: how fast the clock would run with no correction at all' }),
       proj('trained_skew', skew, { basis: 'chrony Skew: its own bound on the error of the frequency it would keep applying; no temperature, no aging' }),
@@ -851,8 +851,40 @@ function demoHoldover(tempNow: number, sampleUtc: string): OscillatorHoldover {
         temp_source: "the last 24 h's temperature range", extrapolated: false, caveat: null,
         basis: `Skew + the profile's residual RMS + its largest frequency change for ${lo.toFixed(1)}–${hi.toFixed(1)} °C`,
       }),
+      { name: 'scored', provenance: 'modeled', available: false, rate_ppm: null, aging_ppm_per_day: 0,
+        times_s: HOLD_THRESHOLDS.map(() => null), reason: 'needs 3 scored outages, has 2' },
     ],
   };
+}
+
+// Mirrors holdover_check.Scorecard.summary() for the demo's three closed outages (synthetic).
+function demoScorecard(skew: number, free: number): HoldoverScorecard {
+  const now = Date.now(), day = 86400000;
+  const one = (startMs: number, tau: number, err: number, network: boolean): HoldoverCheckEntry => {
+    const preds = ([['free_running', free], ['trained_skew', skew]] as [string, number][]).map(([name, rate]) => {
+      const p = rate * 1e-6 * tau;
+      return { name, rate_ppm: rate, predicted_error_s: m(p, 's', 'modeled'),
+               ratio: m(+(Math.abs(err) / p).toFixed(4), null, 'calculated', 'measured / predicted; above 1, the model was too optimistic'),
+               held: Math.abs(err) <= p };
+    });
+    return { event_id: `pps-outage-${Math.floor(startMs / 1000)}`, start_utc: iso(startMs), end_utc: iso(startMs + tau * 1000 + 30000),
+             measured_utc: iso(startMs + tau * 1000), measured_at: 'recovery', time_since_start_s: m(tau, 's', 'calculated'),
+             measured_error_s: m(err, 's', 'observed', "kernel PPS timestamp's distance from the whole second; + = system clock ahead"),
+             prediction_sample_utc: iso(startMs - 30000), predictions: preds, network_ntp: network,
+             network_ntp_sources: network ? ['192.0.2.10'] : [], flags: network ? ['network_ntp'] : [], eligible: !network,
+             not_scored_because: network ? ['chrony selected network NTP during the outage, so the clock was steered'] : null };
+  };
+  const recent = [one(now - 2.1 * day, 26, 1.9e-7, false), one(now - 5.4 * day, 64, 7.1e-7, false), one(now - 9.0 * day, 1366, 2.1e-4, true)];
+  const scored = recent.filter(e => e.eligible);
+  const models = ['free_running', 'trained_skew'].map(name => {
+    const rs = scored.map(e => e.predictions.find(p => p.name === name)!);
+    const ratios = rs.map(p => p.ratio.value as number).sort((a, b) => a - b);
+    return { name, n: rs.length, held: rs.filter(p => p.held).length, provenance: 'calculated' as const,
+             median_ratio: +((ratios[0] + ratios[ratios.length - 1]) / 2).toFixed(4), worst_ratio: ratios[ratios.length - 1] };
+  });
+  return { provenance: 'calculated', entries: recent.length, eligible: scored.length, network_ntp: 1, score_min: 3, models, recent,
+           note: "Each outage's predicted error (modeled, from the projections when it began) against the error measured at the first good PPS pulse after recovery (observed). Outages where chrony used network NTP, or with no prediction, are listed but not scored.",
+           problems: [] };
 }
 
 function oscillatorExport(): OscillatorProfileExport {

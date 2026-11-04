@@ -55,6 +55,7 @@ Stage-by-stage status of GNSS → PPS → chrony, the PPS state machine, the sta
   - `classification`, `confidence`, `boundary`, `classification_provenance: "inferred"`
   - `evidence.at_start` and `evidence.latest`, `recovery`, `notes`
   - `start_bound`: present when the true start is earlier than recorded (`boot`, `service_start`)
+  - `recovery.network_ntp` (observed, boolean) and `recovery.network_ntp_sources`: whether chrony selected a network NTP source during the outage; `recovery.holdover_check`: `{measured_error_s, eligible, flags}` once the scorecard has measured it (`/api/oscillator` → `holdover.scorecard`)
 - `boot`: `phase` (`ACQUIRING`/`RUN`), `boot_utc`, `since_boot_s`, the acquire window, `pps_selected_this_boot`.
 - `raw`: raw `chronyc -n` tracking, sources and sourcestats text.
 - `demo`: `{scenario, description, scenarios, note}`, demo only.
@@ -241,6 +242,8 @@ SoC temperature logged with chrony's frequency estimate, in 10-minute bins. Type
     "temp_source": "the last 24 h's temperature range", "extrapolated": false, "caveat": null, "basis": "..."}],
  "note": "... not measurements and not guarantees ..."}
 ```
+
+- `holdover.scorecard` (#168; `architecture/oscillator-log.md` → "Holdover validation"): `entries`, `eligible` (scored), `network_ntp`, `score_min` (3), `models[]` (`{name, n, held, median_ratio, worst_ratio}`, calculated), `recent[]` (newest first, up to 20), `note`, `problems`. Each entry has `event_id`, `start_utc`, `measured_utc`, `measured_at` (`recovery` or `reselected`), `time_since_start_s` (calculated), `measured_error_s` (observed; + means the system clock was ahead), `predictions[]` (`{name, rate_ppm, predicted_error_s (modeled), ratio (calculated), held}`), `network_ntp`, `network_ntp_sources`, `flags`, `eligible` and `not_scored_because`. With a scorecard, each projection has `validated` (its model record, or null), and a fourth projection `scored` appears. It is unavailable, with a `reason`, until 3 outages are scored; after that it has `factor`, `from` and `outages`.
 
 - `profile_files`: `imported` (this board's file, in use) and `reference` (another board's, or one whose board can't be confirmed: reference only, with `warning` and its refitted `profile`), each `null` when absent. Each has `binding` (`match`, `mismatch` or `unverifiable`), `file`, `bins`, `exported_utc`, `board`, `receiver` and `software_version`.
 

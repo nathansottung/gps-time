@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-11-04 (fix/piaware-claim-note, #167): the PiAware card notes that claiming the feeder on flightaware.com asks for a location (for rc.4); the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
+Last updated: 2026-11-04 (feat/holdover-scorecard, #168): holdover validation, predicted against measured error at each outage, fed into the projections, with network-NTP outages flagged (for rc.4); the next-5 list is unchanged. Built from the specs, `roadmap/feature-registry.md`, `roadmap/current-scope.md` and `review/GPS-Time-Independent-Review-2026-09-27.md`, each checked against the code and tests.
 
 ## Next 5 tasks, in order
 
@@ -334,6 +334,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Feature A |  | Source-loss / fallback / reacquisition timeline | next | partial: backend + event list | [#4](https://github.com/nathansottung/gps-time/pull/4) [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Oscillator fractional-frequency history | done | chrony's frequency with the SoC temperature, 10-minute bins on the SD card (hourly, capped, board-bound); a straight-line slope. The trained profile (roadmap) is not built. Not yet run on a Pi | [#71](https://github.com/nathansottung/gps-time/pull/71) |
 | Feature A |  | Time-to-1 ms…1 s holdover estimates | planned | partial: legacy raw projection |  |
+| Feature A |  | Holdover validation: predicted against measured error at the first good PPS after each outage; a running scorecard fed into the projections (`scored`, from 3 outages); outages with chrony on network NTP flagged and not scored | done | owner, 2026-11-04; for rc.4; not yet run against a real outage; `architecture/oscillator-log.md` | [#168](https://github.com/nathansottung/gps-time/pull/168) |
 | Feature A |  | ADEV / MDEV / TDEV / TIE / MTIE | planned | partial: ADEV, MDEV, TDEV done (TM §1); TIE and MTIE not | [#55](https://github.com/nathansottung/gps-time/pull/55) |
 | Feature A |  | Error budget + light-distance | planned | partial: light-distance done | [#10](https://github.com/nathansottung/gps-time/pull/10) |
 | Feature A |  | Antenna/coax/user-delay calibration | planned |  |  |
