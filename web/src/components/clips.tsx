@@ -67,7 +67,7 @@ export function ClipsCard() {
         )}
         {check?.problem && <div className="text-[10px] mb-2" style={{ color: 'var(--warn-text)' }}>{check.problem}</div>}
         {msg && <div className="text-[10px] mono mb-2" role="status" style={{ color: COLOR[msg.variant] }}>{msg.text}</div>}
-        {!canWrite && auth.data && <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>Recording and deleting need the admin token (Administration → Admin access).</div>}
+        {!canWrite && auth.data && <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>Recording and deleting need an admin sign-in (Administration → Admin sign-in).</div>}
         {st && st.clips.length > 0 && (
           <div className="table-scroll"><table className="w-full text-[11px]" aria-label="Clips">
             <thead><tr>

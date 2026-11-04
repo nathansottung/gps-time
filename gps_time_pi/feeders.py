@@ -77,7 +77,7 @@ def mlat_on():
 
 
 def _service(name, conf):
-    if name == "custom" and conf and conf.get("FEED_HOST"):
+    if name.startswith("custom") and conf and conf.get("FEED_HOST"):
         return f"the custom aggregator {conf['FEED_HOST']}"
     return SERVICES.get(name, name)
 
@@ -101,7 +101,7 @@ def status(cfg, run=subprocess.run):
         row = {"name": n, "service": service, "unit": unit(n), "on": on,
                "active": q(states.get(n), None, "observed", "systemctl show ActiveState"),
                "target": f"{conf['FEED_HOST']}:{conf['FEED_PORT']}" if conf else None,
-               "confirm": service.split()[-1] if n == "custom" else service,
+               "confirm": service.split()[-1] if n.startswith("custom") else service,
                "shares": f"Shares the aircraft your station receives with {service}. It never gets the station's "
                          "position, but from the aircraft it hears it can tell roughly where the station is."}
         if n == "piaware":
@@ -115,8 +115,8 @@ def status(cfg, run=subprocess.run):
                                  "MLAT, which is off; PiAware never reads gpsd.")
         rows.append(row)
     return {"installed": bool(names), "feeders": rows, "location_display": (cfg or {}).get("location_display"),
-            "note": "Off unless turned on here, one by one, with the admin token and a typed confirmation "
-                    "(docs/deploy/feeders.md)."}
+            "note": "Off unless turned on here, each with an admin sign-in and a typed confirmation. Any number "
+                    "can run at once, each to its own aggregator (docs/deploy/feeders.md)."}
 
 
 def apply(cfg, body, run=subprocess.run):

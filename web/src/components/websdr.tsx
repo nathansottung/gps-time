@@ -136,7 +136,7 @@ export function WebSdrCard() {
             {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: COLOR[outcome.variant] }}>{outcome.text}</div>}
             <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>
               Anyone on the LAN can start and stop it; no admin token is needed.
-              {loginOn && !canWrite && auth.data ? ' Sign out all browsers needs the admin token (Administration → Admin access).' : ''}
+              {loginOn && !canWrite && auth.data ? ' Sign out all browsers needs an admin sign-in (Administration → Admin sign-in).' : ''}
             </div>
             <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>
               {loginOn
@@ -240,7 +240,7 @@ export function AirbandCard() {
             {open ? 'Hide channels' : 'Show channels'}</button>
         </div>
         {msg && <div className="text-[10px] mono mt-2" role="status" style={{ color: COLOR[msg.variant] }}>{msg.text}</div>}
-        {!canWrite && auth.data && <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Refresh needs the admin token (Administration → Admin access).</div>}
+        {!canWrite && auth.data && <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Refresh needs an admin sign-in (Administration → Admin sign-in).</div>}
         {open && st && (
           <div className="table-scroll mt-2"><table className="w-full text-[11px]" aria-label="Airband channels">
             <thead><tr>

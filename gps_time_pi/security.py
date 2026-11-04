@@ -5,7 +5,11 @@
 - Origin check on every POST: a browser always sends Origin on POST, so a
   cross-site form or fetch is refused. Clients without Origin (curl, scripts)
   still need the admin token.
-- Admin token: state-changing actions need `Authorization: Bearer <token>`.
+- Admin token: state-changing actions need `Authorization: Bearer <token>`, or the sign-in
+  cookie the token buys (POST /api/login): a signed, HttpOnly, SameSite=Strict cookie that lasts
+  until the browser closes (at most SESSION_S) or, with "Remember this browser", REMEMBER_DAYS.
+  Its key is a random file next to config.json bound to the stored token hash, so a new token
+  signs every browser out, and "Sign out all browsers" (a new key) does it without one.
   Only a SHA-256 of the token is stored (GTP_ADMIN_TOKEN_FILE, default
   admin-token.sha256 next to config.json). No file means admin is disabled.
   Create or replace it with `python3 -m gps_time_pi.admin_token`.
@@ -74,6 +78,105 @@ def verify_authorization(header):
     if scheme.lower() != "bearer" or not token.strip():
         return False
     return hmac.compare_digest(hash_token(token.strip()), stored)
+
+
+# ─── sign-in sessions (the admin login page) ─────────────────────────────────
+
+SESSION_COOKIE = "gtp_admin"
+REMEMBER_DAYS = 30
+SESSION_S = 12 * 3600
+
+
+def session_key_path():
+    configured = os.environ.get("GTP_ADMIN_SESSION_KEY")
+    if configured:
+        return configured
+    return os.path.join(os.path.dirname(os.path.abspath(token_path())), "admin-session.key")
+
+
+def _session_key(create=True):
+    path = session_key_path()
+    try:
+        with open(path, encoding="utf-8") as f:
+            key = bytes.fromhex(f.read().strip())
+        if len(key) >= 32:
+            return key
+    except (OSError, ValueError):
+        pass
+    return rotate_session_key() if create else None
+
+
+def rotate_session_key():
+    """A new random session key, written atomically (0600): every sign-in cookie stops working."""
+    import secrets
+    import tempfile
+    path = session_key_path()
+    key = secrets.token_bytes(32)
+    fd, tmp = tempfile.mkstemp(prefix=".admin-session.", dir=os.path.dirname(path) or ".")
+    try:
+        os.fchmod(fd, 0o600) if hasattr(os, "fchmod") else None
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(key.hex() + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    return key
+
+
+def _session_secret():
+    stored = _stored_hash()
+    if stored is None:
+        return None
+    return hmac.new(_session_key(), b"gps-time-admin-session/1|" + stored.encode(), hashlib.sha256).digest()
+
+
+def _mac(secret, body):
+    return hmac.new(secret, body.encode(), hashlib.sha256).hexdigest()
+
+
+def new_session(remember, now=None, days=REMEMBER_DAYS):
+    """(Set-Cookie value, expiry unix time) for a browser that just signed in with the token."""
+    import secrets
+    now = time.time() if now is None else now
+    secret = _session_secret()
+    if secret is None:
+        return None, None
+    life = int(days * 86400) if remember else SESSION_S
+    exp = int(now + life)
+    body = f"1.{exp}.{1 if remember else 0}.{secrets.token_hex(12)}"
+    value = f"{body}.{_mac(secret, body)}"
+    cookie = f"{SESSION_COOKIE}={value}; Path=/; HttpOnly; SameSite=Strict" + (f"; Max-Age={life}" if remember else "")
+    return cookie, exp
+
+
+def session_from(cookie_header, now=None):
+    """{expires, remembered} for a valid sign-in cookie in a Cookie header, else None."""
+    if not cookie_header:
+        return None
+    secret = _session_secret()
+    if secret is None:
+        return None
+    now = time.time() if now is None else now
+    for part in cookie_header.split(";"):
+        name, sep, value = part.strip().partition("=")
+        if not sep or name != SESSION_COOKIE:
+            continue
+        bits = value.split(".")
+        if len(bits) != 5 or bits[0] != "1" or not bits[1].isdigit() or bits[2] not in ("0", "1"):
+            continue
+        body = ".".join(bits[:4])
+        if hmac.compare_digest(_mac(secret, body), bits[4]) and int(bits[1]) > now:
+            return {"expires": int(bits[1]), "remembered": bits[2] == "1"}
+    return None
+
+
+SIGNED_OUT_COOKIE = f"{SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"
 
 
 def _split_host(value):

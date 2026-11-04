@@ -31,7 +31,10 @@ Needs the SDR stack's readsb (`GTP_SDR=1` with a 1090 MHz serial, `sdr-stack.md`
 sudo GTP_FEEDERS=1 bash install.sh                                   # the Beast aggregators
 sudo GTP_FEEDERS=1 GTP_FEEDERS_PIAWARE=1 bash install.sh             # and PiAware
 sudo GTP_FEEDERS=1 GTP_FEEDERS_CUSTOM=feed.example.org:30004 bash install.sh   # and one of your own
+sudo GTP_FEEDERS=1 GTP_FEEDERS_CUSTOM=feed.example.org:30004,feed2.example.org:30004 bash install.sh   # up to 4
 ```
+
+**Several at once:** every feeder has its own unit, UUID and switch, so any number can run together. Each is turned on with its own typed confirmation. `GTP_FEEDERS_CUSTOM` takes up to 4 comma-separated `host:port` entries, which become `custom`, `custom2`, `custom3` and `custom4`. A later run with a shorter list stops and removes the extra ones; their UUIDs are kept.
 
 From your PC, the deploy scripts pass these flags too (`../development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts").
 

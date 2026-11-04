@@ -95,13 +95,13 @@ export function FeedersCard({ canWrite, authKnown, onAuthError }: { canWrite: bo
         <CardBody>
           <ApiErrorNote error={st.error} />
           <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>
-            Optional: the aircraft the station receives, sent to the services you choose. Each is off until turned on here,
-            one by one, with its name typed out. No feeder is given the station's position; only MLAT shares it.
+            Optional: the aircraft the station receives, sent to the services you choose. Each is off until turned on here
+            with its name typed out; any number can run at once. No feeder is given the station's position; only MLAT shares it.
           </div>
           {d && !d.installed && <div className="text-[11px]" style={{ color: 'var(--t3)' }}>Not installed. It is optional: <span className="mono">sudo GTP_FEEDERS=1 bash install.sh</span> (docs/deploy/feeders.md).</div>}
           {d && d.feeders.map(r => <FeederCard key={r.name} row={r} canWrite={canWrite} busy={busy} send={send} />)}
           {result && <div className="text-[10px] mono mt-2" role="status" style={{ color: COLOR[result.variant] }}>{result.text}</div>}
-          {!canWrite && authKnown && d?.installed && <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Turning a feeder on or off needs the admin token (Admin access, above).</div>}
+          {!canWrite && authKnown && d?.installed && <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Turning a feeder on or off needs an admin sign-in (Admin sign-in, at the top).</div>}
         </CardBody>
       </Card>
       <Card pending={!d && !st.error}>
