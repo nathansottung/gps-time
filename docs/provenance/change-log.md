@@ -1963,5 +1963,6 @@ Owner, 2026-11-04: "Tag v1.6.0-rc.1 from main with notes recording the soak find
   - time of day nearly as close; SoC temperature a poor fit; C/N₀ by sector not recorded;
   - stated as a lead from three points, with no cause.
 - **Version lines:** README, START-HERE, ROADMAP, INDEX; the release record in `releases/README.md`; STATUS rows for the tag and the next soak run. `v1.5.1-plan.md` marked superseded.
-- **Unchanged:** the soak criteria and outage detection. v1.6.0 needs a clean 72-hour run of v1.6.0-rc.1.
+- **Owner, 2026-11-04: the formal soak waits for the antenna move.** The first run of rc.1 is for sector data and web SDR testing (`GTP_WEBSDR=1` allowed) and isn't a soak run. STATUS and the notes say so.
+- **Unchanged:** the soak criteria and outage detection. v1.6.0 needs a clean 72-hour run of v1.6.0-rc.1, after the antenna move.
 - **Tag:** `v1.6.0-rc.1` on this PR's merge commit, with a GitHub pre-release using these notes.
