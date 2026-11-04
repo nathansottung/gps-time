@@ -7,7 +7,7 @@ import { ApiErrorNote } from './planned';
 import { useStation, usePoll } from '../api/station';
 import { ApiError } from '../api/client';
 import type { FeederRow, SettingResult } from '../api/types';
-import { confirmed, feederState, locationWarning, outcome, sharingSummary, type Variant } from '../lib/feeders';
+import { claimNote, confirmed, feederState, locationWarning, outcome, sharingSummary, type Variant } from '../lib/feeders';
 
 const COLOR: Record<Variant, string> = { good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)' };
 const btn = { border: '1px solid var(--border)', color: 'var(--t2)' };
@@ -38,6 +38,7 @@ function FeederCard({ row, canWrite, busy, send }: {
   const [asking, setAsking] = useState<'on' | 'mlat' | null>(null);
   const st = feederState(row);
   const warn = locationWarning(row);
+  const claim = claimNote(row);
   return (
     <div className="py-2 row-sep" aria-label={`Feeder ${row.service}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -45,6 +46,7 @@ function FeederCard({ row, canWrite, busy, send }: {
         <StatusBadge variant={st.variant} label={st.label} dot={false} className="text-[9px]" />
       </div>
       <div className="text-[11px] mt-1" style={{ color: COLOR[warn.variant] }}>{warn.text}</div>
+      {claim && <div className="text-[11px] mt-0.5" style={{ color: 'var(--warn-text)' }}>{claim}</div>}
       <div className="text-[10px] mt-0.5" style={{ color: 'var(--t3)' }}>{row.shares}</div>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {row.on
