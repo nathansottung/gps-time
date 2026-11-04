@@ -876,9 +876,11 @@ From the owner's list.
 - `ROADMAP.md`: one page for outside readers. Every spec and roadmap in five phases, each with its status and the done / scheduled / planned counts from `STATUS.md` on 2026-10-19; `STATUS.md` stays authoritative.
 - `README.md`: a three-line vision linking `ROADMAP.md`.
 - `public-release-checklist.md`: DRAFT. History scan (secrets, coordinates, personal infrastructure, archives), current tree, release blockers, licensing, outside-reader docs, GitHub settings. Only the commit-identity check has been run (all noreply). Going public stays the owner's decision.
+
 ## 2026-10-19 — sunset as prominent as sunrise (#78)
 
 From the owner's list ("sunset prominence"). In the legacy dashboard's Sun & daylight widget, each day showed sunrise as the large figure and sunset in the small grey line under it ("Sunrise · 6:24:12 PM sunset"). Each day now has two figures of the same size, sunrise then sunset, each labeled. A content fix in one widget, not a restyle: no CSS changed. The `/app/` Overview already gave both the same size; unchanged. Tests: `web/src/lib/legacy-dashboard.test.ts` (3).
+
 ## 2026-10-19 — screenshot mode (#79)
 
 From the owner's list: a way to take screenshots of the station UI without showing where it is or who uses it.
@@ -906,6 +908,7 @@ Owner's request: port the legacy-removal blockers into `/app/`, one PR each. Thi
 - Afterwards the page shows the station's own answer. A request with no answer (timeout or network) is reported as "may still have run", not as a failure. Restart and reboot say the station will be unreachable for a while; the page's polling reconnects.
 - The legacy `/admin` page keeps its buttons; nothing is removed.
 - Tests: `web/src/lib/admin.test.ts` (8). Checked in the desktop demo (simulated: "demo, not executed"). Not run on a Pi.
+
 ## 2026-10-19 — survey reset in /app/ (#82)
 
 The second legacy-removal blocker (parity item 7).
@@ -919,6 +922,7 @@ The second legacy-removal blocker (parity item 7).
 ## 2026-10-19 — TypeScript 7 (#65)
 
 Dependabot's TypeScript 5.9 → 7.0.2, held for the owner on 2026-10-19 and merged after review. Its CI had failed on one error: TS 7 removed `baseUrl` (TS5102). The line is removed from `web/tsconfig.json`; `paths` (`@/*` → `./src/*`) now resolve relative to the file, and the `@/` imports still type-check. With main merged in: type check, 161 web tests and the build pass, and a deliberate type error is still reported. TypeScript is only the type check; Vite builds the bundle without it, so the shipped UI is unchanged.
+
 ## 2026-10-19 — Dependabot: @types/node majors ignored; #64 closed (#83)
 
 Owner's decision after review. #64 offered `@types/node` 22 → 26, but the web toolchain runs on Node 22 (`web/.mise.toml`, `.github/workflows/web.yml`). Types for Node 26 would let code use APIs Node 22 doesn't have and still pass the type check; #64's CI was green only because nothing uses them yet. #64 is closed, and `.github/dependabot.yml` now ignores semver-major `@types/node` updates (minor and patch still come). Raise the major by hand when the toolchain's Node changes (next LTS: 24).
@@ -1776,6 +1780,7 @@ Owner's request: build the v1.5.1 items now on main (no tag until the v1.5.0 soa
   - `tests/test_modules_toggle.py` (+3): the newest item with its labels, no position and no unlabeled value, bounds and staleness.
   - `web/src/lib/modules.test.ts` (+2, and the demo test).
   - `web/e2e/modules.spec.ts` (new): the card with output at 360, 768 and 1280 px, layout and design audits, and off again.
+
 ## 2026-10-27 — A flaky test: wall-clock times matched as positions (#143)
 
 Owner's request: the v1.5.1 items on main; item 2, the flaky-test fix.
@@ -2024,3 +2029,21 @@ Owner's rc.3 list. Roles were already given by serial (PPS, 1090, 978, and the w
   - `tests/test_sdr_status.py`: roles and the limit;
   - `web/src/lib/sdr.test.ts`: the limit line.
 - **Docs:** `deploy/sdr-stack.md` → "Roles and the limit", the web SDR guide, `/api/sdr`.
+
+## 2026-11-04 — Station migration: export and import in one encrypted file (#160)
+
+Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). Needed before the antenna move and for a second Pi.
+
+- **`python -m gps_time_pi.migrate export <file>` / `import <file> [--dry-run]`**, run with sudo in the station venv.
+- **Moves:** `config.json` (+ `.prev`), with the site survey, exact position, privacy mode, time zone and module settings; `station-key` and `.pub`; `admin-token.sha256`; the web SDR password hash; `oscillator-log.csv` and the two profile files.
+- **Never moves:** the event history and outage evidence (they describe the old install), and the sky-obstruction map (it describes the old antenna site).
+- **Oscillator:** the log keeps its board binding. On the same Pi it carries on; on another Pi the station sets it aside at start (`oscillator.py`, unchanged).
+- **Encrypted:** AES-256-GCM, with the key from scrypt (n = 2¹⁵, r = 8, p = 1). The header is authenticated as associated data. The passphrase is asked twice (at least 12 characters), never taken from arguments or the environment. The file is 0600 and handed to `SUDO_USER`; nothing is served over HTTP.
+- **Import:**
+  - refuses while `gps-time-pi` runs;
+  - verifies every file's SHA-256 and refuses entries it doesn't know, or with a path in their name;
+  - with root, checks the station's accounts exist before writing anything;
+  - keeps each replaced file as `<name>.before-migrate-<UTC>`, and writes atomically with `install.sh`'s owner and mode;
+  - is idempotent.
+- **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
+- **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
