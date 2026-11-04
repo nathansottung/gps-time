@@ -184,7 +184,7 @@ install -d -m 0755 "$OWRX_DATA"
 # the base VHF/UHF profiles; an existing one is kept (a copy is left beside it). On every RTL-SDR
 # the station's own profiles (keys gtp-*) are replaced: 10 m, 6 m and 2 m digital always, the HF
 # ones only with GTP_WEBSDR_HF=direct or native. The owner's own profiles are never touched.
-"$PY" - "$OWRX_DATA/settings.json" "$SERIAL" "$SRC/openwebrx-gps-time-profiles.json" "$HF" <<'PYEOF'   || { say "OpenWebRX+'s settings.json could not be read or updated; the package is installed, the units are not." >&2; exit 1; }
+"$PY" -I - "$OWRX_DATA/settings.json" "$SERIAL" "$SRC/openwebrx-gps-time-profiles.json" "$HF" <<'PYEOF'   || { say "OpenWebRX+'s settings.json could not be read or updated; the package is installed, the units are not." >&2; exit 1; }
 import copy, json, os, shutil, sys
 path, serial, profiles_path, hf = sys.argv[1:5]
 with open(profiles_path, encoding="utf-8") as f:
@@ -239,7 +239,7 @@ if [ ! -f "$PWDIR/password" ]; then
 fi
 if [ ! -s "$PWDIR/cookie-key" ]; then
   # Signs "Remember this browser" cookies; a new one (websdr_gate signout-all) signs every browser out.
-  KEY="$("$PY" -c 'import secrets; print(secrets.token_hex(32))')" || fail "no cookie key could be made"
+  KEY="$("$PY" -I -c 'import secrets; print(secrets.token_hex(32))')" || fail "no cookie key could be made"
   (umask 077; printf '# The web SDR cookie key (gps_time_pi/websdr_gate.py).\n%s\n' "$KEY" > "$PWDIR/cookie-key")
 fi
 install -m 0755 "$SRC/websdr-handoff" "$LIB/websdr-handoff"

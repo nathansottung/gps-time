@@ -3,13 +3,16 @@ Description=Sign out every browser of GPS Time's web SDR (a new cookie key; rest
 Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
 
 # Installed by scripts/websdr.sh (GTP_WEBSDR=1). Started by the admin action websdr_signout_all
-# (admin token; polkit allows start only). Writes /etc/gps-time-websdr/cookie-key and runs
-# `systemctl try-restart gps-time-websdr-gate.service`. Nothing else.
+# (admin token; polkit allows start only). Writes a new random /etc/gps-time-websdr/cookie-key
+# and restarts a running gate. Runs as root, so it runs no Python and nothing from
+# /opt/gps-time-pi, which the web service's user can write: only coreutils and systemctl.
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/gps-time-pi
-ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate signout-all
+UMask=0077
+WorkingDirectory=/
+ExecStart=/bin/sh -c 'k=$$(od -An -tx1 -N32 /dev/urandom | tr -d " \\n") && [ $${#k} -eq 64 ] && printf "# The web SDR cookie key (gps_time_pi/websdr_gate.py).\\n%%s\\n" "$$k" > /etc/gps-time-websdr/cookie-key.tmp && mv -f /etc/gps-time-websdr/cookie-key.tmp /etc/gps-time-websdr/cookie-key'
+ExecStartPost=/bin/systemctl try-restart gps-time-websdr-gate.service
 ProtectSystem=strict
 ReadWritePaths=/etc/gps-time-websdr
 ProtectHome=yes
