@@ -414,6 +414,7 @@ class TestScript(unittest.TestCase):
         self.assertIn("no password yet", r.stdout)
         calls = self.calls()
         self.assertIn("systemctl mask openwebrx.service", calls)
+        self.assertIn("blacklist dvb_usb_rtl28xxu", (self.root / "etc/modprobe.d/gps-time-rtl-sdr.conf").read_text())
         self.assertFalse([c for c in calls if c.startswith("systemctl enable") or c.startswith("systemctl start")])
         self.assertFalse([c for c in calls if "chrony" in c or "gpsd" in c])
 

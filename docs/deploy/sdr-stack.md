@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiH
 **What it changes on the station:**
 - **Packages:** `rtl-sdr`, `readsb` and `soapysdr-module-rtlsdr`. For the dump978 build: `git`, `build-essential` and the Boost and SoapySDR development packages.
 - **readsb's own `readsb.service` is masked** before the package is installed, so it can't take the first dongle it finds, which could be the PPS one. Exception: if `readsb` was already installed and enabled, it's left alone, `gps-time-readsb` stays off, and the module reads that instance's `/run/readsb`.
-- **The DVB-T driver** (`dvb_usb_rtl28xxu`) is unloaded if it is loaded. `rtl-sdr`'s blacklist keeps it out after a reboot.
+- **The DVB-T driver** (`dvb_usb_rtl28xxu`, with `rtl2832` and `rtl2832_sdr`) would claim every RTL-SDR as it's plugged in. `scripts/rtl-dvb-blacklist.sh` writes `/etc/modprobe.d/gps-time-rtl-sdr.conf` (those three and `rtl2830`), so it stays off from the next boot, and unloads it now if it's loaded. If a dongle is busy and it can't be unloaded, the script says to reboot. It never names a shared module (`dvb_core`, `videodev`, `regmap_i2c`), and changes nothing in `/boot` or the initramfs (#157).
 - **dump978 is built as `nobody`** from a shallow clone of tag v11.1. The build stops unless the clone is commit `f40aa9a0d2d0a0067c0c628b44ba316f7049b8ce`. Only the two binaries are installed, in `/usr/local/lib/gps-time-sdr/`. `-Werror` is dropped, so a newer compiler's new warnings don't stop the build.
 
 **Never touched:** gpsd, chrony, the PPS line and its overlay, and `/boot`. No decoder is given the station's position: there's no `--lat`/`--lon`, and readsb runs with `--json-location-accuracy 0`.
@@ -54,7 +54,7 @@ The web SDR (`GTP_WEBSDR=1`, `websdr.md`) can share the 1090 MHz dongle: readsb 
 sudo GTP_SDR=0 bash install.sh
 ```
 
-This stops and removes the four units and the drop-in. It keeps the packages, `/etc/default/gps-time-sdr`, the dump978 build and the mask on `readsb.service` (`sudo systemctl unmask readsb` lifts it).
+This stops and removes the four units and the drop-in. It keeps the packages, `/etc/default/gps-time-sdr`, the dump978 build, the mask on `readsb.service` (`sudo systemctl unmask readsb` lifts it) and the DVB-T blacklist (`sudo rm /etc/modprobe.d/gps-time-rtl-sdr.conf`, then reboot, lets the TV driver claim dongles again).
 
 ## Then: turn the modules on in Administration
 
