@@ -59,6 +59,16 @@ Radio & SDR → Devices → Web SDR: state, serial, port, session limit, **Start
 
 The listening page is plain HTTP and Basic credentials are only base64 on the wire, so use it on the LAN only. The gate drops anything from outside the private ranges, whatever a router forwards. OpenWebRX+ itself can reach no host but the station: map tiles, PSK Reporter, APRS-IS, receiver lists and update checks don't work, and nothing is reported anywhere. Its map page may still ask the browser to load map tiles from the Internet.
 
+### Check it from your PC
+
+Once it runs and has a password, from any machine on the LAN with this repository:
+
+```sh
+python -m gps_time_pi.websdr_gate check http://<station>:8073/
+```
+
+It asks for the password. Then it checks three things: the gate refuses a request with no credentials; with them, the WebSocket at `/ws/` upgrades through the gate; and OpenWebRX+ answers its handshake (`CLIENT DE SERVER server=openwebrx …`). Then it closes cleanly. It changes nothing, though OpenWebRX+ may open the dongle for a moment. Exit status 0 when all three pass. The same client runs in CI against a fake OpenWebRX+ behind the real gate (`tests/test_websdr_websocket.py`), and checks the upgrade, a 76,800-byte server frame, a masked client frame split across writes, and the close.
+
 ## The usage log
 
 The owner asked for CPU, temperature and PPS jitter while it is in use. The web service (`gps_time_pi/websdr.py`) keeps:
