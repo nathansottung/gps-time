@@ -12,6 +12,8 @@ Routes:
                      experimental switch, each module's setting and settings, the SDR modules'
                      readiness; changed by POST /api/setting
   /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
+  /api/airband       airband bookmarks for the web SDR: built-ins and the FAA NASR set with its cycle
+                     and staleness; refreshed by the admin action refresh_airband
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
                      (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
@@ -40,7 +42,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import capability, sdr, skymap, websdr
+from . import airband, capability, sdr, skymap, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -757,6 +759,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(sdr_payload())
             elif p == "/api/websdr":
                 self._json(websdr_payload())
+            elif p == "/api/airband":
+                self._json(demo.airband_status(config.load()) if DEMO_MODE else airband.status(config.load()))
             else:
                 self.send_error(404)
         except BrokenPipeError:

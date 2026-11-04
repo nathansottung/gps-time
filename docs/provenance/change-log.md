@@ -2066,3 +2066,26 @@ Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the wa
   - With no password, `check` says so.
 - **Caught on the way:** the first draft named the new client `check`, which replaced the gate's password check of the same name, and every login crashed. The new test failed on it; the client is `check_station`.
 - **Docs:** `deploy/websdr.md` → "Check it from your PC".
+
+## 2026-11-04 — FAA airband bookmarks for the web SDR, offline, with the NASR cycle date (#162)
+
+Owner's rc.3 list and design: NASR data; the cycle date shown on the bookmarks, flagged past 28 days; a "refresh now" admin button like the TLE cache.
+
+- **`gps_time_pi/airband.py`:**
+  - **Built-ins:** 121.5 guard, 122.75, 123.025, 122.9.
+  - **The NASR set,** from the FAA's 28-day FRQ CSV of the current cycle. The cycles come from the anchor 2026-10-29, checked against the FAA's page today. URLs use fixed month names, not the locale's.
+  - **Filter:** VHF airband, 118.000–136.975 MHz AM, within 80 km of `config.privacy_site` (exact or rounded); deduplicated.
+  - **Columns** are read by header; a missing `FREQ`, `LAT_DECIMAL` or `LONG_DECIMAL` is refused.
+  - **Writes:** `airband-bookmarks.json` and OpenWebRX+'s `airband-openwebrx.json`, atomically, once per refresh. The station's position isn't in either.
+  - **Hidden mode:** nothing is fetched. A failed refresh keeps the previous bookmarks and is recorded in `airband-refresh.json`.
+- **Refresh now:**
+  - the admin action `refresh_airband` runs `systemctl start --no-block gps-time-airband-fetch.service`, a one-shot unit as `gps-time` (`ProtectSystem=strict`, writes only `/opt/gps-time-pi`), never enabled or timed;
+  - polkit allows starting that unit only;
+  - `websdr.sh` installs it, and links `/etc/openwebrx/bookmarks.d/gps-time-airband.json` to the file it writes;
+  - the web service never fetches.
+- **`GET /api/airband`** and the **Airband bookmarks** card on Radio & SDR → Devices: the cycle line (good, or a warning past 28 days with the current cycle), the last refresh, Refresh now, and the channels with their source.
+- **Tests:**
+  - `tests/test_airband.py`: the cycles, URLs, parsing (the radius, VHF only, duplicates), an unknown layout, a refresh with an injected download, rounded and hidden modes, bad downloads keeping the old set, staleness, the wiring;
+  - the admin and polkit tests;
+  - `web/src/lib/airband.test.ts`.
+- **Not verified:** the FAA's file server answered this machine with 503, so the FRQ column names are the expected ones, not confirmed; a mismatch shows as a failed refresh. Not run on a Pi.
