@@ -666,7 +666,7 @@ class TestScript(unittest.TestCase):
         self.assertTrue(pw.is_file())
         self.assertIsNone(gate.load(pw))                                    # closed until the owner sets one
         self.assertEqual(stat.S_IMODE(pw.stat().st_mode), 0o600)
-        self.assertIn("no password yet", r.stdout)
+        self.assertNotIn("no password yet", r.stdout)                       # login off: no password asked for
         calls = self.calls()
         self.assertIn("systemctl mask openwebrx.service", calls)
         self.assertIn("blacklist dvb_usb_rtl28xxu", (self.root / "etc/modprobe.d/gps-time-rtl-sdr.conf").read_text())
