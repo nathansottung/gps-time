@@ -39,6 +39,8 @@ sudo GTP_SDR=1 GTP_SDR_PPS_SERIAL=00000pps GTP_SDR_1090_SERIAL=00001090 GTP_SDR_
 - has `Nice=5` for the decoders;
 - has caps: rtl_tcp 40 % CPU / 128 MiB; readsb and dump978 80 % / 192 MiB each; skyaware978 20 % / 64 MiB.
 
+The web SDR (`GTP_WEBSDR=1`, `websdr.md`) can share the 1090 MHz dongle: readsb stops while it runs and starts again afterwards.
+
 ## Remove
 
 ```sh

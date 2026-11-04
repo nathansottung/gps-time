@@ -149,6 +149,10 @@ ACTIONS = {
     "restart_gpsd": ["systemctl", "restart", "gpsd.service"],
     # The root oneshot unit does the copy; the service user may only start it.
     "flush_logs": ["systemctl", "start", "gps-time-pi-logflush.service"],
+    # The optional web SDR (GTP_WEBSDR=1): starting it stops readsb (Conflicts=); stopping it
+    # brings readsb back. Fails harmlessly when the unit isn't installed.
+    "websdr_start": ["systemctl", "start", "gps-time-websdr.service"],
+    "websdr_stop": ["systemctl", "stop", "gps-time-websdr.service"],
 }
 DELAYED = {   # detach so the HTTP response gets out before the process/host goes down
     "restart_web": (1.0, ["systemctl", "restart", "gps-time-pi.service"], "restarting in 1 s"),

@@ -1,0 +1,53 @@
+[Unit]
+Description=OpenWebRX+ web SDR for GPS Time (127.0.0.1:8074, reached through gps-time-websdr-gate; readsb stops while it runs)
+Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
+After=network.target gps-time-readsb.service readsb.service
+# One dongle, one owner: starting the web SDR stops readsb first (After= waits for it to let go of
+# the dongle). websdr-handoff starts readsb again when the web SDR stops.
+Conflicts=gps-time-readsb.service readsb.service
+Wants=gps-time-websdr-gate.service
+
+# Installed by scripts/websdr.sh (sudo GTP_WEBSDR=1 bash install.sh), never enabled at boot: it is
+# started and stopped from the Radio page (admin token; polkit allows start and stop only) or
+# with systemctl. The drop-in gps-time-websdr.service.d/gps-time-max.conf sets RuntimeMaxSec=,
+# so a forgotten session ends by itself and readsb comes back.
+# Never touched: gpsd, chrony, the PPS line. OpenWebRX+ is given no receiver position by the
+# installer, and with IPAddressDeny=any it can reach nothing beyond this machine.
+
+[Service]
+Type=simple
+User=openwebrx
+Group=openwebrx
+SupplementaryGroups=plugdev
+Environment=HOME=/tmp
+ExecStart=/usr/bin/openwebrx
+ExecStopPost=+/usr/local/lib/gps-time-sdr/websdr-handoff
+# No restart: a crash or the RuntimeMaxSec= limit ends the session, and readsb comes back.
+Restart=no
+Nice=10
+CPUQuota=200%
+MemoryMax=512M
+
+# Loopback only: the LAN reaches it through the gate, and it reaches no outside host
+# (no map tiles, reporting or updates fetched by the station).
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+DevicePolicy=closed
+DeviceAllow=char-usb_device rw
+ProtectSystem=strict
+ReadWritePaths=/var/lib/openwebrx
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native

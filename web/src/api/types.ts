@@ -986,6 +986,46 @@ export interface SdrStatus {
   note: string;
 }
 
+// ─── GET /api/websdr ─────────────────────────────────────────────────────────
+// The optional web SDR, OpenWebRX+ behind a password gate (gps_time_pi/websdr.py;
+// docs/deploy/websdr.md), and its usage log: CPU, temperature and PPS jitter while it runs.
+
+export interface WebSdrBin {
+  t: number; active: boolean;
+  cpu_pct: number | null; cpu_max_pct: number | null; websdr_cpu_pct: number | null;
+  temp_c: number | null; temp_max_c: number | null;
+  pps_pulses: number; pps_jitter_ns: number | null; pps_max_abs_ns: number | null;
+}
+
+export interface WebSdrSummary {
+  minutes: number;
+  cpu_mean_pct: Measured<number>; cpu_max_pct: Measured<number>; websdr_cpu_mean_pct: Measured<number>;
+  temp_mean_c: Measured<number>; temp_max_c: Measured<number>;
+  pps_jitter_median_ns: Measured<number>; pps_jitter_max_ns: Measured<number>;
+  pps_max_abs_ns: Measured<number>; pps_pulses: Measured<number>;
+}
+
+export interface WebSdrSession {
+  start_utc: string; partial: boolean; truncated: boolean; bins: WebSdrBin[];
+  before: WebSdrSummary | null; during: WebSdrSummary | null;
+}
+
+export interface WebSdrPastSession {
+  format: string; start_utc: string; end_utc: string; duration_s: number; partial: boolean; truncated: boolean;
+  before: WebSdrSummary | null; during: WebSdrSummary | null;
+}
+
+export interface WebSdrStatus {
+  installed: boolean | null;      // null: systemctl couldn't be read (UNKNOWN)
+  active: Measured<string>;
+  port: number | null; serial: string | null; max_hours: number | null;
+  usage: {
+    session: WebSdrSession | null; baseline: WebSdrSummary | null; recent: WebSdrPastSession[];
+    file: { name: string; error: string | null }; note: string;
+  };
+  note: string;
+}
+
 // ─── GET /api/sky-obstruction ────────────────────────────────────────────────
 // The learned sky-obstruction map (gps_time_pi/skymap.py): cells of 10° azimuth × 5° elevation,
 // each against the rest of its elevation band. Inferred; off in hidden mode.
@@ -1046,7 +1086,8 @@ export interface Capability {
 
 // ─── GET /api/admin ──────────────────────────────────────────────────────────
 
-export type AdminAction = 'flush_logs' | 'restart_gpsd' | 'restart_chrony' | 'restart_web' | 'reboot';
+export type AdminAction = 'flush_logs' | 'restart_gpsd' | 'restart_chrony' | 'restart_web' | 'reboot'
+  | 'websdr_start' | 'websdr_stop';
 export interface AdminResult { ok: boolean; action: string; detail: string; simulated?: true }
 
 // ─── GET /api/auth ───────────────────────────────────────────────────────────

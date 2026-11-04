@@ -155,6 +155,15 @@ echo "== SDR stack (optional, off unless asked for) =="
 bash scripts/sdr-stack.sh \
   || echo "Warning: the SDR stack was not changed (see the message above)."
 
+echo "== Web SDR (optional, off unless asked for) =="
+# OpenWebRX+ behind a password gate, LAN only; readsb stops while it runs. Nothing is installed
+# unless GTP_WEBSDR is set:
+#   sudo GTP_WEBSDR=1 [GTP_WEBSDR_SERIAL=...] bash install.sh
+#   sudo GTP_WEBSDR=0 bash install.sh     remove the units again (packages are kept)
+# A failure here leaves the station as it was; it never stops the install (docs/deploy/websdr.md).
+bash scripts/websdr.sh \
+  || echo "Warning: the web SDR was not changed (see the message above)."
+
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
 # Debian's polkitd package owns this directory and sets its owner and mode.
 # Create it only if it is missing; never change an existing one.

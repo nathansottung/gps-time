@@ -1,0 +1,47 @@
+[Unit]
+Description=Password gate for GPS Time's web SDR (LAN only, port from /etc/default/gps-time-websdr)
+Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
+# Runs exactly while the web SDR runs.
+BindsTo=gps-time-websdr.service
+After=gps-time-websdr.service
+
+# Installed by scripts/websdr.sh (GTP_WEBSDR=1). HTTP Basic login on every new connection, then
+# the connection is joined to OpenWebRX+ on 127.0.0.1:8074 (gps_time_pi/websdr_gate.py). With no
+# password set it answers 503 to everything. Set one with:
+#   sudo /opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate passwd
+# The password file is handed over as a credential at start: a new password applies from the
+# next start of the web SDR.
+
+[Service]
+EnvironmentFile=/etc/default/gps-time-websdr
+LoadCredential=password:/etc/gps-time-websdr/password
+WorkingDirectory=/opt/gps-time-pi
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate serve --port ${GTP_WEBSDR_PORT} --file %d/password
+Restart=on-failure
+RestartSec=5
+DynamicUser=yes
+PrivateDevices=yes
+
+# The LAN only: private IPv4 ranges, link-local, IPv6 unique-local, and the loopback (OpenWebRX+).
+# Anything else is dropped before it reaches the gate, whatever a router forwards.
+IPAddressAllow=localhost 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 fc00::/7 fe80::/10
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+MemoryMax=64M
+CPUQuota=30%

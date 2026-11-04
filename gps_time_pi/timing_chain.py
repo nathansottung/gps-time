@@ -806,6 +806,7 @@ class TimingChainService:
         self._thread, self._stop = None, None
         self._poller = None
         self._pps_selected = None
+        self.pps_listeners = []        # callables given each newest kernel PPS timestamp (websdr usage log)
 
     def poll_pps(self):
         """Read the kernel PPS once and record the newest event's phase. The
@@ -816,6 +817,8 @@ class TimingChainService:
         if last is not None:
             # One phase sample per kernel PPS event; the recorder ignores a repeat.
             self.stability.add(last[1], self._pps_selected)
+            for listener in self.pps_listeners:
+                listener(last[1])
 
     def tick(self, refresh_chrony=None, poll_pps=True):
         """Evaluate the chain. poll_pps=False when the poller thread reads the
