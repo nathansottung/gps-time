@@ -2195,3 +2195,16 @@ Then (owner, "go."): every Beast feeder card gets the same amber line, "Shares y
 ## 2026-11-04 — The PiAware card: claiming the feeder on flightaware.com asks for a location (#167)
 
 Owner's rc.4 list, item 1. The PiAware card on Administration now shows, in amber under the location warning: "Claiming this feeder on flightaware.com asks for your location; anything you enter there is shared with FlightAware." The same sentence is in `deploy/feeders.md`, under PiAware's feeder ID. It's on the PiAware card only (`claimNote()` in `web/src/lib/feeders.ts`); a Vitest case covers it. Nothing the station sends has changed.
+
+## 2026-11-04 — Bench kit: station and RF parts with checked links and dated prices (#169)
+
+Owner's rc.4 list, item 3. `validation/bench-kit.md` keeps its timing-validation kit (Levels 1 and 2, no prices) and gains eight sections: GNSS receivers, antennas and a splitter, coax and connectors, lightning and surge protection, SDR gear, VLF, the all-sky camera, and the mast. Every linked page was opened on 2026-11-04 and showed the product, and each price is what that page showed then, in its currency. That reverses the doc's earlier "no prices" line at the owner's request; the dates say how old each price is. Parts whose page couldn't be opened that day (HTTP 403, 404 or 429) are named without a link or price.
+
+Found while checking:
+- the RTL-SDR Blog V4 is end-of-life, and the V4L is its successor (`hardware/HARDWARE-REFERENCE-NODE.md` notes it);
+- SparkFun's ZED-F9T board is retired in favour of the ZED-F9T-20B board;
+- the FlightAware Pro Stick Plus's filter rules out 978 MHz;
+- several items showed a price but were sold out;
+- the common coax ground blocks are 75 Ω F-type, so not for these feeds.
+
+The grounding section names what's needed and leaves the bond to a qualified electrician. It gives no wiring instructions.

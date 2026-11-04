@@ -96,7 +96,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - existing: `DEVELOPMENT.md`, `GITHUB-PUBLISHING.md`, `deployment-runbook.md`
 
 ## Validation
-- `validation/bench-kit.md` — what to buy or borrow to validate timing from outside the Pi: counter or scope, probes, line driver, an independent reference (second receiver, GPSDO), splitter for a shared antenna; examples, no prices
+- `validation/bench-kit.md` — what to buy or borrow to validate timing from outside the Pi: counter or scope, probes, line driver, an independent reference (second receiver, GPSDO), splitter for a shared antenna; then the station and RF parts (GNSS, antennas, coax, surge protection, SDR, VLF, all-sky camera, mast) with links and prices checked 2026-11-04
 - `validation/second-pulse.md` — the system clock on a GPIO pin at each second, compared with the receiver's PPS on a scope or counter (`gps_time_pi/secpulse.py`, `tools/pps_compare.py`): wiring, run, compare, what it can't show
 
 ## Hardware
