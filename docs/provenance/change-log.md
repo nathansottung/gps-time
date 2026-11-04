@@ -1918,7 +1918,7 @@ Docs only. The scheduled read-only check of the Pi on 2026-10-29 at 18:30 UTC, 3
 - **Not done, by the owner's rule:** no v1.5.0 tag, no release notes for it, no v1.6.0-rc.1 (the branch `docs/release-v1.6.0-rc.1` is left as it is). A run that fails only on outages is reported to the owner, who decides about v1.5.0 and v1.6.0-rc.1. Outage detection is not weakened.
 - Recorded in `development/raspberry-pi-deploy.md` → "Soak run of v1.5.0-rc.1" (every criterion, the `[REC]` lines, the events, the state at the check), the Record table in `releases/README.md`, and the soak row in `STATUS.md`.
 
-## 2026-11-04 — Optional web SDR: OpenWebRX+ behind a password gate, with a usage log
+## 2026-11-04 — Optional web SDR: OpenWebRX+ behind a password gate, with a usage log (#152)
 
 Owner request: an optional `GTP_WEBSDR=1` that installs OpenWebRX+ on the station, LAN-only and password-protected, linked from the Radio page; it gets the dongle to itself with readsb stopped while it runs; CPU, temperature and PPS jitter logged while it's in use. Decision: `decisions/ADR-0009-web-sdr-on-station.md`; guide: `deploy/websdr.md`.
 
