@@ -593,8 +593,8 @@ def timing_chain(scenario="pps_selected"):
         if sc["pulses"] == "missing":
             return "missing", None, None
         if sc["pulses"] == "lost" or (sc["pulses"] == "recover" and t < end - 12):
-            return "ok", lost_at, seq0
-        return "ok", float(int(t)) + 1.2e-7, seq0 + int(t - lost_at)
+            return "ok", int(lost_at) * 1_000_000_000, seq0
+        return "ok", int(t) * 1_000_000_000 + 120, seq0 + int(t - lost_at)
 
     def device_state():
         if scenario == "chrony_unknown":

@@ -1934,3 +1934,17 @@ Owner request: an optional `GTP_WEBSDR=1` that installs OpenWebRX+ on the statio
 - **UI:** Radio & SDR → Devices → Web SDR: state, serial, port, session limit, Start (asks first), Stop, the link while it runs, and before/during figures for this or the last session (`web/src/components/websdr.tsx`, `web/src/lib/websdr.ts`). The demo adapter and `GTP_DEMO=1` have synthetic answers.
 - **Tests:** `tests/test_websdr.py` (gate credentials, backoff, an end-to-end proxy on the loopback; the usage log with a manual clock: before and during, partial sessions, missed pulses, the file cap; units; the script under stub commands: defaults, refusals, an existing OpenWebRX+ settings file, apt failure, an owner's OpenWebRX, removal); `tests/test_admin_auth.py` (the two actions, the polkit rule); `web/src/lib/websdr.test.ts` (5).
 - **Not verified:** nothing has run on a Pi: the package on trixie arm64, OpenWebRX+ under this hardening, the serial pin, the readsb handoff, the session limit, the load.
+
+## 2026-11-04 — PPS timestamps in integer nanoseconds; the soak outages against the RTL-SDR's USB connect (#153)
+
+Owner request, after #152: check whether the 2026-10-29 soak outages line up with the RTL-SDR's USB connect time (read-only on the Pi), and fix PPS timestamps to integer nanoseconds end to end.
+
+- **The check** (read-only SSH; `development/raspberry-pi-deploy.md` → "Soak run of v1.5.0-rc.1" → follow-up): the persistent journal covers the whole run. The dongle's only USB connect this boot is 2026-11-04 14:56:05 UTC, six days after the check; there was no USB event during the run. So the outages can't line up with plugging it in. Their cause is still not established. The only kernel lines in the run are Ethernet link flaps on 2026-10-29 around 08:11 UTC, away from every outage.
+- **Why the fix:** `pps.read_assert` turned `<sec>.<nsec>` into a float of seconds. Near today's epoch a float steps in about 238 ns, so the phases fed to `/api/stability` and the web SDR usage log were quantized to that. A ±37 ns phase read as 0 (ADEV 0 instead of 1.05 × 10⁻⁷). On this station's real figures (ADEV(1 s) about 1.5 × 10⁻⁶, chrony's PPS std dev about 370 ns) the effect was a small added quantization noise, not a wrong order of magnitude.
+- **Now:**
+  - `read_assert` returns integer ns: `sec * 10⁹ + nsec`, with a short fraction right-padded;
+  - `PPSMonitor` keeps integer-ns timestamps and intervals; missed pulses are counted in integer arithmetic; seconds are made only from differences (interval, rate, phase), plus the display time and the coarse age;
+  - `pps.phase_ns` gives the nearest second and the signed phase in ns; `stability.Recorder.add` and `websdr.UsageLog.add_pps` take integer ns and refuse a float (`pps.require_ns`);
+  - the demo's PPS reader gives integer ns.
+- **No API change:** every payload keeps its shape and units (seconds where it had seconds).
+- **Tests:** existing PPS, stability and usage-log tests feed integer ns. New: an exact ±37 ns phase series and its ADEV, `phase_ns` at the rounding edges, a float refused, an interval of 1 s + 30 ns kept exactly, `read_assert` exact. The usage-log jitter test is now exact to 0.2 ns, not 250 ns.

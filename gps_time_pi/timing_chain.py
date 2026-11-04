@@ -815,7 +815,7 @@ class TimingChainService:
         self.monitor.poll()
         last = self.monitor.last_event()
         if last is not None:
-            # One phase sample per kernel PPS event; the recorder ignores a repeat.
+            # One phase sample per kernel PPS event (integer ns); the recorder ignores a repeat.
             self.stability.add(last[1], self._pps_selected)
             for listener in self.pps_listeners:
                 listener(last[1])

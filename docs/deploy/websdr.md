@@ -71,7 +71,7 @@ The Radio page shows this session's (or the last one's) before and during side b
 
 What it can and can't say:
 - It shows what changed while the web SDR ran, not why. A higher jitter during a session is a correlation; the station names no cause.
-- The PPS timestamps reach Python as floats, which near today's epoch resolve about 0.24 µs. Jitter figures near that are at the resolution limit. The same holds for `/api/stability`.
+- The PPS timestamps are integer nanoseconds from the kernel's text on (since #153), so the jitter figures resolve to 1 ns. Before that they were floats, which near today's epoch resolve only about 0.24 µs.
 - A session that was already running when the web service started is marked partial: its first part wasn't recorded.
 - The soak record (`tools/soak_check.py`) doesn't include the web SDR's units; a soak run should be done with the web SDR stopped.
 

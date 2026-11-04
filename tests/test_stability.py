@@ -172,7 +172,7 @@ class TestRecorder(unittest.TestCase):
             phase = rng.gauss(0, sigma)
             if i in skip:
                 continue
-            rec.add(start + i + phase, selected)
+            rec.add((start + i) * 1_000_000_000 + round(phase * 1e9), selected)
 
     def test_empty_recorder_reports_unknown_not_zero(self):
         rep = stability.Recorder(clock=lambda: 0.0).report()
@@ -223,13 +223,41 @@ class TestRecorder(unittest.TestCase):
     def test_the_same_second_twice_is_recorded_once(self):
         rec = stability.Recorder(clock=lambda: 0.0)
         for _ in range(3):
-            rec.add(1_790_000_000.0000002, True)
+            rec.add(1_790_000_000_000_000_200, True)
         self.assertEqual(rec.report()["series"]["seconds"]["samples"], 1)
+
+    def test_integer_ns_keep_phases_a_float_would_lose(self):
+        # Near 1.79e9 s a float timestamp steps in about 238 ns; integer ns keep each phase exactly.
+        rec = stability.Recorder(clock=lambda: 0.0)
+        start = 1_790_000_000 * 1_000_000_000
+        for i in range(600):
+            rec.add(start + i * 1_000_000_000 + (37 if i % 2 else -37), True)
+        with rec._lock:
+            phases = list(rec._sec)
+        self.assertEqual(sorted(set(round(p * 1e9) for p in phases)), [-37, 37])
+        first = rec.report()["points"][0]
+        # Alternating +/-37 ns: second differences are +/-148 ns, so ADEV(1 s) = 148e-9 / sqrt(2).
+        self.assertAlmostEqual(first["adev"], 148e-9 / math.sqrt(2), delta=1e-12)
+
+    def test_phase_is_found_in_integer_arithmetic(self):
+        from gps_time_pi import pps
+        ns = 1_000_000_000
+        self.assertEqual(pps.phase_ns(1_790_000_000 * ns + 1), (1_790_000_000, 1))
+        self.assertEqual(pps.phase_ns(1_790_000_000 * ns - 1), (1_790_000_000, -1))
+        self.assertEqual(pps.phase_ns(1_790_000_000 * ns + ns // 2), (1_790_000_000, ns // 2))
+        self.assertEqual(pps.phase_ns(1_790_000_000 * ns + ns // 2 + 1), (1_790_000_001, -(ns // 2) + 1))
+
+    def test_a_float_timestamp_is_refused(self):
+        rec = stability.Recorder(clock=lambda: 0.0)
+        with self.assertRaises(TypeError):
+            rec.add(1_790_000_000.0000002, True)
+        with self.assertRaises(TypeError):
+            rec.add(True, True)
 
     def test_clock_stepping_back_restarts_the_history(self):
         rec = stability.Recorder(clock=lambda: 0.0)
         self.feed(rec, 1_790_000_000, 100)
-        rec.add(1_789_999_000.0, True)
+        rec.add(1_789_999_000 * 1_000_000_000, True)
         rep = rec.report()
         self.assertEqual(rep["series"]["seconds"]["samples"], 1)
         self.assertEqual(rep["history_resets"], 1)

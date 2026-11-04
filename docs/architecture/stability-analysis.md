@@ -6,6 +6,8 @@ Status: implemented (`gps_time_pi/stability.py`, `/api/stability`, Timing → St
 
 The input is a phase (time-error) series: the fractional second of each kernel PPS timestamp. That is where the Linux system clock, as chrony disciplines it, read when the PPS interrupt was stamped. chrony's PPS refclock consumes the same samples.
 
+Timestamps are integer nanoseconds from the kernel's `<sec>.<nsec>` text on (`pps.read_assert`; since #153). The phase is found in integer arithmetic (`pps.phase_ns`) and only then turned into seconds, so it keeps every nanosecond. Before #153 the whole timestamp was a float of seconds, which near today's epoch steps in about 238 ns: phases smaller than that were lost (a ±37 ns phase read as 0). `Recorder.add` refuses a float.
+
 So the statistics describe **the system clock against the PPS edges as Linux saw them**. They include interrupt latency and chrony's own control loop. They do not describe the receiver's electrical PPS, and they do not describe the oscillator alone. Every payload and the page say this.
 
 All values are labeled `calculated`. The identified noise type is labeled `inferred`.
