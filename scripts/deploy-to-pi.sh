@@ -18,7 +18,7 @@ REMOTE_DIR="gps-time-deploy"
 # Only these names are passed (tests/test_deploy_scripts.py keeps the list in step with install.sh).
 # Values reach a remote shell, so they are checked first: letters, digits, space and . _ : , / -
 # only. A bad value stops the deploy before anything is built or uploaded.
-INSTALL_FLAGS=(GTP_INDEPENDENT_REFS GTP_KEEP_DHCP_NTP GTP_SDR GTP_SDR_1090_SERIAL GTP_SDR_978_SERIAL GTP_SDR_PPS_SERIAL GTP_WEBSDR GTP_WEBSDR_MAX_HOURS GTP_WEBSDR_PORT GTP_WEBSDR_SERIAL)
+INSTALL_FLAGS=(GTP_INDEPENDENT_REFS GTP_KEEP_DHCP_NTP GTP_NODE GTP_NODE_STATION GTP_SDR GTP_SDR_1090_SERIAL GTP_SDR_978_SERIAL GTP_SDR_NODE GTP_SDR_PPS_SERIAL GTP_WEBSDR GTP_WEBSDR_MAX_HOURS GTP_WEBSDR_PORT GTP_WEBSDR_SERIAL)
 FLAG_VALUE='^[A-Za-z0-9 ._:,/-]{1,200}$'
 ASSIGN=""
 for name in "${INSTALL_FLAGS[@]}"; do

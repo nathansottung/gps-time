@@ -164,6 +164,14 @@ echo "== Web SDR (optional, off unless asked for) =="
 bash scripts/websdr.sh \
   || echo "Warning: the web SDR was not changed (see the message above)."
 
+echo "== SDR node (optional: a second Pi carries the SDR load) =="
+# On the second Pi: sudo GTP_NODE=1 GTP_NODE_STATION=<station address> [GTP_SDR=1 ...] bash install.sh
+#   (its chrony follows the station over NTP; its rtl_tcp and readsb Beast serve the station only)
+# On the station:   sudo GTP_SDR_NODE=<node address> bash install.sh   (reads the node's aircraft)
+# Nothing changes unless one of them is set (docs/deploy/sdr-node.md).
+bash scripts/node.sh \
+  || echo "Warning: the SDR node settings were not changed (see the message above)."
+
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
 # Debian's polkitd package owns this directory and sets its owner and mode.
 # Create it only if it is missing; never change an existing one.

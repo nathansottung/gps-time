@@ -18,10 +18,13 @@ $ErrorActionPreference = 'Stop'
 # only. A bad value stops the deploy before anything is built or uploaded.
 $InstallFlags = @(
   'GTP_INDEPENDENT_REFS',
+  'GTP_NODE',
+  'GTP_NODE_STATION',
   'GTP_KEEP_DHCP_NTP',
   'GTP_SDR',
   'GTP_SDR_1090_SERIAL',
   'GTP_SDR_978_SERIAL',
+  'GTP_SDR_NODE',
   'GTP_SDR_PPS_SERIAL',
   'GTP_WEBSDR',
   'GTP_WEBSDR_MAX_HOURS',

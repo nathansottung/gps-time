@@ -155,6 +155,8 @@ export function demoApi(): StationApi {
     },
     sdr: () => delay(demoSdr()),
     websdr: () => delay(demoWebSdr()),
+    timeQuality: () => delay({ role: 'station' as const, station: null, sdr_node: null, source: 'refclock' as const, reference: 'GPS', stratum: 1,
+      max_error_s: m(1.2e-5, 's', 'calculated', 'demo'), label: "refclock GPS, within ±12 µs (chrony's bound)" }),
     airband: () => delay(demoAirband()),
     // Mirrors the server: satellite directions over time reveal the position, so hidden mode has no map.
     skyObstruction: () => delay(locationMode === 'hidden'
@@ -282,7 +284,7 @@ function demoWebSdr(): WebSdrStatus {
   const before = sum(10.0, 15.4, null, 51.6, 52.3, 420.5, 431.0, 1350.0, 10);
   const now = Date.now();
   return {
-    installed: true, active: m('active', null, 'observed', 'demo'), port: 8073, serial: '00001090', max_hours: 4,
+    node_host: null, installed: true, active: m('active', null, 'observed', 'demo'), port: 8073, serial: '00001090', max_hours: 4,
     usage: {
       session: { start_utc: iso(now - 15 * 60_000), partial: false, truncated: false, bins: [],
                  before, during: sum(38.0, 58.8, 127.7, 56.8, 59.3, 566.0, 612.0, 2100.0, 15) },
