@@ -593,6 +593,21 @@ The web SDR's airband bookmarks (`docs/deploy/websdr.md` → "Airband bookmarks"
 - `last_refresh`: `{ok, at_utc, cycle, count}`, or `{ok: false, at_utc, error}`.
 
 Refresh: `POST /api/admin {"action": "refresh_airband"}` (admin token) runs `systemctl start --no-block gps-time-airband-fetch.service` and returns at once; `last_refresh` shows the result.
+## GET /api/time-quality
+
+Where this Pi's clock gets its time, for labelling timestamps (`docs/deploy/sdr-node.md`). Read only, no token. Code: `gps_time_pi/timequality.py`.
+
+```json
+{"role": "station", "station": null, "sdr_node": "192.0.2.20", "source": "refclock", "reference": "GPS", "stratum": 1,
+ "max_error_s": {"value": 9.7e-06, "unit": "s", "provenance": "calculated", "note": "chrony: |System time| + Root dispersion + ½ Root delay"},
+ "label": "refclock GPS, within ±9.7 µs (chrony's bound)"}
+```
+
+- `role`: `station`, or `sdr-node` when `/etc/default/gps-time-node` names the station it follows (`station`). On the station, `sdr_node` is the node it reads.
+- `source`: `refclock` (chrony follows a local reference clock), `ntp` (a network server; on a node, the station), or `unknown` (chronyc unreadable, or not synchronised).
+- `max_error_s`: chronyc's bound (`calculated`). It holds only if the reference is right (GPS-007).
+
+`GET /api/websdr` gains `node_host`: the SDR node's address when the station reads a node and has no web SDR of its own. The Radio page then links there.
 ## GET /api/feeders
 
 The opt-in ADS-B feeders (`docs/deploy/feeders.md`) and the location-sharing list. Read only, no token. Code: `gps_time_pi/feeders.py`; type `FeedersStatus`.

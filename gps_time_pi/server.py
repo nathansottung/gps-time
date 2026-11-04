@@ -14,6 +14,7 @@ Routes:
   /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
   /api/feeders       the opt-in ADS-B feeders (what each shares) and every location-sharing item;
                      turned on and off by POST /api/setting {feeder, enabled|mlat, confirm}
+  /api/time-quality  where this Pi's clock gets its time (refclock, or ntp on an SDR node) and chrony's bound
   /api/airband       airband bookmarks for the web SDR: built-ins and the FAA NASR set with its cycle
                      and staleness; refreshed by the admin action refresh_airband
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
@@ -44,7 +45,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import airband, capability, feeders, sdr, skymap, websdr
+from . import airband, capability, feeders, sdr, skymap, timequality, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -772,6 +773,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(websdr_payload())
             elif p == "/api/feeders":
                 self._json(feeders_payload())
+            elif p == "/api/time-quality":
+                self._json(demo.time_quality() if DEMO_MODE else memo(("timequality",), 5.0, timequality.current))
             elif p == "/api/airband":
                 self._json(demo.airband_status(config.load()) if DEMO_MODE else airband.status(config.load()))
             else:

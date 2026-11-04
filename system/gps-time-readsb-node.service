@@ -1,0 +1,45 @@
+[Unit]
+Description=GPS Time: the SDR node's aircraft into /run/readsb (Beast from @ADDR@:30005, no decoder here)
+Documentation=file:///opt/gps-time-pi/docs/deploy/sdr-node.md
+After=network-online.target
+Wants=network-online.target
+# The station's own readsb writes the same /run/readsb: only one of them runs.
+Conflicts=gps-time-readsb.service
+
+# Installed by scripts/node.sh on the station (GTP_SDR_NODE=@ADDR@). A network-only readsb: it
+# connects to the node, writes aircraft.json in RAM for reference-adsb, listens on nothing, and can
+# reach the node's address and nothing else. No position.
+
+[Service]
+ExecStart=/usr/bin/readsb --quiet --net-only --net-ri-port 0 --net-ro-port 0 --net-sbs-port 0 --net-bi-port 0 --net-bo-port 0 --net-connector @ADDR@,30005,beast_in --write-json /run/readsb --write-json-every 1 --json-location-accuracy 0
+Restart=on-failure
+RestartSec=10
+RuntimeDirectory=readsb
+RuntimeDirectoryMode=0755
+UMask=0022
+DynamicUser=yes
+PrivateDevices=yes
+IPAddressAllow=@ADDR@
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_INET6
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+MemoryMax=96M
+CPUQuota=30%
+
+[Install]
+WantedBy=multi-user.target

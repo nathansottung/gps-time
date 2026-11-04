@@ -1029,6 +1029,7 @@ export interface WebSdrPastSession {
 }
 
 export interface WebSdrStatus {
+  node_host?: string | null;      // the web SDR runs on the SDR node at this address (docs/deploy/sdr-node.md)
   installed: boolean | null;      // null: systemctl couldn't be read (UNKNOWN)
   active: Measured<string>;
   port: number | null; serial: string | null; max_hours: number | null;
@@ -1063,6 +1064,19 @@ export interface FeedersStatus {
   location_display: LocationMode | null;
   note: string;
   sharing: { rows: SharingRow[]; exact_location_shared: boolean; location_display: LocationMode | null };
+}
+
+// ─── GET /api/time-quality ───────────────────────────────────────────────────
+// Where this Pi's clock gets its time (gps_time_pi/timequality.py): its reference clock, or ntp on an SDR node.
+export interface TimeQuality {
+  role: 'station' | 'sdr-node';
+  station: string | null;         // on a node: the station it follows
+  sdr_node: string | null;        // on the station: the node it reads
+  source: 'refclock' | 'ntp' | 'unknown';
+  reference: string | null;
+  stratum: number | null;
+  max_error_s: Measured<number>;
+  label: string;
 }
 
 // ─── GET /api/airband ────────────────────────────────────────────────────────

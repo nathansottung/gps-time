@@ -2090,6 +2090,28 @@ Owner's rc.3 list and design: NASR data; the cycle date shown on the bookmarks, 
   - `web/src/lib/airband.test.ts`.
 - **Not verified:** the FAA's file server answered this machine with 503, so the FRQ column names are the expected ones, not confirmed; a mismatch shows as a failed refresh. Not run on a Pi.
 
+## 2026-11-04 — SDR node mode: a second Pi for the SDR load, its time from the station (#163)
+
+Owner's rc.3 list and design: an SDR-only node; its chrony a client of the station (no GNSS or PPS), so its timestamps are sub-ms and labelled `ntp`; it may host the web SDR and feeders, so all SDR load can leave the timing Pi; feeds to the station only from its address.
+
+- **`scripts/node.sh`:**
+  - **On the node,** `GTP_NODE=1 GTP_NODE_STATION=<addr>`:
+    - writes `/etc/chrony/sources.d/gps-time-node.sources` (`server <station> iburst minpoll 4 maxpoll 6 prefer`) and reloads chrony's sources. This is the only chrony change, on the node only, at the owner's request; `chrony.conf` itself is untouched.
+    - fills drop-ins that let `rtl_tcp` (0.0.0.0:1234) and readsb's Beast (0.0.0.0:30005) take connections from the node and the station's address only.
+  - **On the station,** `GTP_SDR_NODE=<addr>`:
+    - fills `gps-time-readsb-node.service`, a network-only readsb that pulls the node's Beast into `/run/readsb/aircraft.json` (it `Conflicts=` the station's own readsb, and may reach the node only);
+    - adds the node's address to the modules' drop-in.
+  - **Rules:** addresses are IPv4 or IPv6 literals; `GTP_NODE=0` and `GTP_SDR_NODE=none` undo; a node can't also read a node; never the station's chrony, gpsd or PPS.
+- **`gps_time_pi/timequality.py`, `GET /api/time-quality`:** role (station or SDR node), source (`refclock`, `ntp`, `unknown`) from `chronyc -n tracking`, and chrony's error bound (`calculated`). The clip recorder (next PR) labels its timestamps with it.
+- **Web SDR link:** `/api/websdr` → `node_host`. With no web SDR on the station, the Radio page links to the node's web SDR and Radio page.
+- **Deploy scripts** pass `GTP_NODE`, `GTP_NODE_STATION` and `GTP_SDR_NODE`.
+- **Tests:** `tests/test_sdr_node.py`:
+  - time quality for a station, a node, unknown, and the station knowing its node;
+  - the templates (station-only allow-lists, no position, the reader reaching the node only);
+  - no station timing in the script;
+  - the script under stubs on both Pis: chrony source and drop-ins filled, the station's chrony never touched, refusals, a node can't read a node, undo.
+- **Not run on two Pis** (`deploy/sdr-node.md` → "Not verified").
+
 ## 2026-11-04 — Opt-in ADS-B feeders with the location warning, and one Location sharing list (#161)
 
 Owner's rc.3 list, with the owner's design:
