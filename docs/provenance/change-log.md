@@ -2048,6 +2048,24 @@ Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). N
 - **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
 - **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
 
+## 2026-11-04 — The web SDR's WebSockets through the gate: a test, and `websdr_gate check` (#158)
+
+Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the waterfall over a WebSocket (`/ws/`). The gate checks the first request of each connection and then pipes bytes both ways. Until now only a plain HTTP request was tested through it.
+
+- **`gps_time_pi/websdr_gate.py`:** a small stdlib WebSocket client (RFC 6455 handshake and framing). It backs `python -m gps_time_pi.websdr_gate check <url>`, the owner's check from a LAN machine:
+  - no credentials are refused;
+  - with them, the upgrade passes, with the right `Sec-WebSocket-Accept`;
+  - OpenWebRX+ answers `SERVER DE CLIENT` with `CLIENT DE SERVER`;
+  - then a clean close (it waits for the server's close frame).
+  - The password is asked, never taken from the command line. A gate with no password says so.
+- **`tests/test_websdr_websocket.py`:** the real gate in front of a fake OpenWebRX+ on the loopback.
+  - Framing at every length size, masked and not; the RFC's own accept-key example.
+  - `check` passes, and OpenWebRX+ never sees the `Authorization` header.
+  - A wrong password never reaches it.
+  - Frames pass both ways unchanged: 76,800 bytes from the server, a client frame split across writes, the close.
+  - With no password, `check` says so.
+- **Caught on the way:** the first draft named the new client `check`, which replaced the gate's password check of the same name, and every login crashed. The new test failed on it; the client is `check_station`.
+- **Docs:** `deploy/websdr.md` → "Check it from your PC".
 ## 2026-11-04 — SDR node mode: a second Pi for the SDR load, its time from the station (#163)
 
 Owner's rc.3 list and design: an SDR-only node; its chrony a client of the station (no GNSS or PPS), so its timestamps are sub-ms and labelled `ntp`; it may host the web SDR and feeders, so all SDR load can leave the timing Pi; feeds to the station only from its address.
