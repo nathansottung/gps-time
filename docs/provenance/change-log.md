@@ -2066,6 +2066,7 @@ Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the wa
   - With no password, `check` says so.
 - **Caught on the way:** the first draft named the new client `check`, which replaced the gate's password check of the same name, and every login crashed. The new test failed on it; the client is `check_station`.
 - **Docs:** `deploy/websdr.md` → "Check it from your PC".
+
 ## 2026-11-04 — SDR node mode: a second Pi for the SDR load, its time from the station (#163)
 
 Owner's rc.3 list and design: an SDR-only node; its chrony a client of the station (no GNSS or PPS), so its timestamps are sub-ms and labelled `ntp`; it may host the web SDR and feeders, so all SDR load can leave the timing Pi; feeds to the station only from its address.
