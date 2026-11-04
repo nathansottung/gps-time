@@ -1993,3 +1993,22 @@ Owner's rc.3 list, first item. Before, `deploy-to-pi.ps1` (and `.sh`) always ran
 - **Other `GTP_*` names** in the environment are listed as not passed; `GTP_DEPLOY_TTY` stays local.
 - **Tests** (`tests/test_deploy_scripts.py`): the allowlist against `install.sh`; the check before the build; for each script, flags passed exactly and unknown names listed; a bad value (`;`, `$(...)`, a quote, a newline) stops with nothing built or uploaded. The PowerShell runs pass on Windows; the bash runs are for CI's Linux.
 - **Docs:** `development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"; `deploy/sdr-stack.md` and `deploy/websdr.md` show the PC-side form.
+
+## 2026-11-04 — The web SDR's WebSockets through the gate: a test, and `websdr_gate check` (#158)
+
+Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the waterfall over a WebSocket (`/ws/`). The gate checks the first request of each connection and then pipes bytes both ways. Until now only a plain HTTP request was tested through it.
+
+- **`gps_time_pi/websdr_gate.py`:** a small stdlib WebSocket client (RFC 6455 handshake and framing). It backs `python -m gps_time_pi.websdr_gate check <url>`, the owner's check from a LAN machine:
+  - no credentials are refused;
+  - with them, the upgrade passes, with the right `Sec-WebSocket-Accept`;
+  - OpenWebRX+ answers `SERVER DE CLIENT` with `CLIENT DE SERVER`;
+  - then a clean close (it waits for the server's close frame).
+  - The password is asked, never taken from the command line. A gate with no password says so.
+- **`tests/test_websdr_websocket.py`:** the real gate in front of a fake OpenWebRX+ on the loopback.
+  - Framing at every length size, masked and not; the RFC's own accept-key example.
+  - `check` passes, and OpenWebRX+ never sees the `Authorization` header.
+  - A wrong password never reaches it.
+  - Frames pass both ways unchanged: 76,800 bytes from the server, a client frame split across writes, the close.
+  - With no password, `check` says so.
+- **Caught on the way:** the first draft named the new client `check`, which replaced the gate's password check of the same name, and every login crashed. The new test failed on it; the client is `check_station`.
+- **Docs:** `deploy/websdr.md` → "Check it from your PC".
