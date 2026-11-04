@@ -165,6 +165,9 @@ DELAYED = {   # detach so the HTTP response gets out before the process/host goe
     "reboot": (2.0, ["systemctl", "reboot"], "rebooting in 2 s"),
 }
 ADMIN_ACTIONS = frozenset(ACTIONS) | frozenset(DELAYED)
+# Open to anyone on the LAN, with no admin token (owner, 2026-11-04, rc.6): starting and stopping
+# the web SDR. The Host, Origin and JSON checks still apply, so another web page can't do it.
+OPEN_ACTIONS = frozenset({"websdr_start", "websdr_stop"})
 
 
 def _spawn(argv):

@@ -845,7 +845,8 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             self._json({"ok": False, "error": "JSON body must be an object"}, code=400)
             return
-        if not DEMO_MODE:
+        open_action = p == "/api/admin" and body.get("action") in system.OPEN_ACTIONS
+        if not DEMO_MODE and not open_action:
             if not security.admin_configured():
                 self._json({"ok": False, "error": ADMIN_DISABLED}, code=403)
                 return

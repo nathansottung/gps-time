@@ -1,6 +1,6 @@
 # The optional web SDR (`GTP_WEBSDR=1`)
 
-A browser radio on the station: [OpenWebRX+](https://luarvique.github.io/ppa/) behind a LAN gate with an optional login, on the LAN only, linked from Radio & SDR → Devices. It comes with decoders (SSTV, FT8, FT4, WSPR, APRS, packet, CW, RTTY, fax) and band bookmarks. Owner requests, 2026-11-04. Decision: `../decisions/ADR-0009-web-sdr-on-station.md`.
+A browser radio on the station: [OpenWebRX+](https://luarvique.github.io/ppa/) behind a LAN gate, open to anyone on the LAN (an optional login), never beyond it, linked from Radio & SDR → Devices. It comes with decoders (SSTV, FT8, FT4, WSPR, APRS, packet, CW, RTTY, fax) and band bookmarks. Owner requests, 2026-11-04. Decision: `../decisions/ADR-0009-web-sdr-on-station.md`.
 
 | Part | Unit | Listens on | Reaches |
 |---|---|---|---|
@@ -18,7 +18,7 @@ The web SDR uses one RTL-SDR, picked by serial. By default that is the 1090 MHz 
 - **Never the PPS or the 978 MHz dongle:** the installer refuses those serials.
 - **On a Pi 4, a dongle of its own counts toward the limit of 3** (`sdr-stack.md` → "Roles and the limit"). Sharing the 1090 MHz dongle doesn't.
 - **A session ends by itself** after `GTP_WEBSDR_MAX_HOURS` (default 4; `RuntimeMaxSec=`), so a forgotten web SDR doesn't keep readsb off. The unit then shows as failed (result `timeout`), and readsb comes back. There is no automatic restart.
-- **Not enabled at boot.** Start and stop it from the Radio page (admin token) or with `sudo systemctl start|stop gps-time-websdr`. Use start and stop, not restart: a restart briefly starts readsb between the two halves.
+- **Not enabled at boot.** Start and stop it from the Radio page or with `sudo systemctl start|stop gps-time-websdr`. On the Radio page anyone on the LAN can start and stop it, with no admin token (owner, 2026-11-04, rc.6). Use start and stop, not restart: a restart briefly starts readsb between the two halves.
 
 ## Install
 
@@ -39,7 +39,7 @@ Settings are kept in `/etc/default/gps-time-websdr`, so a later `sudo bash insta
 
 ## Login (optional)
 
-The owner's decision (2026-11-04): **the login is off by default.** With it off, anyone on the LAN can listen. The gate still drops anything from outside the private ranges, and **Start and Stop always need the admin token**, login or not. An install from before rc.5 has no `GTP_WEBSDR_AUTH` line, so its login is off after the upgrade; the password file is kept for when it's turned on.
+The owner's decisions (2026-11-04): **the web SDR is open to anyone on the LAN.** The login is off by default, and since rc.6 **Start and Stop need no admin token**. The gate still drops anything from outside the private ranges, and the web service still refuses a Start or Stop from another site (Origin and Host checks, JSON only), so a web page can't start it behind your back. Sign out all browsers still needs the token. An install from before rc.5 has no `GTP_WEBSDR_AUTH` line, so its login is off after the upgrade; the password file is kept for when it's turned on.
 
 To turn it on:
 
@@ -85,7 +85,7 @@ For OpenWebRX+'s own settings page, add its admin user too: `sudo openwebrx admi
 
 ## Use
 
-Radio & SDR → Devices → Web SDR: state, serial, port, session limit, login, HF profiles, **Start** (asks first), **Stop**, **Sign out all browsers** (login on only; asks first), and **Open the web SDR ↗** while it runs. The link is `http://<the station's address>:8073/`. With the login on, the sign-in page comes first.
+Radio & SDR → Devices → Web SDR: state, serial, port, session limit, login, HF profiles, **Start** (asks first) and **Stop** (anyone on the LAN, no token), **Sign out all browsers** (login on only; admin token; asks first), and **Open the web SDR ↗** while it runs. The link is `http://<the station's address>:8073/`. With the login on, the sign-in page comes first.
 
 The listening page is plain HTTP, and with the login on the password crosses the LAN in clear, so use it on the LAN only. The gate drops anything from outside the private ranges, whatever a router forwards. OpenWebRX+ itself can reach no host but the station: map tiles, PSK Reporter, APRS-IS, receiver lists and update checks don't work, and nothing is reported anywhere. Its map page may still ask the browser to load map tiles from the Internet.
 
