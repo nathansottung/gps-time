@@ -34,3 +34,12 @@ Owner: "Web SDR auth is optional: off by default, GTP_WEBSDR_AUTH=1 turns it on.
 - **Consequence:** with the default, anyone on the LAN can listen while the web SDR runs. An existing install has no `GTP_WEBSDR_AUTH` line, so it upgrades to login off; the installer says so. The cookie can't be `Secure` on plain HTTP.
 
 The same release adds the decoders' helper packages, the station's band profiles and bookmarks, and opt-in HF profiles (`GTP_WEBSDR_HF`). None of that changes this decision's boundaries: OpenWebRX+ still reaches no outside host, and the station never touches gpsd, chrony or the PPS line.
+
+## Amendment, 2026-11-04 (rc.6): open to anyone on the LAN
+
+Owner: "Web SDR open to anyone on the LAN: no login, no token to start/stop. Still LAN-only."
+
+- **Start and Stop need no admin token.** `system.OPEN_ACTIONS` names exactly `websdr_start` and `websdr_stop`; the web service runs them for any caller that passes the Host check, the Origin check and the JSON content type. Every other admin action and setting still needs the token. polkit is unchanged: it allowed the web service exactly these two verbs on this unit before.
+- **No login** is the default (rc.5). The opt-in `GTP_WEBSDR_AUTH=1` stays for an owner who wants one later; this amendment doesn't remove it.
+- **Still LAN-only:** the gate's `IPAddressAllow=` private ranges, OpenWebRX+ on the loopback, no outside host reached.
+- **Consequence:** anyone on the LAN can stop ADS-B tracking (readsb) for up to a session's limit by starting the web SDR. The session limit and the usage log stay.

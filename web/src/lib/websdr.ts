@@ -1,6 +1,7 @@
 // Radio → Web SDR (GET /api/websdr; gps_time_pi/websdr.py). OpenWebRX+ behind the station's
 // LAN gate, with an optional login. Started and stopped with the admin actions websdr_start /
-// websdr_stop; websdr_signout_all signs out every remembered browser.
+// websdr_stop, which need no token (anyone on the LAN); websdr_signout_all (token) signs out
+// every remembered browser.
 // Values the station couldn't read stay null (UNKNOWN).
 import type { AdminAction, AdminResult, Measured, WebSdrStatus, WebSdrSummary } from '../api/types';
 import { fmtDuration } from './format';

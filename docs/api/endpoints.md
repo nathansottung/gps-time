@@ -740,8 +740,8 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `restart_chrony` | `systemctl restart chrony.service` | stderr/stdout |
 | `restart_web` | `systemctl restart gps-time-pi.service`, detached, after 1 s | `restarting in 1 s` |
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
-| `websdr_start` | `systemctl start gps-time-websdr.service` (the optional web SDR; stops readsb while it runs) | stderr/stdout |
-| `websdr_stop` | `systemctl stop gps-time-websdr.service` (readsb starts again) | stderr/stdout |
+| `websdr_start` | `systemctl start gps-time-websdr.service` (the optional web SDR; stops readsb while it runs). **No token needed** (rc.6: open to anyone on the LAN; Host, Origin and JSON checks still apply) | stderr/stdout |
+| `websdr_stop` | `systemctl stop gps-time-websdr.service` (readsb starts again). **No token needed**, as `websdr_start` | stderr/stdout |
 | `websdr_signout_all` | `systemctl start gps-time-websdr-signout.service` (a new cookie key for the web SDR's login: every remembered browser signs in again; restarts a running gate) | stderr/stdout |
 | `refresh_airband` | `systemctl start --no-block gps-time-airband-fetch.service` (one fetch of the FAA's NASR frequencies; see `/api/airband`) | stderr/stdout |
 | other | nothing | `unknown action` (`ok: false`) |

@@ -147,6 +147,31 @@ class TestToken(AuthBase):
         self.assertNotIn(stored.strip()[7:], json.dumps(ok))
 
 
+class TestOpenWebSdrActions(AuthBase):
+    """Owner, rc.6: anyone on the LAN may start and stop the web SDR, with no token."""
+
+    def test_start_and_stop_need_no_token(self):
+        for a in ("websdr_start", "websdr_stop"):
+            status, _, body = self.post("/api/admin", {"action": a}, token=None)
+            self.assertEqual((status, body["ok"]), (200, True), a)
+        self.assertEqual(self.calls, ["websdr_start", "websdr_stop"])
+
+    def test_every_other_action_still_needs_the_token(self):
+        for a in sorted(system.ADMIN_ACTIONS - system.OPEN_ACTIONS):
+            self.assertIn(self.post("/api/admin", {"action": a}, token=None)[0], (401, 429), a)   # 429: the backoff
+        self.assertIn(self.post("/api/admin", {"action": "websdr_signout_all"}, token=None)[0], (401, 429))
+        self.assertIn(self.post("/api/setting", {"location_display": "hidden"}, token=None)[0], (401, 429))
+        self.assertEqual(self.calls, [])
+        self.assertEqual(system.OPEN_ACTIONS, {"websdr_start", "websdr_stop"})
+
+    def test_another_site_still_cannot_start_it(self):
+        status, _, _ = self.post("/api/admin", {"action": "websdr_start"}, token=None, headers={"Origin": "http://evil.example"})
+        self.assertEqual(status, 403)
+        self.assertEqual(self.post("/api/admin", {"action": "websdr_start"}, token=None, ctype="text/plain")[0], 415)
+        self.assertEqual(self.post("/api/admin", {"action": "websdr_start"}, token=None, host="evil.example")[0], 403)
+        self.assertEqual(self.calls, [])
+
+
 class TestAdminDisabledByDefault(AuthBase):
     with_token = False
 
@@ -156,6 +181,9 @@ class TestAdminDisabledByDefault(AuthBase):
         self.assertIn("admin is disabled", body["error"])
         self.assertEqual(self.post("/api/setting", {"location_display": "hidden"})[0], 403)
         self.assertEqual(self.calls, [])
+        # The web SDR's Start and Stop work without any token, configured or not.
+        self.assertEqual(self.post("/api/admin", {"action": "websdr_start"}, token=None)[0], 200)
+        self.assertEqual(self.calls, ["websdr_start"])
         _, _, a = self.req("GET", "/api/auth")
         self.assertFalse(a["admin_configured"])
 
