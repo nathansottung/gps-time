@@ -249,7 +249,7 @@ class TestDeploymentFiles(unittest.TestCase):
         self.assertIn('subject.user !== "gps-time"', code)
         units = set(re.findall(r'unit === "([^"]+)"', code))
         self.assertEqual(units, {"chrony.service", "gpsd.service", "gps-time-pi.service", "gps-time-pi-logflush.service",
-                                 "gps-time-websdr.service"})
+                                 "gps-time-websdr.service", "gps-time-clip.service"})
         self.assertEqual(set(re.findall(r'verb === "([^"]+)"', code)), {"restart", "start", "stop"})
         # stop is allowed for the web SDR only, never for the timing core.
         self.assertRegex(code, r'\(verb === "start" \|\| verb === "stop"\) && unit === "gps-time-websdr.service"')

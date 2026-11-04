@@ -698,6 +698,25 @@ def time_quality():
             "max_error_s": q(1.2e-5, "s", "calculated", "demo"), "label": "refclock GPS, within ±12 µs (chrony's bound)"}
 
 
+
+def clips_status():
+    """/api/clips in demo mode: storage in RAM and two synthetic clips (nothing to download)."""
+    from . import clips as c
+    from .labels import q
+    rows = [{"name": "demo_am_20261104T180000.000000000Z", "kind": "am", "freq_hz": 119_100_000.0,
+             "start_utc": "2026-11-04T18:00:00.000000000Z", "seconds": 20.0, "bytes": 1_920_000, "time_source": "pps",
+             "time_offset_bound_s": 1.2e-5, "sample_time_uncertainty_s": 0.546, "signed": True,
+             "files": ["sigmf-meta", "sigmf-data", "wav"]},
+            {"name": "demo_iq_20261104T175500.000000000Z", "kind": "iq", "freq_hz": 1_090_000_000.0,
+             "start_utc": "2026-11-04T17:55:00.000000000Z", "seconds": 5.0, "bytes": 10_240_000, "time_source": "pps",
+             "time_offset_bound_s": 1.2e-5, "sample_time_uncertainty_s": 0.128, "signed": True,
+             "files": ["sigmf-meta", "sigmf-data"]}]
+    return {"storage": {"dir": "/run/gps-time-clips", "kind": "ram", "max_mb": c.DEFAULT_MAX_MB,
+                        "used": q(12_160_000, "bytes", "observed", "demo"), "problem": None},
+            "pending": None, "last": None, "clips": rows, "kinds": list(c.KINDS), "iq_rates": list(c.IQ_RATES),
+            "max_seconds": c.MAX_SECONDS, "freq_range_hz": list(c.FREQ_RANGE), "note": "Demo: synthetic, nothing to download."}
+
+
 _DEMO_SKY = {}
 
 

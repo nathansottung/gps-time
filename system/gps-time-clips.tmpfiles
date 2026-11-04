@@ -1,0 +1,3 @@
+# Installed by install.sh as /etc/tmpfiles.d/gps-time-clips.conf: the clip folder in RAM, made at
+# every boot (and cleared with it), readable by the web service, written by gps-time-clip.service.
+d /run/gps-time-clips 0750 gps-time gps-time -

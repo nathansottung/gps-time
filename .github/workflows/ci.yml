@@ -54,6 +54,11 @@ jobs:
           set -o pipefail
           "$RUNNER_TEMP/station-venv/bin/python" -m unittest tests.test_migrate -v 2>&1 | tee "$RUNNER_TEMP/migrate-tests.txt"
           if grep -q "skipped" "$RUNNER_TEMP/migrate-tests.txt"; then echo "::error::migration tests were skipped in the station venv"; exit 1; fi
+      - name: Clip recording with numpy (the plain run above skips the audio test)
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/station-venv/bin/python" -m unittest tests.test_clips -v 2>&1 | tee "$RUNNER_TEMP/clip-tests.txt"
+          if grep -q "skipped" "$RUNNER_TEMP/clip-tests.txt"; then echo "::error::clip tests were skipped in the station venv"; exit 1; fi
       - name: Coordinator skeleton with the real cryptography (the plain run above skips its signature tests)
         run: |
           set -o pipefail

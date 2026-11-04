@@ -53,7 +53,7 @@ case "$*" in *"-m pip"*) exit 0 ;; esac
 exec "$REAL_PYTHON" "$@"
 """
 STUBS = ("apt-get", "systemctl", "chronyc", "getent", "id", "useradd", "chown", "curl", "python3",
-         "runuser", "pkaction", "hostname", "modprobe")
+         "runuser", "pkaction", "hostname", "modprobe", "systemd-tmpfiles")
 
 
 def sandboxed(text, root):
@@ -130,7 +130,8 @@ class TestInstallFromBundle(unittest.TestCase):
         cls.log = cls.tmp / "calls.log"
         env = {k: v for k, v in os.environ.items() if not k.startswith("GTP_")}
         env.update(PATH=f"{bin_}:{os.environ['PATH']}", STUB_LOG=str(cls.log), REAL_PYTHON=sys.executable,
-                   GTP_SDR_TEST_ROOT=cls.root.as_posix(), GTP_WEBSDR_TEST_ROOT=cls.root.as_posix())
+                   GTP_SDR_TEST_ROOT=cls.root.as_posix(), GTP_WEBSDR_TEST_ROOT=cls.root.as_posix(),
+                   GTP_NODE_TEST_ROOT=cls.root.as_posix(), GTP_CLIPS_TEST_ROOT=cls.root.as_posix())
         cls.result = subprocess.run(["bash", str(script)], cwd=cls.bundle, env=env, capture_output=True, text=True,
                                     timeout=300, stdin=subprocess.DEVNULL)
 
@@ -153,7 +154,7 @@ class TestInstallFromBundle(unittest.TestCase):
         self.assertTrue(os.access(d / "scripts" / "logsync.sh", os.X_OK))
         units = self.root / "etc" / "systemd" / "system"
         for u in ("gps-time-pi.service", "gps-time-modules.service", "gps-time-pi-logsync.service",
-                  "gps-time-pi-logflush.timer", "gps-time-pi-chrony-clients.service"):
+                  "gps-time-pi-logflush.timer", "gps-time-pi-chrony-clients.service", "gps-time-clip.service"):
             self.assertTrue((units / u).is_file(), u)
         self.assertTrue((self.root / "etc/polkit-1/rules.d/50-gps-time-pi.rules").is_file())
 

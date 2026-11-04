@@ -17,6 +17,8 @@ $ErrorActionPreference = 'Stop'
 # Values reach a remote shell, so they are checked first: letters, digits, space and . _ : , / -
 # only. A bad value stops the deploy before anything is built or uploaded.
 $InstallFlags = @(
+  'GTP_CLIPS_DIR',
+  'GTP_CLIPS_MAX_MB',
   'GTP_INDEPENDENT_REFS',
   'GTP_NODE',
   'GTP_NODE_STATION',
