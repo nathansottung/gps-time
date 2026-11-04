@@ -1982,3 +1982,14 @@ The owner's deploy of v1.6.0-rc.1 failed: `install.sh` stopped at `cp -r modules
   - It runs on POSIX in CI and skips on Windows. `install.sh` is unchanged.
 - **The station after the failed install** (read-only, `development/raspberry-pi-deploy.md`): timing recovered within about a minute of each chrony restart, with no clock step, but up to about 6 ms of drift while on a network source. The web service is still the v1.5.0-rc.1 process, over rc.1's files. The steps after `cp -r modules` didn't run.
 - **Release:** `releases/v1.6.0-rc.2.md`. `v1.6.0-rc.1.md` is marked can't-be-installed. Version lines updated. The tag `v1.6.0-rc.2` goes on this PR's merge commit, with a GitHub pre-release.
+
+## 2026-11-04 — The deploy scripts pass install.sh's GTP_* flags (#156)
+
+Owner's rc.3 list, first item. Before, `deploy-to-pi.ps1` (and `.sh`) always ran `sudo bash install.sh`, so `GTP_SDR=1` or `GTP_WEBSDR=1` meant a second run by hand on the Pi.
+
+- **Both scripts** read an allowlist of `install.sh`'s flags from the local environment and run `sudo env <name>='<value>' ... bash install.sh`. With none set, the command is unchanged.
+- **The allowlist** is exactly the `GTP_*` names that `install.sh`, `sdr-stack.sh`, `websdr.sh` and the two chrony scripts read, minus test hooks and the client-list helper's own settings. A test fails if either script's list differs.
+- **Values are checked** before anything is built or uploaded: letters, digits, space and `. _ : , / -`, at most 200 characters, since they reach a shell on the Pi. A bad value stops the deploy (exit 2 in bash).
+- **Other `GTP_*` names** in the environment are listed as not passed; `GTP_DEPLOY_TTY` stays local.
+- **Tests** (`tests/test_deploy_scripts.py`): the allowlist against `install.sh`; the check before the build; for each script, flags passed exactly and unknown names listed; a bad value (`;`, `$(...)`, a quote, a newline) stops with nothing built or uploaded. The PowerShell runs pass on Windows; the bash runs are for CI's Linux.
+- **Docs:** `development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"; `deploy/sdr-stack.md` and `deploy/websdr.md` show the PC-side form.

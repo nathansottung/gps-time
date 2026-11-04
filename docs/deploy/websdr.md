@@ -25,6 +25,8 @@ The web SDR uses one RTL-SDR, picked by serial. By default that is the 1090 MHz 
 sudo GTP_WEBSDR=1 bash install.sh
 ```
 
+Or in the deploy from your PC: `$env:GTP_WEBSDR = '1'` before `scripts\deploy-to-pi.ps1` (or `GTP_WEBSDR=1 bash scripts/deploy-to-pi.sh ...`). The password is still set on the Pi.
+
 With the SDR stack installed and a 1090 MHz serial set, that's all. Otherwise give the serial: `sudo GTP_WEBSDR=1 GTP_WEBSDR_SERIAL=00001090 bash install.sh`. Optional: `GTP_WEBSDR_PORT` (1024–65535, not 8074; default 8073) and `GTP_WEBSDR_MAX_HOURS` (1–24). Settings are kept in `/etc/default/gps-time-websdr`, so a later `sudo bash install.sh` keeps the web SDR as it is.
 
 Then set the password (asks twice; at least 10 characters; the user name is `radio` unless `--user` is given):
