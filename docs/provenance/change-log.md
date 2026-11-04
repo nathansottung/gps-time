@@ -2047,6 +2047,7 @@ Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). N
   - is idempotent.
 - **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
 - **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
+
 ## 2026-11-04 — The web SDR's WebSockets through the gate: a test, and `websdr_gate check` (#158)
 
 Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the waterfall over a WebSocket (`/ws/`). The gate checks the first request of each connection and then pipes bytes both ways. Until now only a plain HTTP request was tested through it.
