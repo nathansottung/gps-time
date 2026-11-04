@@ -2047,6 +2047,7 @@ Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). N
   - is idempotent.
 - **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
 - **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
+
 ## 2026-11-04 — Opt-in ADS-B feeders with the location warning, and one Location sharing list (#161)
 
 Owner's rc.3 list, with the owner's design:
