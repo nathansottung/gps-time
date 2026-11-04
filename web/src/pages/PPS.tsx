@@ -95,6 +95,8 @@ function EventRow({ e }: { e: TimingEvent }) {
         <span style={{ color: 'var(--t3)' }}>Satellites used: <span className="mono" style={{ color: 'var(--t2)' }}>
           {e.evidence.satellites_used_range ? e.evidence.satellites_used_range.join('–') : '—'}</span></span>
       </div>
+      {r?.network_ntp?.value === true && <div className="text-[10px] mt-1" style={{ color: 'var(--warn-text)' }}>
+        chrony switched to network NTP during this outage ({(r.network_ntp_sources ?? []).join(', ')}): the clock was steered, so its error at recovery isn't holdover error and the holdover scorecard doesn't score it.</div>}
       {e.notes.length > 0 && <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>{e.notes.join(' ')}</div>}
       {r?.note && <div className="text-[10px] mt-1" style={{ color: 'var(--t3)' }}>{r.note}</div>}
     </div>

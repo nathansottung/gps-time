@@ -207,6 +207,9 @@ export interface EventRecovery {
   time_to_accept_s: Measured;
   time_to_select_s: Measured;
   fallback_sources: string[];
+  network_ntp?: Measured<boolean>;   // chrony selected a network NTP source during the outage (observed)
+  network_ntp_sources?: string[];
+  holdover_check?: { measured_error_s: Measured; eligible: boolean; flags: string[] };
   max_abs_system_time_s: Measured;
   end_bounds_utc?: [string | null, string];
   note?: string;
@@ -545,9 +548,9 @@ export interface OscillatorProfile {
   candidates: { model: string; bic: number }[];
   note: string;
 }
-/** Holdover projections (gps_time_pi/oscprofile.py holdover; GPS-008). All modeled; none validated by an outage yet. */
+/** Holdover projections (gps_time_pi/oscprofile.py holdover; GPS-008). All modeled; checked against outages by the scorecard. */
 export interface HoldoverProjection {
-  name: 'free_running' | 'trained_skew' | 'profile';
+  name: 'free_running' | 'trained_skew' | 'profile' | 'scored';
   provenance: Provenance;            // modeled
   available: boolean;
   reason?: string;                   // when not available
@@ -561,6 +564,41 @@ export interface HoldoverProjection {
   temp_source?: string;
   extrapolated?: boolean;
   caveat?: string | null;
+  validated?: HoldoverModelRecord | null;   // how this model did against measured outages
+  factor?: number;                   // scored: the rate multiplier (worst measured/predicted, ≥ 1)
+  from?: string;                     // scored: the projection it scales
+  outages?: number;                  // scored: outages behind the factor
+}
+/** One model's record over the scored outages (calculated). */
+export interface HoldoverModelRecord { name: string; n: number; held: number; median_ratio: number; worst_ratio: number; provenance: Provenance }
+/** One outage: predicted (modeled, at its start) against measured (observed, first good PPS after recovery). */
+export interface HoldoverCheckEntry {
+  event_id: string;
+  start_utc: string;
+  end_utc: string | null;
+  measured_utc: string;
+  measured_at: 'recovery' | 'reselected';
+  time_since_start_s: Measured;
+  measured_error_s: Measured;
+  prediction_sample_utc: string | null;
+  predictions: { name: string; rate_ppm: number; predicted_error_s: Measured; ratio: Measured; held: boolean | null }[];
+  network_ntp: boolean;
+  network_ntp_sources: string[];
+  flags: string[];
+  eligible: boolean;
+  not_scored_because: string[] | null;
+}
+/** The running scorecard (gps_time_pi/holdover_check.py). */
+export interface HoldoverScorecard {
+  provenance: Provenance;            // calculated
+  entries: number;
+  eligible: number;
+  network_ntp: number;
+  score_min: number;
+  models: HoldoverModelRecord[];
+  recent: HoldoverCheckEntry[];
+  note: string;
+  problems: string[];
 }
 export interface OscillatorHoldover {
   provenance: Provenance;            // modeled
@@ -568,6 +606,7 @@ export interface OscillatorHoldover {
   projections: HoldoverProjection[];
   sample_utc: string | null;
   note: string;
+  scorecard?: HoldoverScorecard;
 }
 export type ProfileBinding = 'match' | 'mismatch' | 'unverifiable';
 export interface ProfileFileMeta {

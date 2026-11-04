@@ -677,7 +677,7 @@ class EventTracker:
               "confidence": c.get("confidence"), "boundary": c.get("boundary"),
               "classification_provenance": "inferred",
               "evidence": {"at_start": self._evidence_snapshot(chain), "latest": None,
-                           "satellites_used_range": None, "fallback_sources": [],
+                           "satellites_used_range": None, "fallback_sources": [], "network_ntp_sources": [],
                            "max_abs_system_time_s": None, "gnss_unhealthy_seen": False},
               "recovery": None, "notes": list(c.get("notes", []))}
         if start_bound == "boot":
@@ -705,6 +705,10 @@ class EventTracker:
         sel_is_self = (chain["chrony"].get("selected") or {}).get("is_self")
         if sel and not sel_is_pps and not sel_is_self and sel not in e["fallback_sources"]:
             e["fallback_sources"].append(sel)     # the station's own address is not a fallback
+        if sel and (chain["chrony"].get("selected") or {}).get("kind") == "network" and not sel_is_self:
+            nets = e.setdefault("network_ntp_sources", [])
+            if sel not in nets:
+                nets.append(sel)                  # chrony steered the clock from network NTP
         st = _val(((chain["chrony"].get("tracking") or {}).get("system_time_s")))
         if st is not None:
             e["max_abs_system_time_s"] = max(abs(st), e["max_abs_system_time_s"] or 0.0)
@@ -741,6 +745,9 @@ class EventTracker:
                                      if (returned and ev.get("accepted_epoch")) else None, "s", "calculated"),
                "time_to_select_s": q(round(now - returned, 1) if returned else None, "s", "calculated"),
                "fallback_sources": ev["evidence"]["fallback_sources"],
+               "network_ntp": q(bool(ev["evidence"].get("network_ntp_sources")), None, "observed",
+                                "chrony selected a network NTP source during the outage"),
+               "network_ntp_sources": list(ev["evidence"].get("network_ntp_sources") or []),
                "max_abs_system_time_s": q(ev["evidence"]["max_abs_system_time_s"], "s", "observed",
                                           "largest chrony remaining-correction seen; chrony estimate, "
                                           "not an independent error measurement")}
@@ -783,7 +790,7 @@ class TimingChainService:
     def __init__(self, monitor=None, tracker=None, chrony_reader=read_chrony_inputs,
                  gnss_reader=None, refclock_reader=chrony.refclock_config,
                  boot_config_reader=None, clock=time.time, ntpdata_reader=None, serverstats_reader=None,
-                 oscillator_log=None, evidence_store=None):
+                 oscillator_log=None, evidence_store=None, scorecard=None):
         from . import gps, pps
         self.monitor = monitor or PPSMonitor()
         self.tracker = tracker if tracker is not None else EventTracker(default_events_path(), boot=read_boot())
@@ -798,6 +805,7 @@ class TimingChainService:
         self.ntp_service = ntpservice.Tracker(clock=clock, reader=serverstats_reader)        # /api/ntp-service
         self._oscillator = oscillator_log      # created on first use: it reads the board identity and the log file
         self._evidence = evidence_store        # outage evidence on the SD card; created by start()
+        self._scorecard = scorecard            # holdover validation at each outage; created on first use
         self._chrony_inputs, self._chrony_at = None, None
         self._refcfg = None
         self._boot = None
@@ -846,7 +854,9 @@ class TimingChainService:
             self.ntp_service.update()
         status = timing_status(trk, rows, gnss=gnss, refclocks=self._refcfg)
         chain = build_chain(pps_snap, pps_state, gnss, cv, status, now=now)
+        was_open = self.tracker.open
         self.tracker.update(chain)
+        self._score_holdover(chain, was_open)
         boot = self.tracker.boot_view(now)
         status = acquiring_status(status, boot)
         chain = build_chain(pps_snap, pps_state, gnss, cv, status, events=self.tracker.view(), now=now, boot=boot)
@@ -860,6 +870,34 @@ class TimingChainService:
         with self._lock:
             self._latest = chain
         return chain
+
+    def _score_holdover(self, chain, was_open):
+        """Predicted against measured error at each outage (holdover_check); never stops the chain."""
+        try:
+            sc = self.scorecard
+            if self._oscillator is not None and getattr(self._oscillator, "scorecard", False) is None:
+                self._oscillator.scorecard = sc
+            if was_open is not None and self.tracker.open is None:
+                sc.closed(was_open)
+            last = self.monitor.last_event()
+            osc = self._oscillator
+            if sc.observe(chain, self.tracker.open, last[1] if last is not None else None,
+                          holdover_now=osc.holdover if osc is not None else None):
+                self.tracker._checkpoint()     # one more write per outage: keep the prediction
+        except Exception as e:  # noqa: BLE001 — observability must never take the timing chain down
+            try:
+                self.scorecard._problem(f"holdover check failed: {e}")
+            except Exception:  # noqa: BLE001
+                pass
+
+    @property
+    def scorecard(self):
+        """Holdover scorecard (holdover_check): next to the events checkpoint; RAM only without one."""
+        if self._scorecard is None:
+            from . import holdover_check
+            tp = getattr(self.tracker, "path", None)
+            self._scorecard = holdover_check.Scorecard(holdover_check.default_path(tp) if tp else None, clock=self.clock)
+        return self._scorecard
 
     def running(self):
         return bool(self._thread and self._thread.is_alive())
@@ -899,6 +937,7 @@ class TimingChainService:
         """Temperature and chrony frequency log (/api/oscillator); one per service."""
         if self._oscillator is None:
             self._oscillator = oscillator.Log(clock=self.clock)
+            self._oscillator.scorecard = self.scorecard
         return self._oscillator
 
     @property

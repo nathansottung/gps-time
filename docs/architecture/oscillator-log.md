@@ -55,7 +55,22 @@ Once a minute, from the timing chain's last `chronyc -n tracking`:
 - **Trained (skew only):** chrony keeps applying its learned frequency, and the error grows at Skew, chrony's own bound on that frequency. No temperature, no aging. The review's fix for GPS-008.
 - **Profile:** Skew, plus the profile's residual RMS (wander the fit doesn't explain), plus the largest frequency change the profile gives for any temperature in the last 24 h's range of bin means (±5 °C from now until a day is logged), plus the aging term as a frequency ramp. The rates are added as magnitudes, as if the worst temperature were reached at once: pessimistic on purpose. The error is rate·τ + aging·τ²/2, solved for each threshold. A range beyond what the profile covers is flagged as extrapolated.
 
-None of them has been checked against a real outage. That needs the offset measured when PPS comes back (OBS §6, the Holdover Performance card, still planned). The note on the payload says so.
+## Holdover validation: the scorecard (#168)
+
+Each outage checks the projections against a measurement (`gps_time_pi/holdover_check.py`, owner's rc.4 list, 2026-11-04).
+
+- **Prediction (modeled):** when an outage opens, the projections of that moment are kept in the open event (`holdover_check.basis`: each available model's rate and aging). The events checkpoint saves it, so it survives a service restart. Saving it costs one extra checkpoint write per outage.
+- **Measurement (observed):** the kernel PPS timestamp of the first good pulse after recovery. Its distance from the whole second (integer ns, `pps.phase_ns`) is how far the system clock drifted from GNSS time. "Good" means the pulses are back (HEALTHY or DEGRADED) and GNSS is healthy again, after the outage saw one of them fail. The pulse is then the receiver's locked pulse, and chrony hasn't started steering to it, because it steers only once PPS is selected.
+- **Score (calculated):** each model's predicted error at the same time since the outage began (rate·τ + aging·τ²/2), measured/predicted, and whether the bound held.
+- **Not scored, flagged instead:**
+  - `network_ntp`: chrony selected a network NTP source during the outage, so the clock was steered. The outage event says so too: `recovery.network_ntp` (observed) and `network_ntp_sources`, shown on the PPS page.
+  - `no_prediction`: the outage began at boot or before the service started, or no projection was available.
+  - `after_reselection`: the pulses and GNSS never failed, so the first pulse is the one after chrony selected PPS again, and it may already be correcting.
+  - `ambiguous_second`: |error| ≥ 0.4 s, so the whole second can't be told.
+  - `service_restarted` is only a note: chrony kept running, so the outage is still scored.
+- **Fed into the projections:** `holdover` carries the scorecard. Each projection gets `validated` (its record over scored outages: held n of m, median and worst ratio). From 3 scored outages on, a fourth projection, `scored` (modeled), applies the profile's rate (else the trained one) times the worst measured/predicted ratio, never less than ×1. The profile fit itself (frequency against temperature) is unchanged.
+- **Storage:** `holdover-scorecard.json` next to the events checkpoint. It is written once per outage, when the outage closes and the measurement is in (atomic, fsync). Capped at 200 entries, no position. A corrupt file is set aside.
+- **What it can't tell:** the receiver's own PPS error after re-acquisition, and anything chrony did between the outage's start and the first good pulse other than selecting a source (for example a step).
 
 ## Export, import and board binding
 

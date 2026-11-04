@@ -202,7 +202,54 @@ def _freq_change(profile, temp_c, lo, hi):
     return max(abs(f(T) - f(temp_c)) for T in pts)
 
 
-def holdover(profile, freq_ppm, skew_ppm, temp_c, temp_range=None):
+def holdover(profile, freq_ppm, skew_ppm, temp_c, temp_range=None, scorecard=None):
+    """The projections below, and with a scorecard (holdover_check.Scorecard.summary()) how each
+    model did against real outages; from SCORE_MIN eligible outages on, a `scored` projection too."""
+    return apply_scorecard(_holdover(profile, freq_ppm, skew_ppm, temp_c, temp_range), scorecard)
+
+
+def apply_scorecard(out, scorecard):
+    """Feed the measured outages into the projections: each model's record, and a `scored`
+    projection whose rate is the profile's (else the trained) rate times the worst measured/predicted
+    ratio seen, never less than the model itself. Still `modeled`: a model scaled by measurements."""
+    if not scorecard:
+        return out
+    out["scorecard"] = scorecard
+    rec = {m["name"]: m for m in scorecard.get("models", [])}
+    for p in out["projections"]:
+        p["validated"] = rec.get(p["name"])
+    n = scorecard.get("eligible", 0)
+    if n:
+        out["note"] = (f"Projections of how long the clock would take to drift past each error if GPS and PPS went "
+                       f"away now and chrony kept running on its last frequency estimate. Models, not guarantees; "
+                       f"checked so far against {n} outage{'s' if n != 1 else ''} measured at the first good PPS "
+                       f"pulse after recovery (the scorecard below).")
+    base = next((p for p in out["projections"] if p["name"] == "profile" and p.get("available")), None) or         next((p for p in out["projections"] if p["name"] == "trained_skew" and p.get("available")), None)
+    from .holdover_check import SCORE_MIN
+    if n < SCORE_MIN:
+        out["projections"].append({"name": "scored", "provenance": "modeled", "available": False,
+                                   "rate_ppm": None, "aging_ppm_per_day": 0.0, "times_s": [None] * len(THRESHOLDS_S),
+                                   "reason": f"needs {SCORE_MIN} scored outages, has {n}"})
+        return out
+    worst = (rec.get(base["name"]) or {}).get("worst_ratio") if base else None
+    if base is None or worst is None:
+        out["projections"].append({"name": "scored", "provenance": "modeled", "available": False,
+                                   "rate_ppm": None, "aging_ppm_per_day": 0.0, "times_s": [None] * len(THRESHOLDS_S),
+                                   "reason": "no profile or trained projection now, or no record for it"})
+        return out
+    k = max(1.0, worst)
+    rate, aging = base["rate_ppm"] * k, (base.get("aging_ppm_per_day") or 0.0) * k
+    r, a = abs(rate) * 1e-6, abs(aging) * 1e-6 / 86400.0
+    out["projections"].append({
+        "name": "scored", "provenance": "modeled", "available": True, "rate_ppm": rate,
+        "aging_ppm_per_day": aging, "times_s": [_time_to(e, r, a) for e in THRESHOLDS_S],
+        "factor": round(k, 4), "from": base["name"], "outages": n,
+        "basis": (f"the {base['name'].replace('_', ' ')} rate times {k:.3g}, the worst measured/predicted ratio "
+                  f"over {n} scored outages" + (" (it never did worse than predicted, so unscaled)" if worst <= 1 else ""))})
+    return out
+
+
+def _holdover(profile, freq_ppm, skew_ppm, temp_c, temp_range=None):
     """Time to each error threshold in holdover, three ways, all `modeled`:
 
     - free_running: the clock without chrony's correction (|Frequency|): an untrained crystal;

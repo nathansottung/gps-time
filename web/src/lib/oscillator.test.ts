@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OscillatorBin } from '../api/types';
-import { dayTicks, fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve, bindingFor, demoImport, exportFilename, fmtHoldTime, fmtThreshold, holdoverRows, holdoverTimes, importOutcome } from './oscillator';
+import { dayTicks, fitLine, fmtBytes, fmtSlope, oscPoints, scatterPoints, spanDays, fmtTerm, profileAt, profileCurve, bindingFor, demoImport, exportFilename, fmtHoldTime, fmtThreshold, holdoverRows, holdoverTimes, importOutcome, fmtSignedErr, recordLine, scorecardRows } from './oscillator';
 import { demoApi } from '../api/demo';
 
 const bin = (t: string, temp: number | null, freq: number | null, pps = 10): OscillatorBin => ({
@@ -149,7 +149,7 @@ describe('demo adapter', () => {
     expect(JSON.stringify(doc)).not.toMatch(/"lat"|"lon"/);
     expect(await api.oscillatorImport(doc)).toMatchObject({ ok: true, binding: 'match', simulated: true });
     const o = await api.oscillator();
-    expect(o.holdover.projections.map(p => p.name)).toEqual(['free_running', 'trained_skew', 'profile']);
+    expect(o.holdover.projections.map(p => p.name)).toEqual(['free_running', 'trained_skew', 'profile', 'scored']);
     expect(o.holdover.projections.every(p => p.provenance === 'modeled')).toBe(true);
   });
 });
@@ -164,5 +164,34 @@ describe('dayTicks', () => {
     expect(long.length).toBeLessThanOrEqual(7);
     expect(new Set(long.map(t => new Date(t).toDateString())).size).toBe(long.length);
     expect(dayTicks(5, 5)).toEqual([]);
+  });
+});
+
+describe('holdover scorecard', () => {
+  it('formats signed errors', () => {
+    expect(fmtSignedErr(2e-6)).toBe('+2 µs');
+    expect(fmtSignedErr(-3.1e-7)).toBe('−310 ns');
+    expect(fmtSignedErr(0.0012)).toBe('+1.2 ms');
+    expect(fmtSignedErr(null)).toBe('—');
+  });
+
+  it('says how a model did', () => {
+    expect(recordLine({ name: 'trained_skew', n: 3, held: 2, median_ratio: 0.8, worst_ratio: 2, provenance: 'calculated' }))
+      .toBe('held 2 of 3 scored outages (worst 2.0× the prediction, median 0.80×)');
+    expect(recordLine(null)).toBeNull();
+  });
+
+  it('lists the demo outages, with network NTP ones not scored', async () => {
+    const h = (await demoApi().oscillator()).holdover;
+    const rows = scorecardRows(h);
+    expect(rows).toHaveLength(3);
+    expect(rows.filter(r => r.scored)).toHaveLength(2);
+    const net = rows.find(r => r.network)!;
+    expect(net.scored).toBe(false);
+    expect(net.why).toContain('network NTP');
+    expect(net.flags).toEqual(['chrony on network NTP']);
+    expect(rows[0].cells.map(c => c.name)).toEqual(['free_running', 'trained_skew']);
+    expect(rows[0].cells[0].predicted.startsWith('±')).toBe(true);
+    expect(scorecardRows(undefined)).toEqual([]);
   });
 });
