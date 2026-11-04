@@ -608,6 +608,28 @@ Where this Pi's clock gets its time, for labelling timestamps (`docs/deploy/sdr-
 - `max_error_s`: chronyc's bound (`calculated`). It holds only if the reference is right (GPS-007).
 
 `GET /api/websdr` gains `node_host`: the SDR node's address when the station reads a node and has no web SDR of its own. The Radio page then links there.
+## GET /api/feeders
+
+The opt-in ADS-B feeders (`docs/deploy/feeders.md`) and the location-sharing list. Read only, no token. Code: `gps_time_pi/feeders.py`; type `FeedersStatus`.
+
+- `installed`: whether `GTP_FEEDERS=1` set anything up. Each row of `feeders` has:
+  - `name`, `service`, `unit`;
+  - `on`, the owner's switch; `active`, the unit's `ActiveState` (`observed`);
+  - `target`, host:port for a Beast feeder;
+  - `confirm`, what must be typed to turn it on;
+  - `shares`, in plain words.
+  - PiAware's row also has `mlat`: `{on, allowed, confirm, refused}`. `allowed` is false in hidden mode.
+- `sharing.rows`: every item that shares or could share the location, as `{what, to, location, active, detail}`, where `location` is `exact`, `rounded to 0.1°`, `none (aircraft only)` or `none (sectors only)`. `sharing.exact_location_shared` is true while anything active shares the exact location.
+
+### POST /api/setting {"feeder": …}
+
+Admin token.
+- **On:** `{"feeder": "adsbfi", "enabled": true, "confirm": "adsb.fi"}`. The confirmation must be the row's `confirm`, exactly; otherwise 400.
+- **Off:** `{"feeder": "adsbfi", "enabled": false}` needs none.
+- **MLAT** (PiAware only): `{"feeder": "piaware", "mlat": true, "confirm": "share my exact location"}`. Refused with 403 in hidden mode; `false` turns it off.
+- An unknown feeder is 404.
+- **Effect:** the web service writes or removes `/opt/gps-time-pi/feeders/<name>.on` (or `piaware.mlat`), then starts, stops or try-restarts the unit (polkit: these units and verbs only).
+- **Hidden mode:** `{"location_display": "hidden"}` also turns MLAT off; its answer then has `"mlat_turned_off": true`.
 
 ## GET /api/clips
 

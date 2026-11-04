@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus, FeedersStatus,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -64,6 +64,12 @@ export interface StationApi {
   sdr(): Promise<SdrStatus>;
   /** The optional web SDR (OpenWebRX+) and its usage log; started and stopped with admin(). */
   websdr(): Promise<WebSdrStatus>;
+  /** Opt-in ADS-B feeders, and everything that shares the station's location. */
+  feeders(): Promise<FeedersStatus>;
+  /** A feeder on (needs its typed confirmation) or off. Admin token. */
+  setFeeder(name: string, enabled: boolean, confirm?: string): Promise<SettingResult>;
+  /** PiAware MLAT on (typed confirmation; refused in hidden mode) or off. Admin token. */
+  setFeederMlat(name: string, on: boolean, confirm?: string): Promise<SettingResult>;
   /** Where this Pi's clock gets its time: its reference clock, or ntp on an SDR node. */
   timeQuality(): Promise<TimeQuality>;
   /** Recorded clips and where they're kept. */
@@ -199,6 +205,9 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     recordClip: (req) => json('/api/setting', post({ clip: req })),
     deleteClip: (name) => json('/api/setting', post({ clip_delete: name })),
     clipUrl: (name, ext) => base + '/api/clips/file' + query({ name, ext }),
+    feeders: () => json('/api/feeders'),
+    setFeeder: (name, enabled, confirm) => json('/api/setting', post({ feeder: name, enabled, confirm })),
+    setFeederMlat: (name, on, confirm) => json('/api/setting', post({ feeder: name, mlat: on, confirm })),
     skyObstruction: () => json('/api/sky-obstruction'),
     capability: () => json('/api/capability'),
     setSkyQualityShare: (on) => json('/api/setting', post({ sky_quality_share: on })),

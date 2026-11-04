@@ -19,6 +19,9 @@ $ErrorActionPreference = 'Stop'
 $InstallFlags = @(
   'GTP_CLIPS_DIR',
   'GTP_CLIPS_MAX_MB',
+  'GTP_FEEDERS',
+  'GTP_FEEDERS_CUSTOM',
+  'GTP_FEEDERS_PIAWARE',
   'GTP_INDEPENDENT_REFS',
   'GTP_NODE',
   'GTP_NODE_STATION',

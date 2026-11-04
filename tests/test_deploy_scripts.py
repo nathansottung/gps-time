@@ -29,9 +29,11 @@ def _code(path):
 # GTP_* names install.sh and the scripts it runs read that are not install flags for the owner:
 # test hooks and the client-list helper's own settings.
 NOT_INSTALL_FLAGS = {"GTP_SDR_", "GTP_SDR_TEST_ROOT", "GTP_WEBSDR_TEST_ROOT", "GTP_WEBSDR_OS_RELEASE",
+                     "GTP_FEEDERS_TEST_ROOT", "GTP_FEEDERS_OS_RELEASE",
                      "GTP_WEBSDR_PYTHON", "GTP_CLIENTS_INTERVAL_S", "GTP_CLIENTS_ONCE",
                      "GTP_NODE_TEST_ROOT", "GTP_CLIPS_TEST_ROOT"}
-INSTALL_SCRIPTS = ["install.sh", "scripts/sdr-stack.sh", "scripts/websdr.sh", "scripts/node.sh", "scripts/clips.sh", "scripts/chrony-no-dhcp-sources.sh",
+INSTALL_SCRIPTS = ["install.sh", "scripts/sdr-stack.sh", "scripts/websdr.sh", "scripts/feeders.sh", "scripts/node.sh",
+                   "scripts/clips.sh", "scripts/chrony-no-dhcp-sources.sh",
                    "scripts/chrony-independent-refs.sh"]
 
 

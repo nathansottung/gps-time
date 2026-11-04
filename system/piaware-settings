@@ -1,0 +1,27 @@
+#!/bin/sh
+# ExecStartPre of piaware.service (installed by scripts/feeders.sh): the station's PiAware settings,
+# applied before every start, so a change in Administration takes effect at the next (re)start.
+#   - data from readsb's Beast output on 127.0.0.1:30005, not from a dongle of PiAware's own;
+#   - never gpsd: PiAware would read the station's exact position from it and send it;
+#   - no automatic or remote updates of the station's packages;
+#   - MLAT (which needs, and shares, the station's exact position) only with the owner's separate
+#     opt-in: /opt/gps-time-pi/feeders/piaware.mlat, written by the web service, which refuses it
+#     in hidden privacy mode.
+set -e
+FLAGS=/opt/gps-time-pi/feeders
+piaware-config receiver-type other
+piaware-config receiver-host 127.0.0.1
+piaware-config receiver-port 30005
+piaware-config use-gpsd no
+piaware-config allow-auto-updates no
+piaware-config allow-manual-updates no
+# Belt and braces: in hidden privacy mode MLAT stays off whatever flag is there.
+if grep -Eq '"location_display"[[:space:]]*:[[:space:]]*"hidden"' /opt/gps-time-pi/config.json 2>/dev/null; then
+  rm -f "$FLAGS/piaware.mlat"
+fi
+if [ -f "$FLAGS/piaware.mlat" ]; then
+  piaware-config allow-mlat yes
+else
+  piaware-config allow-mlat no
+fi
+exit 0

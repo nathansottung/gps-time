@@ -691,6 +691,63 @@ def websdr_status() -> dict:
 
 
 
+_DEMO_FEEDERS = {"on": {"adsbfi"}, "mlat": False}
+
+
+def feeders_status(cfg):
+    """/api/feeders in demo mode: the station's shapes (gps_time_pi/feeders.py), synthetic, kept in RAM."""
+    from . import feeders as f
+    from .labels import q
+    hidden = (cfg or {}).get("location_display") == "hidden"
+    if hidden:
+        _DEMO_FEEDERS["mlat"] = False
+    rows = []
+    for name, host in (("adsbfi", "feed.adsb.fi:30004"), ("airplaneslive", "feed.airplanes.live:30004"),
+                       ("adsbexchange", "feed1.adsbexchange.com:30004"), ("piaware", None)):
+        service = f.SERVICES[name]
+        on = name in _DEMO_FEEDERS["on"]
+        row = {"name": name, "service": service, "unit": f.unit(name), "on": on,
+               "active": q("active" if on else "inactive", None, "observed", "demo"), "target": host,
+               "confirm": service,
+               "shares": f"Shares the aircraft your station receives with {service}. It never gets the station's "
+                         "position, but from the aircraft it hears it can tell roughly where the station is."}
+        if name == "piaware":
+            m = _DEMO_FEEDERS["mlat"]
+            row["mlat"] = {"on": m, "allowed": not hidden, "confirm": "share my exact location",
+                           "refused": "MLAT is refused in hidden privacy mode" if hidden else None}
+            row["shares"] = ("Shares your exact location with FlightAware (MLAT is on), and the aircraft your station receives."
+                             if m else "Shares the aircraft your station receives with FlightAware. Your location only "
+                                       "with MLAT, which is off; PiAware never reads gpsd.")
+        rows.append(row)
+    st = {"installed": True, "feeders": rows, "location_display": (cfg or {}).get("location_display"),
+          "note": "Demo: synthetic, nothing is sent."}
+    return {**st, "sharing": f.location_sharing(cfg, st)}
+
+
+def feeder_apply(cfg, body):
+    """POST /api/setting {"feeder": ...} in demo mode: the station's checks, nothing started or sent."""
+    rows = {r["name"]: r for r in feeders_status(cfg)["feeders"]}
+    name = body.get("feeder")
+    if name not in rows:
+        return {"ok": False, "error": "unknown feeder (not installed: GTP_FEEDERS=1)"}
+    if "mlat" in body:
+        if body.get("mlat") is True:
+            if (cfg or {}).get("location_display") == "hidden":
+                return {"ok": False, "error": "MLAT is refused in hidden privacy mode: it shares the station's exact location"}
+            if body.get("confirm") != rows["piaware"]["mlat"]["confirm"]:
+                return {"ok": False, "error": f'type "{rows["piaware"]["mlat"]["confirm"]}" to turn MLAT on'}
+        _DEMO_FEEDERS["mlat"] = body.get("mlat") is True
+        return {"ok": True, "feeder": name, "mlat": _DEMO_FEEDERS["mlat"], "simulated": True}
+    if body.get("enabled") is True:
+        if body.get("confirm") != rows[name]["confirm"]:
+            return {"ok": False, "error": f'type "{rows[name]["confirm"]}" to turn this feeder on'}
+        _DEMO_FEEDERS["on"].add(name)
+    else:
+        _DEMO_FEEDERS["on"].discard(name)
+    return {"ok": True, "feeder": name, "enabled": name in _DEMO_FEEDERS["on"], "simulated": True,
+            "detail": "demo: nothing was started or sent"}
+
+
 def time_quality():
     """/api/time-quality in demo mode: a station on its GNSS/PPS reference clock (synthetic)."""
     from .labels import q
