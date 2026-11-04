@@ -17,6 +17,9 @@ $ErrorActionPreference = 'Stop'
 # Values reach a remote shell, so they are checked first: letters, digits, space and . _ : , / -
 # only. A bad value stops the deploy before anything is built or uploaded.
 $InstallFlags = @(
+  'GTP_FEEDERS',
+  'GTP_FEEDERS_CUSTOM',
+  'GTP_FEEDERS_PIAWARE',
   'GTP_INDEPENDENT_REFS',
   'GTP_KEEP_DHCP_NTP',
   'GTP_SDR',

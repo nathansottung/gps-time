@@ -12,6 +12,8 @@ Routes:
                      experimental switch, each module's setting and settings, the SDR modules'
                      readiness; changed by POST /api/setting
   /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
+  /api/feeders       the opt-in ADS-B feeders (what each shares) and every location-sharing item;
+                     turned on and off by POST /api/setting {feeder, enabled|mlat, confirm}
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
                      (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
@@ -40,7 +42,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import capability, sdr, skymap, websdr
+from . import capability, feeders, sdr, skymap, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -209,6 +211,15 @@ def websdr_payload():
     if DEMO_MODE:
         return demo.websdr_status()
     return memo(("websdr",), 5.0, websdr.status)
+
+
+def feeders_payload():
+    """/api/feeders: the feeders and the location-sharing list; read only."""
+    if DEMO_MODE:
+        return demo.feeders_status(config.load())
+    cfg = config.load()
+    st = memo(("feeders",), 5.0, lambda: feeders.status(cfg))
+    return {**st, "sharing": feeders.location_sharing(cfg, st)}
 
 
 def memo(key, ttl_s, build):
@@ -757,6 +768,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(sdr_payload())
             elif p == "/api/websdr":
                 self._json(websdr_payload())
+            elif p == "/api/feeders":
+                self._json(feeders_payload())
             else:
                 self.send_error(404)
         except BrokenPipeError:
@@ -831,7 +844,10 @@ class Handler(BaseHTTPRequestHandler):
                     cfg = config.load()
                     cfg["location_display"] = mode
                     config.save(cfg)
-                    self._json({"ok": True, "location_display": mode})
+                    # Hidden: nothing may go on sharing the exact location (PiAware MLAT goes off).
+                    mlat_off = feeders.privacy_hidden() if mode == "hidden" and not DEMO_MODE else False
+                    _MEMO.pop(("feeders",), None)
+                    self._json({"ok": True, "location_display": mode, **({"mlat_turned_off": True} if mlat_off else {})})
                 elif "timezone" in body:
                     # Display only: the system clock and every API timestamp stay on UTC.
                     tz = body.get("timezone") or None
@@ -853,6 +869,19 @@ class Handler(BaseHTTPRequestHandler):
                         cfg["sky_quality_share"] = share
                         config.save(cfg)
                         self._json({"ok": True, "sky_quality_share": share})
+                elif "feeder" in body:
+                    # Opt-in feeders: admin token (checked above) and a typed confirmation to turn one on.
+                    cfg = config.load()
+                    if DEMO_MODE:
+                        self._json(demo.feeder_apply(cfg, body))
+                    else:
+                        try:
+                            res = feeders.apply(cfg, body)
+                        except feeders.FeederError as e:
+                            self._json({"ok": False, "error": str(e)}, code=e.code)
+                        else:
+                            _MEMO.pop(("feeders",), None)
+                            self._json(res)
                 elif body.get("reset_site") is True:
                     config.reset_site()
                     self._json({"ok": True, "reset_site": True})
@@ -868,7 +897,7 @@ class Handler(BaseHTTPRequestHandler):
                         self._json(result)
                 else:
                     self._json({"ok": False, "error": "expected location_display, timezone, sky_quality_share, "
-                                                      "reset_site, modules_experimental or module"}, code=400)
+                                                      "reset_site, feeder, modules_experimental or module"}, code=400)
             else:
                 self.send_error(404)
         except Exception as e:  # noqa: BLE001

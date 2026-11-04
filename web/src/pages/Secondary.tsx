@@ -17,6 +17,7 @@ import type { Polled } from '../api/station';
 import { adsbStats, dataPacks } from '../api/previews';
 import { ModuleReadiness, ModuleSettings, SdrReceivers } from '../components/sdr';
 import { CapabilityCard } from '../components/skymap';
+import { FeedersCard } from '../components/feeders';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { DateNav, DayBarCard, NightCard } from '../components/almanac';
 import { timeOnDay, todayIn } from '../lib/almanac';
@@ -712,6 +713,7 @@ export function Admin() {
       <ExperimentalModules canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
 
       <SdrReceivers />
+      <FeedersCard canWrite={canWrite} authKnown={!!auth.data} onAuthError={auth.refresh} />
 
       <Card>
         <CardHeader title="Location privacy" />

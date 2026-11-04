@@ -578,6 +578,29 @@ The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no 
 - `recent`: the last 10 sessions, newest first, from `websdr-sessions.jsonl` (one line per session, written when it ends; 100 kept).
 - The PPS figures are the system clock against kernel PPS timestamps (the `/api/stability` layer), in integer nanoseconds from the kernel on, so they resolve to 1 ns. They show what changed while the web SDR ran, not why.
 
+## GET /api/feeders
+
+The opt-in ADS-B feeders (`docs/deploy/feeders.md`) and the location-sharing list. Read only, no token. Code: `gps_time_pi/feeders.py`; type `FeedersStatus`.
+
+- `installed`: whether `GTP_FEEDERS=1` set anything up. Each row of `feeders` has:
+  - `name`, `service`, `unit`;
+  - `on`, the owner's switch; `active`, the unit's `ActiveState` (`observed`);
+  - `target`, host:port for a Beast feeder;
+  - `confirm`, what must be typed to turn it on;
+  - `shares`, in plain words.
+  - PiAware's row also has `mlat`: `{on, allowed, confirm, refused}`. `allowed` is false in hidden mode.
+- `sharing.rows`: every item that shares or could share the location, as `{what, to, location, active, detail}`, where `location` is `exact`, `rounded to 0.1°`, `none (aircraft only)` or `none (sectors only)`. `sharing.exact_location_shared` is true while anything active shares the exact location.
+
+### POST /api/setting {"feeder": …}
+
+Admin token.
+- **On:** `{"feeder": "adsbfi", "enabled": true, "confirm": "adsb.fi"}`. The confirmation must be the row's `confirm`, exactly; otherwise 400.
+- **Off:** `{"feeder": "adsbfi", "enabled": false}` needs none.
+- **MLAT** (PiAware only): `{"feeder": "piaware", "mlat": true, "confirm": "share my exact location"}`. Refused with 403 in hidden mode; `false` turns it off.
+- An unknown feeder is 404.
+- **Effect:** the web service writes or removes `/opt/gps-time-pi/feeders/<name>.on` (or `piaware.mlat`), then starts, stops or try-restarts the unit (polkit: these units and verbs only).
+- **Hidden mode:** `{"location_display": "hidden"}` also turns MLAT off; its answer then has `"mlat_turned_off": true`.
+
 ## GET /api/sky-obstruction
 
 The learned sky-obstruction map (addendum §10–11; `architecture/sky-obstruction-map.md`). No token. Code: `gps_time_pi/skymap.py`; type `SkyObstructionResult`. Everything in it is `inferred` from observed C/N₀; it never names a cause.
