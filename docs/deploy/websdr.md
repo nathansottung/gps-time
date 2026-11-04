@@ -59,6 +59,23 @@ Radio & SDR → Devices → Web SDR: state, serial, port, session limit, **Start
 
 The listening page is plain HTTP and Basic credentials are only base64 on the wire, so use it on the LAN only. The gate drops anything from outside the private ranges, whatever a router forwards. OpenWebRX+ itself can reach no host but the station: map tiles, PSK Reporter, APRS-IS, receiver lists and update checks don't work, and nothing is reported anywhere. Its map page may still ask the browser to load map tiles from the Internet.
 
+## Airband bookmarks
+
+Radio & SDR → Devices → **Airband bookmarks** lists the web SDR's airband channels (AM), and OpenWebRX+ shows them as bookmarks (#162).
+
+- **Built in, always:** 121.500 MHz guard, 122.750 air-to-air, 123.025 helicopter air-to-air, 122.900 MULTICOM. These are the same everywhere, need no download and say nothing about the station's location.
+- **From the FAA:**
+  - **Source:** the 28-day NASR frequency file (`FRQ`) of the current cycle, from `https://nfdc.faa.gov/webContent/28DaySub/extra/<DD>_<Mon>_<YYYY>_FRQ_CSV.zip`.
+  - **Filter:** VHF airband (118.000–136.975 MHz) within 80 km of the station's site, at the precision its privacy mode allows: exact, or rounded to 0.1°.
+  - **Labels:** each bookmark shows the NASR cycle it came from. The card shows the cycle date and flags the set once it's more than 28 days old. Cycles start every 28 days from 2026-10-29.
+- **Refresh now** (admin token) fetches the current cycle. It is the only time anything is downloaded.
+  - **How:** the admin action `refresh_airband` starts `gps-time-airband-fetch.service`, a one-shot unit running as the web service's user. The web service itself never fetches.
+  - **Writes:** one small file beside `config.json` (`airband-bookmarks.json`), and OpenWebRX+'s bookmarks (`airband-openwebrx.json`, linked from `/etc/openwebrx/bookmarks.d/`).
+  - **The station's own position is never written** into either file.
+  - **If it fails** (no network, a changed file layout), the card says why, and the previous bookmarks stay.
+- **Hidden privacy mode:** no refresh, because a list of nearby airports would show where the station is. The built-ins still work.
+- **Not verified:** the FAA's file server answered this development machine's checks with 503, so the FRQ file's column names (`FREQ`, `FREQ_USE`, `LAT_DECIMAL`, `LONG_DECIMAL`, `SERVICED_FACILITY`) are the expected ones, not yet confirmed. The refresh reads columns by header and refuses a file without them, so a different layout shows as a failed refresh, never as wrong bookmarks.
+
 ## The usage log
 
 The owner asked for CPU, temperature and PPS jitter while it is in use. The web service (`gps_time_pi/websdr.py`) keeps:

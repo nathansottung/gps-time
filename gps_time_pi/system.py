@@ -153,6 +153,9 @@ ACTIONS = {
     # brings readsb back. Fails harmlessly when the unit isn't installed.
     "websdr_start": ["systemctl", "start", "gps-time-websdr.service"],
     "websdr_stop": ["systemctl", "stop", "gps-time-websdr.service"],
+    # Airband bookmarks: one fetch of the FAA's current NASR frequencies, in the background
+    # (--no-block: the page polls /api/airband for the result). Installed with GTP_WEBSDR=1.
+    "refresh_airband": ["systemctl", "start", "--no-block", "gps-time-airband-fetch.service"],
 }
 DELAYED = {   # detach so the HTTP response gets out before the process/host goes down
     "restart_web": (1.0, ["systemctl", "restart", "gps-time-pi.service"], "restarting in 1 s"),
