@@ -18,7 +18,7 @@ import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, AirbandStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, FeedersStatus, FeederRow, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -155,6 +155,21 @@ export function demoApi(): StationApi {
     },
     sdr: () => delay(demoSdr()),
     websdr: () => delay(demoWebSdr()),
+    feeders: () => delay(demoFeeders(locationMode)),
+    setFeeder: (name, enabled, confirm) => {
+      const row = demoFeeders(locationMode).feeders.find(r => r.name === name);
+      if (!row) return Promise.reject(new Error('unknown feeder (not installed: GTP_FEEDERS=1)'));
+      if (enabled && confirm !== row.confirm) return Promise.reject(new Error(`type "${row.confirm}" to turn this feeder on`));
+      if (enabled) feedersOn.add(name); else feedersOn.delete(name);
+      return delay({ ok: true as const, feeder: name, enabled, simulated: true });
+    },
+    setFeederMlat: (name, on, confirm) => {
+      if (name !== 'piaware') return Promise.reject(new Error('MLAT is offered for PiAware only'));
+      if (on && locationMode === 'hidden') return Promise.reject(new Error("MLAT is refused in hidden privacy mode: it shares the station's exact location"));
+      if (on && confirm !== 'share my exact location') return Promise.reject(new Error('type "share my exact location" to turn MLAT on'));
+      feederMlat = on;
+      return delay({ ok: true as const, feeder: name, mlat: on, simulated: true });
+    },
     timeQuality: () => delay({ role: 'station' as const, station: null, sdr_node: null, source: 'refclock' as const, reference: 'GPS', stratum: 1,
       max_error_s: m(1.2e-5, 's', 'calculated', 'demo'), label: "refclock GPS, within ±12 µs (chrony's bound)" }),
     airband: () => delay(demoAirband()),
@@ -251,6 +266,41 @@ function demoSdr(): SdrStatus {
             { band: '978', path: '/run/skyaware978/aircraft.json', present: true, age_s: m(1.4, 's'), aircraft: m(3, 'count'), fresh: true }],
     note: "Demo: synthetic values, not a station's.",
   };
+}
+
+// Demo feeder switches (RAM): one Beast feeder on, PiAware off, MLAT off.
+const feedersOn = new Set<string>(['adsbfi']);
+let feederMlat = false;
+
+/** /api/feeders in the station's shapes (gps_time_pi/demo.py feeders_status): synthetic. */
+function demoFeeders(mode: LocationMode): FeedersStatus {
+  if (mode === 'hidden') feederMlat = false;
+  const m = <T,>(value: T, unit: string | null = null) => ({ value, unit, provenance: 'observed' as Provenance });
+  const beast = (name: string, service: string, target: string): FeederRow => ({
+    name, service, unit: `gps-time-feed@${name}.service`, on: feedersOn.has(name),
+    active: m(feedersOn.has(name) ? 'active' : 'inactive'), target, confirm: service,
+    shares: `Shares the aircraft your station receives with ${service}. It never gets the station's position, but from the aircraft it hears it can tell roughly where the station is.`,
+  });
+  const pa: FeederRow = {
+    name: 'piaware', service: 'FlightAware', unit: 'piaware.service', on: feedersOn.has('piaware'),
+    active: m(feedersOn.has('piaware') ? 'active' : 'inactive'), target: null, confirm: 'FlightAware',
+    shares: feederMlat ? 'Shares your exact location with FlightAware (MLAT is on), and the aircraft your station receives.'
+      : 'Shares the aircraft your station receives with FlightAware. Your location only with MLAT, which is off; PiAware never reads gpsd.',
+    mlat: { on: feederMlat, allowed: mode !== 'hidden', confirm: 'share my exact location',
+            refused: mode === 'hidden' ? 'MLAT is refused in hidden privacy mode' : null },
+  };
+  const feeders = [beast('adsbfi', 'adsb.fi', 'feed.adsb.fi:30004'), beast('airplaneslive', 'airplanes.live', 'feed.airplanes.live:30004'),
+                   beast('adsbexchange', 'ADSBExchange', 'feed1.adsbexchange.com:30004'), pa];
+  const rows = [
+    { what: 'FlightAware MLAT (PiAware)', to: 'FlightAware', location: 'exact', active: pa.on && feederMlat,
+      detail: !feederMlat ? 'off' : pa.on ? 'on, PiAware running' : 'on, but PiAware is off' },
+    ...feeders.map(f => ({ what: `Feeder: ${f.service}`, to: f.target ?? f.service, location: 'none (aircraft only)', active: f.on, detail: f.on ? 'on' : 'off' })),
+    { what: 'Capability record', to: 'not sent anywhere yet', location: mode === 'rounded' ? 'rounded to 0.1°' : 'none',
+      active: mode === 'rounded', detail: `privacy mode ${mode}` },
+    { what: 'Sky-quality summary', to: 'the capability record and the diagnostics export', location: 'none (sectors only)', active: false, detail: 'off' },
+  ];
+  return { installed: true, feeders, location_display: mode, note: "Demo: synthetic, nothing is sent.",
+           sharing: { rows, exact_location_shared: rows.some(r => r.active && r.location === 'exact'), location_display: mode } };
 }
 
 /** /api/airband in the station's shapes (gps_time_pi/demo.py airband_status): synthetic facility names. */

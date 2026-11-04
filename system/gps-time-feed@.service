@@ -1,0 +1,45 @@
+[Unit]
+Description=GPS Time ADS-B feeder %i (Beast from 127.0.0.1:30005 to the aggregator; opt-in)
+Documentation=file:///opt/gps-time-pi/docs/deploy/feeders.md
+After=network-online.target gps-time-readsb.service
+Wants=network-online.target
+# Runs only after the owner turned it on in Administration (admin token and a typed
+# confirmation), which writes this file. Installed and enabled by scripts/feeders.sh, so the
+# owner's choice survives a reboot; without the file the unit does nothing.
+ConditionPathExists=/opt/gps-time-pi/feeders/%i.on
+
+# What it sends: the aircraft messages readsb decodes (Beast, reduced), to the host and port in
+# /etc/gps-time-feeders/%i.conf, with this station's random feeder UUID. Never the station's
+# position: no --lat/--lon, and MLAT isn't offered for these feeders.
+
+[Service]
+EnvironmentFile=/etc/gps-time-feeders/%i.conf
+ExecStart=/usr/bin/readsb --quiet --net-only --net-bind-address 127.0.0.1 --net-ri-port 0 --net-ro-port 0 --net-sbs-port 0 --net-bi-port 0 --net-bo-port 0 --net-connector 127.0.0.1,30005,beast_in --net-connector ${FEED_HOST},${FEED_PORT},beast_reduce_plus_out --uuid-file /etc/gps-time-feeders/%i.uuid
+Restart=on-failure
+RestartSec=30
+DynamicUser=yes
+Nice=10
+PrivateDevices=yes
+# Outbound to the aggregator; it listens on nothing.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+MemoryMax=64M
+CPUQuota=15%
+
+[Install]
+WantedBy=multi-user.target

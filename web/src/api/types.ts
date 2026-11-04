@@ -893,6 +893,8 @@ export type SettingResult =
   | { ok: true; module: string; enabled: boolean; modules_enabled: string[] }
   | { ok: true; module: string; config: Record<string, unknown> }
   | { ok: true; sky_quality_share: boolean }
+  | { ok: true; feeder: string; enabled: boolean; detail?: string; simulated?: boolean }
+  | { ok: true; feeder: string; mlat: boolean; restarted?: string | null; simulated?: boolean }
   | { ok: false };
 
 // ─── GET /api/modules ────────────────────────────────────────────────────────
@@ -1036,6 +1038,32 @@ export interface WebSdrStatus {
     file: { name: string; error: string | null }; note: string;
   };
   note: string;
+}
+
+// ─── GET /api/feeders ────────────────────────────────────────────────────────
+// Opt-in ADS-B feeders and everything that shares the station's location (gps_time_pi/feeders.py;
+// docs/deploy/feeders.md). Turned on with the admin token and a typed confirmation.
+
+export interface FeederRow {
+  name: string;
+  service: string;               // e.g. "adsb.fi", "FlightAware"
+  unit: string;
+  on: boolean;                   // the owner's switch
+  active: Measured<string>;      // the unit's ActiveState (observed)
+  target: string | null;         // host:port for a Beast feeder
+  confirm: string;               // what must be typed to turn it on
+  shares: string;                // plain words
+  mlat?: { on: boolean; allowed: boolean; confirm: string; refused: string | null };
+}
+
+export interface SharingRow { what: string; to: string; location: string; active: boolean; detail: string }
+
+export interface FeedersStatus {
+  installed: boolean;
+  feeders: FeederRow[];
+  location_display: LocationMode | null;
+  note: string;
+  sharing: { rows: SharingRow[]; exact_location_shared: boolean; location_display: LocationMode | null };
 }
 
 // ─── GET /api/time-quality ───────────────────────────────────────────────────

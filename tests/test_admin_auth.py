@@ -251,11 +251,15 @@ class TestDeploymentFiles(unittest.TestCase):
         self.assertIn('subject.user !== "gps-time"', code)
         units = set(re.findall(r'unit === "([^"]+)"', code))
         self.assertEqual(units, {"chrony.service", "gpsd.service", "gps-time-pi.service", "gps-time-pi-logflush.service",
-                                 "gps-time-websdr.service", "gps-time-airband-fetch.service"})
-        self.assertEqual(set(re.findall(r'verb === "([^"]+)"', code)), {"restart", "start", "stop"})
-        # stop is allowed for the web SDR only, never for the timing core.
+                                 "gps-time-websdr.service", "gps-time-airband-fetch.service", "piaware.service"})
+        self.assertEqual(set(re.findall(r'verb === "([^"]+)"', code)), {"restart", "start", "stop", "try-restart"})
+        # stop is allowed for the web SDR and the opt-in feeders only, never for the timing core.
         self.assertRegex(code, r'\(verb === "start" \|\| verb === "stop"\) && unit === "gps-time-websdr.service"')
-        self.assertEqual(code.count('verb === "stop"'), 1)
+        self.assertIn('(verb === "start" || verb === "stop" || verb === "try-restart") &&\n'
+                      '        (/^gps-time-feed@[a-z0-9]{1,32}\\.service$/.test(unit) || unit === "piaware.service")', code)
+        self.assertEqual(code.count('verb === "stop"'), 2)
+        self.assertEqual(code.count('verb === "try-restart"'), 1)
+        self.assertEqual(code.count(".test(unit)"), 1)       # the one pattern: anchored, feeder units only
         self.assertEqual(set(re.findall(r'action\.id === "([^"]+)"', code)),
                          {"org.freedesktop.systemd1.manage-units", "org.freedesktop.login1.reboot",
                           "org.freedesktop.login1.reboot-multiple-sessions"})

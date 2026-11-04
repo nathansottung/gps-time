@@ -2111,3 +2111,34 @@ Owner's rc.3 list and design: an SDR-only node; its chrony a client of the stati
   - no station timing in the script;
   - the script under stubs on both Pis: chrony source and drop-ins filled, the station's chrony never touched, refusals, a node can't read a node, undo.
 - **Not run on two Pis** (`deploy/sdr-node.md` → "Not verified").
+
+## 2026-11-04 — Opt-in ADS-B feeders with the location warning, and one Location sharing list (#161)
+
+Owner's rc.3 list, with the owner's design:
+- generic Beast-out plus PiAware (FR24 and RadarBox the same way later);
+- each card states in plain words what it shares;
+- turning one on needs the admin token and a typed confirmation;
+- MLAT is a separate opt-in, refused in hidden mode;
+- all active location sharing is listed in one place.
+
+- **`scripts/feeders.sh`** (`GTP_FEEDERS=1`, `GTP_FEEDERS_PIAWARE=1`, `GTP_FEEDERS_CUSTOM=host:port`; `=0` removes):
+  - needs the SDR stack's readsb;
+  - adds a drop-in that gives readsb one more output, Beast on `127.0.0.1:30005` (everything else closed, still localhost only, still no position);
+  - installs `gps-time-feed@.service` per aggregator (adsb.fi, airplanes.live, ADSBExchange, custom): a `--net-only` readsb with a random UUID per aggregator, enabled but gated by `ConditionPathExists` on the owner's switch.
+- **PiAware:** FlightAware's repository key comes from its `flightaware-apt-repository` package (SHA-256 checked against the index) and is kept only if it holds `56B6684E…AAD5A173`, the key that signs the trixie release (checked 2026-11-04). The forum's "no trixie" reports are out of date: the repository has trixie arm64 builds of piaware 11.1.
+  - Its own unit and dump1090-fa are masked before the install (PiAware's defaults read gpsd).
+  - `--no-install-recommends`.
+  - A drop-in and helper apply `receiver-type other` on 127.0.0.1:30005, `use-gpsd no`, no auto or manual updates, and `allow-mlat` only with the opt-in (and never when `config.json` says hidden).
+- **`gps_time_pi/feeders.py`, `GET /api/feeders`, `POST /api/setting {feeder}`:**
+  - on needs the row's name typed exactly; off needs nothing;
+  - MLAT is PiAware only: it needs "share my exact location" typed, and is refused (403) in hidden mode;
+  - switching to hidden turns MLAT off and restarts PiAware;
+  - the polkit rule allows start, stop and try-restart of `gps-time-feed@<name>.service` (anchored pattern) and `piaware.service` only.
+- **The location wording:** each card says what it shares. "Shares your exact location with FlightAware" appears when MLAT is on. Without MLAT the card says the location isn't shared, but that the aircraft it hears show roughly where the station is: a Beast feed carries no position, so saying "exact" there would be wrong.
+- **Administration:** a Feeders card (state, plain-words warning, Turn on… with the typed confirmation, MLAT on…) and a Location sharing card (feeders, MLAT, the capability record, the sky-quality summary).
+- **Tests:**
+  - `tests/test_feeders.py`: status, the typed confirmation, path-like names refused, MLAT and hidden mode, the sharing list, the demo shape, the units (no position, localhost, gated), PiAware never reading gpsd, the installer under stubs (all off, UUIDs kept, refusals, a wrong key skips PiAware, removal);
+  - the polkit and deploy-allowlist tests updated;
+  - `web/src/lib/feeders.test.ts`;
+  - typecheck, unit tests, build and 145 Playwright tests pass locally.
+- **Not verified on a Pi** (`deploy/feeders.md` → "Not verified").

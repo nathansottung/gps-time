@@ -164,6 +164,15 @@ echo "== Web SDR (optional, off unless asked for) =="
 bash scripts/websdr.sh \
   || echo "Warning: the web SDR was not changed (see the message above)."
 
+echo "== ADS-B feeders (optional, off unless asked for) =="
+# Beast from readsb (127.0.0.1:30005) to aggregators, and FlightAware's PiAware; installed only when
+# GTP_FEEDERS is set, and each one off until turned on in Administration (admin token and a typed
+# confirmation). They need the SDR stack's readsb. Nothing is given the station's position:
+#   sudo GTP_FEEDERS=1 [GTP_FEEDERS_PIAWARE=1] [GTP_FEEDERS_CUSTOM=host:port] bash install.sh
+#   sudo GTP_FEEDERS=0 bash install.sh     remove the units again (docs/deploy/feeders.md)
+bash scripts/feeders.sh \
+  || echo "Warning: the feeders were not changed (see the message above)."
+
 echo "== SDR node (optional: a second Pi carries the SDR load) =="
 # On the second Pi: sudo GTP_NODE=1 GTP_NODE_STATION=<station address> [GTP_SDR=1 ...] bash install.sh
 #   (its chrony follows the station over NTP; its rtl_tcp and readsb Beast serve the station only)
