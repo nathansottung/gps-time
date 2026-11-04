@@ -1,6 +1,6 @@
 // Radio → Web SDR: OpenWebRX+ behind the station's LAN gate, login optional (GET /api/websdr), its
-// Start and Stop (admin actions websdr_start / websdr_stop), Sign out all browsers
-// (websdr_signout_all, when the login is on), and the usage log: CPU, temperature and PPS
+// Start and Stop (admin actions websdr_start / websdr_stop: open to anyone on the LAN, no token),
+// Sign out all browsers (websdr_signout_all, admin token, when the login is on), and the usage log: CPU, temperature and PPS
 // jitter while it runs, against the minutes before it started. Logic: lib/websdr.ts.
 import { useState } from 'react';
 import { Card, CardHeader, CardBody, MaturityBadge, MetricRow, ProvenanceTag, StatusBadge } from './ui';
@@ -59,7 +59,7 @@ export function WebSdrCard() {
       <CardBody>
         <ApiErrorNote error={ws.error} />
         <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>
-          A browser radio for the station's RTL-SDR, on the LAN only, with decoders (FT8, FT4, WSPR, APRS, packet, SSTV, CW,
+          A browser radio for the station's RTL-SDR, open to anyone on the LAN (never beyond it), with decoders (FT8, FT4, WSPR, APRS, packet, SSTV, CW,
           RTTY, fax) and band bookmarks. While it runs it has the dongle to itself: readsb is stopped and starts again when the
           web SDR stops.
         </div>
@@ -101,9 +101,9 @@ export function WebSdrCard() {
                     Open the web SDR ↗</a>
                 : <span className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={{ border: '1px solid var(--border-dim)', color: 'var(--t3)' }}>
                     Open the web SDR (not running)</span>}
-              <button onClick={() => { setConfirming('start'); setOutcome(null); }} disabled={!canWrite || busy !== null || !!state?.running || !st.installed}
+              <button onClick={() => { setConfirming('start'); setOutcome(null); }} disabled={busy !== null || !!state?.running || !st.installed}
                 className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>{busy === 'websdr_start' ? 'Start…' : 'Start'}</button>
-              <button onClick={() => run('websdr_stop')} disabled={!canWrite || busy !== null || !state?.running}
+              <button onClick={() => run('websdr_stop')} disabled={busy !== null || !state?.running}
                 className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>{busy === 'websdr_stop' ? 'Stop…' : 'Stop'}</button>
               {loginOn && (
                 <button onClick={() => { setConfirming('signout'); setOutcome(null); }} disabled={!canWrite || busy !== null}
@@ -134,9 +134,10 @@ export function WebSdrCard() {
               </div>
             )}
             {outcome && <div className="text-[10px] mono mt-2" role="status" style={{ color: COLOR[outcome.variant] }}>{outcome.text}</div>}
-            {!canWrite && auth.data && (
-              <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Start, Stop and Sign out all browsers need the admin token (Administration → Admin access).</div>
-            )}
+            <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>
+              Anyone on the LAN can start and stop it; no admin token is needed.
+              {loginOn && !canWrite && auth.data ? ' Sign out all browsers needs the admin token (Administration → Admin access).' : ''}
+            </div>
             <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>
               {loginOn
                 ? 'The web SDR asks for its own login (set on the station); "Remember this browser" keeps a signed cookie. A new password signs every browser out too.'

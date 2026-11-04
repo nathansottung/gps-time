@@ -2255,3 +2255,13 @@ The owner's rc.5 list ("go. One PR, then tag rc.5"), in one PR:
 Tests: `tests/test_websdr.py` gains the login (off, cookie attributes and days, session cookie, forgery, expiry, password change, sign-out-all, no key, safe redirects, page escaping, cookie stripping, an end-to-end sign-in through the real gate), the decoder bookmarks against the profiles, and the installer's new settings, refusals and HF profiles. `tests/test_admin_auth.py` covers the new action and polkit unit. Vitest covers the card's login, HF and sign-out lines.
 
 Not changed: chrony, gpsd, PPS. `releases/v1.6.0-rc.5.md`; the tag `v1.6.0-rc.5` goes on this PR's merge commit.
+
+## 2026-11-04 — Web SDR open to anyone on the LAN: no token to start or stop (#172)
+
+The owner's rc.6 list, item 1: "Web SDR open to anyone on the LAN: no login, no token to start/stop. Still LAN-only."
+
+- **`system.OPEN_ACTIONS`** = `websdr_start`, `websdr_stop`. `POST /api/admin` runs these two for any caller that passes the Host allowlist, the Origin check and the JSON content type, with no admin token, even when no token is configured. Every other action and every setting still needs the token (tested, including the backoff).
+- **The Web SDR card** enables Start and Stop for everyone and says so. Sign out all browsers still needs the token.
+- **No login** stays the default (rc.5). The opt-in `GTP_WEBSDR_AUTH=1` is kept for later.
+- **Still LAN-only:** the gate's private ranges, OpenWebRX+ on the loopback. polkit is unchanged.
+- **Docs:** `deploy/websdr.md`, `api/endpoints.md`, ADR-0009 amended (anyone on the LAN can now pause ADS-B tracking for up to a session's limit).

@@ -30,7 +30,8 @@
 #   - installs gps-time-websdr.service (OpenWebRX+, loopback only, no outside host),
 #     gps-time-websdr-gate.service (the gate on the LAN port, private ranges only, a login if
 #     GTP_WEBSDR_AUTH=1), and gps-time-websdr-signout.service (signs out every browser).
-#     Neither is enabled at boot: the web SDR is started from the Radio page or with systemctl.
+#     Neither is enabled at boot: the web SDR is started from the Radio page (anyone on the LAN,
+#     no admin token) or with systemctl.
 #     While it runs, readsb is stopped (Conflicts=); websdr-handoff starts it again afterwards.
 #
 # Never touched: gpsd, chrony, the PPS line and its overlay. No receiver position is given.
@@ -258,12 +259,12 @@ systemctl daemon-reload
 systemctl disable gps-time-websdr.service gps-time-websdr-gate.service >/dev/null 2>&1 || true
 say "installed, not running. RTL-SDR $SERIAL, LAN port $PORT, sessions end after $HOURS h, HF profiles: $HF."
 if [ "$AUTH" = 0 ]; then
-  say "login off: anyone on the LAN can listen (GTP_WEBSDR_AUTH=1 turns the login on). Start and Stop still need the admin token."
+  say "login off: anyone on the LAN can listen (GTP_WEBSDR_AUTH=1 turns the login on)."
 elif grep -q '^[^#]' "$PWDIR/password" 2>/dev/null; then
   say "login on, a password is set; \"Remember this browser\" lasts $DAYS days."
 else
   say "login on, but no password yet; until one is set the gate refuses everything. Set it with:"
   say "  sudo /opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate passwd"
 fi
-say "start it from the Radio page (admin token) or: sudo systemctl start gps-time-websdr"
+say "start it from the Radio page (anyone on the LAN, no token) or: sudo systemctl start gps-time-websdr"
 exit 0
