@@ -116,6 +116,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Releases
 - `releases/README.md` — how a candidate becomes a release: rc tags on the notes PR's merge commit; the soak rule (72 h unchanged run, the read-only check and its criteria, tag the same commit only if clean, otherwise report); the record of soak runs
+- `releases/v1.6.0-rc.3.md` — rc.2 with nine opt-in additions (#156–#164): deploy flags, DVB-T blacklist, web SDR WebSocket check, dongle roles and the Pi 4 limit, migration, feeders and location sharing, airband bookmarks, SDR node mode, clip recording; the deploy command, what the upgrade changes, rollback (pre-release)
 - `releases/v1.6.0-rc.2.md` — rc.1 with the Pi bundle fixed (it had no `modules/`, so `install.sh` stopped); the new install-from-bundle test; the station's state after the failed install; the deploy command (pre-release)
 - `releases/v1.6.0-rc.1.md` — CAN'T BE INSTALLED (use rc.2); first 1.6 release candidate (v1.5.0 skipped): the v1.5.0-rc.1 soak finding and the checks since, responsive UI, the SDR stack and web SDR (opt-in), the sky-obstruction map, integer-ns PPS timestamps; the deploy command, what the upgrade changes on the station, rollback to v1.5.0-rc.1 or v1.4.0 (pre-release)
 - `releases/v1.5.0-rc.1.md` — first 1.5 release candidate: legacy pages retired (`/` → `/app/`), optional modules with the Administration switch, station key and observation files, second pulse and soak check; the deploy command, what the upgrade changes on the station, rollback to v1.4.0 (pre-release)
