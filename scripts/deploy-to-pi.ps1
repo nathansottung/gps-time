@@ -31,6 +31,7 @@ $InstallFlags = @(
   'GTP_SDR_978_SERIAL',
   'GTP_SDR_NODE',
   'GTP_SDR_PPS_SERIAL',
+  'GTP_TAR1090',
   'GTP_WEBSDR',
   'GTP_WEBSDR_AUTH',
   'GTP_WEBSDR_HF',

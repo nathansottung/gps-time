@@ -18,6 +18,7 @@ import { adsbStats, dataPacks } from '../api/previews';
 import { ModuleReadiness, ModuleSettings, SdrReceivers } from '../components/sdr';
 import { CapabilityCard } from '../components/skymap';
 import { FeedersCard } from '../components/feeders';
+import { AircraftMapCard } from '../components/aircraftmap';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { DateNav, DayBarCard, NightCard } from '../components/almanac';
 import { timeOnDay, todayIn } from '../lib/almanac';
@@ -386,14 +387,16 @@ export function Network() {
   );
 }
 
-// ─── Aviation (planned) ───────────────────────────────────────────────────────
+// ─── Aviation: the live map (tar1090), then what is still planned ─────────────
 export function Aviation() {
   return (
     <div className="space-y-4 page-enter">
       <div className="flex items-baseline justify-between">
         <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Aviation — ADS-B / Mode-S</h1>
-        <MaturityBadge level="planned" />
+        <MaturityBadge level="experimental" />
       </div>
+
+      <AircraftMapCard />
 
       <Planned title="ADS-B / UAT" needs="dump1090 / dump978 integration">
       <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">

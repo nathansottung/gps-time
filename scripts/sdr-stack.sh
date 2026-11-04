@@ -14,6 +14,9 @@
 #   skyaware978           gps-time-dump978.service (127.0.0.1:30978, :30979) and
 #                         gps-time-skyaware978.service, aircraft.json in /run/skyaware978 (RAM)
 #   a drop-in             gps-time-modules.service may reach 127.0.0.1 (rtl_tcp), nothing else
+#   tar1090 (wiedehopf)   the live aircraft map, on by default with the 1090 MHz role: a static page
+#                         from a pinned commit, in /usr/local/share/gps-time-tar1090/html, served by
+#                         the web service at /tar1090/ (no listener of its own). GTP_TAR1090=0: off
 #
 # Each role needs its own RTL-SDR, picked by its USB serial (set one with rtl_eeprom -s):
 #   GTP_SDR_PPS_SERIAL    the dongle with the injected PPS (sdr-pps-marker)
@@ -32,6 +35,12 @@ ENVFILE="$ROOT/etc/default/gps-time-sdr"
 LIB="$ROOT/usr/local/lib/gps-time-sdr"
 SRC="$(cd "$(dirname "$0")/.." && pwd)/system"
 OUR_UNITS="gps-time-rtl-tcp.service gps-time-readsb.service gps-time-dump978.service gps-time-skyaware978.service"
+# tar1090 and its aircraft database (github.com/wiedehopf), fetched by commit and checked.
+TAR1090_REPO="https://github.com/wiedehopf/tar1090.git"
+TAR1090_COMMIT="5d59b1ba2c5e30eb23f1161940367b7767f10ad5"     # 3.14.1825, 2026-10-26
+TAR1090_DB_REPO="https://github.com/wiedehopf/tar1090-db.git"
+TAR1090_DB_COMMIT="2ab834a65f2fbde9457823e88682cd46954b8bc1"  # 2026-11-02
+TAR1090_HTML="$ROOT/usr/local/share/gps-time-tar1090/html"
 # dump978 v11.1 (github.com/flightaware/dump978); the commit is checked after the clone.
 DUMP978_REPO="https://github.com/flightaware/dump978.git"
 DUMP978_TAG="v11.1"
@@ -59,8 +68,9 @@ case "$WANT" in
     done
     rm -f "$DROPIN"
     rmdir "$(dirname "$DROPIN")" 2>/dev/null || true
+    rm -rf "$(dirname "$TAR1090_HTML")"
     systemctl daemon-reload
-    say "units and the module drop-in removed. Packages, $ENVFILE and $LIB are kept."
+    say "units, the module drop-in and the aircraft map removed. Packages, $ENVFILE and $LIB are kept."
     exit 0 ;;
   1|on|yes|true) ;;
   *) say "GTP_SDR must be 1 or 0, not '$WANT'; nothing changed." >&2; exit 1 ;;
@@ -83,6 +93,12 @@ pick() {
 PPS_SERIAL="$(pick GTP_SDR_PPS_SERIAL)" || exit 1
 S1090="$(pick GTP_SDR_1090_SERIAL)" || exit 1
 S978="$(pick GTP_SDR_978_SERIAL)" || exit 1
+TAR1090="${GTP_TAR1090-}"; [ -z "$TAR1090" ] && TAR1090="$(old GTP_TAR1090)"; [ -z "$TAR1090" ] && TAR1090=1
+case "$TAR1090" in
+  1|on|yes|true) TAR1090=1 ;;
+  0|off|no|false) TAR1090=0 ;;
+  *) say "GTP_TAR1090='$TAR1090' must be 1 (the aircraft map, the default) or 0; nothing changed." >&2; exit 1 ;;
+esac
 for a in "$PPS_SERIAL:$S1090" "$PPS_SERIAL:$S978" "$S1090:$S978"; do
   x="${a%%:*}"; y="${a#*:}"
   if [ -n "$x" ] && [ "$x" = "$y" ]; then
@@ -142,6 +158,45 @@ else
   say "the build tools for dump978 could not be installed; 978 MHz stays off." >&2
 fi
 
+echo "== SDR stack: aircraft map (tar1090) =="
+if [ "$TAR1090" = 0 ]; then
+  rm -rf "$(dirname "$TAR1090_HTML")"
+  say "aircraft map off (GTP_TAR1090=0)."
+elif [ -z "$S1090" ] && [ "$OWN_READSB" = 0 ]; then
+  say "aircraft map: needs the 1090 MHz role (GTP_SDR_1090_SERIAL); not installed."
+elif [ -f "$TAR1090_HTML/index.html" ] && [ "$(cat "$(dirname "$TAR1090_HTML")/commit" 2>/dev/null)" = "$TAR1090_COMMIT $TAR1090_DB_COMMIT" ]; then
+  say "aircraft map: tar1090 ${TAR1090_COMMIT:0:7} already installed."
+elif apt-get install -y --no-install-recommends git >/dev/null; then
+  TB="$(mktemp -d)"
+  chown nobody "$TB" 2>/dev/null || true
+  as_nobody() { if [ "$(id -u)" = 0 ]; then runuser -u nobody -- "$@"; else "$@"; fi; }
+  # Fetched as nobody, by commit (not a branch), each checked; only the page's files are kept.
+  fetch_commit() {   # fetch_commit <repo> <commit> <dir>
+    as_nobody git init --quiet "$3" && as_nobody git -C "$3" fetch --quiet --depth 1 "$1" "$2" \
+      && as_nobody git -C "$3" checkout --quiet FETCH_HEAD && [ "$(as_nobody git -C "$3" rev-parse HEAD)" = "$2" ]
+  }
+  if fetch_commit "$TAR1090_REPO" "$TAR1090_COMMIT" "$TB/tar1090" && fetch_commit "$TAR1090_DB_REPO" "$TAR1090_DB_COMMIT" "$TB/db" \
+     && [ -f "$TB/tar1090/html/index.html" ] && [ -d "$TB/db/db" ]; then
+    DBV="${TAR1090_DB_COMMIT:0:7}"
+    STAGE="$(dirname "$TAR1090_HTML")/html.new"
+    rm -rf "$STAGE" && install -d -m 0755 "$STAGE"
+    cp -r "$TB/tar1090/html/." "$STAGE/" && cp -r "$TB/db/db" "$STAGE/db-$DBV"
+    sed -i "s/let databaseFolder = .*;/let databaseFolder = \"db-$DBV\";/" "$STAGE/index.html"
+    sed -i "s/id=\"webinterface_version\">/&(${TAR1090_COMMIT:0:7})/" "$STAGE/index.html"
+    printf '{ "tar1090Version": "%s", "databaseVersion": "%s" }\n' "${TAR1090_COMMIT:0:7}" "$DBV" > "$STAGE/version.json"
+    cp "$TB/tar1090/LICENSE" "$STAGE/LICENSE.txt" 2>/dev/null || true
+    chmod -R a+rX,go-w "$STAGE"
+    rm -rf "$TAR1090_HTML" && mv "$STAGE" "$TAR1090_HTML"
+    echo "$TAR1090_COMMIT $TAR1090_DB_COMMIT" > "$(dirname "$TAR1090_HTML")/commit"
+    say "aircraft map: tar1090 ${TAR1090_COMMIT:0:7} installed; the station serves it at /tar1090/."
+  else
+    say "aircraft map: tar1090 could not be fetched or verified ($TAR1090_COMMIT, db $TAR1090_DB_COMMIT); not installed." >&2
+  fi
+  rm -rf "$TB"
+else
+  say "aircraft map: git could not be installed; not installed." >&2
+fi
+
 echo "== SDR stack: units (loopback only) =="
 install -d -m 0755 "$(dirname "$ENVFILE")"
 {
@@ -149,6 +204,7 @@ install -d -m 0755 "$(dirname "$ENVFILE")"
   echo "GTP_SDR_PPS_SERIAL=$PPS_SERIAL"
   echo "GTP_SDR_1090_SERIAL=$S1090"
   echo "GTP_SDR_978_SERIAL=$S978"
+  echo "GTP_TAR1090=$TAR1090"
 } > "$ENVFILE.tmp" && mv -f "$ENVFILE.tmp" "$ENVFILE"
 chmod 0644 "$ENVFILE"
 install -d -m 0755 "$UNITS" "$(dirname "$DROPIN")"
