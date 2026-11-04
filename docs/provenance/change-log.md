@@ -2186,6 +2186,8 @@ The owner's list of nine (2026-11-04, "go. No deploys."), one PR each, all merge
 
 **Merge order:** the PRs overlapped in shared spots (STATUS, the change log, `server.py`, the demo and type files, the polkit rule, the deploy allowlists). Each overlap was merged by hand, block by block, and the full Python and web suites ran after each one before pushing. The change-log entries are in the order the PRs were opened.
 
-## 2026-11-04 — The PiAware card shows the location warning with MLAT off too (#166)
+## 2026-11-04 — The amber location warning on every feeder card: PiAware with MLAT off, and each Beast feeder (#166)
 
 The owner asked to confirm that the PiAware card warns about location even with MLAT off. It didn't: with MLAT off, `locationWarning()` (`web/src/lib/feeders.ts`) fell through to the grey "Doesn't share your location" line used for the Beast feeders. The PiAware card now always shows the warning in amber. With MLAT off it reads "Shares your location with FlightAware: the aircraft it receives show roughly where the station is. Your exact location only with MLAT, which is off." With MLAT on it reads "Shares your exact location with FlightAware." as before. The station's rules are unchanged (MLAT is still a separate typed opt-in, refused in hidden mode), and so is the Beast feeders' wording. A Vitest case covers MLAT off, including hidden mode. For rc.4.
+
+Then (owner, "go."): every Beast feeder card gets the same amber line, "Shares your location with <service>: the aircraft it receives show roughly where the station is. Never your exact location: the feed carries no position." The Location sharing card and `/api/feeders` `sharing.rows` now list these feeds as `rough (from the aircraft)` instead of `none (aircraft only)`, to match the cards. `exact_location_shared` still counts only exact sharing (MLAT).

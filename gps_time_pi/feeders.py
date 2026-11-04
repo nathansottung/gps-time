@@ -198,7 +198,7 @@ def location_sharing(cfg, feeders_status, capability_note=None):
                          "location": "exact", "active": bool(f["on"] and f["mlat"]["on"]),
                          "detail": "off" if not f["mlat"]["on"] else ("on, PiAware running" if f["on"] else "on, but PiAware is off")})
         rows.append({"what": f"Feeder: {f['service']}", "to": f["target"] or f["service"],
-                     "location": "none (aircraft only)", "active": bool(f["on"]),
+                     "location": "rough (from the aircraft)", "active": bool(f["on"]),
                      "detail": "on" if f["on"] else "off"})
     rows.append({"what": "Capability record", "to": "not sent anywhere yet",
                  "location": "rounded to 0.1°" if mode == "rounded" else "none",

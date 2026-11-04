@@ -135,7 +135,7 @@ class TestSharing(Tree):
         sh = fd.location_sharing(cfg, fd.status(cfg, run=self.sysd))
         what = {r["what"]: r for r in sh["rows"]}
         self.assertTrue(what["Feeder: adsb.fi"]["active"])
-        self.assertEqual(what["Feeder: adsb.fi"]["location"], "none (aircraft only)")
+        self.assertEqual(what["Feeder: adsb.fi"]["location"], "rough (from the aircraft)")
         self.assertFalse(what["FlightAware MLAT (PiAware)"]["active"])
         self.assertEqual(what["Capability record"]["location"], "rounded to 0.1°")
         self.assertTrue(what["Sky-quality summary"]["active"])
