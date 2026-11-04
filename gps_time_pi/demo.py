@@ -683,11 +683,19 @@ def websdr_status() -> dict:
     past = {"format": "gps-time.websdr-session/1", "start_utc": w._iso(now - 86400), "end_utc": w._iso(now - 86400 + 2700),
             "duration_s": 2700, "partial": False, "truncated": False,
             "before": w.labelled(w.summarize(before)), "during": w.labelled(w.summarize(bins[:12]))}
-    return {"installed": True, "active": q("active", None, "observed", "demo"), "port": 8073, "serial": "00001090",
+    return {"node_host": None, "installed": True, "active": q("active", None, "observed", "demo"), "port": 8073, "serial": "00001090",
             "max_hours": 4.0,
             "usage": {"session": session, "baseline": w.labelled(w.summarize(before)), "recent": [past],
                       "file": {"name": "websdr-sessions.jsonl", "error": None}, "note": w.LAYER_NOTE},
             "note": "Demo: synthetic values, not a station's."}
+
+
+
+def time_quality():
+    """/api/time-quality in demo mode: a station on its GNSS/PPS reference clock (synthetic)."""
+    from .labels import q
+    return {"role": "station", "station": None, "sdr_node": None, "source": "refclock", "reference": "GPS", "stratum": 1,
+            "max_error_s": q(1.2e-5, "s", "calculated", "demo"), "label": "refclock GPS, within ±12 µs (chrony's bound)"}
 
 
 _DEMO_SKY = {}

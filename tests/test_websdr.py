@@ -283,7 +283,7 @@ class TestStatus(unittest.TestCase):
     def test_demo_payload_has_the_station_shape(self):
         from gps_time_pi import demo
         d = demo.websdr_status()
-        self.assertEqual(set(d), {"installed", "active", "port", "serial", "max_hours", "usage", "note"})
+        self.assertEqual(set(d), {"node_host", "installed", "active", "port", "serial", "max_hours", "usage", "note"})
         self.assertEqual(set(d["usage"]), {"session", "baseline", "recent", "file", "note"})
 
 

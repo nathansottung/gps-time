@@ -386,7 +386,10 @@ def status(usage=None, run=None):
     inst, p = installed(run)
     st = settings()
     active = (p or {}).get("ActiveState")
+    from . import timequality
+    role, peer = timequality.role()
     return {
+        "node_host": peer if role == "station" and not inst else None,   # the web SDR is on the SDR node
         "installed": inst,
         "active": q(active, None, "observed", "systemctl show ActiveState") if inst else q(None, None, "observed"),
         "port": st["port"], "serial": st["serial"], "max_hours": st["max_hours"],

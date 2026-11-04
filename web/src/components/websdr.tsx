@@ -56,9 +56,17 @@ export function WebSdrCard() {
           A browser radio for the station's RTL-SDR, on the LAN only and behind a password. While it runs it has the dongle to
           itself: readsb is stopped and starts again when the web SDR stops.
         </div>
-        {st && st.installed === false && (
+        {st && st.installed === false && st.node_host && (
+          <div className="text-[11px]" style={{ color: 'var(--t2)' }}>
+            The web SDR runs on the SDR node at <span className="mono">{st.node_host}</span>, so its load stays off this timing Pi.{' '}
+            <a href={websdrUrl(st.node_host, 8073) ?? '#'} target="_blank" rel="noreferrer" className="underline">Open it ↗</a>
+            {' '}or manage it on the node's own page (<a href={`http://${st.node_host.includes(':') ? `[${st.node_host}]` : st.node_host}/app/#radio`} target="_blank" rel="noreferrer" className="underline">Radio &amp; SDR ↗</a>).
+          </div>
+        )}
+        {st && st.installed === false && !st.node_host && (
           <div className="text-[11px]" style={{ color: 'var(--t3)' }}>
-            Not installed. It is optional: <span className="mono">sudo GTP_WEBSDR=1 bash install.sh</span> (docs/deploy/websdr.md).
+            Not installed. It is optional: <span className="mono">sudo GTP_WEBSDR=1 bash install.sh</span> (docs/deploy/websdr.md),
+            here or on an SDR node (docs/deploy/sdr-node.md).
           </div>
         )}
         {st && st.installed !== false && (

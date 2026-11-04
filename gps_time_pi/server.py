@@ -12,6 +12,7 @@ Routes:
                      experimental switch, each module's setting and settings, the SDR modules'
                      readiness; changed by POST /api/setting
   /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
+  /api/time-quality  where this Pi's clock gets its time (refclock, or ntp on an SDR node) and chrony's bound
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
                      (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
@@ -40,7 +41,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import capability, sdr, skymap, websdr
+from . import capability, sdr, skymap, timequality, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -757,6 +758,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(sdr_payload())
             elif p == "/api/websdr":
                 self._json(websdr_payload())
+            elif p == "/api/time-quality":
+                self._json(demo.time_quality() if DEMO_MODE else memo(("timequality",), 5.0, timequality.current))
             else:
                 self.send_error(404)
         except BrokenPipeError:

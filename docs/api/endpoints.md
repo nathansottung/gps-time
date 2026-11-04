@@ -579,6 +579,22 @@ The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no 
 - `recent`: the last 10 sessions, newest first, from `websdr-sessions.jsonl` (one line per session, written when it ends; 100 kept).
 - The PPS figures are the system clock against kernel PPS timestamps (the `/api/stability` layer), in integer nanoseconds from the kernel on, so they resolve to 1 ns. They show what changed while the web SDR ran, not why.
 
+## GET /api/time-quality
+
+Where this Pi's clock gets its time, for labelling timestamps (`docs/deploy/sdr-node.md`). Read only, no token. Code: `gps_time_pi/timequality.py`.
+
+```json
+{"role": "station", "station": null, "sdr_node": "192.0.2.20", "source": "refclock", "reference": "GPS", "stratum": 1,
+ "max_error_s": {"value": 9.7e-06, "unit": "s", "provenance": "calculated", "note": "chrony: |System time| + Root dispersion + ½ Root delay"},
+ "label": "refclock GPS, within ±9.7 µs (chrony's bound)"}
+```
+
+- `role`: `station`, or `sdr-node` when `/etc/default/gps-time-node` names the station it follows (`station`). On the station, `sdr_node` is the node it reads.
+- `source`: `refclock` (chrony follows a local reference clock), `ntp` (a network server; on a node, the station), or `unknown` (chronyc unreadable, or not synchronised).
+- `max_error_s`: chronyc's bound (`calculated`). It holds only if the reference is right (GPS-007).
+
+`GET /api/websdr` gains `node_host`: the SDR node's address when the station reads a node and has no web SDR of its own. The Radio page then links there.
+
 ## GET /api/sky-obstruction
 
 The learned sky-obstruction map (addendum §10–11; `architecture/sky-obstruction-map.md`). No token. Code: `gps_time_pi/skymap.py`; type `SkyObstructionResult`. Everything in it is `inferred` from observed C/N₀; it never names a cause.
