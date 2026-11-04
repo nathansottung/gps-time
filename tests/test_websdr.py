@@ -140,12 +140,238 @@ class TestGateProxy(unittest.TestCase):
             return denied, wrong, ok
 
         denied, wrong, ok = asyncio.run(main())
-        self.assertTrue(denied.startswith(b"HTTP/1.1 401"))
+        self.assertTrue(denied.startswith(b"HTTP/1.1 303"))                     # a browser: the sign-in page
+        self.assertIn(b"Location: /gps-time-login?next=/", denied)
         self.assertTrue(wrong.startswith(b"HTTP/1.1 401"))
         self.assertTrue(ok.startswith(b"HTTP/1.1 200 OK"))
         self.assertTrue(ok.endswith(b"hello"))
         self.assertEqual(len(seen), 1)                      # the refused ones never reached it
         self.assertNotIn(b"Authorization", seen[0])
+
+
+class TestGateLogin(unittest.TestCase):
+    """The optional login: off by default, the sign-in page, remembered browsers and revocation."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.pw = self.tmp / "password"
+        self.key = self.tmp / "cookie-key"
+        self.set_password("correct horse battery")
+        gate.write_key(str(self.key))
+        self.wall = Clock()
+        self.clock = Clock(100.0)
+
+    def set_password(self, pw):
+        self.pw.write_text(f"radio:{gate.hash_password(pw, iterations=1000)}\n")
+
+    def gate(self, **kw):
+        return gate.Gate(self.pw, clock=self.clock, wall=self.wall, cookie_key_file=self.key, **kw)
+
+    def reread(self):
+        self.clock.t += 11                      # the gate re-reads its files every 10 s
+
+    def cookie_of(self, set_cookie):
+        return set_cookie.split(";")[0]
+
+    def test_login_off_lets_the_lan_in_without_credentials(self):
+        g = self.gate(auth=False)
+        self.assertEqual(g.decide("192.168.1.5", None), (200, "login off"))
+        self.pw.write_text("# none\n")       # even with no password: the login is off
+        self.reread()
+        self.assertEqual(g.decide("192.168.1.5", None)[0], 200)
+        self.assertFalse(gate.env_flag(None))
+        self.assertFalse(gate.env_flag("0"))
+        self.assertTrue(gate.env_flag("1"))
+
+    def test_remember_sets_a_signed_httponly_strict_cookie_for_the_configured_days(self):
+        g = self.gate(remember_days=30)
+        c = g.new_cookie(True)
+        self.assertIn("HttpOnly", c)
+        self.assertIn("SameSite=Strict", c)
+        self.assertIn("Path=/", c)
+        self.assertIn(f"Max-Age={30 * 86400}", c)
+        self.assertNotIn("Secure", c)                         # plain HTTP on the LAN: documented
+        self.assertNotIn("correct horse", c)
+        self.assertEqual(g.decide("192.168.1.5", None, self.cookie_of(c))[0], 200)
+        self.assertEqual(g.decide("192.168.1.5", None, "other=1; " + self.cookie_of(c))[0], 200)
+        self.wall.t += 30 * 86400 + 1
+        self.assertEqual(g.decide("192.168.1.5", None, self.cookie_of(c))[0], 401)   # expired
+        self.assertIn("Max-Age=604800", self.gate(remember_days=7).new_cookie(True))
+        self.assertEqual(gate.env_days("7"), 7)
+        self.assertEqual(gate.env_days("0"), gate.REMEMBER_DAYS)
+        self.assertEqual(gate.env_days("abc"), gate.REMEMBER_DAYS)
+
+    def test_without_remember_the_cookie_ends_with_the_browser(self):
+        g = self.gate()
+        c = g.new_cookie(False)
+        self.assertNotIn("Max-Age", c)
+        self.assertEqual(g.decide("192.168.1.5", None, self.cookie_of(c))[0], 200)
+        self.wall.t += gate.SESSION_COOKIE_S + 1
+        self.assertEqual(g.decide("192.168.1.5", None, self.cookie_of(c))[0], 401)
+
+    def test_a_forged_or_altered_cookie_is_refused(self):
+        g = self.gate()
+        value = self.cookie_of(g.new_cookie(True)).split("=", 1)[1]
+        v, exp, nonce, mac = value.split(".")
+        flipped = mac[:-1] + ("A" if mac[-1] != "A" else "B")
+        for bad in (f"{v}.{int(exp) + 999999}.{nonce}.{mac}", f"{v}.{exp}.{nonce}.{flipped}", "1.9999999999.x.y", "", "junk"):
+            self.assertEqual(g.decide("192.168.1.5", None, f"gtp_websdr={bad}")[0], 401, bad)
+
+    def test_a_new_password_signs_every_browser_out(self):
+        g = self.gate()
+        c = self.cookie_of(g.new_cookie(True))
+        self.set_password("another long password")
+        self.reread()
+        self.assertEqual(g.decide("192.168.1.5", None, c)[0], 401)
+        # The same password set again is a new salt: the old cookie stays dead.
+        self.set_password("correct horse battery")
+        self.reread()
+        self.assertEqual(g.decide("192.168.1.5", None, c)[0], 401)
+
+    def test_signout_all_writes_a_new_key_and_restarts_a_running_gate(self):
+        g = self.gate()
+        c = self.cookie_of(g.new_cookie(True))
+        runs = []
+        with mock.patch("builtins.print"):
+            rc = gate.signout_all(str(self.key), run=lambda argv, **kw: runs.append(argv) or mock.Mock(returncode=0))
+        self.assertEqual(rc, 0)
+        self.assertEqual(runs, [["systemctl", "try-restart", "gps-time-websdr-gate.service"]])
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(self.key.stat().st_mode), 0o600)
+        self.reread()
+        self.assertEqual(g.decide("192.168.1.5", None, c)[0], 401)
+        self.assertEqual(g.decide("192.168.1.5", None, self.cookie_of(g.new_cookie(True)))[0], 200)
+
+    def test_no_cookie_key_means_no_cookies_but_basic_still_works(self):
+        self.key.unlink()
+        g = self.gate()
+        self.assertIsNone(g.new_cookie(True))
+        self.assertEqual(g.login("192.168.1.5", "radio", "correct horse battery")[0], 503)
+        self.assertEqual(g.decide("192.168.1.5", auth("radio", "correct horse battery"))[0], 200)
+
+    def test_next_never_leaves_the_station(self):
+        for bad in ("//evil.example/", "http://evil.example/", "/\\evil", "/a\r\nSet-Cookie: x", "/gps-time-login", ""):
+            self.assertEqual(gate.safe_next(bad), "/", bad)
+        self.assertEqual(gate.safe_next("/#freq=145800000"), "/#freq=145800000")
+        self.assertEqual(gate.safe_next("/map"), "/map")
+
+    def test_the_sign_in_page_escapes_and_offers_remember(self):
+        page = gate.login_page('/x"><script>', user='<b>', error="Wrong user or password.", days=30).decode()
+        self.assertIn("Remember this browser (30 days)", page)
+        self.assertNotIn("<script>", page)
+        self.assertNotIn("<b>", page)
+        self.assertNotIn("http", page.lower().replace('http-equiv', '').replace('plain http', ''))   # loads nothing
+        self.assertNotIn("700", page)
+        self.assertNotIn("bold", page)
+
+    def test_the_gate_cookie_is_stripped_and_openwebrx_cookies_kept(self):
+        lines = ["GET / HTTP/1.1", "Cookie: owrx-session=abc; gtp_websdr=1.2.3.4", "Cookie: gtp_websdr=x"]
+        self.assertEqual(gate.strip_auth(lines), ["GET / HTTP/1.1", "Cookie: owrx-session=abc"])
+
+    def test_end_to_end_sign_in_then_the_cookie_reaches_openwebrx(self):
+        seen = []
+
+        async def upstream(reader, writer):
+            seen.append(await reader.readuntil(b"\r\n\r\n"))
+            writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+            await writer.drain()
+            writer.close()
+
+        async def send(port, raw):
+            r, w = await asyncio.open_connection("127.0.0.1", port)
+            w.write(raw)
+            await w.drain()
+            out = await asyncio.wait_for(r.read(), 5)
+            w.close()
+            return out
+
+        def post(form, origin=None):
+            body = form.encode()
+            extra = f"Origin: {origin}\r\n" if origin else ""
+            return (f"POST /gps-time-login HTTP/1.1\r\nHost: station:8073\r\n{extra}"
+                    f"Content-Type: application/x-www-form-urlencoded\r\nContent-Length: {len(body)}\r\n\r\n").encode() + body
+
+        async def main():
+            up = await asyncio.start_server(upstream, "127.0.0.1", 0)
+            g = gate.Gate(self.pw, ("127.0.0.1", up.sockets[0].getsockname()[1]), cookie_key_file=self.key)
+            front = await asyncio.start_server(lambda r, w: gate.handle(g, r, w), "127.0.0.1", 0)
+            port = front.sockets[0].getsockname()[1]
+            async with up, front:
+                page = await send(port, b"GET /gps-time-login?next=/map HTTP/1.1\r\nHost: station:8073\r\n\r\n")
+                wrong = await send(port, post("user=radio&password=nope&next=/map"))
+                foreign = await send(port, post("user=radio&password=correct+horse+battery", "http://evil.example"))
+                good = await send(port, post("user=radio&password=correct+horse+battery&remember=1&next=/map",
+                                             "http://station:8073"))
+                cookie = next(ln.split(":", 1)[1].strip() for ln in good.decode().split("\r\n")
+                              if ln.lower().startswith("set-cookie:")).split(";")[0]
+                ws = await send(port, b"GET /ws/ HTTP/1.1\r\nHost: station\r\nUpgrade: websocket\r\n\r\n")
+                through = await send(port, f"GET /map HTTP/1.1\r\nHost: station\r\nCookie: {cookie}; owrx-session=k\r\n\r\n".encode())
+                out = await send(port, b"GET /gps-time-logout HTTP/1.1\r\nHost: station\r\n\r\n")
+            return page, wrong, foreign, good, ws, through, out
+
+        with self.assertLogs("gps_time_pi.websdr_gate", "WARNING"):
+            page, wrong, foreign, good, ws, through, out = asyncio.run(main())
+        self.assertTrue(page.startswith(b"HTTP/1.1 200"))
+        self.assertIn(b'name="next" value="/map"', page)
+        self.assertTrue(wrong.startswith(b"HTTP/1.1 401"))
+        self.assertIn(b"Wrong user or password.", wrong)
+        self.assertTrue(foreign.startswith(b"HTTP/1.1 403"))
+        self.assertTrue(good.startswith(b"HTTP/1.1 303"))
+        self.assertIn(b"Location: /map", good)
+        self.assertIn(b"HttpOnly; SameSite=Strict; Max-Age=2592000", good)
+        self.assertTrue(ws.startswith(b"HTTP/1.1 401"))                   # WebSockets get the plain 401
+        self.assertTrue(through.startswith(b"HTTP/1.1 200 OK"))
+        self.assertIn(b"Max-Age=0", out)
+        self.assertEqual(len(seen), 1)                                      # only the signed-in request
+        self.assertNotIn(b"gtp_websdr", seen[0])
+        self.assertIn(b"Cookie: owrx-session=k", seen[0])
+
+
+# ── decoders, bookmarks and band profiles ──────────────────────────────────
+
+class TestDecoderBookmarks(unittest.TestCase):
+    def setUp(self):
+        self.marks = json.loads((SYSTEM / "openwebrx-gps-time-decoders.json").read_text(encoding="utf-8"))
+        self.prof = json.loads((SYSTEM / "openwebrx-gps-time-profiles.json").read_text(encoding="utf-8"))
+
+    def test_every_decoder_the_owner_asked_for_has_bookmarks(self):
+        mods = {b["modulation"] for b in self.marks}
+        # SSTV, FT8, FT4, WSPR, APRS/packet, CW, RTTY, fax (OpenWebRX+ mode names, owrx/modes.py)
+        self.assertTrue({"sstv", "ft8", "ft4", "wspr", "packet", "cwdecoder", "rtty170", "fax"} <= mods)
+        self.assertTrue(any(b["modulation"] == "packet" and b["frequency"] == 144390000 for b in self.marks))   # APRS
+
+    def test_bookmarks_have_openwebrx_fields_and_valid_underlying_modes(self):
+        under = {"ft8": {"usb"}, "ft4": {"usb"}, "wspr": {"usb"}, "packet": {"nfm"}, "sstv": {"usb", "lsb", "nfm"},
+                 "fax": {"usb"}, "cwdecoder": {"usb", "lsb"}, "rtty170": {"usb", "lsb"}}
+        for b in self.marks:
+            with self.subTest(b=b["name"]):
+                self.assertTrue({"name", "frequency", "modulation", "underlying"} <= set(b))
+                self.assertIsInstance(b["frequency"], int)
+                self.assertIn(b["underlying"], under[b["modulation"]])
+                self.assertTrue(500_000 <= b["frequency"] <= 450_000_000)
+        self.assertEqual(len({(b["name"]) for b in self.marks}), len(self.marks))
+
+    def test_every_bookmark_is_inside_a_station_profile(self):
+        prof = {**self.prof["managed"], **self.prof["hf"]}
+        for b in self.marks:
+            hit = [k for k, p in prof.items() if abs(b["frequency"] - p["center_freq"]) < p["samp_rate"] * 0.45]
+            self.assertTrue(hit, b["name"])
+
+    def test_without_hf_only_24_mhz_and_up_is_reachable(self):
+        for k, p in self.prof["managed"].items():
+            self.assertGreaterEqual(p["center_freq"] - p["samp_rate"] / 2, 24_000_000, k)
+        for k, p in self.prof["hf"].items():
+            self.assertTrue(k.startswith("gtp-hf-"))
+            self.assertNotIn("direct_sampling", p)          # set by the installer from GTP_WEBSDR_HF
+            self.assertLess(p["center_freq"], 28_800_000, k)
+        self.assertTrue(all(k.startswith("gtp-") for k in self.prof["managed"]))
+        self.assertFalse([k for k in self.prof["base"] if k.startswith("gtp-")])
+
+    def test_nothing_about_a_location(self):
+        text = (SYSTEM / "openwebrx-gps-time-decoders.json").read_text(encoding="utf-8").lower()
+        for word in ("lat", "lon", "receiver_gps", "locator"):
+            self.assertNotIn(f'"{word}', text)
 
 
 # ── the usage log ──────────────────────────────────────────────────────────
@@ -266,10 +492,14 @@ class TestStatus(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, True)
         f = tmp / "gps-time-websdr"
         f.write_text("# x\nGTP_WEBSDR_SERIAL=00001090\nGTP_WEBSDR_PORT=8073\nGTP_WEBSDR_MAX_HOURS=4\n")
+        none = {"port": None, "serial": None, "max_hours": None, "auth": None, "remember_days": None, "hf": None}
+        with mock.patch.object(websdr, "ENVFILE", f):   # an install from before the login setting: off, as the gate
+            self.assertEqual(websdr.settings(), {**none, "port": 8073, "serial": "00001090", "max_hours": 4.0, "auth": False})
+        f.write_text("GTP_WEBSDR_PORT=8073\nGTP_WEBSDR_AUTH=1\nGTP_WEBSDR_REMEMBER_DAYS=30\nGTP_WEBSDR_HF=direct\n")
         with mock.patch.object(websdr, "ENVFILE", f):
-            self.assertEqual(websdr.settings(), {"port": 8073, "serial": "00001090", "max_hours": 4.0})
+            self.assertEqual(websdr.settings(), {**none, "port": 8073, "auth": True, "remember_days": 30, "hf": "direct"})
         with mock.patch.object(websdr, "ENVFILE", tmp / "missing"):
-            self.assertEqual(websdr.settings(), {"port": None, "serial": None, "max_hours": None})
+            self.assertEqual(websdr.settings(), none)
 
     def test_not_installed_and_unknown(self):
         usage = mock.Mock(view=lambda: {"session": None})
@@ -283,7 +513,7 @@ class TestStatus(unittest.TestCase):
     def test_demo_payload_has_the_station_shape(self):
         from gps_time_pi import demo
         d = demo.websdr_status()
-        self.assertEqual(set(d), {"node_host", "installed", "active", "port", "serial", "max_hours", "usage", "note"})
+        self.assertEqual(set(d), {"node_host", "installed", "active", "port", "serial", "max_hours", "auth", "hf", "usage", "note"})
         self.assertEqual(set(d["usage"]), {"session", "baseline", "recent", "file", "note"})
 
 
@@ -311,6 +541,16 @@ class TestUnits(unittest.TestCase):
         self.assertIn("DynamicUser=yes", u)
         self.assertIn("BindsTo=gps-time-websdr.service", u)
         self.assertIn("LoadCredential=password:/etc/gps-time-websdr/password", u)
+        self.assertIn("LoadCredential=cookie-key:/etc/gps-time-websdr/cookie-key", u)
+        self.assertIn("--cookie-key %d/cookie-key", u)
+        self.assertIn("EnvironmentFile=/etc/default/gps-time-websdr", u)     # GTP_WEBSDR_AUTH, REMEMBER_DAYS
+
+    def test_signout_unit_only_writes_the_key(self):
+        u = unit("gps-time-websdr-signout.service")
+        self.assertIn("Type=oneshot", u)
+        self.assertIn("websdr_gate signout-all", u)
+        self.assertEqual(keys(u, "ReadWritePaths"), ["/etc/gps-time-websdr"])
+        self.assertIn("PrivateNetwork=yes", u)
 
     def test_readsb_stops_while_it_runs_and_comes_back(self):
         u = unit("gps-time-websdr.service")
@@ -323,11 +563,12 @@ class TestUnits(unittest.TestCase):
         self.assertIn("stopping) exit 0", h)
 
     def test_never_enabled_at_boot(self):
-        for name in ("gps-time-websdr.service", "gps-time-websdr-gate.service"):
+        for name in ("gps-time-websdr.service", "gps-time-websdr-gate.service", "gps-time-websdr-signout.service"):
             self.assertNotIn("[Install]", unit(name), name)
 
     def test_nothing_touches_the_timing_core(self):
-        for p in (SCRIPT, SYSTEM / "gps-time-websdr.service", SYSTEM / "gps-time-websdr-gate.service", SYSTEM / "websdr-handoff"):
+        for p in (SCRIPT, SYSTEM / "gps-time-websdr.service", SYSTEM / "gps-time-websdr-gate.service",
+                  SYSTEM / "gps-time-websdr-signout.service", SYSTEM / "websdr-handoff"):
             code = "\n".join(ln for ln in p.read_text(encoding="utf-8").splitlines() if not ln.lstrip().startswith("#"))
             for word in ("chrony", "gpsd", "pps-gpio", "/boot/", "config.txt"):
                 self.assertNotIn(word, code, f"{p.name}: {word}")
@@ -401,10 +642,24 @@ class TestScript(unittest.TestCase):
         env = (self.root / "etc/default/gps-time-websdr").read_text()
         self.assertIn("GTP_WEBSDR_SERIAL=00001090\n", env)
         self.assertIn("GTP_WEBSDR_PORT=8073\n", env)
+        self.assertIn("GTP_WEBSDR_AUTH=0\n", env)                          # the login is off by default
+        self.assertIn("GTP_WEBSDR_REMEMBER_DAYS=30\n", env)
+        self.assertIn("GTP_WEBSDR_HF=off\n", env)
+        self.assertIn("login off", r.stdout)
+        key = self.root / "etc/gps-time-websdr/cookie-key"
+        self.assertIsNotNone(gate.load_key(key))
+        self.assertEqual(stat.S_IMODE(key.stat().st_mode), 0o600)
+        self.assertTrue((self.root / "etc/systemd/system/gps-time-websdr-signout.service").is_file())
+        marks = json.loads((self.root / "etc/openwebrx/bookmarks.d/gps-time-decoders.json").read_text())
+        self.assertTrue(any(b["modulation"] == "ft8" for b in marks))
         self.assertIn("RuntimeMaxSec=4h", (self.root / "etc/systemd/system/gps-time-websdr.service.d/gps-time-max.conf").read_text())
         settings = json.loads((self.root / "var/lib/openwebrx/settings.json").read_text())
         self.assertEqual(settings["version"], 8)
         self.assertEqual(settings["sdrs"]["rtlsdr"]["device"], "00001090")
+        profiles = settings["sdrs"]["rtlsdr"]["profiles"]
+        self.assertTrue({"2m", "70cm", "fm", "air", "noaa", "gtp-10m", "gtp-6m", "gtp-2m-digital"} <= set(profiles))
+        self.assertFalse([k for k in profiles if k.startswith("gtp-hf-")])      # no HF unless asked
+        self.assertIn("apt-get install -y direwolf wsjtx aprs-symbols csdr-skimmer", self.calls())
         self.assertNotIn("receiver_gps", settings)                         # no position given
         self.assertIn("trixie ./", (self.root / "etc/apt/sources.list.d/gps-time-openwebrx-plus.list").read_text())
         pw = self.root / "etc/gps-time-websdr/password"
@@ -428,6 +683,9 @@ class TestScript(unittest.TestCase):
         doc = json.loads((data / "settings.json").read_text())
         self.assertEqual(doc["receiver_name"], "mine")
         self.assertEqual(doc["sdrs"]["a"]["device"], "websdr1")
+        self.assertIn("x", doc["sdrs"]["a"]["profiles"])                       # the owner's own profile stays
+        self.assertIn("gtp-10m", doc["sdrs"]["a"]["profiles"])
+        self.assertNotIn("profiles", doc["sdrs"]["b"])
         self.assertNotIn("device", doc["sdrs"]["b"])
         self.assertTrue((data / "settings.json.gps-time-prev").is_file())
 
@@ -441,6 +699,10 @@ class TestScript(unittest.TestCase):
             ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_PORT": "8074"}, None),
             ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_MAX_HOURS": "0"}, None),
             ({"GTP_WEBSDR_SERIAL": "x1", "STUB_FPR": "0" * 40}, None),                      # a different key
+            ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_AUTH": "maybe"}, None),
+            ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_REMEMBER_DAYS": "0"}, None),
+            ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_REMEMBER_DAYS": "366"}, None),
+            ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_HF": "upconverter"}, None),
         ]
         for env, sdr_env in cases:
             with self.subTest(env=env, sdr=sdr_env):
@@ -470,6 +732,27 @@ class TestScript(unittest.TestCase):
         self.assertFalse((self.root / "etc/apt/sources.list.d/gps-time-openwebrx-plus.list").exists())
         self.assertFalse((self.root / "etc/systemd/system/gps-time-websdr.service").exists())
 
+    def test_hf_profiles_are_added_and_removed_again(self):
+        data = self.root / "var/lib/openwebrx/settings.json"
+        r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="x1", GTP_WEBSDR_HF="direct", GTP_WEBSDR_AUTH="1")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        prof = json.loads(data.read_text())["sdrs"]["rtlsdr"]["profiles"]
+        hf = {k: v for k, v in prof.items() if k.startswith("gtp-hf-")}
+        self.assertTrue(hf)
+        self.assertEqual({v["direct_sampling"] for v in hf.values()}, {2})      # the Q branch
+        self.assertNotIn("direct_sampling", prof["gtp-10m"])
+        self.assertIn("login on, but no password yet", r.stdout)
+        self.assertIn("GTP_WEBSDR_AUTH=1\n", (self.root / "etc/default/gps-time-websdr").read_text())
+        key = (self.root / "etc/gps-time-websdr/cookie-key").read_text()
+        self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_HF="native")
+        prof = json.loads(data.read_text())["sdrs"]["rtlsdr"]["profiles"]
+        self.assertEqual({v["direct_sampling"] for k, v in prof.items() if k.startswith("gtp-hf-")}, {0})
+        self.assertEqual((self.root / "etc/gps-time-websdr/cookie-key").read_text(), key)   # kept: no sign-out
+        self.assertIn("GTP_WEBSDR_AUTH=1\n", (self.root / "etc/default/gps-time-websdr").read_text())   # kept
+        self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_HF="off")
+        prof = json.loads(data.read_text())["sdrs"]["rtlsdr"]["profiles"]
+        self.assertFalse([k for k in prof if k.startswith("gtp-hf-")])
+
     def test_settings_are_kept_between_runs_and_off_removes_units(self):
         self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="x1", GTP_WEBSDR_PORT="9073", GTP_WEBSDR_MAX_HOURS="2")
         r = self.run_script(GTP_WEBSDR="1")
@@ -482,6 +765,8 @@ class TestScript(unittest.TestCase):
         units = self.root / "etc/systemd/system"
         self.assertFalse((units / "gps-time-websdr.service").exists())
         self.assertFalse((units / "gps-time-websdr-gate.service").exists())
+        self.assertFalse((units / "gps-time-websdr-signout.service").exists())
+        self.assertFalse((self.root / "etc/openwebrx/bookmarks.d/gps-time-decoders.json").exists())
         self.assertFalse((self.root / "etc/openwebrx/openwebrx.conf.d/gps-time.conf").exists())
         self.assertTrue((self.root / "etc/default/gps-time-websdr").exists())
         self.assertTrue((self.root / "etc/gps-time-websdr/password").exists())

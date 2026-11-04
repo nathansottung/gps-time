@@ -58,8 +58,10 @@ def default_path():
 
 
 def settings():
-    """{port, serial} from the installer's /etc/default/gps-time-websdr; None where unset."""
-    out = {"port": None, "serial": None, "max_hours": None}
+    """{port, serial, max_hours, auth, remember_days, hf} from the installer's
+    /etc/default/gps-time-websdr; None where unset (an older install without the login settings
+    has the login off, as the gate does)."""
+    out = {"port": None, "serial": None, "max_hours": None, "auth": None, "remember_days": None, "hf": None}
     try:
         text = ENVFILE.read_text(encoding="utf-8")
     except OSError:
@@ -73,6 +75,14 @@ def settings():
             out["serial"] = v
         elif k == "GTP_WEBSDR_MAX_HOURS" and v.replace(".", "", 1).isdigit():
             out["max_hours"] = float(v)
+        elif k == "GTP_WEBSDR_AUTH":
+            out["auth"] = v.lower() in ("1", "on", "yes", "true")
+        elif k == "GTP_WEBSDR_REMEMBER_DAYS" and v.isdigit():
+            out["remember_days"] = int(v)
+        elif k == "GTP_WEBSDR_HF" and v in ("off", "direct", "native"):
+            out["hf"] = v
+    if out["port"] is not None and out["auth"] is None:
+        out["auth"] = False
     return out
 
 
@@ -393,7 +403,10 @@ def status(usage=None, run=None):
         "installed": inst,
         "active": q(active, None, "observed", "systemctl show ActiveState") if inst else q(None, None, "observed"),
         "port": st["port"], "serial": st["serial"], "max_hours": st["max_hours"],
+        # The installer's settings (configured, not observed): the gate's login and the HF profiles.
+        "auth": {"enabled": st["auth"], "remember_days": st["remember_days"]},
+        "hf": st["hf"],
         "usage": (usage or service()).view(),
-        "note": ("OpenWebRX+ behind a password gate, LAN only. While it runs, readsb (1090 MHz) is stopped; "
-                 "it comes back when the web SDR stops (docs/deploy/websdr.md)."),
+        "note": ("OpenWebRX+ behind the station's LAN gate (login optional). While it runs, readsb (1090 MHz) "
+                 "is stopped; it comes back when the web SDR stops (docs/deploy/websdr.md)."),
     }

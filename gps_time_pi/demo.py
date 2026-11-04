@@ -684,7 +684,7 @@ def websdr_status() -> dict:
             "duration_s": 2700, "partial": False, "truncated": False,
             "before": w.labelled(w.summarize(before)), "during": w.labelled(w.summarize(bins[:12]))}
     return {"node_host": None, "installed": True, "active": q("active", None, "observed", "demo"), "port": 8073, "serial": "00001090",
-            "max_hours": 4.0,
+            "max_hours": 4.0, "auth": {"enabled": True, "remember_days": 30}, "hf": "off",
             "usage": {"session": session, "baseline": w.labelled(w.summarize(before)), "recent": [past],
                       "file": {"name": "websdr-sessions.jsonl", "error": None}, "note": w.LAYER_NOTE},
             "note": "Demo: synthetic values, not a station's."}

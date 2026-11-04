@@ -1,0 +1,25 @@
+[Unit]
+Description=Sign out every browser of GPS Time's web SDR (a new cookie key; restarts a running gate)
+Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
+
+# Installed by scripts/websdr.sh (GTP_WEBSDR=1). Started by the admin action websdr_signout_all
+# (admin token; polkit allows start only). Writes /etc/gps-time-websdr/cookie-key and runs
+# `systemctl try-restart gps-time-websdr-gate.service`. Nothing else.
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gps-time-pi
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate signout-all
+ProtectSystem=strict
+ReadWritePaths=/etc/gps-time-websdr
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+NoNewPrivileges=yes

@@ -1,0 +1,478 @@
+[
+ {
+  "name": "FT8 160m",
+  "frequency": 1840000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 80m",
+  "frequency": 3573000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 60m",
+  "frequency": 5357000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 40m",
+  "frequency": 7074000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 30m",
+  "frequency": 10136000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 20m",
+  "frequency": 14074000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 17m",
+  "frequency": 18100000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 15m",
+  "frequency": 21074000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 12m",
+  "frequency": 24915000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 10m",
+  "frequency": 28074000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 6m",
+  "frequency": 50313000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT8 2m",
+  "frequency": 144174000,
+  "modulation": "ft8",
+  "underlying": "usb",
+  "description": "FT8 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 80m",
+  "frequency": 3575000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 40m",
+  "frequency": 7047500,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 30m",
+  "frequency": 10140000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 20m",
+  "frequency": 14080000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 17m",
+  "frequency": 18104000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 15m",
+  "frequency": 21140000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 12m",
+  "frequency": 24919000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 10m",
+  "frequency": 28180000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 6m",
+  "frequency": 50318000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "FT4 2m",
+  "frequency": 144170000,
+  "modulation": "ft4",
+  "underlying": "usb",
+  "description": "FT4 dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 160m",
+  "frequency": 1836600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 80m",
+  "frequency": 3568600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 60m",
+  "frequency": 5287200,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 40m",
+  "frequency": 7038600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 30m",
+  "frequency": 10138700,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 20m",
+  "frequency": 14095600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 17m",
+  "frequency": 18104600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 15m",
+  "frequency": 21094600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 12m",
+  "frequency": 24924600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 10m",
+  "frequency": 28124600,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 6m",
+  "frequency": 50293000,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "WSPR 2m",
+  "frequency": 144489000,
+  "modulation": "wspr",
+  "underlying": "usb",
+  "description": "WSPR dial frequency (USB)"
+ },
+ {
+  "name": "APRS 2m",
+  "frequency": 144390000,
+  "modulation": "packet",
+  "underlying": "nfm",
+  "description": "APRS, North America (1200 bd AFSK)"
+ },
+ {
+  "name": "ISS APRS",
+  "frequency": 145825000,
+  "modulation": "packet",
+  "underlying": "nfm",
+  "description": "ISS packet digipeater, when active; Doppler about \u00b13.5 kHz"
+ },
+ {
+  "name": "ISS SSTV",
+  "frequency": 145800000,
+  "modulation": "sstv",
+  "underlying": "nfm",
+  "description": "ISS SSTV events (announced by ARISS); Doppler about \u00b13.5 kHz"
+ },
+ {
+  "name": "SSTV 80m",
+  "frequency": 3845000,
+  "modulation": "sstv",
+  "underlying": "lsb",
+  "description": "SSTV calling frequency"
+ },
+ {
+  "name": "SSTV 40m",
+  "frequency": 7171000,
+  "modulation": "sstv",
+  "underlying": "lsb",
+  "description": "SSTV calling frequency"
+ },
+ {
+  "name": "SSTV 20m",
+  "frequency": 14230000,
+  "modulation": "sstv",
+  "underlying": "usb",
+  "description": "SSTV calling frequency"
+ },
+ {
+  "name": "SSTV 15m",
+  "frequency": 21340000,
+  "modulation": "sstv",
+  "underlying": "usb",
+  "description": "SSTV calling frequency"
+ },
+ {
+  "name": "SSTV 10m",
+  "frequency": 28680000,
+  "modulation": "sstv",
+  "underlying": "usb",
+  "description": "SSTV calling frequency"
+ },
+ {
+  "name": "W1AW CW 160m",
+  "frequency": 1802500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 80m",
+  "frequency": 3581500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 40m",
+  "frequency": 7047500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 20m",
+  "frequency": 14047500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 17m",
+  "frequency": 18097500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 15m",
+  "frequency": 21067500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 10m",
+  "frequency": 28067500,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW CW 6m",
+  "frequency": 50350000,
+  "modulation": "cwdecoder",
+  "underlying": "usb",
+  "description": "ARRL W1AW code practice and CW bulletins (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW RTTY 80m",
+  "frequency": 3597500,
+  "modulation": "rtty170",
+  "underlying": "lsb",
+  "description": "ARRL W1AW digital bulletins, RTTY 45.45 bd 170 Hz (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW RTTY 40m",
+  "frequency": 7095000,
+  "modulation": "rtty170",
+  "underlying": "lsb",
+  "description": "ARRL W1AW digital bulletins, RTTY 45.45 bd 170 Hz (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW RTTY 20m",
+  "frequency": 14095000,
+  "modulation": "rtty170",
+  "underlying": "lsb",
+  "description": "ARRL W1AW digital bulletins, RTTY 45.45 bd 170 Hz (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW RTTY 17m",
+  "frequency": 18102500,
+  "modulation": "rtty170",
+  "underlying": "lsb",
+  "description": "ARRL W1AW digital bulletins, RTTY 45.45 bd 170 Hz (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW RTTY 15m",
+  "frequency": 21095000,
+  "modulation": "rtty170",
+  "underlying": "lsb",
+  "description": "ARRL W1AW digital bulletins, RTTY 45.45 bd 170 Hz (check the W1AW schedule)"
+ },
+ {
+  "name": "W1AW RTTY 10m",
+  "frequency": 28095000,
+  "modulation": "rtty170",
+  "underlying": "lsb",
+  "description": "ARRL W1AW digital bulletins, RTTY 45.45 bd 170 Hz (check the W1AW schedule)"
+ },
+ {
+  "name": "Fax NMF Boston 4235",
+  "frequency": 4233100,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 4235 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMF Boston 6340.5",
+  "frequency": 6338600,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 6340.5 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMF Boston 9110",
+  "frequency": 9108100,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 9110 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMF Boston 12750",
+  "frequency": 12748100,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 12750 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMC Point Reyes 4346",
+  "frequency": 4344100,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 4346 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMC Point Reyes 8682",
+  "frequency": 8680100,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 8682 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMC Point Reyes 12786",
+  "frequency": 12784100,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 12786 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMC Point Reyes 17151.2",
+  "frequency": 17149300,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 17151.2 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMG New Orleans 4317.9",
+  "frequency": 4316000,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 4317.9 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMG New Orleans 8503.9",
+  "frequency": 8502000,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 8503.9 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMG New Orleans 12789.9",
+  "frequency": 12788000,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 12789.9 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ },
+ {
+  "name": "Fax NMG New Orleans 17146.4",
+  "frequency": 17144500,
+  "modulation": "fax",
+  "underlying": "usb",
+  "description": "US Coast Guard / NWS HF weather fax, assigned 17146.4 kHz (dial 1.9 kHz below); check the broadcast schedule"
+ }
+]

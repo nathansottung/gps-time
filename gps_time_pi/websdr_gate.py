@@ -1,24 +1,34 @@
-"""The password gate in front of the web SDR (OpenWebRX+), docs/deploy/websdr.md.
+"""The LAN gate in front of the web SDR (OpenWebRX+), docs/deploy/websdr.md.
 
 OpenWebRX+ protects its settings with a login but not its listening page. The gate is what
-the LAN reaches (port 8073 by default): it asks for HTTP Basic credentials on every new
-connection, and only a connection that passed is joined to OpenWebRX+ on 127.0.0.1:8074.
-After the first request the bytes are passed through unchanged, so OpenWebRX+'s WebSockets
-(audio, waterfall) work. Later requests on a connection that already passed are not asked
-again; a browser sends the credentials on every request anyway.
+the LAN reaches (port 8073 by default); only connections it lets through are joined to
+OpenWebRX+ on 127.0.0.1:8074. After the first request the bytes are passed through unchanged,
+so OpenWebRX+'s WebSockets (audio, waterfall) work. The unit keeps it on the LAN
+(IPAddressAllow= private ranges only) whether or not the login is on.
 
-Fails closed: with no password file every request gets 503 and nothing reaches OpenWebRX+.
-Wrong credentials are logged (address only, never the password) and back off per address.
-The password is kept as a salted PBKDF2-SHA256 hash, never in clear.
+The login is optional (owner, 2026-11-04): off by default; GTP_WEBSDR_AUTH=1 turns it on.
+When it is on:
+  - a browser gets the sign-in page (/gps-time-login). "Remember this browser" sets a signed
+    cookie (HttpOnly, SameSite=Strict) for GTP_WEBSDR_REMEMBER_DAYS (default 30); without it the
+    cookie lasts until the browser closes, at most SESSION_COOKIE_S;
+  - HTTP Basic credentials are taken too (the `check` command, scripts);
+  - fails closed: with no password every request gets 503 and nothing reaches OpenWebRX+;
+  - wrong credentials are logged (address only, never the password) and back off per address;
+  - the password is kept as a salted PBKDF2-SHA256 hash, never in clear;
+  - cookies are signed with a key derived from the cookie key file and the stored password
+    line, so setting a new password revokes every cookie, and `signout-all` (a new cookie key)
+    revokes them without changing the password. Both restart a running gate, which also drops
+    the connections already open.
 
   sudo python3 -m gps_time_pi.websdr_gate passwd [--user radio]   set the password (asks twice)
+  sudo python3 -m gps_time_pi.websdr_gate signout-all             sign out every browser
   python3 -m gps_time_pi.websdr_gate serve                        run the gate (the systemd unit)
   python3 -m gps_time_pi.websdr_gate check http://<station>:8073/ [--user radio]
       from any LAN machine: the gate refuses no credentials, takes the password (asked), and
       OpenWebRX+ answers its WebSocket handshake through it; then it disconnects
 
-Basic credentials are only base64 on the wire: the gate is for the LAN, which the unit
-enforces (IPAddressAllow= private ranges only). Stdlib only, no compiler needed.
+The page is plain HTTP, so the cookie can't be marked Secure and the password crosses the LAN
+in clear: the gate is for the LAN only. Stdlib only, no compiler needed.
 """
 import argparse
 import asyncio
@@ -31,13 +41,23 @@ import os
 import secrets
 import socket
 import struct
+import subprocess
 import sys
 import time
-from urllib.parse import urlparse
+from html import escape
+from urllib.parse import parse_qs, quote, urlparse
 
 log = logging.getLogger("gps_time_pi.websdr_gate")
 
 PASSWORD_FILE = "/etc/gps-time-websdr/password"
+COOKIE_KEY_FILE = "/etc/gps-time-websdr/cookie-key"
+GATE_UNIT = "gps-time-websdr-gate.service"
+COOKIE = "gtp_websdr"
+LOGIN_PATH = "/gps-time-login"
+LOGOUT_PATH = "/gps-time-logout"
+REMEMBER_DAYS = 30
+SESSION_COOKIE_S = 12 * 3600   # "Remember" not ticked: until the browser closes, at most 12 h
+MAX_FORM = 4096
 LISTEN_PORT = 8073
 UPSTREAM = ("127.0.0.1", 8074)
 ITERATIONS = 200_000
@@ -116,26 +136,120 @@ def basic(header):
     return (user, password) if sep else None
 
 
+def load_key(path):
+    """The cookie key (32 bytes, hex in the file), or None: no key, no cookies."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    key = bytes.fromhex(line)
+                    return key if len(key) >= 32 else None
+    except (OSError, ValueError):
+        return None
+    return None
+
+
+def cookie_secret(key, cred):
+    """The signing key: the cookie key bound to the stored password (a new password, new salt)."""
+    user, iters, salt, dk = cred
+    return hmac.new(key, b"gps-time-websdr-cookie/1|" + user.encode() + b"|" + salt + dk, hashlib.sha256).digest()
+
+
+def make_cookie(secret, expires):
+    body = f"1.{int(expires)}.{secrets.token_urlsafe(12)}"
+    mac = base64.urlsafe_b64encode(hmac.new(secret, body.encode(), hashlib.sha256).digest()).decode().rstrip("=")
+    return f"{body}.{mac}"
+
+
+def cookie_ok(secret, value, now):
+    """True when the cookie was signed with this secret and hasn't expired."""
+    parts = (value or "").split(".")
+    if len(parts) != 4 or parts[0] != "1" or not parts[1].isdigit():
+        return False
+    body = ".".join(parts[:3])
+    want = base64.urlsafe_b64encode(hmac.new(secret, body.encode(), hashlib.sha256).digest()).decode().rstrip("=")
+    return hmac.compare_digest(want.encode(), parts[3].encode()) and int(parts[1]) > now
+
+
+def cookies(header):
+    """'a=1; b=2' -> [(name, value)], in order."""
+    out = []
+    for part in (header or "").split(";"):
+        name, sep, value = part.strip().partition("=")
+        if sep and name:
+            out.append((name, value))
+    return out
+
+
+def env_flag(value):
+    return str(value or "").strip().lower() in ("1", "on", "yes", "true")
+
+
+def env_days(value, default=REMEMBER_DAYS):
+    try:
+        d = int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+    return d if 1 <= d <= 365 else default
+
+
 # ── the gate ───────────────────────────────────────────────────────────────
 
 class Gate:
-    def __init__(self, password_file=PASSWORD_FILE, upstream=UPSTREAM, clock=time.monotonic):
+    def __init__(self, password_file=PASSWORD_FILE, upstream=UPSTREAM, clock=time.monotonic,
+                 auth=True, cookie_key_file=None, remember_days=REMEMBER_DAYS, wall=time.time):
         self.password_file = password_file
+        self.cookie_key_file = cookie_key_file
         self.upstream = upstream
         self.clock = clock
+        self.wall = wall                        # cookie expiry is wall-clock time (it outlives restarts)
+        self.auth = auth
+        self.remember_days = remember_days
         self._key = secrets.token_bytes(32)     # for the cache of checked headers; per process
         self._ok = {}                           # digest of a checked header -> expiry
         self._fails = {}                        # address -> [failure times]
-        self._cred, self._cred_at = None, None
+        self._cred, self._cred_at, self._secret = None, None, None
         self.connections = 0
 
     def credential(self):
-        """Re-read the file at most every 10 s, so a new password applies without a restart."""
+        """Re-read the files at most every 10 s, so a new password applies without a restart."""
         now = self.clock()
         if self._cred_at is None or now - self._cred_at > 10.0:
             self._cred, self._cred_at = load(self.password_file), now
+            key = load_key(self.cookie_key_file) if self.cookie_key_file else None
+            self._secret = cookie_secret(key, self._cred) if key and self._cred else None
             self._ok.clear()
         return self._cred
+
+    def secret(self):
+        self.credential()
+        return self._secret
+
+    def new_cookie(self, remember):
+        """(Set-Cookie value) for a browser that just signed in; None without a cookie key."""
+        secret = self.secret()
+        if secret is None:
+            return None
+        life = self.remember_days * 86400 if remember else SESSION_COOKIE_S
+        value = make_cookie(secret, self.wall() + life)
+        attrs = f"{COOKIE}={value}; Path=/; HttpOnly; SameSite=Strict"
+        return attrs + (f"; Max-Age={life}" if remember else "")
+
+    def login(self, ip, user, password):
+        """(status, reason) for the sign-in form: the same checks and backoff as Basic."""
+        if self.credential() is None:
+            return 503, "no password set"
+        if self.secret() is None:
+            return 503, "no cookie key"
+        wait = self.retry_after(ip)
+        if wait > 0:
+            return 429, f"retry in {int(wait) + 1} s"
+        if check(self._cred, user, password):
+            return 200, "ok"
+        self._fails.setdefault(ip, []).append(self.clock())
+        log.warning("web SDR: wrong credentials from %s", ip)
+        return 401, "wrong credentials"
 
     def retry_after(self, ip):
         now = self.clock()
@@ -145,14 +259,21 @@ class Gate:
             return max(0.0, fails[-1] + BACKOFF_S - now)
         return 0.0
 
-    def decide(self, ip, auth_header):
+    def decide(self, ip, auth_header, cookie_header=None):
         """(status, reason): 200 to pass the connection on, else the answer to send."""
+        if not self.auth:
+            return 200, "login off"
         cred = self.credential()
         if cred is None:
             return 503, "no password set"
         wait = self.retry_after(ip)
         if wait > 0:
             return 429, f"retry in {int(wait) + 1} s"
+        secret = self._secret
+        if secret is not None and cookie_header:
+            now = self.wall()
+            if any(n == COOKIE and cookie_ok(secret, v, now) for n, v in cookies(cookie_header)):
+                return 200, "ok"
         if auth_header:
             digest = hmac.new(self._key, auth_header.encode("latin-1", "replace"), hashlib.sha256).digest()
             exp = self._ok.get(digest)
@@ -177,8 +298,128 @@ def split_head(data):
 
 
 def strip_auth(lines):
-    """The request head without Authorization: OpenWebRX+ never sees the password."""
-    return [ln for ln in lines if not ln.lower().startswith("authorization:")]
+    """The request head without Authorization or the gate's cookie: OpenWebRX+ never sees either.
+    Its own cookies (its settings login) are passed on."""
+    out = []
+    for ln in lines:
+        low = ln.lower()
+        if low.startswith("authorization:"):
+            continue
+        if low.startswith("cookie:"):
+            kept = [f"{n}={v}" for n, v in cookies(ln.split(":", 1)[1]) if n != COOKIE]
+            if not kept:
+                continue
+            ln = "Cookie: " + "; ".join(kept)
+        out.append(ln)
+    return out
+
+
+def header(lines, name):
+    """The first value of a header in a request head, or None."""
+    key = name.lower() + ":"
+    return next((ln.split(":", 1)[1].strip() for ln in lines[1:] if ln.lower().startswith(key)), None)
+
+
+def safe_next(value):
+    """A local path to go back to after signing in; never another host."""
+    v = (value or "/").strip()
+    if not v.startswith("/") or v.startswith("//") or "\\" in v or any(c in v for c in "\r\n") \
+            or v.startswith(LOGIN_PATH) or v.startswith(LOGOUT_PATH):
+        return "/"
+    return v
+
+
+LOGIN_PAGE = """<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web SDR sign-in</title>
+<style>
+body{{margin:0;font:14px/1.5 system-ui,sans-serif;background:#0d1117;color:#c9d1d9;display:flex;
+min-height:100vh;align-items:center;justify-content:center}}
+form{{width:min(320px,90vw);padding:24px;border:1px solid #30363d;border-radius:4px;background:#161b22}}
+h1{{font-size:16px;font-weight:500;margin:0 0 4px}} p{{font-size:12px;color:#8b949e;margin:0 0 16px}}
+label{{display:block;font-size:12px;color:#8b949e;margin:10px 0 4px}}
+input[type=text],input[type=password]{{width:100%;box-sizing:border-box;padding:6px 8px;font:inherit;
+color:#c9d1d9;background:#0d1117;border:1px solid #30363d;border-radius:2px}}
+.row{{display:flex;gap:8px;align-items:center;margin:14px 0}} .row label{{margin:0;color:#c9d1d9}}
+button{{width:100%;padding:7px;font:inherit;color:#58a6ff;background:transparent;border:1px solid #58a6ff;border-radius:2px;cursor:pointer}}
+.err{{color:#f85149;font-size:12px;margin:10px 0 0}}
+</style></head><body>
+<form method="post" action="{login}">
+<h1>GPS Time web SDR</h1>
+<p>Sign in to listen. This page is plain HTTP: use it on your own network only.</p>
+<input type="hidden" name="next" value="{next}">
+<label for="u">User</label><input id="u" type="text" name="user" value="{user}" autocomplete="username" required>
+<label for="p">Password</label><input id="p" type="password" name="password" autocomplete="current-password" required autofocus>
+<div class="row"><input id="r" type="checkbox" name="remember" value="1"><label for="r">Remember this browser ({days} days)</label></div>
+<button type="submit">Sign in</button>
+{error}
+</form></body></html>
+"""
+
+
+def login_page(next_path="/", user="radio", error=None, days=REMEMBER_DAYS):
+    err = f'<p class="err" role="alert">{escape(error)}</p>' if error else ""
+    return LOGIN_PAGE.format(login=LOGIN_PATH, next=escape(safe_next(next_path), quote=True),
+                             user=escape(user, quote=True), days=int(days), error=err).encode("utf-8")
+
+
+def respond(status, body, ctype="text/html; charset=utf-8", extra=()):
+    names = {200: "OK", 303: "See Other", 400: "Bad Request", 401: "Unauthorized", 403: "Forbidden",
+             413: "Payload Too Large", 429: "Too Many Requests", 503: "Service Unavailable"}
+    head = [f"HTTP/1.1 {status} {names.get(status, 'Error')}", f"Content-Type: {ctype}",
+            f"Content-Length: {len(body)}", "Cache-Control: no-store", "Connection: close",
+            "X-Frame-Options: DENY", "Referrer-Policy: no-referrer", *extra]
+    return ("\r\n".join(head) + "\r\n\r\n").encode() + body
+
+
+def redirect(location, set_cookie=None):
+    extra = [f"Location: {location}"] + ([f"Set-Cookie: {set_cookie}"] if set_cookie else [])
+    return respond(303, b"", "text/plain; charset=utf-8", extra)
+
+
+def same_origin(lines):
+    """A form post from this page: Origin, when the browser sends one, names the Host it was sent to."""
+    origin, host = header(lines, "Origin"), header(lines, "Host")
+    if origin is None:
+        return True
+    return origin != "null" and host is not None and urlparse(origin).netloc.lower() == host.lower()
+
+
+async def login_request(gate, ip, method, path, lines, reader):
+    """The answer (bytes) to the sign-in and sign-out paths."""
+    query = parse_qs(urlparse(path).query)
+    if path.split("?")[0] == LOGOUT_PATH:
+        return redirect(LOGIN_PATH, f"{COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0")
+    if gate.credential() is None:
+        return answer(503, "no password set")
+    if method == "GET":
+        return respond(200, login_page(query.get("next", ["/"])[0], days=gate.remember_days))
+    if method != "POST":
+        return answer(400, "bad request")
+    if not same_origin(lines):
+        return respond(403, b"Sign-in from another site refused.\n", "text/plain; charset=utf-8")
+    try:
+        n = int(header(lines, "Content-Length") or "0")
+    except ValueError:
+        return answer(400, "bad request")
+    if not 0 < n <= MAX_FORM:
+        return respond(413, b"Too large.\n", "text/plain; charset=utf-8")
+    try:
+        body = await asyncio.wait_for(reader.readexactly(n), HEAD_TIMEOUT_S)
+    except (asyncio.TimeoutError, asyncio.IncompleteReadError, ConnectionError):
+        return answer(400, "bad request")
+    form = parse_qs(body.decode("utf-8", "replace"), keep_blank_values=True)
+    user, password = form.get("user", [""])[0], form.get("password", [""])[0]
+    next_path = safe_next(form.get("next", ["/"])[0])
+    status, reason = gate.login(ip, user, password)
+    if status == 200:
+        return redirect(next_path, gate.new_cookie(form.get("remember", [""])[0] == "1"))
+    if status == 401:
+        return respond(401, login_page(next_path, user, "Wrong user or password.", gate.remember_days))
+    if status == 429:
+        return respond(429, login_page(next_path, user, "Too many wrong attempts; try again in a minute.",
+                                       gate.remember_days), extra=("Retry-After: 60",))
+    return answer(status, reason)
 
 
 def answer(status, reason):
@@ -229,8 +470,18 @@ async def handle(gate, reader, writer):
             writer.write(answer(400, "bad request"))
             await writer.drain()
             return
-        auth = next((ln.split(":", 1)[1].strip() for ln in lines[1:] if ln.lower().startswith("authorization:")), None)
-        status, reason = gate.decide(ip, auth)
+        method, path, _ = lines[0].split(" ")
+        if gate.auth and path.split("?")[0] in (LOGIN_PATH, LOGOUT_PATH):
+            writer.write(await login_request(gate, ip, method, path, lines, reader))
+            await writer.drain()
+            return
+        status, reason = gate.decide(ip, header(lines, "Authorization"), header(lines, "Cookie"))
+        if status == 401 and method == "GET" and header(lines, "Authorization") is None \
+                and (header(lines, "Upgrade") or "").lower() != "websocket":
+            # A browser opening a page: the sign-in form. WebSockets and Basic clients get the plain 401.
+            writer.write(redirect(f"{LOGIN_PATH}?next={quote(safe_next(path), safe='/')}"))
+            await writer.drain()
+            return
         if status != 200:
             writer.write(answer(status, reason))
             await writer.drain()
@@ -252,10 +503,14 @@ async def handle(gate, reader, writer):
             pass
 
 
-async def serve(port, password_file, upstream):
-    gate = Gate(password_file, upstream)
-    if gate.credential() is None:
+async def serve(port, password_file, upstream, auth=True, cookie_key_file=None, remember_days=REMEMBER_DAYS):
+    gate = Gate(password_file, upstream, auth=auth, cookie_key_file=cookie_key_file, remember_days=remember_days)
+    if not auth:
+        log.info("web SDR: login off (GTP_WEBSDR_AUTH is not 1); open to the LAN")
+    elif gate.credential() is None:
         log.warning("web SDR: no password in %s; every request gets 503 until one is set", password_file)
+    elif gate.secret() is None:
+        log.warning("web SDR: no cookie key; the sign-in page refuses, Basic credentials still work")
     server = await asyncio.start_server(lambda r, w: handle(gate, r, w), host=None, port=port, limit=MAX_HEAD)
     async with server:
         await server.serve_forever()
@@ -315,7 +570,8 @@ def ws_read_frame(read):
 
 def check_station(url, user, password, timeout=10.0):
     """[(step, ok, detail)] for the web SDR at url, through the gate. It changes nothing: it
-    connects as one listener, says hello and disconnects (OpenWebRX+ may open the dongle briefly)."""
+    connects as one listener, says hello and disconnects (OpenWebRX+ may open the dongle briefly).
+    password may be a callable, asked only when the gate wants credentials (login on)."""
     u = urlparse(url if "://" in url else "http://" + url)
     host, port = u.hostname, u.port or LISTEN_PORT
     hostport = f"{host}:{port}"
@@ -346,8 +602,13 @@ def check_station(url, user, password, timeout=10.0):
     status = lines[0] if lines else ""
     if " 503 " in status + " ":
         return [("password set on the station", False, "the gate has no password yet (websdr_gate passwd)")]
-    steps.append(("no credentials refused", " 401 " in status + " ", status or "no answer"))
-    auth = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+    if " 101 " in status + " ":
+        steps.append(("login off (GTP_WEBSDR_AUTH is not 1): no credentials needed", True, status))
+        auth = None
+    else:
+        steps.append(("no credentials refused", " 401 " in status + " ", status or "no answer"))
+        pw = password() if callable(password) else password
+        auth = "Basic " + base64.b64encode(f"{user}:{pw}".encode()).decode()
     try:
         with connect() as sock:
             sock.sendall(ws_request(hostport, "/ws/", key, auth))
@@ -414,20 +675,60 @@ def set_password(path, user):
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, path)
-    print(f"Saved for user '{user}' in {path}. The gate picks it up within 10 s.")
+    restart_gate()
+    print(f"Saved for user '{user}' in {path}. Every browser that was remembered is signed out.")
+    return 0
+
+
+def write_key(path):
+    """A new random cookie key, written atomically (0600): every cookie signed so far stops working."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("# The web SDR's cookie key (gps_time_pi/websdr_gate.py). A new one signs out every browser.\n")
+        f.write(secrets.token_bytes(32).hex() + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def restart_gate(run=subprocess.run):
+    """The unit hands the files over as credentials at start: restart a running gate so a new
+    password or key applies now (and the connections already open are dropped). Does nothing
+    when the gate isn't running."""
+    try:
+        r = run(["systemctl", "try-restart", GATE_UNIT], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"Could not restart {GATE_UNIT} ({e}); it applies from the next start.", file=sys.stderr)
+        return False
+    if r.returncode != 0:
+        print(f"Could not restart {GATE_UNIT}: {(r.stderr or r.stdout).strip()[:200]}; it applies from the next start.",
+              file=sys.stderr)
+        return False
+    return True
+
+
+def signout_all(path, run=subprocess.run):
+    write_key(path)
+    restart_gate(run)
+    print(f"New cookie key in {path}: every remembered browser is signed out.")
     return 0
 
 
 def main(argv=None):
     logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="%(levelname)s %(name)s: %(message)s")
-    ap = argparse.ArgumentParser(description="Password gate for the station's web SDR.")
+    ap = argparse.ArgumentParser(description="The LAN gate (optional login) for the station's web SDR.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("passwd", help="set the web SDR password (asks twice)")
     p.add_argument("--user", default="radio")
     p.add_argument("--file", default=PASSWORD_FILE)
+    o = sub.add_parser("signout-all", help="sign out every remembered browser (a new cookie key)")
+    o.add_argument("--key-file", default=COOKIE_KEY_FILE)
     s = sub.add_parser("serve", help="run the gate")
     s.add_argument("--port", type=int, default=int(os.environ.get("GTP_WEBSDR_PORT", LISTEN_PORT)))
     s.add_argument("--file", default=os.environ.get("GTP_WEBSDR_PASSWORD_FILE", PASSWORD_FILE))
+    s.add_argument("--cookie-key", default=os.environ.get("GTP_WEBSDR_COOKIE_KEY_FILE", COOKIE_KEY_FILE))
     s.add_argument("--upstream-port", type=int, default=UPSTREAM[1])
     c = sub.add_parser("check", help="check the web SDR through the gate from a LAN machine (asks the password)")
     c.add_argument("url", help="e.g. http://192.0.2.10:8073/")
@@ -435,12 +736,15 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.cmd == "passwd":
         return set_password(a.file, a.user)
+    if a.cmd == "signout-all":
+        return signout_all(a.key_file)
     if a.cmd == "check":
-        steps = check_station(a.url, a.user, getpass.getpass(f"Web SDR password for {a.user}: "))
+        steps = check_station(a.url, a.user, lambda: getpass.getpass(f"Web SDR password for {a.user}: "))
         for step, ok, detail in steps:
             print(f"[{'OK' if ok else 'NO'}] {step}: {detail}")
         return 0 if steps and all(ok for _, ok, _ in steps) else 1
-    asyncio.run(serve(a.port, a.file, ("127.0.0.1", a.upstream_port)))
+    asyncio.run(serve(a.port, a.file, ("127.0.0.1", a.upstream_port), auth=env_flag(os.environ.get("GTP_WEBSDR_AUTH")),
+                      cookie_key_file=a.cookie_key, remember_days=env_days(os.environ.get("GTP_WEBSDR_REMEMBER_DAYS"))))
     return 0
 
 

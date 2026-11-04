@@ -554,12 +554,13 @@ The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The we
 
 ## GET /api/websdr
 
-The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no token. Started and stopped with `POST /api/admin` (`websdr_start`, `websdr_stop`). Code: `gps_time_pi/websdr.py`; type `WebSdrStatus`. Built at most once every 5 s, with one `systemctl show`.
+The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no token. Started and stopped with `POST /api/admin` (`websdr_start`, `websdr_stop`); `websdr_signout_all` signs out every remembered browser. Code: `gps_time_pi/websdr.py`; type `WebSdrStatus`. Built at most once every 5 s, with one `systemctl show`.
 
 ```json
 {"installed": true,
  "active": {"value": "active", "unit": null, "provenance": "observed"},
  "port": 8073, "serial": "00001090", "max_hours": 4.0,
+ "auth": {"enabled": false, "remember_days": 30}, "hf": "off",
  "usage": {
    "session": {"start_utc": "2026-11-04T18:00:00+00:00", "partial": false, "truncated": false,
                "bins": [{"t": 1793815200, "active": true, "cpu_pct": 36.2, "cpu_max_pct": 51.0, "websdr_cpu_pct": 121.4,
@@ -571,11 +572,12 @@ The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no 
                "partial": false, "truncated": false, "before": {"...": "..."}, "during": {"...": "..."}}],
    "file": {"name": "websdr-sessions.jsonl", "error": null},
    "note": "PPS jitter: ..."},
- "note": "OpenWebRX+ behind a password gate, LAN only. ..."}
+ "note": "OpenWebRX+ behind the station's LAN gate (login optional). ..."}
 ```
 
 - `installed`: `gps-time-websdr.service` is loaded; `null` (UNKNOWN) when `systemctl` can't be run. `active` is its `ActiveState` (`failed` after a crash or the session limit).
 - `port`, `serial`, `max_hours`: from `/etc/default/gps-time-websdr`; `null` when unset.
+- `auth.enabled`: the gate's login (`GTP_WEBSDR_AUTH`), as configured, not observed; `false` for an install from before the setting (the gate treats a missing line as off), `null` when the file can't be read. `auth.remember_days`: how long "Remember this browser" lasts. `hf`: the HF profiles the installer set (`off`, `direct`, `native`; `null` when unset).
 - `usage.session`: the running session (`null` when none). `partial` when it was already running as the web service started. `truncated` past 12 h of minutes.
 - `bins`: one per minute, RAM only. `cpu_pct` is the whole system (% of all cores, from `/proc/stat` every 10 s); `websdr_cpu_pct` the web SDR and gate units (% of one core, from their cgroups); `pps_jitter_ns` the standard deviation of the minute's kernel PPS phases (`calculated`), `pps_max_abs_ns` the largest |phase| (`observed`). `null` where not read.
 - `before`, `during`, `baseline`: summaries over minute bins, each figure labeled: CPU mean (`calculated`) and largest sample (`observed`), temperature mean and highest, PPS jitter median and worst minute, largest |phase|, pulses seen (`note`: of how many seconds). `baseline` is the last 10 minutes, kept always.
@@ -719,6 +721,7 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
 | `websdr_start` | `systemctl start gps-time-websdr.service` (the optional web SDR; stops readsb while it runs) | stderr/stdout |
 | `websdr_stop` | `systemctl stop gps-time-websdr.service` (readsb starts again) | stderr/stdout |
+| `websdr_signout_all` | `systemctl start gps-time-websdr-signout.service` (a new cookie key for the web SDR's login: every remembered browser signs in again; restarts a running gate) | stderr/stdout |
 | `refresh_airband` | `systemctl start --no-block gps-time-airband-fetch.service` (one fetch of the FAA's NASR frequencies; see `/api/airband`) | stderr/stdout |
 | other | nothing | `unknown action` (`ok: false`) |
 

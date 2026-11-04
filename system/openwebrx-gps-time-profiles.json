@@ -1,0 +1,142 @@
+{
+  "_comment": [
+    "Installed with scripts/websdr.sh into OpenWebRX+'s settings.json (docs/deploy/websdr.md).",
+    "base: only for a new settings file. managed: always set (keys gtp-*), 24 MHz and up, any RTL-SDR.",
+    "hf: only with GTP_WEBSDR_HF=direct (direct_sampling 2, the Q branch) or native (0, a dongle with its own HF path);",
+    "removed again with GTP_WEBSDR_HF=off. Each profile spans 2.4 MHz around center_freq."
+  ],
+  "base": {
+    "2m": {
+      "name": "2m",
+      "center_freq": 145000000,
+      "samp_rate": 2048000,
+      "start_freq": 145725000,
+      "start_mod": "nfm",
+      "tuning_step": "5000"
+    },
+    "70cm": {
+      "name": "70cm",
+      "center_freq": 438800000,
+      "samp_rate": 2400000,
+      "start_freq": 439275000,
+      "start_mod": "nfm",
+      "tuning_step": "5000"
+    },
+    "fm": {
+      "name": "FM broadcast",
+      "center_freq": 98000000,
+      "samp_rate": 2400000,
+      "start_freq": 98100000,
+      "start_mod": "wfm",
+      "tuning_step": "100000"
+    },
+    "air": {
+      "name": "Airband",
+      "center_freq": 124000000,
+      "samp_rate": 2400000,
+      "start_freq": 124500000,
+      "start_mod": "am",
+      "tuning_step": "8330"
+    },
+    "noaa": {
+      "name": "NOAA weather",
+      "center_freq": 162500000,
+      "samp_rate": 1024000,
+      "start_freq": 162550000,
+      "start_mod": "nfm",
+      "tuning_step": "25000"
+    }
+  },
+  "managed": {
+    "gtp-10m": {
+      "name": "10 m (FT8, FT4, WSPR, CW, RTTY, SSTV)",
+      "center_freq": 28400000,
+      "samp_rate": 2400000,
+      "start_freq": 28074000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-6m": {
+      "name": "6 m (FT8, FT4, WSPR, CW)",
+      "center_freq": 50300000,
+      "samp_rate": 2400000,
+      "start_freq": 50313000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-2m-digital": {
+      "name": "2 m digital (APRS, FT8, WSPR, ISS SSTV)",
+      "center_freq": 145000000,
+      "samp_rate": 2048000,
+      "start_freq": 144390000,
+      "start_mod": "nfm",
+      "tuning_step": "5000"
+    }
+  },
+  "hf": {
+    "gtp-hf-160m": {
+      "name": "HF 160 m",
+      "center_freq": 1900000,
+      "samp_rate": 2400000,
+      "start_freq": 1840000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-80m": {
+      "name": "HF 80 m and 4 MHz fax",
+      "center_freq": 3950000,
+      "samp_rate": 2400000,
+      "start_freq": 3573000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-40m": {
+      "name": "HF 60 m and 40 m",
+      "center_freq": 6230000,
+      "samp_rate": 2400000,
+      "start_freq": 7074000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-30m": {
+      "name": "HF 30 m and 8-9 MHz fax",
+      "center_freq": 9300000,
+      "samp_rate": 2400000,
+      "start_freq": 10136000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-20m": {
+      "name": "HF 20 m and 12 MHz fax",
+      "center_freq": 13500000,
+      "samp_rate": 2400000,
+      "start_freq": 14074000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-17m": {
+      "name": "HF 17 m and 17 MHz fax",
+      "center_freq": 17600000,
+      "samp_rate": 2400000,
+      "start_freq": 18100000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-15m": {
+      "name": "HF 15 m",
+      "center_freq": 21200000,
+      "samp_rate": 2400000,
+      "start_freq": 21074000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    },
+    "gtp-hf-12m": {
+      "name": "HF 12 m",
+      "center_freq": 24900000,
+      "samp_rate": 2400000,
+      "start_freq": 24915000,
+      "start_mod": "usb",
+      "tuning_step": "500"
+    }
+  }
+}

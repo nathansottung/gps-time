@@ -1,22 +1,24 @@
 [Unit]
-Description=Password gate for GPS Time's web SDR (LAN only, port from /etc/default/gps-time-websdr)
+Description=LAN gate for GPS Time's web SDR (LAN only, optional login; port from /etc/default/gps-time-websdr)
 Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
 # Runs exactly while the web SDR runs.
 BindsTo=gps-time-websdr.service
 After=gps-time-websdr.service
 
-# Installed by scripts/websdr.sh (GTP_WEBSDR=1). HTTP Basic login on every new connection, then
-# the connection is joined to OpenWebRX+ on 127.0.0.1:8074 (gps_time_pi/websdr_gate.py). With no
-# password set it answers 503 to everything. Set one with:
+# Installed by scripts/websdr.sh (GTP_WEBSDR=1). Joins LAN connections to OpenWebRX+ on
+# 127.0.0.1:8074 (gps_time_pi/websdr_gate.py). The login is off unless GTP_WEBSDR_AUTH=1 in
+# /etc/default/gps-time-websdr. With it on: a sign-in page ("Remember this browser": a signed
+# cookie for GTP_WEBSDR_REMEMBER_DAYS) or HTTP Basic, and 503 to everything until a password is set:
 #   sudo /opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate passwd
-# The password file is handed over as a credential at start: a new password applies from the
-# next start of the web SDR.
+# The password and cookie key files are handed over as credentials at start; `passwd` and
+# `signout-all` restart a running gate so a change applies at once.
 
 [Service]
 EnvironmentFile=/etc/default/gps-time-websdr
 LoadCredential=password:/etc/gps-time-websdr/password
+LoadCredential=cookie-key:/etc/gps-time-websdr/cookie-key
 WorkingDirectory=/opt/gps-time-pi
-ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate serve --port ${GTP_WEBSDR_PORT} --file %d/password
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate serve --port ${GTP_WEBSDR_PORT} --file %d/password --cookie-key %d/cookie-key
 Restart=on-failure
 RestartSec=5
 DynamicUser=yes
