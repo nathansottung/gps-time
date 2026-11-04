@@ -45,7 +45,9 @@ class TestModuleLayout(unittest.TestCase):
                     self.assertTrue((d / part).exists(), f"{d.name}: {part}")
                 self.assertTrue(list((d / "tests").glob("test_*.py")), f"{d.name}: no tests")
 
-    def test_station_bundle_does_not_ship_modules(self):
-        # Modules are optional and not run by the station until the loader exists.
-        build = (ROOT / "tools" / "build_bundles.py").read_text(encoding="utf-8")
-        self.assertNotIn('"modules"', build)
+    def test_station_bundle_ships_the_modules_install_sh_installs(self):
+        # install.sh copies modules/ (since #146; all off). v1.6.0-rc.1's bundle lacked it and the
+        # install stopped there (#155). The full install from a bundle: tests/test_bundle_install.py.
+        from tests.test_packaging import _load_build_bundles
+        self.assertIn("modules", _load_build_bundles().PI_TOP)
+        self.assertIn("cp -r modules", (ROOT / "install.sh").read_text(encoding="utf-8"))

@@ -303,10 +303,14 @@ class TestNoBehaviourChange(unittest.TestCase):
                          ["from .modkit import settings as modsettings"])
         self.assertNotIn("ModuleHost", server)
 
-    def test_bundle_ships_the_kit_and_schemas_but_no_modules(self):
-        build = (ROOT / "tools" / "build_bundles.py").read_text(encoding="utf-8")
-        self.assertIn('"schemas"', build)
-        self.assertNotIn('"modules"', build)
+    def test_bundle_ships_the_kit_schemas_and_the_bundled_modules(self):
+        # Since #146 install.sh installs the bundled modules (all off), so the bundle carries them
+        # (ADR-0007, amended). tests/test_bundle_install.py runs install.sh from a built bundle.
+        from tests.test_packaging import _load_build_bundles
+        top = _load_build_bundles().PI_TOP
+        self.assertIn("gps_time_pi", top)
+        self.assertIn("schemas", top)
+        self.assertIn("modules", top)
 
     def test_schemas_parse(self):
         for f in (ROOT / "schemas").glob("*.json"):

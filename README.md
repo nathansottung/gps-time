@@ -6,7 +6,7 @@ GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into a Strat
 
 *The Overview page in the desktop demo (synthetic data), taken in screenshot mode with location privacy set to rounded.*
 
-**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Latest pre-release: **v1.6.0-rc.1** (2026-11-04: responsive UI, the optional SDR stack and web SDR, the learned sky-obstruction map, PPS timestamps in integer nanoseconds; not yet run on a Pi; notes: [`docs/releases/v1.6.0-rc.1.md`](docs/releases/v1.6.0-rc.1.md)). v1.5.0 was skipped: v1.5.0-rc.1's soak run had outages on this development unit, and v1.6.0 carries all of it. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
+**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Latest pre-release: **v1.6.0-rc.2** (2026-11-04: rc.1 with its bundle fixed, since rc.1 couldn't be installed; responsive UI, the optional SDR stack and web SDR, the learned sky-obstruction map, PPS timestamps in integer nanoseconds; not yet run on a Pi; notes: [`docs/releases/v1.6.0-rc.2.md`](docs/releases/v1.6.0-rc.2.md), [`v1.6.0-rc.1.md`](docs/releases/v1.6.0-rc.1.md)). v1.5.0 was skipped: v1.5.0-rc.1's soak run had outages on this development unit, and v1.6.0 carries all of it. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Quick start
 

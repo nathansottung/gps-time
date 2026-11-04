@@ -12,7 +12,8 @@ Step-by-step checklists: [`../deploy/fresh-pi-install.md`](../deploy/fresh-pi-in
 | 2026-10-04 to 2026-10-19 | v1.4.0-rc.8 | Soak run, 14 days 20 h without a restart. Real PPS/GNSS outages on 2026-10-17 (below), so **v1.4.0 was not tagged**. Otherwise GPS was chrony's reference throughout. |
 | 2026-10-19 | v1.4.0-rc.10 | Deployed (service start 18:10 UTC). Read-only check after 2 h 17 min (below): four outage events, three of them real loss of PPS with weak GNSS signal. Replaced by rc.11 for the soak, which carries the chrony-history fix (#93). |
 | 2026-10-19 to 2026-10-26 | v1.4.0-rc.11 | Soak run: service start 21:20:16 UTC, read-only check after 6 days 17 h (below). **CLEAN**: no outages except the installer's at the start, 2 missed pulses. **v1.4.0 tagged** on the same commit (`cbd891c`). |
-| 2026-10-26 to 2026-10-29 | v1.5.0-rc.1 | Soak run: service start 18:16:55 UTC, read-only check after 3.01 days (below). **NOT CLEAN**: four PPS outages (8,596 s in all) and 8,906 missed pulses. **v1.5.0 not tagged**; v1.6.0-rc.1 not released. The owner decides. |
+| 2026-10-26 to 2026-10-29 | v1.5.0-rc.1 | Soak run: service start 18:16:55 UTC, read-only check after 3.01 days (below). **NOT CLEAN**: four PPS outages (8,596 s in all) and 8,906 missed pulses. **v1.5.0 not tagged**; skipped by the owner 2026-11-04. |
+| 2026-11-04 | v1.6.0-rc.1 | **Install failed** (twice, about 16:40 and 16:43 UTC): the bundle had no `modules/`, and `install.sh` stopped at `cp -r modules` after restarting chrony (below). Timing recovered within about a minute; the web service kept running v1.5.0-rc.1. Fixed in v1.6.0-rc.2 (#155). |
 
 Found on that build and fixed since:
 
@@ -150,6 +151,17 @@ The SDR line is UNKNOWN as expected: v1.5.0-rc.1 has no `/api/sdr`.
 - **Fits none of them:** 10-26 23:41 and 10-28 20:01, both PPS PATH ANOMALY with GNSS healthy (3–6 used).
 - **Limits:** the sidereal pattern rests on three measured points and was found after looking; it's a lead. The same sidereal moment passed on most days without an outage, so whatever lines up with it isn't enough alone. Nothing here establishes a cause.
 - **Next check:** C/N₀ by sector during 18:15–19:45 UTC on 2026-11-05 to 11-07, read-only, where the sidereal moment falls at about 18:29, 18:25 and 18:21 UTC.
+
+### Failed install of v1.6.0-rc.1 (read-only check, 2026-11-04 16:44 UTC)
+
+The owner's deploy reported `cp: cannot stat 'modules'`. Read over SSH and HTTP, nothing changed.
+- **Where it stopped:** `install.sh` line 142, `cp -r modules`. The bundle had no `modules/` (`tools/build_bundles.py` didn't list it; fixed in #155).
+  - **Had run:** the Python dependencies, the code (`gps_time_pi`, `schemas`, `scripts`), the web UI, the chrony tracking-log and DHCP-source edits, the log units, and `systemctl restart chrony`.
+  - **Hadn't run:** the modules unit, the SDR and web SDR steps (both unset anyway), the polkit rule, the client-list helper's re-enable, the admin token and station key checks, and the web service restart.
+- **The web service** (`gps-time-pi`) is still the process started 2026-10-26 18:16:55 UTC (`NRestarts=0`). It runs v1.5.0-rc.1's code from memory, while the files on disk are rc.1's and `VERSION` says 1.6.0-rc.1. A service restart or a reboot before rc.2 is installed would start the rc.1 code without its polkit rule.
+- **chrony was restarted by both attempts** (16:40:05 and 16:43:38 UTC; `gps-time-pi-chrony-clients` restarted with it). Each time it selected a network source within 6 s and GPS again after 47 s (16:40:52, 16:44:26). No clock step was logged (`makestep 1 3`, no "System clock wrong"). But in the 40 s on a network source the clock drifted: at 16:44:19 the kernel PPS edge read 5.8 ms after the second.
+- **At 16:45:05 UTC:** GPS selected, stratum 1, system time 213 ns slow of NTP time, PPS edge 356 ns before the second. The station recorded the restart as the installer's event (16:43:40, PPS NOT USED BY CHRONY, closed).
+- **What it needs:** deploy v1.6.0-rc.2. `install.sh` runs from the start and is safe to repeat.
 
 ## Build archives
 
