@@ -1993,3 +1993,21 @@ Owner's rc.3 list, first item. Before, `deploy-to-pi.ps1` (and `.sh`) always ran
 - **Other `GTP_*` names** in the environment are listed as not passed; `GTP_DEPLOY_TTY` stays local.
 - **Tests** (`tests/test_deploy_scripts.py`): the allowlist against `install.sh`; the check before the build; for each script, flags passed exactly and unknown names listed; a bad value (`;`, `$(...)`, a quote, a newline) stops with nothing built or uploaded. The PowerShell runs pass on Windows; the bash runs are for CI's Linux.
 - **Docs:** `development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"; `deploy/sdr-stack.md` and `deploy/websdr.md` show the PC-side form.
+
+## 2026-11-04 — Station migration: export and import in one encrypted file (#160)
+
+Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). Needed before the antenna move and for a second Pi.
+
+- **`python -m gps_time_pi.migrate export <file>` / `import <file> [--dry-run]`**, run with sudo in the station venv.
+- **Moves:** `config.json` (+ `.prev`), with the site survey, exact position, privacy mode, time zone and module settings; `station-key` and `.pub`; `admin-token.sha256`; the web SDR password hash; `oscillator-log.csv` and the two profile files.
+- **Never moves:** the event history and outage evidence (they describe the old install), and the sky-obstruction map (it describes the old antenna site).
+- **Oscillator:** the log keeps its board binding. On the same Pi it carries on; on another Pi the station sets it aside at start (`oscillator.py`, unchanged).
+- **Encrypted:** AES-256-GCM, with the key from scrypt (n = 2¹⁵, r = 8, p = 1). The header is authenticated as associated data. The passphrase is asked twice (at least 12 characters), never taken from arguments or the environment. The file is 0600 and handed to `SUDO_USER`; nothing is served over HTTP.
+- **Import:**
+  - refuses while `gps-time-pi` runs;
+  - verifies every file's SHA-256 and refuses entries it doesn't know, or with a path in their name;
+  - with root, checks the station's accounts exist before writing anything;
+  - keeps each replaced file as `<name>.before-migrate-<UTC>`, and writes atomically with `install.sh`'s owner and mode;
+  - is idempotent.
+- **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
+- **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
