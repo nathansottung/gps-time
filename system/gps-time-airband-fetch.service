@@ -1,0 +1,40 @@
+[Unit]
+Description=GPS Time airband bookmarks: fetch the FAA's current NASR frequencies (once, on the owner's request)
+Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
+After=network-online.target
+Wants=network-online.target
+
+# Installed by scripts/websdr.sh (GTP_WEBSDR=1); never enabled or timed. Started by the admin action
+# refresh_airband ("Refresh now" on the Radio page; polkit allows start of this unit only).
+# Runs as the web service's user so it can read the site under the privacy mode (config.json) and
+# write the bookmarks beside it; in hidden mode it fetches nothing. Never touches chrony, gpsd or PPS.
+
+[Service]
+Type=oneshot
+User=gps-time
+WorkingDirectory=/opt/gps-time-pi
+Environment=GTP_CONFIG=/opt/gps-time-pi/config.json
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.airband refresh
+TimeoutStartSec=300
+Nice=10
+ProtectSystem=strict
+ReadWritePaths=/opt/gps-time-pi
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+MemoryMax=256M
+CPUQuota=50%

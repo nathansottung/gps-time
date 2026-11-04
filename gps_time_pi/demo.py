@@ -698,6 +698,25 @@ def time_quality():
             "max_error_s": q(1.2e-5, "s", "calculated", "demo"), "label": "refclock GPS, within ±12 µs (chrony's bound)"}
 
 
+def airband_status(cfg):
+    """/api/airband in demo mode: the built-ins and a small synthetic NASR set (made-up facility names)."""
+    from datetime import datetime, timezone
+    from . import airband as ab
+    from .labels import q
+    st = ab.status(cfg)
+    if st["nasr"] is None:
+        today = datetime.now(timezone.utc).date()
+        eff, _next = ab.cycle(today)
+        rows = [{"name": "DEMO TWR", "frequency_hz": 119_100_000, "use": "LCL/P", "facility": "DEMO", "distance_km": 9, "source": "nasr"},
+                {"name": "DEMO ATIS", "frequency_hz": 127_250_000, "use": "D-ATIS", "facility": "DEMO", "distance_km": 9, "source": "nasr"},
+                {"name": "SAMPLE APCH", "frequency_hz": 124_650_000, "use": "APCH/P", "facility": "SAMPLE", "distance_km": 31, "source": "nasr"}]
+        st["nasr"] = {"cycle": eff.isoformat(), "fetched_utc": None, "radius_km": ab.RADIUS_KM, "site_precision": "demo",
+                      "count": len(rows), "age_days": q((today - eff).days, "days", "calculated", "demo"), "stale": False,
+                      "bookmarks": rows}
+    st["refresh_note"] = "Demo: synthetic bookmarks; Refresh does nothing here."
+    return st
+
+
 _DEMO_SKY = {}
 
 

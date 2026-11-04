@@ -64,7 +64,8 @@ case "$WANT" in
         rm -f "$UNITS/$u"
       fi
     done
-    rm -f "$DROPIN" "$OWRX_CONF" "$LIB/websdr-handoff"
+    rm -f "$DROPIN" "$OWRX_CONF" "$LIB/websdr-handoff" "$UNITS/gps-time-airband-fetch.service" \
+      "$ROOT/etc/openwebrx/bookmarks.d/gps-time-airband.json"
     rmdir "$(dirname "$DROPIN")" 2>/dev/null || true
     systemctl daemon-reload
     say "units, drop-in and the OpenWebRX+ port setting removed. Packages, the repository, $ENVFILE and the password are kept."
@@ -197,6 +198,11 @@ fi
 install -m 0755 "$SRC/websdr-handoff" "$LIB/websdr-handoff"
 install -d -m 0755 "$UNITS" "$(dirname "$DROPIN")"
 for u in $OUR_UNITS; do install -m 0644 "$SRC/$u" "$UNITS/$u"; done
+# Airband bookmarks (FAA NASR, refreshed only on the owner's "Refresh now"): the oneshot unit, and
+# OpenWebRX+'s bookmarks.d linked to the file it writes beside config.json.
+install -m 0644 "$SRC/gps-time-airband-fetch.service" "$UNITS/gps-time-airband-fetch.service"
+install -d -m 0755 "$ROOT/etc/openwebrx/bookmarks.d"
+ln -sfn /opt/gps-time-pi/airband-openwebrx.json "$ROOT/etc/openwebrx/bookmarks.d/gps-time-airband.json"
 printf '[Service]\n# Written by scripts/websdr.sh: a session ends by itself after GTP_WEBSDR_MAX_HOURS.\nRuntimeMaxSec=%sh\n' "$HOURS" > "$DROPIN"
 systemctl daemon-reload
 # Never enabled at boot; a running web SDR picks up the new settings at its next start.
