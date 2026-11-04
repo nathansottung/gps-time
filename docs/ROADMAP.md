@@ -4,7 +4,7 @@ GPS Time turns a Raspberry Pi and a GNSS receiver into a Stratum-1 time server t
 
 This page lists every specification and roadmap in the repository, by phase. Counts are rows in [`STATUS.md`](STATUS.md) on 2026-10-19; `STATUS.md` is the authoritative, per-item list and is updated in every pull request.
 
-**Where it stands:** v1.4.0, the first stable release, was tagged on 2026-10-26 on the rc.11 commit after a clean 6-day soak run on the Pi (`releases/v1.4.0.md`). The work merged after it is in v1.6.0-rc.5 (2026-11-04, pre-release, `releases/v1.6.0-rc.5.md`; rc.1 couldn't be installed), which includes v1.5.0-rc.1; v1.5.0 was skipped after an unclean soak run. v1.6.0 follows a clean soak run on the Pi, as v1.4.0 did.
+**Where it stands:** v1.4.0, the first stable release, was tagged on 2026-10-26 on the rc.11 commit after a clean 6-day soak run on the Pi (`releases/v1.4.0.md`). The work merged after it is in v1.6.0-rc.6 (2026-11-04, pre-release, `releases/v1.6.0-rc.6.md`; rc.1 couldn't be installed), which includes v1.5.0-rc.1; v1.5.0 was skipped after an unclean soak run. v1.6.0 follows a clean soak run on the Pi, as v1.4.0 did.
 
 ## Status words
 
