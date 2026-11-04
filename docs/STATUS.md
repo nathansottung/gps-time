@@ -7,7 +7,7 @@ Every spec item, roadmap feature and independent-review finding, with its status
 - Add the PR link.
 - Re-order the next-5 list when it changes.
 
-Last updated: 2026-11-04 (fix/security-review, #175): rc.6 item 4, the security review and its two High fixes; the formal soak still waits for the antenna move; the next-5 list is unchanged.
+Last updated: 2026-11-04 (docs/release-v1.6.0-rc.6, #176): v1.6.0-rc.6 tagged, with the owner's rc.6 list #172–#175; the formal soak still waits for the antenna move; the next-5 list is unchanged.
 
 ## Next 5 tasks, in order
 
@@ -693,6 +693,7 @@ Future, unscheduled work outside this table: `roadmap/ROADMAP-DESKTOP-FIELD-APP.
 | Repo |  | Admin login page: the token once, a signed HttpOnly SameSite=Strict cookie (session, or 30 days with "Remember this browser"), sign out and sign out all; guards feeders, MLAT, reboot, settings, privacy; several feeders at once (up to 4 custom aggregators) | done | owner, 2026-11-04 (rc.6 list, item 3); ADR-0005 amended | [#174](https://github.com/nathansottung/gps-time/pull/174) |
 | Repo |  | Security review 2026-11-04: no Critical; High H1 (clip metadata kept the exact position after a privacy change) and H2 (airband bookmark distances and facilities placed the station) fixed | done | owner, 2026-11-04 (rc.6 list, item 4); `review/security-review-2026-11-04.md` | [#175](https://github.com/nathansottung/gps-time/pull/175) |
 | Repo |  | Security review 2026-11-04, open: M1 (root trusting files in the gps-time-writable `/opt/gps-time-pi`: modules unit, `install.sh`, migrate), M2 (LAN denial of service against the web server), L1–L6 | planned | `review/security-review-2026-11-04.md` lists each with a proposed fix | [#175](https://github.com/nathansottung/gps-time/pull/175) |
+| Repo |  | Tag v1.6.0-rc.6 (pre-release) on the merge commit of its release-notes PR: rc.5 with #172–#175 | done | owner, 2026-11-04; `releases/v1.6.0-rc.6.md`; not deployed | [#176](https://github.com/nathansottung/gps-time/pull/176) |
 | Repo |  | Deploy scripts pass `install.sh`'s `GTP_*` flags from the environment (`sudo env <flags> bash install.sh`): an allowlist kept equal to what `install.sh` and its scripts read (tested), values checked before anything is built or uploaded, other `GTP_*` names listed, not passed | done | owner, 2026-11-04 (rc.3 list) | [#156](https://github.com/nathansottung/gps-time/pull/156) |
 | Repo |  | Pi bundle ships `modules/` (install.sh has installed them since #146); `tests/test_bundle_install.py` builds and extracts the bundle and runs its `install.sh` to the end in a temporary root (stub system commands, unknown absolute paths refused); ADR-0007 amended; tag v1.6.0-rc.2 | done | owner, 2026-11-04, after rc.1's install failed at `cp -r modules`; not yet deployed | [#155](https://github.com/nathansottung/gps-time/pull/155) |
 | Repo |  | Soak run of v1.6.0 (now v1.6.0-rc.2) on the Pi before v1.6.0 (`tools/soak_check.py --expect` the deployed candidate after three days; criteria unchanged) | planned | owner, 2026-11-04: **the formal soak waits for the antenna move.** The run after this deploy is not the soak: it is for sector data (C/N₀ by sky sector) and web SDR testing, so `GTP_WEBSDR=1` may be on. The formal 72-hour run starts at a deploy after the antenna is moved, without `GTP_SDR` or `GTP_WEBSDR` | |

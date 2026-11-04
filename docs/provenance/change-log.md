@@ -2301,3 +2301,13 @@ The owner's rc.6 list, item 4: "A fresh security review of everything else; fix 
 - **H2 fixed:** the airband bookmarks follow the mode after a refresh (`airband.privacy_changed`, called on `POST /api/setting {"location_display"}`). Hidden mode deletes the NASR set, and OpenWebRX+ keeps the built-ins only. Rounded mode drops the distances computed from the exact site. `GET /api/airband` applies the same rule.
 - **M1** was partly fixed in #171 (the root sign-out unit runs no Python). The rest of M1, M2 and L1–L6 are listed as open, with proposed fixes.
 - **Tests:** `tests/test_clips.py`, `tests/test_airband.py`.
+
+## 2026-11-04 — v1.6.0-rc.6: release notes (#176)
+
+The owner's rc.6 list (2026-11-04, "go."), one PR each, all merged after CI:
+- #172: the web SDR open to anyone on the LAN, with no token for Start and Stop;
+- #173: the live aircraft map (tar1090 on readsb), by default with the 1090 MHz role;
+- #174: the admin login page, remembered per browser, and several feeders at once;
+- #175: the security review, with its two High location leaks fixed.
+
+`releases/v1.6.0-rc.6.md` lists them, what the upgrade changes, the deploy command with every install flag, what isn't verified, and rollback. The version lines in README, START-HERE, ROADMAP and INDEX are updated. The tag `v1.6.0-rc.6` goes on this PR's merge commit. Not deployed.
