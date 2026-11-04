@@ -183,8 +183,9 @@ class TestUsageLog(unittest.TestCase):
         for _ in range(n):
             for s in range(60):
                 # PPS phase alternating +/- jitter: its standard deviation is about jitter_s.
-                self.log.add_pps(self.clock.t + (jitter_s if s % 2 else -jitter_s))
-                self.log.add_pps(self.clock.t + 1e-6)              # a repeat of the same second is ignored
+                base = int(self.clock.t) * 1_000_000_000
+                self.log.add_pps(base + round((jitter_s if s % 2 else -jitter_s) * 1e9))
+                self.log.add_pps(base + 1000)                        # a repeat of the same second is ignored
                 if s % 10 == 0:
                     self.host.step(busy, unit_pct)
                     self.log.sample()
@@ -210,9 +211,9 @@ class TestUsageLog(unittest.TestCase):
         self.assertAlmostEqual(doc["during"]["cpu_mean_pct"], 40, delta=1)
         self.assertAlmostEqual(doc["before"]["cpu_mean_pct"], 10, delta=1)
         self.assertAlmostEqual(doc["during"]["websdr_cpu_mean_pct"], 120, delta=2)
-        # Timestamps near 1.8e9 s as floats resolve about 240 ns (pps.read_assert): the tolerance.
-        self.assertAlmostEqual(doc["during"]["pps_jitter_median_ns"], 3000, delta=250)
-        self.assertAlmostEqual(doc["before"]["pps_jitter_median_ns"], 1000, delta=250)
+        # Integer ns end to end: +/-3 us alternating has a sample SD of 3000 * sqrt(60/59) ns.
+        self.assertAlmostEqual(doc["during"]["pps_jitter_median_ns"], 3025.4, delta=0.2)
+        self.assertAlmostEqual(doc["before"]["pps_jitter_median_ns"], 1008.4, delta=0.2)
         self.assertEqual(doc["during"]["pps_pulses"], 180)
         self.assertEqual(doc["during"]["pps_expected"], 180)
         self.assertNotIn("lat", lines[0])
@@ -230,7 +231,7 @@ class TestUsageLog(unittest.TestCase):
         self.host.active = True
         for s in range(60):
             if s % 3:
-                self.log.add_pps(self.clock.t)
+                self.log.add_pps(int(self.clock.t) * 1_000_000_000)
             if s % 10 == 0:
                 self.host.step(30)
                 self.log.sample()

@@ -23,16 +23,18 @@ class Pulses:
     """A fake kernel PPS: assert timestamp and sequence, advanced by the test."""
 
     def __init__(self):
-        self.ts, self.seq = 0.0, 0
+        self.ts, self.seq = 0, 0
         self.t = [T0]
 
     def pulse(self, at, count=1):
-        """The kernel counts `count` pulses; the last one is stamped at `at`."""
+        """The kernel counts `count` pulses; the last one is stamped at `at` (seconds, given to
+        the monitor as integer ns, as read_assert does)."""
         self.seq += count
-        self.ts = at
+        whole = int(at)
+        self.ts = whole * 1_000_000_000 + round((at - whole) * 1e9)
 
     def read(self):
-        return ("ok", self.ts, self.seq) if self.seq else ("ok", 0.0, 0)
+        return ("ok", self.ts, self.seq) if self.seq else ("ok", 0, 0)
 
     def monitor(self):
         return pps.PPSMonitor(device="/dev/pps-test", sysfs="/nonexistent", clock=lambda: self.t[0],
@@ -53,6 +55,20 @@ class TestMissedAndUnread(unittest.TestCase):
         self.k.pulse(at, count)
         self.k.t[0] = poll_at if poll_at is not None else at + 0.25
         self.m.poll()
+
+    def test_intervals_are_integer_ns(self):
+        # 1 s + 30 ns: a float of the whole timestamp couldn't show the 30 ns.
+        self.k.pulse(T0)
+        self.m.poll()
+        self.k.seq += 1
+        self.k.ts += 1_000_000_030
+        self.k.t[0] = T0 + 1.25
+        self.m.poll()
+        self.assertEqual(list(self.m._intervals), [1_000_000_030])
+        snap = self.m.snapshot()
+        self.assertAlmostEqual(snap["last_interval_s"]["value"], 1.00000003, places=12)
+        self.assertEqual(snap["last_event_utc"]["value"], "2026-09-21T14:13:21.000000+00:00")
+        self.assertEqual(self.m.last_event()[1], int(T0) * 1_000_000_000 + 1_000_000_030)
 
     def test_every_pulse_read(self):
         for i in range(10):
@@ -143,7 +159,7 @@ class TestPollerThread(unittest.TestCase):
 
         def reader():
             reads.append(time.monotonic())
-            return ("ok", clock[0] - 0.3, len(reads))
+            return ("ok", int(clock[0]) * 1_000_000_000 - 300_000_000, len(reads))
 
         rig.monitor._reader = reader
         with mock.patch.object(rig.svc, "tick", side_effect=slow_tick), \

@@ -135,6 +135,12 @@ The SDR line is UNKNOWN as expected: v1.5.0-rc.1 has no `/api/sdr`.
 - **Also:** independent references AGREE, 10 of 10 within 50 ms (`calculated`); `vcgencmd get_throttled` 0x0.
 - What this shows: the timing core recovered from each loss of PPS without leaving GPS, and everything apart from the outages met the criteria. Under the owner's rule outages fail the run; they are reported, not explained away, and detection is not weakened.
 
+**Follow-up, 2026-11-04: the outages against the RTL-SDR's USB connect time** (owner's question; read-only SSH, nothing changed). Source: the persistent systemd journal (`/var/log/journal`; one boot since 2026-10-04 15:06:52 local, entries on every day of the run), kernel messages, `journalctl -k -b 0`.
+- **The RTL-SDR was not connected during the run.** The journal has exactly two USB device connects this boot: the VIA hub at boot (2026-10-04 19:07:01 UTC) and an RTL2832U dongle (`0bda:2838`) on port 1-1.4 at **2026-11-04 14:56:05 UTC**, six days after the check. No USB connect or disconnect falls between the service start (2026-10-26 18:16:55 UTC) and the check (2026-10-29 18:30 UTC). `lsusb` on 2026-11-04 lists the hub and that dongle only.
+- **So the four outages can't line up with plugging it in;** they started 19:07, 23:41, 19:04 and 20:01 UTC on 2026-10-26 to 2026-10-28. This rules the dongle's connection out as their trigger. It doesn't establish their cause.
+- **The only kernel lines in the run** are six Ethernet link down/up messages on 2026-10-29 between 08:10:57 and 08:12:27 UTC, nowhere near an outage.
+- **Seen in passing:** the DVB-T driver (`dvb_usb_rtl28xxu`) claimed the dongle when it was plugged in. `GTP_SDR=1` unloads it, and the `rtl-sdr` package's blacklist keeps it off after a reboot. `GTP_WEBSDR=1` unloads it too, but installs no blacklist of its own: with the web SDR alone, whether the driver comes back after a reboot depends on whether `openwebrx` pulls in `rtl-sdr` (not checked). Until it is unloaded, SDR software can't open the dongle.
+
 ## Build archives
 
 From Windows/VS Code:

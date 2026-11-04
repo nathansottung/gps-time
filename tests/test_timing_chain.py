@@ -531,7 +531,10 @@ class TestParsers(unittest.TestCase):
         Path(d, "assert").write_text("1790000000.000000123#42\n")
         status, ts, seq = pps.read_assert(d)
         self.assertEqual((status, seq), ("ok", 42))
-        self.assertAlmostEqual(ts, 1790000000.000000123, places=6)
+        self.assertEqual(ts, 1_790_000_000_000_000_123)          # exact integer ns, no float
+        self.assertIsInstance(ts, int)
+        Path(d, "assert").write_text("1790000000.5#43\n")      # a short fraction is right-padded
+        self.assertEqual(pps.read_assert(d)[1], 1_790_000_000_500_000_000)
         Path(d, "assert").write_text("garbage")
         self.assertEqual(pps.read_assert(d)[0], "unreadable")
 

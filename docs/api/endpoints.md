@@ -576,7 +576,7 @@ The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no 
 - `bins`: one per minute, RAM only. `cpu_pct` is the whole system (% of all cores, from `/proc/stat` every 10 s); `websdr_cpu_pct` the web SDR and gate units (% of one core, from their cgroups); `pps_jitter_ns` the standard deviation of the minute's kernel PPS phases (`calculated`), `pps_max_abs_ns` the largest |phase| (`observed`). `null` where not read.
 - `before`, `during`, `baseline`: summaries over minute bins, each figure labeled: CPU mean (`calculated`) and largest sample (`observed`), temperature mean and highest, PPS jitter median and worst minute, largest |phase|, pulses seen (`note`: of how many seconds). `baseline` is the last 10 minutes, kept always.
 - `recent`: the last 10 sessions, newest first, from `websdr-sessions.jsonl` (one line per session, written when it ends; 100 kept).
-- The PPS figures are the system clock against kernel PPS timestamps (the `/api/stability` layer), resolved to about 0.24 µs. They show what changed while the web SDR ran, not why.
+- The PPS figures are the system clock against kernel PPS timestamps (the `/api/stability` layer), in integer nanoseconds from the kernel on, so they resolve to 1 ns. They show what changed while the web SDR ran, not why.
 
 ## GET /api/sky-obstruction
 

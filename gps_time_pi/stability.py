@@ -27,6 +27,8 @@ from collections import deque
 from datetime import datetime, timezone
 from statistics import NormalDist
 
+from .pps import phase_ns, require_ns
+
 RING_S = 14400            # 4 h of 1 s samples
 RING_MINUTES = 20160      # 14 d of minute summaries
 MINUTE_MIN_SAMPLES = 54   # a minute's mean needs 90 % of its seconds
@@ -345,12 +347,14 @@ class Recorder:
         self._min_sel.append(acc["sel"] == acc["n"])
         self._acc = None
 
-    def add(self, ts, pps_selected=None):
-        """Record one kernel PPS timestamp (CLOCK_REALTIME, seconds). The phase
-        is its distance from the nearest whole second. A timestamp that does
-        not move forward (clock stepped back) restarts the history."""
-        second = int(round(ts))
-        phase = ts - second
+    def add(self, ts_ns, pps_selected=None):
+        """Record one kernel PPS timestamp (CLOCK_REALTIME, integer nanoseconds).
+        The phase is its distance from the nearest whole second, found in exact
+        integer arithmetic and only then turned into seconds (a float of the
+        whole timestamp would resolve just ~0.24 us). A timestamp that does not
+        move forward (clock stepped back) restarts the history."""
+        second, ph_ns = phase_ns(require_ns(ts_ns))
+        phase = ph_ns / 1e9
         with self._lock:
             if self._last_s is not None:
                 if second == self._last_s:

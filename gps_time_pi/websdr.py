@@ -17,9 +17,8 @@ The usage log (owner 2026-11-04: CPU, temperature and PPS jitter while it is in 
 
 The PPS figures are the system clock against kernel PPS timestamps, the same layer as
 /api/stability (interrupt latency and chrony's loop included). They show what changed while the
-web SDR ran; they don't say why, and a difference isn't a cause. The timestamps arrive as floats
-(pps.read_assert), which near today's epoch resolve about 0.24 us: figures well below that are
-at the resolution limit.
+web SDR ran; they don't say why, and a difference isn't a cause. The timestamps arrive as integer
+nanoseconds (pps.read_assert), so the figures resolve to 1 ns.
 """
 import json
 import math
@@ -31,6 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import sdr
+from .pps import phase_ns, require_ns
 from .labels import q
 
 UNIT = "gps-time-websdr.service"
@@ -45,7 +45,7 @@ SESSION_MAX_MIN = 720
 MAX_SESSIONS = 100
 LAYER_NOTE = ("PPS jitter: the standard deviation, over each minute, of where the system clock read at the "
               "kernel PPS edges (the /api/stability layer: interrupt latency and chrony's loop included). "
-              "It shows what changed while the web SDR ran, not why. Resolution about 0.24 µs (float timestamps).")
+              "It shows what changed while the web SDR ran, not why.")
 
 
 def _iso(t):
@@ -213,10 +213,10 @@ class UsageLog:
         self._thread = None
 
     # inputs
-    def add_pps(self, ts):
-        """One kernel PPS timestamp (seconds); the phase is its distance from the nearest second."""
-        second = round(ts)
-        phase = ts - second
+    def add_pps(self, ts_ns):
+        """One kernel PPS timestamp (integer ns); the phase is its distance from the nearest second."""
+        second, ph_ns = phase_ns(require_ns(ts_ns))
+        phase = ph_ns / 1e9
         with self._lock:
             if second == self._last_pps:
                 return                     # the poller reads the newest event each second: once each

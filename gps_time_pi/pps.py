@@ -8,6 +8,12 @@ Measurement layer: every timestamp is the Linux kernel's CLOCK_REALTIME stamp
 of the PPS interrupt. Interval statistics therefore describe what Linux
 observed (including interrupt latency and the system clock being disciplined),
 NOT the receiver's or the electrical signal's jitter.
+
+Timestamps are integer nanoseconds since the Unix epoch, from the kernel's own
+"<sec>.<nsec>" text to every phase and interval. A float of today's epoch in
+seconds resolves only about 0.24 us, so seconds-as-float are made only from
+differences (an interval, a phase within its second), never from a whole
+timestamp, except for display (last_event_utc) and the coarse age.
 """
 
 import os
@@ -34,10 +40,28 @@ LAYER_NOTE = ("Linux kernel PPS timestamps (CLOCK_REALTIME); not receiver or "
               "electrical PPS jitter")
 
 _ASSERT = re.compile(r"^\s*(\d+)\.(\d{1,9})#(\d+)\s*$")
+NS = 1_000_000_000
+
+
+def phase_ns(ts_ns):
+    """(second, phase in ns) of an integer-ns timestamp: the nearest whole second and the
+    signed distance from it, -0.5 s < phase <= 0.5 s. Exact integer arithmetic."""
+    second, rem = divmod(ts_ns, NS)
+    if rem > NS // 2:
+        second, rem = second + 1, rem - NS
+    return second, rem
+
+
+def require_ns(ts):
+    """Kernel PPS timestamps travel as int nanoseconds; a float here would lose them."""
+    if isinstance(ts, bool) or not isinstance(ts, int):
+        raise TypeError(f"PPS timestamp must be integer nanoseconds, not {type(ts).__name__}")
+    return ts
 
 
 def read_assert(sysfs_dir):
-    """Return ('ok', ts, seq) | ('missing', None, None) | ('unreadable', None, None)."""
+    """Return ('ok', ts_ns, seq) | ('missing', None, None) | ('unreadable', None, None).
+    ts_ns is the kernel's timestamp as integer nanoseconds (no float on the way)."""
     path = os.path.join(sysfs_dir, "assert")
     try:
         with open(path) as f:
@@ -50,7 +74,7 @@ def read_assert(sysfs_dir):
     if not m:
         return "unreadable", None, None
     sec, frac, seq = m.groups()
-    return "ok", int(sec) + int(frac.ljust(9, "0")) / 1e9, int(seq)
+    return "ok", int(sec) * NS + int(frac.ljust(9, "0")), int(seq)
 
 
 def _read_text(path):
@@ -87,7 +111,7 @@ class PPSMonitor:
                  clock=time.time, degraded_s=None, lost_s=None,
                  reader=None, device_state=None):
         """reader / device_state are injection hooks for demo mode: reader() ->
-        (status, ts, seq) like read_assert; device_state() -> (present|None, note)."""
+        (status, ts_ns, seq) like read_assert (integer ns); device_state() -> (present|None, note)."""
         self.device = device or DEVICE
         self.sysfs = sysfs or SYSFS
         self.clock = clock
@@ -96,9 +120,9 @@ class PPSMonitor:
         self.degraded_s = DEGRADED_AFTER_S if degraded_s is None else degraded_s
         self.lost_s = LOST_AFTER_S if lost_s is None else lost_s
         self._lock = threading.Lock()
-        self._events = deque(maxlen=ring)      # (seq, ts)
-        self._intervals = deque(maxlen=ring)   # seconds between consecutive (seq+1) events
-        self._last = None                      # (seq, ts)
+        self._events = deque(maxlen=ring)      # (seq, ts_ns)
+        self._intervals = deque(maxlen=ring)   # ns between consecutive (seq+1) events (int)
+        self._last = None                      # (seq, ts_ns)
         self._read_status = None
         self.missed_total = 0     # pulses the kernel never counted (from its sequence number)
         self.unread_total = 0     # pulses the kernel counted that no poll read individually
@@ -123,6 +147,7 @@ class PPSMonitor:
             self._read_status = status
             if status != "ok" or seq == 0 or ts == 0:
                 return
+            require_ns(ts)
             if self._last is None:
                 self._last = (seq, ts)
                 self._events.append((seq, ts))
@@ -143,8 +168,8 @@ class PPSMonitor:
             # the pulses that the elapsed kernel time calls for, minus the ones
             # the kernel counted. A pulse the kernel counted but no poll read on
             # its own (dseq > 1) was not lost; it is counted as unread.
-            dseq, dt = seq - lseq, ts - lts
-            missed = max(0, int(round(dt)) - dseq) if dt > 0 else 0
+            dseq, dt = seq - lseq, ts - lts            # dt: integer ns
+            missed = max(0, (dt + NS // 2) // NS - dseq) if dt > 0 else 0
             if dseq == 1 and dt > 0:
                 self._intervals.append(dt)
             self.missed_total += missed
@@ -154,7 +179,7 @@ class PPSMonitor:
             self._events.append((seq, ts))
 
     def last_event(self):
-        """(sequence, kernel timestamp) of the newest observed event, or None."""
+        """(sequence, kernel timestamp in integer ns) of the newest observed event, or None."""
         with self._lock:
             return self._last
 
@@ -187,7 +212,7 @@ class PPSMonitor:
         elif last is None:
             health = "NO_EVENTS"
         else:
-            age = now - last[1]
+            age = now - last[1] / NS
             health = ("HEALTHY" if age < self.degraded_s else
                       "DEGRADED" if age < self.lost_s else "LOST")
 
@@ -221,22 +246,25 @@ class PPSMonitor:
             "interval_stats": None,
         }
         if last is not None:
-            age = now - last[1]
-            out["last_event_utc"] = q(datetime.fromtimestamp(last[1], timezone.utc)
-                                      .isoformat(timespec="microseconds"), None, "observed")
+            age = now - last[1] / NS
+            sec, nsec = divmod(last[1], NS)
+            out["last_event_utc"] = q(datetime.fromtimestamp(sec, timezone.utc)
+                                      .replace(microsecond=nsec // 1000).isoformat(timespec="microseconds"),
+                                      None, "observed")
             out["last_sequence"] = q(last[0], None, "observed")
             out["age_s"] = q(round(age, 6), "s", "calculated",
                              "system clock now minus kernel timestamp" + ("; negative: clock stepped back" if age < 0 else ""))
         if intervals:
-            out["last_interval_s"] = q(intervals[-1], "s", "calculated", LAYER_NOTE)
-            stats = {"count": len(intervals), "mean": statistics.fmean(intervals),
-                     "min": min(intervals), "max": max(intervals),
-                     "stdev": statistics.stdev(intervals) if len(intervals) > 1 else None}
+            # Integer ns throughout; seconds only at the end (a 1 s interval as a float keeps sub-ns).
+            out["last_interval_s"] = q(intervals[-1] / NS, "s", "calculated", LAYER_NOTE)
+            stats = {"count": len(intervals), "mean": sum(intervals) / len(intervals) / NS,
+                     "min": min(intervals) / NS, "max": max(intervals) / NS,
+                     "stdev": statistics.stdev(intervals) / NS if len(intervals) > 1 else None}
             out["interval_stats"] = q(stats, "s", "calculated", LAYER_NOTE)
         if len(events) >= 2:
             (s0, t0), (s1, t1) = events[0], events[-1]
             if t1 > t0:
-                out["rate_hz"] = q((s1 - s0) / (t1 - t0), "Hz", "calculated",
+                out["rate_hz"] = q((s1 - s0) * NS / (t1 - t0), "Hz", "calculated",
                                    f"over the last {len(events)} observed events")
         return out
 
