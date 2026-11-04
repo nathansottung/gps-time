@@ -112,8 +112,9 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Releases
 - `releases/README.md` — how a candidate becomes a release: rc tags on the notes PR's merge commit; the soak rule (72 h unchanged run, the read-only check and its criteria, tag the same commit only if clean, otherwise report); the record of soak runs
+- `releases/v1.6.0-rc.1.md` — first 1.6 release candidate (v1.5.0 skipped): the v1.5.0-rc.1 soak finding and the checks since, responsive UI, the SDR stack and web SDR (opt-in), the sky-obstruction map, integer-ns PPS timestamps; the deploy command, what the upgrade changes on the station, rollback to v1.5.0-rc.1 or v1.4.0 (pre-release)
 - `releases/v1.5.0-rc.1.md` — first 1.5 release candidate: legacy pages retired (`/` → `/app/`), optional modules with the Administration switch, station key and observation files, second pulse and soak check; the deploy command, what the upgrade changes on the station, rollback to v1.4.0 (pre-release)
-- `releases/v1.5.1-plan.md` — plan for v1.5.1, the UI release after the v1.5.0 soak: what it carries from `main`, the gates (a clean v1.5.0 first), the items before rc.1, the checks on the Pi, and what comes after
+- `releases/v1.5.1-plan.md` — SUPERSEDED by v1.6.0-rc.1; plan for v1.5.1, the UI release after the v1.5.0 soak: what it carries from `main`, the gates (a clean v1.5.0 first), the items before rc.1, the checks on the Pi, and what comes after
 - `releases/v1.4.0.md` — first stable release of the 1.4 line, on the rc.11 commit: the clean soak result, what 1.4 contains relative to v1.3.0, known open issues
 - `releases/v1.4.0-rc.11.md` — chrony history semantics fixed (GPS-003/007), the legacy pages' features in `/app/`, TypeScript 7; the soak candidate, and the commit v1.4.0 is to be tagged on (pre-release)
 - `releases/v1.4.0-rc.10.md` — sunset as prominent as sunrise, screenshot mode, outside-reader docs (roadmap page, public release checklist); web UI only over rc.9 (pre-release)
