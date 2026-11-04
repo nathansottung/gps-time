@@ -1993,3 +1993,19 @@ Owner's rc.3 list, first item. Before, `deploy-to-pi.ps1` (and `.sh`) always ran
 - **Other `GTP_*` names** in the environment are listed as not passed; `GTP_DEPLOY_TTY` stays local.
 - **Tests** (`tests/test_deploy_scripts.py`): the allowlist against `install.sh`; the check before the build; for each script, flags passed exactly and unknown names listed; a bad value (`;`, `$(...)`, a quote, a newline) stops with nothing built or uploaded. The PowerShell runs pass on Windows; the bash runs are for CI's Linux.
 - **Docs:** `development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"; `deploy/sdr-stack.md` and `deploy/websdr.md` show the PC-side form.
+
+## 2026-11-04 — Dongle roles by serial, at most 3 on a Pi 4 (#159)
+
+Owner's rc.3 list. Roles were already given by serial (PPS, 1090, 978, and the web SDR's), but nothing counted them across the two installers, and Administration didn't show the web SDR's.
+
+- **`scripts/dongle-roles.sh`**, sourced by `sdr-stack.sh` and `websdr.sh` before they change anything:
+  - counts distinct serials across every installed role (a role of a stack that isn't installed doesn't count; the web SDR sharing the 1090 MHz dongle adds none);
+  - refuses more than 3 on a Raspberry Pi 4, 400 or Compute Module 4 (the owner's limit: one USB 2.0 bus, shared power and CPU), from `/proc/device-tree/model`;
+  - other boards have no limit; an unreadable model applies none and says so.
+- **`/api/sdr`:** each dongle's role includes the web SDR (`1090 MHz + web SDR` when shared, `web SDR` alone). A new `limit` object gives the model (`observed`), the max, roles assigned (`calculated`), dongles plugged (`observed`), `over`, and the rule.
+- **Administration → SDR receivers:** a line with the roles, the dongles on USB, and the limit; a warning when over it.
+- **Tests:**
+  - `tests/test_dongle_roles.py`: the helper with a temp device tree (3 on a Pi 4 fine, 4 refused, shared counted once, no limit on a Pi 5 or an unknown model); both installers refuse a fourth dongle before any `apt-get` and accept a shared one;
+  - `tests/test_sdr_status.py`: roles and the limit;
+  - `web/src/lib/sdr.test.ts`: the limit line.
+- **Docs:** `deploy/sdr-stack.md` → "Roles and the limit", the web SDR guide, `/api/sdr`.

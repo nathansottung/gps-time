@@ -48,6 +48,24 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiH
 
 The web SDR (`GTP_WEBSDR=1`, `websdr.md`) can share the 1090 MHz dongle: readsb stops while it runs and starts again afterwards.
 
+## Roles and the limit
+
+Every dongle is given its role by its USB serial, never by its position on the bus:
+
+| Role | Set by | Kept in |
+|---|---|---|
+| PPS markers (`rtl_tcp`) | `GTP_SDR_PPS_SERIAL` | `/etc/default/gps-time-sdr` |
+| 1090 MHz (readsb) | `GTP_SDR_1090_SERIAL` | `/etc/default/gps-time-sdr` |
+| 978 MHz (dump978) | `GTP_SDR_978_SERIAL` | `/etc/default/gps-time-sdr` |
+| Web SDR (OpenWebRX+) | `GTP_WEBSDR_SERIAL` (default: the 1090 MHz one) | `/etc/default/gps-time-websdr` |
+
+**The limit (owner, 2026-11-04): at most 3 RTL-SDRs by serial on a Pi 4** (also a Pi 400 or a Compute Module 4).
+- **Why:** its four USB ports share one USB 2.0 bus, and the dongles share power and CPU with the timing core.
+- **How it's counted:** by distinct serial, across every installed role. The web SDR sharing the 1090 MHz dongle adds none.
+- **Enforced** by both installers (`scripts/dongle-roles.sh`) before anything changes. The model comes from `/proc/device-tree/model`.
+- **Other boards:** no limit. If the model can't be read, no limit is applied, and the installer says so.
+- **On Administration → SDR receivers:** the roles with a serial, the dongles on USB, and the limit. It's a warning when more are given a role, or plugged in, than the limit allows (`/api/sdr` → `limit`).
+
 ## Remove
 
 ```sh

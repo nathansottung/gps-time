@@ -89,6 +89,15 @@ for role in GTP_SDR_PPS_SERIAL GTP_SDR_978_SERIAL; do
     fail "$SERIAL is the dongle for $role; the web SDR may share only the 1090 MHz dongle (or one with no role)"
   fi
 done
+# The owner's limit: at most 3 RTL-SDRs by serial on a Pi 4, counting the SDR stack's roles when
+# it's installed. Sharing the 1090 MHz dongle adds none.
+. "$(dirname "$0")/dongle-roles.sh"
+SDR_SERIALS=""
+if [ -f "$UNITS/gps-time-rtl-tcp.service" ]; then
+  SDR_SERIALS="$(dongle_saved "$SDR_ENV" GTP_SDR_PPS_SERIAL) $(dongle_saved "$SDR_ENV" GTP_SDR_1090_SERIAL) $(dongle_saved "$SDR_ENV" GTP_SDR_978_SERIAL)"
+fi
+# shellcheck disable=SC2086  # the saved serials are letters, digits, - and _ only
+dongle_check "$ROOT" "$SERIAL" $SDR_SERIALS >/dev/null || fail "the web SDR's dongle would be one too many (see above)"
 [[ "$PORT" =~ ^[0-9]{4,5}$ ]] && [ "$PORT" -ge 1024 ] && [ "$PORT" -le 65535 ] && [ "$PORT" != 8074 ] \
   || fail "GTP_WEBSDR_PORT='$PORT' must be 1024 to 65535 and not 8074 (OpenWebRX+ itself)"
 [[ "$HOURS" =~ ^[0-9]{1,2}$ ]] && [ "$HOURS" -ge 1 ] && [ "$HOURS" -le 24 ] \

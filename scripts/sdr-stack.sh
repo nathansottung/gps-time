@@ -90,6 +90,12 @@ for a in "$PPS_SERIAL:$S1090" "$PPS_SERIAL:$S978" "$S1090:$S978"; do
     exit 1
   fi
 done
+# The owner's limit: at most 3 RTL-SDRs by serial on a Pi 4, the web SDR's dongle included when
+# it's installed (it may share the 1090 MHz one).
+. "$(dirname "$0")/dongle-roles.sh"
+WEB_SERIAL=""
+[ -f "$UNITS/gps-time-websdr.service" ] && WEB_SERIAL="$(dongle_saved "$ROOT/etc/default/gps-time-websdr" GTP_WEBSDR_SERIAL)"
+dongle_check "$ROOT" "$PPS_SERIAL" "$S1090" "$S978" "$WEB_SERIAL" || { say "nothing changed." >&2; exit 1; }
 
 echo "== SDR stack: packages =="
 # readsb's own service would start on install and take the first RTL-SDR it finds, which
