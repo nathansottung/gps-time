@@ -2008,6 +2008,7 @@ Owner's rc.3 list. On 2026-11-04 the station's newly plugged-in dongle was held 
 - **Tests:**
   - `tests/test_dvb_blacklist.py`: the station's own `/proc/modules` as a fixture; the file's contents and mode; the unload order; nothing loaded means no `modprobe`; a busy module; idempotent; no shared module, `/boot` or timing word in the script; both installers call it and never remove it.
   - The SDR-stack and web-SDR script tests check the file is written.
+
 ## 2026-11-04 — Dongle roles by serial, at most 3 on a Pi 4 (#159)
 
 Owner's rc.3 list. Roles were already given by serial (PPS, 1090, 978, and the web SDR's), but nothing counted them across the two installers, and Administration didn't show the web SDR's.
