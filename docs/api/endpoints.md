@@ -552,6 +552,27 @@ The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The we
 - `limit` (from v1.6.0-rc.3): the owner's dongle limit. `model` is the board (device tree, `observed`); `max` is 3 on the Pi 4 family, else `null`. `assigned` counts distinct serials with a role, the web SDR's included (`calculated`); `plugged` counts RTL-SDRs on USB (`observed`, `null` without sysfs). `over` is true when either exceeds `max`. `rule` says which applies. A role's name shows a shared dongle: `1090 MHz + web SDR`.
 - `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s.
 
+## GET /api/aircraft-map
+
+The live aircraft map (tar1090 on readsb, `docs/deploy/sdr-stack.md` → "The live aircraft map"), read only, no token. Code: `gps_time_pi/tar1090.py`; type `AircraftMapStatus`.
+
+```json
+{"installed": true, "url": "/tar1090/", "state": "live", "aircraft_json_age_s": 0.7, "aircraft": 14,
+ "station_marker": true, "location_display": "exact", "note": "tar1090 on readsb's 1090 MHz data, ..."}
+```
+
+- `state`: `live` (aircraft.json written in the last 30 s), `stale`, `no_data`, or `paused` while the web SDR runs (it has the dongle).
+- `aircraft_json_age_s`, `aircraft`: observed from `/run/readsb/aircraft.json`; `null` when unread.
+- `station_marker`: false in hidden mode or without a survey.
+
+## GET /tar1090/…
+
+The map itself, on the station's own port:
+- `/tar1090/<file>`: the static page from `/usr/local/share/gps-time-tar1090/html`, path-checked. It has its own CSP (scripts from the station; inline ones by SHA-256; images from https). The `db-*/` files are stored gzipped and sent with `Content-Encoding: gzip`. 503 when not installed.
+- `/tar1090/data/aircraft.json`, `/tar1090/data/history_<n>.json`: readsb's files as they are.
+- `/tar1090/data/receiver.json`: readsb's, with `lat`/`lon` set by the privacy mode (exact, rounded to 0.1°, or absent in hidden mode).
+- Anything else under `/tar1090/data/`, or outside the page, is 404.
+
 ## GET /api/websdr
 
 The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no token. Started and stopped with `POST /api/admin` (`websdr_start`, `websdr_stop`); `websdr_signout_all` signs out every remembered browser. Code: `gps_time_pi/websdr.py`; type `WebSdrStatus`. Built at most once every 5 s, with one `systemctl show`.

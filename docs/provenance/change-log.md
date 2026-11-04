@@ -2266,6 +2266,18 @@ The owner's rc.6 list, item 1: "Web SDR open to anyone on the LAN: no login, no 
 - **Still LAN-only:** the gate's private ranges, OpenWebRX+ on the loopback. polkit is unchanged.
 - **Docs:** `deploy/websdr.md`, `api/endpoints.md`, ADR-0009 amended (anyone on the LAN can now pause ADS-B tracking for up to a session's limit).
 
+## 2026-11-04 — Live aircraft map: tar1090 on readsb, by default with the 1090 MHz role (#173)
+
+The owner's rc.6 list, item 2: "Live aircraft map by default: readsb on 1090 with tar1090 (LAN-only, linked from Aviation). Hide the station marker in hidden mode. Starting the web SDR pauses tracking; stopping resumes it."
+
+- **Installer** (`scripts/sdr-stack.sh`): with the 1090 MHz role and `GTP_TAR1090` not 0 (the default is 1), it fetches tar1090 `5d59b1b` and tar1090-db `2ab834a`. Each is fetched by commit, as `nobody`, and verified. The page goes in `/usr/local/share/gps-time-tar1090/html`. A failure leaves the map out and the rest installed. `GTP_SDR=0` and `GTP_TAR1090=0` remove it.
+- **Served by the web service** (`gps_time_pi/tar1090.py`): `/tar1090/` (path-checked static files, the gzipped database with `Content-Encoding: gzip`, the page's own CSP with its inline scripts by hash), readsb's `aircraft.json` and history files, and `receiver.json` with the position by the privacy mode. There is no new listener and no lighttpd. The web service still fetches nothing.
+- **Hidden mode:** no `lat`/`lon` in `receiver.json`, so no station marker or range rings. readsb is never given a position.
+- **Pause and resume:** unchanged mechanism (the web SDR's `Conflicts=` and `websdr-handoff`). `/api/aircraft-map` reports `paused` while the web SDR runs, `live`, `stale` or `no_data` otherwise.
+- **Aviation page:** a Live aircraft map card (state, aircraft count, data age, the station marker by mode, **Open the map ↗**) above the planned cards.
+- **Checked** on the desktop demo with the pinned tar1090 and stand-in readsb data: the page loads under its CSP, the database inflates, and aircraft show over OpenStreetMap tiles. Not run against a real readsb.
+- **Tests:** `tests/test_tar1090.py` (the page, traversal, data names, the CSP on one kept-alive connection, LAN-only Host check, the marker in exact/rounded/hidden mode, status states, units), `tests/test_sdr_stack.py` (default on, pinned commits, kept off, refusals, removal), Vitest for the card.
+
 ## 2026-11-04 — Security review; two High location leaks fixed (#175)
 
 The owner's rc.6 list, item 4: "A fresh security review of everything else; fix High/Critical." The record is `review/security-review-2026-11-04.md`.

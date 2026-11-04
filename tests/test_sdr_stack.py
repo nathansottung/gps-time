@@ -103,8 +103,20 @@ case "$(basename "$0")" in
   dpkg) exit "${STUB_DPKG_RC:-1}" ;;
   systemctl) [ "$1" = is-enabled ] && exit "${STUB_ENABLED_RC:-1}"; exit 0 ;;
   git)
-    if [ "$1" = clone ]; then mkdir -p "${@: -1}"; exit 0; fi
-    if [ "$3" = rev-parse ]; then echo "${STUB_COMMIT}"; exit 0; fi ;;
+    if [ "$1" = clone ] || [ "$1" = init ]; then mkdir -p "${@: -1}"; exit 0; fi
+    if [ "$3" = fetch ]; then
+      d="$2"; mkdir -p "$d/html" "$d/db"
+      printf '<html><script>let databaseFolder = "db2";</script><span id="webinterface_version"></span></html>\n' > "$d/html/index.html"
+      echo "GPL" > "$d/LICENSE"; echo "{}" > "$d/db/aircraft.csv"; exit 0
+    fi
+    if [ "$3" = rev-parse ]; then
+      case "$2" in
+        */tar1090) echo "${STUB_TAR_COMMIT:-$STUB_COMMIT}" ;;
+        */db) echo "${STUB_DB_COMMIT:-$STUB_COMMIT}" ;;
+        *) echo "${STUB_COMMIT}" ;;
+      esac
+      exit 0
+    fi ;;
   make) d="$2"; touch "$d/dump978-fa" "$d/skyaware978"; chmod +x "$d/dump978-fa" "$d/skyaware978"; exit 0 ;;
 esac
 exit 0
@@ -193,6 +205,56 @@ class TestScript(unittest.TestCase):
         self.assertNotIn("systemctl mask readsb.service", calls)
         self.assertNotIn("systemctl enable gps-time-readsb.service", calls)
         self.assertIn("left as it is", r.stdout)
+
+    def tar_env(self):
+        text = SCRIPT.read_text(encoding="utf-8")
+        t = re.search(r'^TAR1090_COMMIT="([0-9a-f]{40})"', text, re.M).group(1)
+        d = re.search(r'^TAR1090_DB_COMMIT="([0-9a-f]{40})"', text, re.M).group(1)
+        return {"STUB_TAR_COMMIT": t, "STUB_DB_COMMIT": d}, t, d
+
+    def test_the_aircraft_map_comes_with_the_1090_role_by_default(self):
+        env, t, d = self.tar_env()
+        html = self.root / "usr/local/share/gps-time-tar1090/html"
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", **env)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("aircraft map: tar1090", r.stdout)
+        index = (html / "index.html").read_text()
+        self.assertIn(f'let databaseFolder = "db-{d[:7]}";', index)
+        self.assertIn(f'id="webinterface_version">({t[:7]})', index)
+        self.assertTrue((html / f"db-{d[:7]}").is_dir())
+        self.assertIn(t[:7], (html / "version.json").read_text())
+        self.assertIn("GTP_TAR1090=1\n", (self.root / "etc/default/gps-time-sdr").read_text())
+        calls = self.calls()
+        self.assertTrue([c for c in calls if c.startswith("git -C") and f"fetch --quiet --depth 1 https://github.com/wiedehopf/tar1090.git {t}" in c])
+        self.assertFalse([c for c in calls if "tar1090" in c and ("systemctl" in c or "lighttpd" in c or "nginx" in c)])
+        r = self.run_script(GTP_SDR="1", **env)
+        self.assertIn("already installed", r.stdout)
+        r = self.run_script(GTP_SDR="1", GTP_TAR1090="0", **env)
+        self.assertIn("aircraft map off", r.stdout)
+        self.assertFalse(html.exists())
+        self.assertIn("GTP_TAR1090=0\n", (self.root / "etc/default/gps-time-sdr").read_text())
+        r = self.run_script(GTP_SDR="1", **env)            # kept off between runs
+        self.assertFalse(html.exists())
+
+    def test_the_aircraft_map_needs_1090_and_a_verified_commit(self):
+        env, t, d = self.tar_env()
+        html = self.root / "usr/local/share/gps-time-tar1090/html"
+        r = self.run_script(GTP_SDR="1", **env)
+        self.assertIn("needs the 1090 MHz role", r.stdout)
+        self.assertFalse(html.exists())
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", STUB_TAR_COMMIT="0" * 40, STUB_DB_COMMIT=d)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)        # the rest of the stack installs
+        self.assertIn("could not be fetched or verified", r.stderr)
+        self.assertFalse(html.exists())
+        r = self.run_script(GTP_SDR="1", GTP_TAR1090="maybe")
+        self.assertEqual(r.returncode, 1)
+
+    def test_off_removes_the_aircraft_map_too(self):
+        env, _t, _d = self.tar_env()
+        self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", **env)
+        self.assertTrue((self.root / "usr/local/share/gps-time-tar1090/html/index.html").is_file())
+        self.run_script(GTP_SDR="0")
+        self.assertFalse((self.root / "usr/local/share/gps-time-tar1090").exists())
 
     def test_off_removes_our_units_only(self):
         self.run_script(GTP_SDR="1")
