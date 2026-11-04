@@ -15,6 +15,16 @@ describe('feeders', () => {
     expect(locationWarning(pa)).toEqual({ text: 'Shares your exact location with FlightAware.', variant: 'warn' });
   });
 
+  it('warns on the PiAware card with MLAT off too', () => {
+    const pa = row({ name: 'piaware', service: 'FlightAware', mlat: { on: false, allowed: true, confirm: 'share my exact location', refused: null } });
+    const w = locationWarning(pa);
+    expect(w.variant).toBe('warn');
+    expect(w.text).toMatch(/^Shares your location with FlightAware/);
+    expect(w.text).toContain('exact location only with MLAT, which is off');
+    const hidden = row({ name: 'piaware', service: 'FlightAware', mlat: { on: false, allowed: false, confirm: 'share my exact location', refused: 'MLAT is refused in hidden privacy mode' } });
+    expect(locationWarning(hidden).variant).toBe('warn');
+  });
+
   it('states follow the switch and the unit', () => {
     expect(feederState(row()).label).toBe('OFF');
     expect(feederState(row({ on: true, active: { value: 'active', unit: null, provenance: 'observed' } })).label).toBe('SENDING');

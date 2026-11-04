@@ -12,7 +12,7 @@ Send the aircraft the station receives to services you choose: aggregators that 
 | FlightAware (PiAware) | the same | **not sent** while MLAT is off. PiAware is set never to read gpsd, which would otherwise give it the exact position. |
 | FlightAware MLAT | timing for multilateration | **exact location**: MLAT needs it. A separate opt-in (type `share my exact location`), refused in hidden privacy mode. |
 
-Each card on Administration says this in plain words. When MLAT is on, the card reads **"Shares your exact location with FlightAware."**
+Each card on Administration says this in plain words. When MLAT is on, the card reads **"Shares your exact location with FlightAware."** With MLAT off, the PiAware card still carries the warning, in amber: **"Shares your location with FlightAware: the aircraft it receives show roughly where the station is. Your exact location only with MLAT, which is off."**
 
 **Location sharing**, a card below the feeders, lists everything that shares or could share the station's location, in one place:
 - each feeder and FlightAware MLAT;
