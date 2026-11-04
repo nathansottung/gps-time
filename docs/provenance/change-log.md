@@ -2029,6 +2029,7 @@ Owner's rc.3 list. Roles were already given by serial (PPS, 1090, 978, and the w
   - `tests/test_sdr_status.py`: roles and the limit;
   - `web/src/lib/sdr.test.ts`: the limit line.
 - **Docs:** `deploy/sdr-stack.md` → "Roles and the limit", the web SDR guide, `/api/sdr`.
+
 ## 2026-11-04 — Station migration: export and import in one encrypted file (#160)
 
 Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). Needed before the antenna move and for a second Pi.
