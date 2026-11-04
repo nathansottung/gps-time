@@ -2255,3 +2255,15 @@ The owner's rc.5 list ("go. One PR, then tag rc.5"), in one PR:
 Tests: `tests/test_websdr.py` gains the login (off, cookie attributes and days, session cookie, forgery, expiry, password change, sign-out-all, no key, safe redirects, page escaping, cookie stripping, an end-to-end sign-in through the real gate), the decoder bookmarks against the profiles, and the installer's new settings, refusals and HF profiles. `tests/test_admin_auth.py` covers the new action and polkit unit. Vitest covers the card's login, HF and sign-out lines.
 
 Not changed: chrony, gpsd, PPS. `releases/v1.6.0-rc.5.md`; the tag `v1.6.0-rc.5` goes on this PR's merge commit.
+
+## 2026-11-04 — Live aircraft map: tar1090 on readsb, by default with the 1090 MHz role (#173)
+
+The owner's rc.6 list, item 2: "Live aircraft map by default: readsb on 1090 with tar1090 (LAN-only, linked from Aviation). Hide the station marker in hidden mode. Starting the web SDR pauses tracking; stopping resumes it."
+
+- **Installer** (`scripts/sdr-stack.sh`): with the 1090 MHz role and `GTP_TAR1090` not 0 (the default is 1), it fetches tar1090 `5d59b1b` and tar1090-db `2ab834a`. Each is fetched by commit, as `nobody`, and verified. The page goes in `/usr/local/share/gps-time-tar1090/html`. A failure leaves the map out and the rest installed. `GTP_SDR=0` and `GTP_TAR1090=0` remove it.
+- **Served by the web service** (`gps_time_pi/tar1090.py`): `/tar1090/` (path-checked static files, the gzipped database with `Content-Encoding: gzip`, the page's own CSP with its inline scripts by hash), readsb's `aircraft.json` and history files, and `receiver.json` with the position by the privacy mode. There is no new listener and no lighttpd. The web service still fetches nothing.
+- **Hidden mode:** no `lat`/`lon` in `receiver.json`, so no station marker or range rings. readsb is never given a position.
+- **Pause and resume:** unchanged mechanism (the web SDR's `Conflicts=` and `websdr-handoff`). `/api/aircraft-map` reports `paused` while the web SDR runs, `live`, `stale` or `no_data` otherwise.
+- **Aviation page:** a Live aircraft map card (state, aircraft count, data age, the station marker by mode, **Open the map ↗**) above the planned cards.
+- **Checked** on the desktop demo with the pinned tar1090 and stand-in readsb data: the page loads under its CSP, the database inflates, and aircraft show over OpenStreetMap tiles. Not run against a real readsb.
+- **Tests:** `tests/test_tar1090.py` (the page, traversal, data names, the CSP on one kept-alive connection, LAN-only Host check, the marker in exact/rounded/hidden mode, status states, units), `tests/test_sdr_stack.py` (default on, pinned commits, kept off, refusals, removal), Vitest for the card.

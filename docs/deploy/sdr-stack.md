@@ -33,7 +33,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiH
 - **A failure never stops the install.** If dump978 can't be fetched, verified or built, 978 MHz stays off and the rest is installed.
 
 **What it changes on the station:**
-- **Packages:** `rtl-sdr`, `readsb` and `soapysdr-module-rtlsdr`. For the dump978 build: `git`, `build-essential` and the Boost and SoapySDR development packages.
+- **Packages:** `rtl-sdr`, `readsb` and `soapysdr-module-rtlsdr`. For the dump978 build: `git`, `build-essential` and the Boost and SoapySDR development packages. For the aircraft map: `git`.
 - **readsb's own `readsb.service` is masked** before the package is installed, so it can't take the first dongle it finds, which could be the PPS one. Exception: if `readsb` was already installed and enabled, it's left alone, `gps-time-readsb` stays off, and the module reads that instance's `/run/readsb`.
 - **The DVB-T driver** (`dvb_usb_rtl28xxu`, with `rtl2832` and `rtl2832_sdr`) would claim every RTL-SDR as it's plugged in. `scripts/rtl-dvb-blacklist.sh` writes `/etc/modprobe.d/gps-time-rtl-sdr.conf` (those three and `rtl2830`), so it stays off from the next boot, and unloads it now if it's loaded. If a dongle is busy and it can't be unloaded, the script says to reboot. It never names a shared module (`dvb_core`, `videodev`, `regmap_i2c`), and changes nothing in `/boot` or the initramfs (#157).
 - **dump978 is built as `nobody`** from a shallow clone of tag v11.1. The build stops unless the clone is commit `f40aa9a0d2d0a0067c0c628b44ba316f7049b8ce`. Only the two binaries are installed, in `/usr/local/lib/gps-time-sdr/`. `-Werror` is dropped, so a newer compiler's new warnings don't stop the build.
@@ -47,6 +47,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiH
 - has caps: rtl_tcp 40 % CPU / 128 MiB; readsb and dump978 80 % / 192 MiB each; skyaware978 20 % / 64 MiB.
 
 The web SDR (`GTP_WEBSDR=1`, `websdr.md`) can share the 1090 MHz dongle: readsb stops while it runs and starts again afterwards.
+
+## The live aircraft map (tar1090)
+
+On by default with the 1090 MHz role (owner, 2026-11-04, rc.6). [tar1090](https://github.com/wiedehopf/tar1090) is a static web page that draws readsb's aircraft on a map. Aviation → **Live aircraft map** links to it: `http://<station>/tar1090/`.
+
+- **Fetched by commit:** tar1090 `5d59b1b` (3.14.1825) and its aircraft database `tar1090-db` `2ab834a`. Both are fetched as `nobody` with `git fetch --depth 1 <repo> <commit>`, and each is checked against its pinned commit. Only the page's files are kept, in `/usr/local/share/gps-time-tar1090/html` (the database as `db-2ab834a/`). If either can't be fetched or verified, the map isn't installed and the rest of the stack is.
+- **No listener of its own:** the station's web service serves it at `/tar1090/`. It has the same port, the same Host checks and the same LAN as the rest of the station, and no lighttpd or nginx. tar1090's own `tar1090.service` (history chunks) isn't installed. The page falls back to readsb's own history files, so a few minutes of trails show when it opens.
+- **Data:** `/tar1090/data/aircraft.json` and `history_<n>.json` are readsb's files from `/run/readsb` (RAM), as they are. Nothing new is written to the SD card.
+- **The station marker** comes from the web service, not readsb: `/tar1090/data/receiver.json` is readsb's file with the position set by the privacy mode. Exact mode shows the survey position, rounded mode rounds it to 0.1°, and hidden mode shows no marker and no range rings. readsb is still never given a position.
+- **The web SDR pauses tracking:** starting it stops readsb (they share the dongle), and the card shows PAUSED. Stopping it starts readsb again, and the map picks up. The web SDR's own session limit ends a forgotten pause.
+- **Map tiles:** the viewer's browser loads them from the chosen map layer's servers (OpenStreetMap by default). The station fetches nothing. The page has its own Content-Security-Policy: scripts from the station only (its two inline ones by hash), images and tile requests from https.
+- **What the map says about the station:** the aircraft it shows are the ones the station hears, which says roughly where it is, as for the feeders. On the LAN that is the owner's choice. The marker follows the privacy mode.
+- **Off:** `GTP_TAR1090=0` removes the page; `1` puts it back. Kept in `/etc/default/gps-time-sdr`.
+- **Not verified on a Pi:** the page against a real readsb (`receiver.json`'s history count, the trails), and the database loader on a phone. On the desktop demo with stand-in data, the pinned page loads under the station's CSP, decodes the gzipped database and draws the aircraft over OpenStreetMap tiles.
 
 ## Roles and the limit
 

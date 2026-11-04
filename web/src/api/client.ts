@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus, FeedersStatus,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, AircraftMapStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus, FeedersStatus,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -64,6 +64,8 @@ export interface StationApi {
   sdr(): Promise<SdrStatus>;
   /** The optional web SDR (OpenWebRX+) and its usage log; started and stopped with admin(). */
   websdr(): Promise<WebSdrStatus>;
+  /** The live aircraft map (tar1090 at /tar1090/): installed, live or paused, station marker. */
+  aircraftMap(): Promise<AircraftMapStatus>;
   /** Opt-in ADS-B feeders, and everything that shares the station's location. */
   feeders(): Promise<FeedersStatus>;
   /** A feeder on (needs its typed confirmation) or off. Admin token. */
@@ -199,6 +201,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     setModuleConfig: (name, config) => json('/api/setting', post({ module: name, config })),
     sdr: () => json('/api/sdr'),
     websdr: () => json('/api/websdr'),
+    aircraftMap: () => json('/api/aircraft-map'),
     timeQuality: () => json('/api/time-quality'),
     airband: () => json('/api/airband'),
     clips: () => json('/api/clips'),
