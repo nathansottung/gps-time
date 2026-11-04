@@ -545,10 +545,27 @@ class TestUnits(unittest.TestCase):
         self.assertIn("--cookie-key %d/cookie-key", u)
         self.assertIn("EnvironmentFile=/etc/default/gps-time-websdr", u)     # GTP_WEBSDR_AUTH, REMEMBER_DAYS
 
+    def test_signout_unit_writes_a_key_the_gate_reads(self):
+        if os.name == "nt" or not shutil.which("sh") or not shutil.which("od"):
+            self.skipTest("POSIX sh and od needed")
+        u = unit("gps-time-websdr-signout.service")
+        cmd = re.search(r"^ExecStart=/bin/sh -c '(.*)'$", u, re.M).group(1).replace("%%", "%").replace("$$", "$")
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        r = subprocess.run(["sh", "-c", cmd.replace("/etc/gps-time-websdr", str(tmp))], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        key = gate.load_key(tmp / "cookie-key")
+        self.assertIsNotNone(key)
+        self.assertEqual(len(key), 32)
+
     def test_signout_unit_only_writes_the_key(self):
         u = unit("gps-time-websdr-signout.service")
         self.assertIn("Type=oneshot", u)
-        self.assertIn("websdr_gate signout-all", u)
+        # Root: no Python, nothing from /opt/gps-time-pi (writable by the web service's user).
+        self.assertNotIn("python", u.split("[Service]")[1])
+        self.assertNotIn("/opt/gps-time-pi", u.split("[Service]")[1])
+        self.assertIn("/etc/gps-time-websdr/cookie-key", u)
+        self.assertIn("ExecStartPost=/bin/systemctl try-restart gps-time-websdr-gate.service", u)
         self.assertEqual(keys(u, "ReadWritePaths"), ["/etc/gps-time-websdr"])
         self.assertIn("PrivateNetwork=yes", u)
 

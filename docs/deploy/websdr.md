@@ -61,7 +61,7 @@ sudo /opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate passwd
 
 **Signing browsers out:**
 - **A new password** (`passwd`) signs every browser out. The key depends on the password's salted hash, so even the same password set again does it.
-- **Sign out all browsers** keeps the password and makes a new cookie key. It's on Radio & SDR → Devices → Web SDR when the login is on (admin token, asks first), or on the station: `sudo /opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate signout-all`. The button starts `gps-time-websdr-signout.service`, a root one-shot unit that can write only `/etc/gps-time-websdr`; polkit lets the web service start it and nothing else.
+- **Sign out all browsers** keeps the password and makes a new cookie key. It's on Radio & SDR → Devices → Web SDR when the login is on (admin token, asks first), or on the station: `sudo /opt/gps-time-pi/venv/bin/python -m gps_time_pi.websdr_gate signout-all`. The button starts `gps-time-websdr-signout.service`, a root one-shot unit that can write only `/etc/gps-time-websdr` and runs no Python (nothing from `/opt/gps-time-pi`, which the web service's user can write); polkit lets the web service start it and nothing else.
 - **Both apply at once:** they restart a running gate (`systemctl try-restart gps-time-websdr-gate.service`), because it reads its files at start. That also disconnects anyone listening.
 - **Migration** (`migrate.md`) carries the password, not the cookie key. A new card makes a new key, so remembered browsers sign in again there.
 
