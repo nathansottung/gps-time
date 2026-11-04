@@ -14,6 +14,13 @@ export function locationWarning(row: FeederRow): { text: string; variant: Varian
   return { text: `Shares your location with ${row.service}: the aircraft it receives show roughly where the station is. Never your exact location: the feed carries no position.`, variant: 'warn' };
 }
 
+/** PiAware only: claiming the feeder on FlightAware's site asks for a location (owner, 2026-11-04). */
+export const PIAWARE_CLAIM_NOTE = 'Claiming this feeder on flightaware.com asks for your location; anything you enter there is shared with FlightAware.';
+
+export function claimNote(row: FeederRow): string | null {
+  return row.name === 'piaware' ? PIAWARE_CLAIM_NOTE : null;
+}
+
 export function feederState(row: FeederRow): { label: string; variant: Variant } {
   const a = row.active.value;
   if (!row.on) return { label: 'OFF', variant: 'muted' };

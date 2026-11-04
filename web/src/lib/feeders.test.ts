@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { confirmed, feederState, locationWarning, outcome, sharingSummary } from './feeders';
+import { claimNote, confirmed, feederState, locationWarning, outcome, sharingSummary } from './feeders';
 import { demoApi } from '../api/demo';
 import type { FeederRow } from '../api/types';
 
@@ -31,6 +31,11 @@ describe('feeders', () => {
     expect(w.text).toContain('exact location only with MLAT, which is off');
     const hidden = row({ name: 'piaware', service: 'FlightAware', mlat: { on: false, allowed: false, confirm: 'share my exact location', refused: 'MLAT is refused in hidden privacy mode' } });
     expect(locationWarning(hidden).variant).toBe('warn');
+  });
+
+  it('notes on the PiAware card only that claiming it on flightaware.com asks for a location', () => {
+    expect(claimNote(row({ name: 'piaware', service: 'FlightAware' }))).toBe('Claiming this feeder on flightaware.com asks for your location; anything you enter there is shared with FlightAware.');
+    expect(claimNote(row())).toBeNull();
   });
 
   it('states follow the switch and the unit', () => {

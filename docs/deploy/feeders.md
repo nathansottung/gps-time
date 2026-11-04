@@ -55,6 +55,8 @@ From your PC, the deploy scripts pass these flags too (`../development/raspberry
 
 FlightAware links a feeder to an account by its feeder ID, which PiAware gets at its first connection. To claim the station on FlightAware's site, or to move an existing feeder ID onto it, follow FlightAware's instructions (`piaware-config feeder-id <id>`, then restart from Administration).
 
+**Claiming this feeder on flightaware.com asks for your location; anything you enter there is shared with FlightAware.** The PiAware card on Administration says the same. With MLAT off the station sends FlightAware no position, but what you type into FlightAware's claim page goes to FlightAware.
+
 ## Remove
 
 ```sh
