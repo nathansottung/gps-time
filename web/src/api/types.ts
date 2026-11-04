@@ -980,10 +980,21 @@ export interface SdrFeed {
   fresh: boolean;
 }
 
+/** The owner's dongle limit (at most 3 RTL-SDRs by serial on a Pi 4; scripts/dongle-roles.sh). */
+export interface SdrLimit {
+  model: Measured<string>;
+  max: number | null;           // null: no limit for this board (or its model can't be read)
+  assigned: Measured<number>;   // distinct serials given a role (the web SDR's included)
+  plugged: Measured<number>;    // RTL-SDRs on USB; null value when sysfs can't be read
+  over: boolean;
+  rule: string;
+}
+
 export interface SdrStatus {
   installed: boolean | null;    // null: systemctl couldn't be read (UNKNOWN)
   units: SdrUnit[] | null;
   dongles: SdrDongle[] | null;
+  limit?: SdrLimit;             // absent on a station before v1.6.0-rc.3
   feeds: SdrFeed[];
   note: string;
 }

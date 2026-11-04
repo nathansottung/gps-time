@@ -14,6 +14,17 @@ export function sdrSummary(st: SdrStatus): { text: string; variant: Variant } {
   return { text: `${active} of ${units.length} receiver units running`, variant: active === units.length ? 'good' : 'warn' };
 }
 
+/** The dongle limit line: how many roles and dongles against this board's limit. */
+export function limitLine(st: SdrStatus): { text: string; variant: Variant } | null {
+  const l = st.limit;
+  if (!l) return null;
+  const a = l.assigned.value, p = l.plugged.value;
+  const counts = `${a ?? 'UNKNOWN'} dongle${a === 1 ? '' : 's'} with a role, ${p ?? 'UNKNOWN'} on USB`;
+  if (l.max === null) return { text: `${counts}. ${l.rule[0].toUpperCase()}${l.rule.slice(1)}.`, variant: 'muted' };
+  if (l.over) return { text: `${counts}: more than ${l.max}, the limit on a ${l.model.value}. ${l.rule}.`, variant: 'warn' };
+  return { text: `${counts}, of at most ${l.max} on this ${l.model.value}.`, variant: 'good' };
+}
+
 export function unitState(u: SdrUnit): { label: string; variant: Variant } {
   const a = u.active.value;
   if (a === null) return { label: 'UNKNOWN', variant: 'muted' };

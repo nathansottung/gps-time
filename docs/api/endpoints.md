@@ -546,6 +546,7 @@ The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The we
   - `cpu_avg_pct` is CPU time divided by the time since the unit started, in % of one core (calculated).
   - `null` (UNKNOWN) when not running or not readable. `units` is `null` when `systemctl` can't be run, and then `installed` is `null` too.
 - `dongles`: RTL2832U devices (USB IDs `0bda:2838`, `0bda:2832`) from `/sys/bus/usb/devices`. `role` is the role whose serial matches `/etc/default/gps-time-sdr`. `dvb_driver` is true when the DVB-T driver holds the device. `null` when sysfs can't be read.
+- `limit` (from v1.6.0-rc.3): the owner's dongle limit. `model` is the board (device tree, `observed`); `max` is 3 on the Pi 4 family, else `null`. `assigned` counts distinct serials with a role, the web SDR's included (`calculated`); `plugged` counts RTL-SDRs on USB (`observed`, `null` without sysfs). `over` is true when either exceeds `max`. `rule` says which applies. A role's name shows a shared dongle: `1090 MHz + web SDR`.
 - `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s.
 
 ## GET /api/websdr

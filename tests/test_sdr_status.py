@@ -76,7 +76,11 @@ class Tree(unittest.TestCase):
         self.feed1090.parent.mkdir()
         self.feed1090.write_text(json.dumps({"now": 1, "aircraft": [
             {"hex": "a1", "lat": 38.9217, "lon": -77.0669}, {"hex": "a2"}]}))
+        self.web_env = self.tmp / "gps-time-websdr"
+        self.model = self.tmp / "model"
+        self.model.write_bytes(b"Raspberry Pi 4 Model B Rev 1.5\x00")
         for name, value in (("CGROUP", self.cg), ("USB", self.usb), ("ENVFILE", self.env),
+                            ("WEB_ENVFILE", self.web_env), ("MODEL", self.model),
                             ("FEEDS", {"1090": self.feed1090, "978": self.feed978})):
             p = mock.patch.object(sdr, name, value)
             p.start()
@@ -144,6 +148,31 @@ class TestDongles(Tree):
         self.assertFalse(rows[0]["dvb_driver"]["value"])
         if self.links:
             self.assertTrue(rows[1]["dvb_driver"]["value"])
+
+    def test_the_web_sdr_role_shares_or_adds_a_dongle(self):
+        self.web_env.write_text("GTP_WEBSDR_SERIAL=00001090\nGTP_WEBSDR_PORT=8073\n")
+        self.assertEqual(sdr.roles()["00001090"], "1090 MHz + web SDR")
+        self.web_env.write_text("GTP_WEBSDR_SERIAL=0000web1\n")
+        self.assertEqual(sdr.roles()["0000web1"], "web SDR")
+
+    def test_the_limit_on_a_pi_4(self):
+        lim = sdr.limit(sdr.dongles())
+        self.assertEqual((lim["model"]["value"], lim["max"]), ("Raspberry Pi 4 Model B Rev 1.5", 3))
+        self.assertEqual((lim["assigned"]["value"], lim["plugged"]["value"], lim["over"]), (2, 2, False))
+        self.env.write_text("GTP_SDR_PPS_SERIAL=0000pps\nGTP_SDR_1090_SERIAL=00001090\nGTP_SDR_978_SERIAL=00000978\n")
+        self.web_env.write_text("GTP_WEBSDR_SERIAL=0000web1\n")
+        lim = sdr.limit(sdr.dongles())
+        self.assertEqual((lim["assigned"]["value"], lim["over"]), (4, True))
+        self.assertIn("owner", lim["rule"])
+
+    def test_no_limit_elsewhere_and_unknown_model(self):
+        self.model.write_text("Raspberry Pi 5 Model B Rev 1.0\n")
+        self.assertIsNone(sdr.limit([])["max"])
+        self.model.unlink()
+        lim = sdr.limit(None)
+        self.assertIsNone(lim["model"]["value"])
+        self.assertIsNone(lim["plugged"]["value"])
+        self.assertIn("can't be read", lim["rule"])
 
     def test_no_sysfs_is_unknown(self):
         with mock.patch.object(sdr, "USB", self.tmp / "nope"):
