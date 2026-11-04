@@ -2265,3 +2265,13 @@ The owner's rc.6 list, item 1: "Web SDR open to anyone on the LAN: no login, no 
 - **No login** stays the default (rc.5). The opt-in `GTP_WEBSDR_AUTH=1` is kept for later.
 - **Still LAN-only:** the gate's private ranges, OpenWebRX+ on the loopback. polkit is unchanged.
 - **Docs:** `deploy/websdr.md`, `api/endpoints.md`, ADR-0009 amended (anyone on the LAN can now pause ADS-B tracking for up to a session's limit).
+
+## 2026-11-04 — Security review; two High location leaks fixed (#175)
+
+The owner's rc.6 list, item 4: "A fresh security review of everything else; fix High/Critical." The record is `review/security-review-2026-11-04.md`.
+
+- **No Critical.** No unauthenticated state change was found.
+- **H1 fixed:** a clip's `.sigmf-meta` download now goes out at the current privacy mode (`clips.redacted_meta`). An exact position recorded earlier is rounded or nulled, and the signature that covered it is removed with a note. The file on the drive is unchanged.
+- **H2 fixed:** the airband bookmarks follow the mode after a refresh (`airband.privacy_changed`, called on `POST /api/setting {"location_display"}`). Hidden mode deletes the NASR set, and OpenWebRX+ keeps the built-ins only. Rounded mode drops the distances computed from the exact site. `GET /api/airband` applies the same rule.
+- **M1** was partly fixed in #171 (the root sign-out unit runs no Python). The rest of M1, M2 and L1–L6 are listed as open, with proposed fixes.
+- **Tests:** `tests/test_clips.py`, `tests/test_airband.py`.

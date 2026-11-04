@@ -47,3 +47,7 @@ Each clip says how its samples are timed:
 Tested with a fake rtl_tcp that streams synthetic samples (a 1 kHz AM tone comes back at 1 kHz), on temp folders. Not run on a Pi with a real dongle. In particular:
 - the demodulators' audio quality: simple filters, and no FM de-emphasis;
 - the USB-buffer figure, which is modeled from the buffer size and wasn't measured.
+
+## Privacy after the mode changes
+
+A clip carries the position at the privacy mode in force when it was recorded. A download goes out at the current mode: after a switch to rounded or hidden, `GET /api/clips/file?ext=sigmf-meta` sends the position rounded (0.1°, 10 m) or nulled. The station's signature covered the original, so it is removed, and a `gpstime:position_note` says so. The file on the drive is unchanged; it is the owner's. Security review 2026-11-04, H1.

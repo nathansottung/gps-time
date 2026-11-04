@@ -166,6 +166,7 @@ Radio & SDR → Devices → **Airband bookmarks** lists the web SDR's airband ch
   - **The station's own position is never written** into either file.
   - **If it fails** (no network, a changed file layout), the card says why, and the previous bookmarks stay.
 - **Hidden privacy mode:** no refresh, because a list of nearby airports would show where the station is. The built-ins still work.
+- **A stricter mode withdraws what a refresh learned** (security review 2026-11-04, H2). Switching to hidden deletes the NASR set, and OpenWebRX+ keeps the built-ins only. Switching from exact to rounded drops the distances, which were computed from the exact site. Switching back needs a new refresh.
 - **Not verified:** the FAA's file server answered this development machine's checks with 503, so the FRQ file's column names (`FREQ`, `FREQ_USE`, `LAT_DECIMAL`, `LONG_DECIMAL`, `SERVICED_FACILITY`) are the expected ones, not yet confirmed. The refresh reads columns by header and refuses a file without them, so a different layout shows as a failed refresh, never as wrong bookmarks.
 
 ## The usage log

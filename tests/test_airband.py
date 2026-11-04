@@ -92,6 +92,32 @@ class TestRefresh(unittest.TestCase):
         self.assertNotIn("38.9217", saved)                                # the site itself is never written
         self.assertNotIn("-77.0669", saved)
 
+    def test_a_stricter_mode_withdraws_what_the_refresh_learned(self):
+        """Security review H2: bookmarks fetched in exact mode carry distances from the exact site,
+        and the nearby facilities place the station; a stricter mode must withdraw them."""
+        exact = {"site": USNO, "location_display": "exact"}
+        ab.refresh(exact, today=date(2026, 11, 4), fetch=self.fetch)
+        self.assertTrue(all(b["distance_km"] is not None for b in ab.status(exact, today=date(2026, 11, 4))["nasr"]["bookmarks"]))
+        # Rounded: no distances, in the answer and on disk once the mode is set.
+        rounded = {**exact, "location_display": "rounded"}
+        st = ab.status(rounded, today=date(2026, 11, 4))
+        self.assertTrue(st["nasr"]["bookmarks"])
+        self.assertTrue(all(b["distance_km"] is None for b in st["nasr"]["bookmarks"]))
+        self.assertTrue(ab.privacy_changed("rounded"))
+        saved = json.loads((self.tmp / "airband-bookmarks.json").read_text())
+        self.assertEqual(saved["site_precision"], "rounded")
+        self.assertTrue(all(b["distance_km"] is None for b in saved["bookmarks"]))
+        # Hidden: no NASR set at all; OpenWebRX+ keeps the built-ins only.
+        hidden = {**exact, "location_display": "hidden"}
+        ab.refresh(exact, today=date(2026, 11, 4), fetch=self.fetch)
+        self.assertIsNone(ab.status(hidden, today=date(2026, 11, 4))["nasr"])
+        ab.privacy_changed("hidden")
+        self.assertFalse((self.tmp / "airband-bookmarks.json").exists())
+        owrx = json.loads((self.tmp / "airband-openwebrx.json").read_text())
+        self.assertEqual(len(owrx), len(ab.BUILT_IN))
+        self.assertIsNone(ab.status(exact, today=date(2026, 11, 4))["nasr"])        # back to exact: refresh again
+        self.assertFalse(ab.privacy_changed("exact"))
+
     def test_rounded_mode_filters_from_the_rounded_site(self):
         doc = ab.refresh({"site": USNO, "location_display": "rounded"}, today=date(2026, 11, 4), fetch=self.fetch)
         self.assertEqual(doc["site_precision"], "rounded")

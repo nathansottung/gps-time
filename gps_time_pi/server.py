@@ -874,6 +874,12 @@ class Handler(BaseHTTPRequestHandler):
                     config.save(cfg)
                     # Hidden: nothing may go on sharing the exact location (PiAware MLAT goes off).
                     mlat_off = feeders.privacy_hidden() if mode == "hidden" and not DEMO_MODE else False
+                    if not DEMO_MODE:
+                        # Airband bookmarks: their distances and nearby facilities place the station.
+                        try:
+                            airband.privacy_changed(mode)
+                        except OSError as e:
+                            security.log.warning("airband bookmarks not reduced to %s mode: %s", mode, e)
                     _MEMO.pop(("feeders",), None)
                     self._json({"ok": True, "location_display": mode, **({"mlat_turned_off": True} if mlat_off else {})})
                 elif "timezone" in body:
