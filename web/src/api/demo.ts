@@ -18,7 +18,7 @@ import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, FeedersStatus, FeederRow, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, ClipsStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus, FeedersStatus, FeederRow,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -155,6 +155,10 @@ export function demoApi(): StationApi {
     },
     sdr: () => delay(demoSdr()),
     websdr: () => delay(demoWebSdr()),
+    clips: () => delay(demoClips()),
+    recordClip: () => delay({ ok: true as const, simulated: true as const, detail: 'demo adapter: nothing was recorded' }),
+    deleteClip: () => delay({ ok: true as const, simulated: true as const, detail: 'demo adapter: nothing was deleted' }),
+    clipUrl: () => '#',
     feeders: () => delay(demoFeeders(locationMode)),
     setFeeder: (name, enabled, confirm) => {
       const row = demoFeeders(locationMode).feeders.find(r => r.name === name);
@@ -265,6 +269,21 @@ function demoSdr(): SdrStatus {
     feeds: [{ band: '1090', path: '/run/readsb/aircraft.json', present: true, age_s: m(0.6, 's'), aircraft: m(23, 'count'), fresh: true },
             { band: '978', path: '/run/skyaware978/aircraft.json', present: true, age_s: m(1.4, 's'), aircraft: m(3, 'count'), fresh: true }],
     note: "Demo: synthetic values, not a station's.",
+  };
+}
+
+/** /api/clips in the station's shapes (gps_time_pi/demo.py clips_status): synthetic, nothing to download. */
+function demoClips(): ClipsStatus {
+  const row = (name: string, kind: string, f: number, start: string, s: number, b: number, u: number, files: ('sigmf-meta' | 'sigmf-data' | 'wav')[]) => ({
+    name, kind, freq_hz: f, start_utc: start, seconds: s, bytes: b, time_source: 'pps', time_offset_bound_s: 1.2e-5,
+    sample_time_uncertainty_s: u, signed: true, files });
+  return {
+    storage: { dir: '/run/gps-time-clips', kind: 'ram', max_mb: 64, used: m(12_160_000, 'bytes', 'observed', 'demo'), problem: null },
+    pending: null, last: null,
+    clips: [row('demo_am_20261104T180000.000000000Z', 'am', 119_100_000, '2026-11-04T18:00:00.000000000Z', 20, 1_920_000, 0.546, ['sigmf-meta', 'sigmf-data', 'wav']),
+            row('demo_iq_20261104T175500.000000000Z', 'iq', 1_090_000_000, '2026-11-04T17:55:00.000000000Z', 5, 10_240_000, 0.128, ['sigmf-meta', 'sigmf-data'])],
+    kinds: ['iq', 'am', 'nfm', 'wfm'], iq_rates: [1_024_000, 2_048_000, 2_400_000], max_seconds: 60, freq_range_hz: [24_000_000, 1_766_000_000],
+    note: 'Demo: synthetic, nothing to download.',
   };
 }
 

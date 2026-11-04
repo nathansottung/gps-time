@@ -7,6 +7,7 @@
 //   restart chrony.service, gpsd.service, gps-time-pi.service
 //   start   gps-time-pi-logflush.service (root oneshot: copy the RAM log to SD)
 //   start, stop gps-time-websdr.service (the optional web SDR, GTP_WEBSDR=1)
+//   start   gps-time-clip.service (records one clip the owner asked for)
 //   start, stop, try-restart gps-time-feed@<name>.service and piaware.service (the opt-in
 //     feeders, GTP_FEEDERS=1; turned on in Administration with a typed confirmation)
 //   start   gps-time-airband-fetch.service (the airband bookmarks' Refresh now, GTP_WEBSDR=1)
@@ -22,7 +23,8 @@ polkit.addRule(function (action, subject) {
         (unit === "chrony.service" || unit === "gpsd.service" || unit === "gps-time-pi.service")) {
       return polkit.Result.YES;
     }
-    if (verb === "start" && (unit === "gps-time-pi-logflush.service" || unit === "gps-time-airband-fetch.service")) {
+    if (verb === "start" && (unit === "gps-time-pi-logflush.service" || unit === "gps-time-clip.service" ||
+                             unit === "gps-time-airband-fetch.service")) {
       return polkit.Result.YES;
     }
     if ((verb === "start" || verb === "stop") && unit === "gps-time-websdr.service") {

@@ -181,6 +181,12 @@ echo "== SDR node (optional: a second Pi carries the SDR load) =="
 bash scripts/node.sh \
   || echo "Warning: the SDR node settings were not changed (see the message above)."
 
+echo "== Clip recording (audio and IQ from rtl_tcp; RAM or a drive, never the SD card) =="
+# Always installed (the recorder unit is never enabled; it runs when a clip is asked for).
+#   sudo GTP_CLIPS_DIR=/mnt/usb/clips GTP_CLIPS_MAX_MB=1024 bash install.sh   (docs/deploy/clips.md)
+bash scripts/clips.sh \
+  || echo "Warning: the clip settings were not changed (see the message above)."
+
 echo "== polkit rule: the service may restart chrony/gpsd/itself, flush logs, reboot =="
 # Debian's polkitd package owns this directory and sets its owner and mode.
 # Create it only if it is missing; never change an existing one.
