@@ -6,7 +6,7 @@ GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into a Strat
 
 *The Overview page in the desktop demo (synthetic data), taken in screenshot mode with location privacy set to rounded.*
 
-**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Latest pre-release: **v1.6.0-rc.4** (2026-11-04: rc.3 with holdover validation, the feeders' location warnings and a priced bench kit; not yet run on a Pi; notes: [`docs/releases/v1.6.0-rc.4.md`](docs/releases/v1.6.0-rc.4.md)). v1.5.0 was skipped: v1.5.0-rc.1's soak run had outages on this development unit, and v1.6.0 carries all of it. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
+**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Latest pre-release: **v1.6.0-rc.5** (2026-11-04: rc.4 with the web SDR's optional login, its decoders and band bookmarks, and HF limits; not yet run on a Pi; notes: [`docs/releases/v1.6.0-rc.5.md`](docs/releases/v1.6.0-rc.5.md)). v1.5.0 was skipped: v1.5.0-rc.1's soak run had outages on this development unit, and v1.6.0 carries all of it. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Quick start
 

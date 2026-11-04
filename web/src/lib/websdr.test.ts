@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareRows, sessionLine, websdrOutcome, websdrState, websdrUrl } from './websdr';
+import { compareRows, hfLine, loginLine, sessionLine, websdrOutcome, websdrState, websdrUrl } from './websdr';
 import type { Measured, WebSdrStatus, WebSdrSummary } from '../api/types';
 
 const m = (value: number | null, provenance: Measured['provenance'] = 'calculated'): Measured<number> => ({ value, unit: null, provenance });
@@ -14,6 +14,26 @@ const status = (installed: boolean | null, active: string | null): WebSdrStatus 
 });
 
 describe('websdr', () => {
+  it('says whether the login is on, and UNKNOWN (null) when the station does not say', () => {
+    const st = status(true, 'inactive');
+    expect(loginLine(st)).toBeNull();
+    expect(loginLine({ ...st, auth: { enabled: null, remember_days: null } })).toBeNull();
+    expect(loginLine({ ...st, auth: { enabled: false, remember_days: null } })).toContain('anyone on the LAN');
+    expect(loginLine({ ...st, auth: { enabled: true, remember_days: 30 } })).toContain('30 days');
+  });
+
+  it('names the HF profiles the installer set', () => {
+    expect(hfLine(undefined)).toBeNull();
+    expect(hfLine('off')).toContain('24 MHz');
+    expect(hfLine('direct')).toContain('Q branch');
+    expect(hfLine('native')).toContain('HF path');
+  });
+
+  it('reports sign-out-all from the station answer', () => {
+    expect(websdrOutcome('websdr_signout_all', { ok: true, action: 'websdr_signout_all', detail: '' }).text).toContain('sign in again');
+    expect(websdrOutcome('websdr_signout_all', { ok: true, action: 'websdr_signout_all', simulated: true, detail: '' }).text).toContain('demo');
+  });
+
   it('builds the LAN address from the host name and the gate port', () => {
     expect(websdrUrl('192.0.2.10', 8073)).toBe('http://192.0.2.10:8073/');
     expect(websdrUrl('fe80::1', 8073)).toBe('http://[fe80::1]:8073/');

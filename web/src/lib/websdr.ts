@@ -1,5 +1,6 @@
 // Radio → Web SDR (GET /api/websdr; gps_time_pi/websdr.py). OpenWebRX+ behind the station's
-// password gate, LAN only. Started and stopped with the admin actions websdr_start / websdr_stop.
+// LAN gate, with an optional login. Started and stopped with the admin actions websdr_start /
+// websdr_stop; websdr_signout_all signs out every remembered browser.
 // Values the station couldn't read stay null (UNKNOWN).
 import type { AdminAction, AdminResult, Measured, WebSdrStatus, WebSdrSummary } from '../api/types';
 import { fmtDuration } from './format';
@@ -56,9 +57,29 @@ export function sessionLine(start: string, durationS: number | null, minutes: nu
   return `${start.replace('T', ' ').replace('+00:00', ' UTC')} · ${d}`;
 }
 
-/** The line shown after Start or Stop: the station's own answer, never a guess. */
+/** The login row: the installer's setting (configured, not observed). */
+export function loginLine(st: WebSdrStatus): string | null {
+  const a = st.auth;
+  if (!a || a.enabled === null) return null;
+  if (!a.enabled) return 'off: anyone on the LAN can listen';
+  return a.remember_days === null ? 'on' : `on; "Remember this browser" lasts ${a.remember_days} days`;
+}
+
+/** The HF row: which band profiles the installer set (GTP_WEBSDR_HF). */
+export function hfLine(hf: WebSdrStatus['hf']): string | null {
+  if (hf === undefined || hf === null) return null;
+  if (hf === 'direct') return 'direct sampling (Q branch), below about 25 MHz';
+  if (hf === 'native') return "the dongle's own HF path";
+  return 'off: 24 MHz and up only';
+}
+
+const LABEL: Partial<Record<AdminAction, string>> = {
+  websdr_start: 'Start web SDR', websdr_stop: 'Stop web SDR', websdr_signout_all: 'Sign out all browsers',
+};
+
+/** The line shown after Start, Stop or Sign out all: the station's own answer, never a guess. */
 export function websdrOutcome(a: AdminAction, r: AdminResult | null, err?: { message: string; status: number | null }): { variant: Variant; text: string } {
-  const label = a === 'websdr_start' ? 'Start web SDR' : 'Stop web SDR';
+  const label = LABEL[a] ?? a;
   if (err) {
     if (err.status === null) return { variant: 'warn', text: `${label}: no answer from the station (${err.message}). It may still have run.` };
     return { variant: 'error', text: `${label}: refused. ${err.message}` };
@@ -66,6 +87,7 @@ export function websdrOutcome(a: AdminAction, r: AdminResult | null, err?: { mes
   if (!r) return { variant: 'muted', text: `${label}: no result.` };
   if (r.simulated) return { variant: 'muted', text: `${label}: demo, not executed.` };
   if (!r.ok) return { variant: 'error', text: `${label}: failed${r.detail ? ` (${r.detail})` : ''}.` };
+  if (a === 'websdr_signout_all') return { variant: 'good', text: `${label}: done. Every browser has to sign in again.` };
   return { variant: 'good', text: a === 'websdr_start'
     ? `${label}: done. readsb is stopped until the web SDR stops.`
     : `${label}: done. readsb starts again.` };

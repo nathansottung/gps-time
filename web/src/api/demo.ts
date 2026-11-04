@@ -350,6 +350,7 @@ function demoWebSdr(): WebSdrStatus {
   const now = Date.now();
   return {
     node_host: null, installed: true, active: m('active', null, 'observed', 'demo'), port: 8073, serial: '00001090', max_hours: 4,
+    auth: { enabled: true, remember_days: 30 }, hf: 'off',
     usage: {
       session: { start_utc: iso(now - 15 * 60_000), partial: false, truncated: false, bins: [],
                  before, during: sum(38.0, 58.8, 127.7, 56.8, 59.3, 566.0, 612.0, 2100.0, 15) },

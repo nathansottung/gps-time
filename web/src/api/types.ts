@@ -1075,6 +1075,9 @@ export interface WebSdrStatus {
   installed: boolean | null;      // null: systemctl couldn't be read (UNKNOWN)
   active: Measured<string>;
   port: number | null; serial: string | null; max_hours: number | null;
+  /** The installer's settings (configured): the gate's login (GTP_WEBSDR_AUTH) and HF profiles (GTP_WEBSDR_HF). */
+  auth?: { enabled: boolean | null; remember_days: number | null };
+  hf?: 'off' | 'direct' | 'native' | null;
   usage: {
     session: WebSdrSession | null; baseline: WebSdrSummary | null; recent: WebSdrPastSession[];
     file: { name: string; error: string | null }; note: string;
@@ -1220,7 +1223,7 @@ export interface Capability {
 // ─── GET /api/admin ──────────────────────────────────────────────────────────
 
 export type AdminAction = 'flush_logs' | 'restart_gpsd' | 'restart_chrony' | 'restart_web' | 'reboot'
-  | 'websdr_start' | 'websdr_stop' | 'refresh_airband';
+  | 'websdr_start' | 'websdr_stop' | 'websdr_signout_all' | 'refresh_airband';
 export interface AdminResult { ok: boolean; action: string; detail: string; simulated?: true }
 
 // ─── GET /api/auth ───────────────────────────────────────────────────────────

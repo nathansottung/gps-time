@@ -2231,3 +2231,27 @@ The owner's rc.4 list (2026-11-04, "go. No deploys."), one PR each, all merged a
 - #169: the bench kit with checked links and dated prices.
 
 `releases/v1.6.0-rc.4.md` lists them, what the upgrade changes without any flag (`holdover-scorecard.json`, written once per outage), the deploy command with the web SDR flags, what isn't verified, and rollback. The version lines in README, START-HERE, ROADMAP and INDEX are updated. The tag `v1.6.0-rc.4` goes on this PR's merge commit, with a GitHub pre-release.
+
+## 2026-11-04 — Web SDR: optional login, decoders and band bookmarks, HF limits; v1.6.0-rc.5
+
+The owner's rc.5 list ("go. One PR, then tag rc.5"), in one PR:
+
+1. **The login is optional** (`gps_time_pi/websdr_gate.py`). Off by default; `GTP_WEBSDR_AUTH=1` turns it on.
+   - With it off, the gate passes every LAN connection through; it still drops anything outside the private ranges.
+   - With it on, the gate serves a sign-in page (`/gps-time-login`). "Remember this browser" sets a signed cookie, `HttpOnly; SameSite=Strict`, for `GTP_WEBSDR_REMEMBER_DAYS` (default 30, 1–365); unticked, it lasts until the browser closes (at most 12 h). Basic credentials still work.
+   - **Revocation:** the cookie's HMAC key comes from `/etc/gps-time-websdr/cookie-key` and the stored password hash. A new password (`passwd`) or **Sign out all browsers** (`signout-all`; the admin action `websdr_signout_all` starts the root one-shot `gps-time-websdr-signout.service`; polkit allows start only) revokes every cookie, and both restart a running gate.
+   - **Also:** the gate strips its own cookie before OpenWebRX+ and keeps OpenWebRX+'s; refuses a sign-in posted from another origin; never redirects off the station; backs off on wrong passwords as before.
+   - Start and Stop need the admin token, as before. The Web SDR card shows the login and HF rows and the sign-out button.
+   - An existing install has no `GTP_WEBSDR_AUTH` line, so its login is off after the upgrade (ADR-0009 amended).
+2. **Decoders and band bookmarks.**
+   - **Packages:** the installer adds `direwolf`, `wsjtx`, `aprs-symbols` and `csdr-skimmer` (APRS, packet, FT8, FT4, WSPR, the CW and RTTY skimmers). SSTV, fax, CW and RTTY are built into OpenWebRX+. Checked against OpenWebRX+'s `owrx/feature.py` and `owrx/modes.py`, and its trixie package list (1.2.128 recommends these).
+   - **Profiles:** the station's band profiles (`gtp-*`: 10 m, 6 m, 2 m digital) are set on every RTL-SDR in `settings.json`; the owner's own profiles are kept.
+   - **Bookmarks:** 68, each selecting its decoder: FT8, FT4 and WSPR dial frequencies; APRS and ISS; SSTV; W1AW CW and RTTY; USCG HF fax. Fixed published frequencies, no location.
+3. **HF.** The NESDR SMArt v5 can receive HF by Q-branch direct sampling below about 25 MHz (Nooelec's product page and support; checked 2026-11-04).
+   - **The setting:** `GTP_WEBSDR_HF=direct` adds HF profiles with `direct_sampling: 2`; `native` adds them with `0`, for a dongle with its own HF path (RTL-SDR Blog V4); `off`, the default, removes them.
+   - **Documented limits** (`deploy/websdr.md` → HF): no LNA or filter, aliasing about 14.4 MHz without a low-pass filter, FM breakthrough, an HF antenna instead of the shared 1090 MHz one, static and lightning, one band at a time.
+   - **Not run on air.**
+
+Tests: `tests/test_websdr.py` gains the login (off, cookie attributes and days, session cookie, forgery, expiry, password change, sign-out-all, no key, safe redirects, page escaping, cookie stripping, an end-to-end sign-in through the real gate), the decoder bookmarks against the profiles, and the installer's new settings, refusals and HF profiles. `tests/test_admin_auth.py` covers the new action and polkit unit. Vitest covers the card's login, HF and sign-out lines.
+
+Not changed: chrony, gpsd, PPS. `releases/v1.6.0-rc.5.md`; the tag `v1.6.0-rc.5` goes on this PR's merge commit.

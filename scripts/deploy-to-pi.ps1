@@ -32,8 +32,11 @@ $InstallFlags = @(
   'GTP_SDR_NODE',
   'GTP_SDR_PPS_SERIAL',
   'GTP_WEBSDR',
+  'GTP_WEBSDR_AUTH',
+  'GTP_WEBSDR_HF',
   'GTP_WEBSDR_MAX_HOURS',
   'GTP_WEBSDR_PORT',
+  'GTP_WEBSDR_REMEMBER_DAYS',
   'GTP_WEBSDR_SERIAL'
 )
 $FlagValue = '^[A-Za-z0-9 ._:,/-]{1,200}$'

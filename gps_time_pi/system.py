@@ -153,6 +153,9 @@ ACTIONS = {
     # brings readsb back. Fails harmlessly when the unit isn't installed.
     "websdr_start": ["systemctl", "start", "gps-time-websdr.service"],
     "websdr_stop": ["systemctl", "stop", "gps-time-websdr.service"],
+    # A new cookie key for the web SDR's login (root oneshot): every remembered browser is
+    # signed out, and a running gate restarts.
+    "websdr_signout_all": ["systemctl", "start", "gps-time-websdr-signout.service"],
     # Airband bookmarks: one fetch of the FAA's current NASR frequencies, in the background
     # (--no-block: the page polls /api/airband for the result). Installed with GTP_WEBSDR=1.
     "refresh_airband": ["systemctl", "start", "--no-block", "gps-time-airband-fetch.service"],
