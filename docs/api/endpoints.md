@@ -619,7 +619,7 @@ The opt-in ADS-B feeders (`docs/deploy/feeders.md`) and the location-sharing lis
   - `confirm`, what must be typed to turn it on;
   - `shares`, in plain words.
   - PiAware's row also has `mlat`: `{on, allowed, confirm, refused}`. `allowed` is false in hidden mode.
-- `sharing.rows`: every item that shares or could share the location, as `{what, to, location, active, detail}`, where `location` is `exact`, `rounded to 0.1°`, `none (aircraft only)` or `none (sectors only)`. `sharing.exact_location_shared` is true while anything active shares the exact location.
+- `sharing.rows`: every item that shares or could share the location, as `{what, to, location, active, detail}`, where `location` is `exact`, `rounded to 0.1°`, `rough (from the aircraft)` or `none (sectors only)`. `sharing.exact_location_shared` is true while anything active shares the exact location.
 
 ### POST /api/setting {"feeder": …}
 

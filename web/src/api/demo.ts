@@ -313,7 +313,7 @@ function demoFeeders(mode: LocationMode): FeedersStatus {
   const rows = [
     { what: 'FlightAware MLAT (PiAware)', to: 'FlightAware', location: 'exact', active: pa.on && feederMlat,
       detail: !feederMlat ? 'off' : pa.on ? 'on, PiAware running' : 'on, but PiAware is off' },
-    ...feeders.map(f => ({ what: `Feeder: ${f.service}`, to: f.target ?? f.service, location: 'none (aircraft only)', active: f.on, detail: f.on ? 'on' : 'off' })),
+    ...feeders.map(f => ({ what: `Feeder: ${f.service}`, to: f.target ?? f.service, location: 'rough (from the aircraft)', active: f.on, detail: f.on ? 'on' : 'off' })),
     { what: 'Capability record', to: 'not sent anywhere yet', location: mode === 'rounded' ? 'rounded to 0.1°' : 'none',
       active: mode === 'rounded', detail: `privacy mode ${mode}` },
     { what: 'Sky-quality summary', to: 'the capability record and the diagnostics export', location: 'none (sectors only)', active: false, detail: 'off' },

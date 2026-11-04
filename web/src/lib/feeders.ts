@@ -5,10 +5,13 @@ import type { FeederRow, FeedersStatus, SettingResult } from '../api/types';
 
 export type Variant = 'good' | 'warn' | 'error' | 'muted';
 
-/** The location warning on a card, in plain words: exact location only when MLAT is on. */
+/** The location warning on a card, in plain words: exact location only when MLAT is on. Every card carries
+ *  the warning in amber, MLAT on or off, Beast feeders too (owner, 2026-11-04): the aircraft a feed carries
+ *  show roughly where the station is. */
 export function locationWarning(row: FeederRow): { text: string; variant: Variant } {
   if (row.mlat?.on) return { text: `Shares your exact location with ${row.service}.`, variant: 'warn' };
-  return { text: `Doesn't share your location with ${row.service}; the aircraft it receives show roughly where the station is.`, variant: 'muted' };
+  if (row.mlat) return { text: `Shares your location with ${row.service}: the aircraft it receives show roughly where the station is. Your exact location only with MLAT, which is off.`, variant: 'warn' };
+  return { text: `Shares your location with ${row.service}: the aircraft it receives show roughly where the station is. Never your exact location: the feed carries no position.`, variant: 'warn' };
 }
 
 export function feederState(row: FeederRow): { label: string; variant: Variant } {

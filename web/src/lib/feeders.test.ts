@@ -10,9 +10,27 @@ const row = (over: Partial<FeederRow> = {}): FeederRow => ({
 
 describe('feeders', () => {
   it('says exact location only when MLAT is on', () => {
-    expect(locationWarning(row()).text).toContain("Doesn't share your location with adsb.fi");
+    expect(locationWarning(row()).text).not.toContain('exact location with');
     const pa = row({ name: 'piaware', service: 'FlightAware', mlat: { on: true, allowed: true, confirm: 'share my exact location', refused: null } });
     expect(locationWarning(pa)).toEqual({ text: 'Shares your exact location with FlightAware.', variant: 'warn' });
+  });
+
+  it('warns on every Beast feeder card, on or off', () => {
+    for (const r of [row(), row({ on: true }), row({ name: 'custom', service: 'my aggregator' })]) {
+      const w = locationWarning(r);
+      expect(w.variant).toBe('warn');
+      expect(w.text).toBe(`Shares your location with ${r.service}: the aircraft it receives show roughly where the station is. Never your exact location: the feed carries no position.`);
+    }
+  });
+
+  it('warns on the PiAware card with MLAT off too', () => {
+    const pa = row({ name: 'piaware', service: 'FlightAware', mlat: { on: false, allowed: true, confirm: 'share my exact location', refused: null } });
+    const w = locationWarning(pa);
+    expect(w.variant).toBe('warn');
+    expect(w.text).toMatch(/^Shares your location with FlightAware/);
+    expect(w.text).toContain('exact location only with MLAT, which is off');
+    const hidden = row({ name: 'piaware', service: 'FlightAware', mlat: { on: false, allowed: false, confirm: 'share my exact location', refused: 'MLAT is refused in hidden privacy mode' } });
+    expect(locationWarning(hidden).variant).toBe('warn');
   });
 
   it('states follow the switch and the unit', () => {
