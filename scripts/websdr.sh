@@ -128,10 +128,9 @@ if ! { apt-get update >/dev/null && DEBIAN_FRONTEND=noninteractive apt-get insta
   exit 1
 fi
 systemctl mask openwebrx.service >/dev/null 2>&1 || true
-if grep -q '^dvb_usb_rtl28xxu ' /proc/modules 2>/dev/null; then
-  modprobe -r dvb_usb_rtl28xxu 2>/dev/null \
-    || say "the DVB-T driver (dvb_usb_rtl28xxu) is loaded and could not be unloaded; reboot before using the web SDR."
-fi
+# The DVB-T driver claims RTL-SDRs: our own blacklist file (kept when the web SDR is removed),
+# and unloaded now if it's loaded. openwebrx may not pull in rtl-sdr's own blacklist.
+bash "$(dirname "$0")/rtl-dvb-blacklist.sh" "$ROOT" || say "the DVB-T driver blacklist could not be written (see above)."
 
 echo "== Web SDR: OpenWebRX+ settings =="
 install -d -m 0755 "$(dirname "$OWRX_CONF")"

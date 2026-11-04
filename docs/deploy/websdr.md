@@ -43,7 +43,7 @@ For OpenWebRX+'s own settings page, add its admin user too: `sudo openwebrx admi
 - **APT:** `/usr/share/keyrings/gps-time-openwebrx-plus.gpg` and `/etc/apt/sources.list.d/gps-time-openwebrx-plus.list` for bookworm or trixie. The signing key is downloaded and kept only if its fingerprint is `82B2 AC14 962B 3C75 FAC9 7206 B64E ADD5 CB69 C981` (Marat Fayzullin, the OpenWebRX+ maintainer; checked 2026-11-04). If the package can't be installed, the repository entry is taken out again.
 - **Packages:** `openwebrx` and its dependencies (csdr, the connectors, codecs). The package's own `openwebrx.service` is masked before the install: it would start on port 8073 with the first dongle it finds. If `openwebrx` was already installed and enabled by the owner, the script changes nothing.
 - **OpenWebRX+ settings:** `/var/lib/openwebrx/settings.json`. A new file gets one RTL-SDR device with five VHF/UHF profiles (2 m, 70 cm, FM broadcast, airband, NOAA weather). An existing file is kept, with a copy beside it (`settings.json.gps-time-prev`); only its RTL-SDR devices' serial is set.
-- **The DVB-T driver** is unloaded if it is loaded.
+- **The DVB-T driver** (`dvb_usb_rtl28xxu`, with `rtl2832` and `rtl2832_sdr`) would claim the dongle as it's plugged in. `scripts/rtl-dvb-blacklist.sh` writes `/etc/modprobe.d/gps-time-rtl-sdr.conf` (those three and `rtl2830`), so it stays off from the next boot, and unloads it now if it's loaded. If a dongle is busy and it can't be unloaded, the script says to reboot. It never names a shared module (`dvb_core`, `videodev`, `regmap_i2c`), and changes nothing in `/boot` or the initramfs (#157). The `openwebrx` package may not bring `rtl-sdr`'s own blacklist, so this one matters here.
 - **No position:** the installer gives OpenWebRX+ no receiver location. Its default location (Budapest, from the package) stays unless the owner changes it. Don't enter the station's position there: OpenWebRX+ doesn't know the station's privacy mode, and it shows its location to every listener.
 
 **Never touched:** gpsd, chrony, the PPS line and its overlay, and `/boot`.
@@ -83,7 +83,7 @@ What it can and can't say:
 sudo GTP_WEBSDR=0 bash install.sh
 ```
 
-This stops and removes the two units, the session-limit drop-in, `websdr-handoff` and the OpenWebRX+ port setting. It keeps the package and its repository, the mask on `openwebrx.service`, `/etc/default/gps-time-websdr`, the password and `/var/lib/openwebrx`. To remove the rest: `sudo apt-get purge openwebrx`, `sudo rm /etc/apt/sources.list.d/gps-time-openwebrx-plus.list /usr/share/keyrings/gps-time-openwebrx-plus.gpg`, `sudo systemctl unmask openwebrx`.
+This stops and removes the two units, the session-limit drop-in, `websdr-handoff` and the OpenWebRX+ port setting. It keeps the package and its repository, the mask on `openwebrx.service`, the DVB-T blacklist, `/etc/default/gps-time-websdr`, the password and `/var/lib/openwebrx`. To remove the rest: `sudo apt-get purge openwebrx`, `sudo rm /etc/apt/sources.list.d/gps-time-openwebrx-plus.list /usr/share/keyrings/gps-time-openwebrx-plus.gpg`, `sudo systemctl unmask openwebrx`.
 
 ## Not verified
 
