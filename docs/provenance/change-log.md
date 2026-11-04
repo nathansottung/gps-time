@@ -1994,6 +1994,20 @@ Owner's rc.3 list, first item. Before, `deploy-to-pi.ps1` (and `.sh`) always ran
 - **Tests** (`tests/test_deploy_scripts.py`): the allowlist against `install.sh`; the check before the build; for each script, flags passed exactly and unknown names listed; a bad value (`;`, `$(...)`, a quote, a newline) stops with nothing built or uploaded. The PowerShell runs pass on Windows; the bash runs are for CI's Linux.
 - **Docs:** `development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"; `deploy/sdr-stack.md` and `deploy/websdr.md` show the PC-side form.
 
+## 2026-11-04 — The station's own DVB-T driver blacklist (#157)
+
+Owner's rc.3 list. On 2026-11-04 the station's newly plugged-in dongle was held by the TV driver (`dvb_usb_rtl28xxu`, `rtl2832`, `rtl2832_sdr` loaded; no blacklist in `/etc/modprobe.d`). `GTP_SDR=1` relied on Debian's `rtl-sdr` blacklist, and `GTP_WEBSDR=1` had none, so with the web SDR alone the driver came back at every boot.
+
+- **`scripts/rtl-dvb-blacklist.sh`**, run by `sdr-stack.sh` and `websdr.sh`:
+  - writes `/etc/modprobe.d/gps-time-rtl-sdr.conf` (blacklist `rtl2832_sdr`, `dvb_usb_rtl28xxu`, `rtl2832`, `rtl2830`) atomically, mode 0644;
+  - unloads whichever of them is loaded with `modprobe -r`, `rtl2832_sdr` first;
+  - if one is busy it says to reboot, and the install goes on.
+- **Never named:** shared modules (`dvb_core`, `dvb_usb_v2`, `videodev`, `regmap_i2c`, which the board's RTC driver also uses). Nothing in `/boot` or the initramfs changes.
+- **Kept** when either stack is removed (`GTP_SDR=0`, `GTP_WEBSDR=0`); the guides say how to remove it.
+- **Replaces** the two partial copies (each unloaded `dvb_usb_rtl28xxu` only).
+- **Tests:**
+  - `tests/test_dvb_blacklist.py`: the station's own `/proc/modules` as a fixture; the file's contents and mode; the unload order; nothing loaded means no `modprobe`; a busy module; idempotent; no shared module, `/boot` or timing word in the script; both installers call it and never remove it.
+  - The SDR-stack and web-SDR script tests check the file is written.
 ## 2026-11-04 — The web SDR's WebSockets through the gate: a test, and `websdr_gate check` (#158)
 
 Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the waterfall over a WebSocket (`/ws/`). The gate checks the first request of each connection and then pipes bytes both ways. Until now only a plain HTTP request was tested through it.
