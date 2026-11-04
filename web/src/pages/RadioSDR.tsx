@@ -4,6 +4,7 @@ import { sdrDevices } from '../api/previews';
 import { Planned } from '../components/planned';
 import { useStation } from '../api/station';
 import { fmtSci } from '../lib/units';
+import { WebSdrCard } from '../components/websdr';
 
 const TIER_LABELS = [
   '', // 0
@@ -119,6 +120,8 @@ export default function RadioSDR() {
       </div>
 
       <Tabs tabs={['Devices','RF Modules','Timing Tiers']} active={tab} onChange={setTab} />
+
+      {tab === 'Devices' && <WebSdrCard />}
 
       {tab === 'Devices' && (
         <Planned title="SDR Devices" needs="the SDR layer (device discovery and capture services)">

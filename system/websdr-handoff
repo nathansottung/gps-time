@@ -1,0 +1,12 @@
+#!/bin/sh
+# Run as ExecStopPost= of gps-time-websdr.service (installed by scripts/websdr.sh): the web SDR
+# has let go of the dongle, so readsb starts again, if it is enabled. Not during a shutdown.
+case "$(systemctl is-system-running 2>/dev/null)" in
+  stopping) exit 0 ;;
+esac
+for u in gps-time-readsb.service readsb.service; do
+  if systemctl is-enabled --quiet "$u" 2>/dev/null; then
+    systemctl --no-block start "$u"
+  fi
+done
+exit 0

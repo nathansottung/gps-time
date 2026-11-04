@@ -212,17 +212,20 @@ class TestDemoIsolation(AuthBase):
 
 class TestSystemAdmin(unittest.TestCase):
     def test_actions_are_fixed_argv_without_shell(self):
-        self.assertEqual(system.ADMIN_ACTIONS, {"restart_chrony", "restart_gpsd", "flush_logs", "restart_web", "reboot"})
+        self.assertEqual(system.ADMIN_ACTIONS, {"restart_chrony", "restart_gpsd", "flush_logs", "restart_web", "reboot",
+                                                "websdr_start", "websdr_stop"})
         runs, spawns = [], []
         with mock.patch.object(system.subprocess, "run", lambda argv, **kw: runs.append((argv, kw)) or mock.Mock(returncode=0, stdout="", stderr="")), \
              mock.patch.object(system, "_spawn", lambda argv: spawns.append(argv)), \
              mock.patch.object(system.threading, "Timer", lambda d, f, args=(): mock.Mock(start=lambda: f(*args))):
-            for a in ("restart_chrony", "restart_gpsd", "flush_logs", "restart_web", "reboot"):
+            for a in ("restart_chrony", "restart_gpsd", "flush_logs", "websdr_start", "websdr_stop", "restart_web", "reboot"):
                 self.assertTrue(system.admin(a)["ok"], a)
             self.assertFalse(system.admin("reboot; rm -rf /")["ok"])
         self.assertEqual([r[0] for r in runs], [["systemctl", "restart", "chrony.service"],
                                                ["systemctl", "restart", "gpsd.service"],
-                                               ["systemctl", "start", "gps-time-pi-logflush.service"]])
+                                               ["systemctl", "start", "gps-time-pi-logflush.service"],
+                                               ["systemctl", "start", "gps-time-websdr.service"],
+                                               ["systemctl", "stop", "gps-time-websdr.service"]])
         self.assertTrue(all("shell" not in kw for _, kw in runs))
         self.assertEqual(spawns, [["systemctl", "restart", "gps-time-pi.service"], ["systemctl", "reboot"]])
 
@@ -245,8 +248,12 @@ class TestDeploymentFiles(unittest.TestCase):
         code = re.sub(r"//.*", "", rule)
         self.assertIn('subject.user !== "gps-time"', code)
         units = set(re.findall(r'unit === "([^"]+)"', code))
-        self.assertEqual(units, {"chrony.service", "gpsd.service", "gps-time-pi.service", "gps-time-pi-logflush.service"})
-        self.assertEqual(set(re.findall(r'verb === "([^"]+)"', code)), {"restart", "start"})
+        self.assertEqual(units, {"chrony.service", "gpsd.service", "gps-time-pi.service", "gps-time-pi-logflush.service",
+                                 "gps-time-websdr.service"})
+        self.assertEqual(set(re.findall(r'verb === "([^"]+)"', code)), {"restart", "start", "stop"})
+        # stop is allowed for the web SDR only, never for the timing core.
+        self.assertRegex(code, r'\(verb === "start" \|\| verb === "stop"\) && unit === "gps-time-websdr.service"')
+        self.assertEqual(code.count('verb === "stop"'), 1)
         self.assertEqual(set(re.findall(r'action\.id === "([^"]+)"', code)),
                          {"org.freedesktop.systemd1.manage-units", "org.freedesktop.login1.reboot",
                           "org.freedesktop.login1.reboot-multiple-sessions"})

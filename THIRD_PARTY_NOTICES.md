@@ -43,7 +43,7 @@ Build-time tools (not shipped): Vite, Tailwind CSS, TypeScript, Vitest, oxfmt, @
 | cffi, pycparser (cryptography dependencies) | MIT, BSD 3-Clause | |
 | tzfpy | MIT | Its embedded time-zone boundaries come from timezone-boundary-builder, which is derived from OpenStreetMap data (© OpenStreetMap contributors, ODbL 1.0). Used offline to find the display zone from the station position. |
 
-The system packages (`gpsd`, `chrony`, `pps-tools`, Python) come from Debian under their own licenses.
+The system packages (`gpsd`, `chrony`, `pps-tools`, Python) come from Debian under their own licenses. With `GTP_WEBSDR=1`, OpenWebRX+ (`openwebrx`, AGPL-3.0, with csdr and its connectors under GPL-3.0) comes from its maintainer's apt repository (luarvique.github.io/ppa); none of it is in the bundle.
 
 ## Downloaded by a station
 

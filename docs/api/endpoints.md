@@ -548,6 +548,36 @@ The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The we
 - `dongles`: RTL2832U devices (USB IDs `0bda:2838`, `0bda:2832`) from `/sys/bus/usb/devices`. `role` is the role whose serial matches `/etc/default/gps-time-sdr`. `dvb_driver` is true when the DVB-T driver holds the device. `null` when sysfs can't be read.
 - `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s.
 
+## GET /api/websdr
+
+The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no token. Started and stopped with `POST /api/admin` (`websdr_start`, `websdr_stop`). Code: `gps_time_pi/websdr.py`; type `WebSdrStatus`. Built at most once every 5 s, with one `systemctl show`.
+
+```json
+{"installed": true,
+ "active": {"value": "active", "unit": null, "provenance": "observed"},
+ "port": 8073, "serial": "00001090", "max_hours": 4.0,
+ "usage": {
+   "session": {"start_utc": "2026-11-04T18:00:00+00:00", "partial": false, "truncated": false,
+               "bins": [{"t": 1793815200, "active": true, "cpu_pct": 36.2, "cpu_max_pct": 51.0, "websdr_cpu_pct": 121.4,
+                         "temp_c": 55.1, "temp_max_c": 55.6, "pps_pulses": 60, "pps_jitter_ns": 540.2, "pps_max_abs_ns": 2100.0}],
+               "before": {"minutes": 10, "cpu_mean_pct": {"value": 10.0, "unit": "% of all cores", "provenance": "calculated"}, "...": "..."},
+               "during": {"minutes": 15, "pps_jitter_median_ns": {"value": 566.0, "unit": "ns", "provenance": "calculated"}, "...": "..."}},
+   "baseline": {"minutes": 10, "...": "..."},
+   "recent": [{"format": "gps-time.websdr-session/1", "start_utc": "...", "end_utc": "...", "duration_s": 2700,
+               "partial": false, "truncated": false, "before": {"...": "..."}, "during": {"...": "..."}}],
+   "file": {"name": "websdr-sessions.jsonl", "error": null},
+   "note": "PPS jitter: ..."},
+ "note": "OpenWebRX+ behind a password gate, LAN only. ..."}
+```
+
+- `installed`: `gps-time-websdr.service` is loaded; `null` (UNKNOWN) when `systemctl` can't be run. `active` is its `ActiveState` (`failed` after a crash or the session limit).
+- `port`, `serial`, `max_hours`: from `/etc/default/gps-time-websdr`; `null` when unset.
+- `usage.session`: the running session (`null` when none). `partial` when it was already running as the web service started. `truncated` past 12 h of minutes.
+- `bins`: one per minute, RAM only. `cpu_pct` is the whole system (% of all cores, from `/proc/stat` every 10 s); `websdr_cpu_pct` the web SDR and gate units (% of one core, from their cgroups); `pps_jitter_ns` the standard deviation of the minute's kernel PPS phases (`calculated`), `pps_max_abs_ns` the largest |phase| (`observed`). `null` where not read.
+- `before`, `during`, `baseline`: summaries over minute bins, each figure labeled: CPU mean (`calculated`) and largest sample (`observed`), temperature mean and highest, PPS jitter median and worst minute, largest |phase|, pulses seen (`note`: of how many seconds). `baseline` is the last 10 minutes, kept always.
+- `recent`: the last 10 sessions, newest first, from `websdr-sessions.jsonl` (one line per session, written when it ends; 100 kept).
+- The PPS figures are the system clock against kernel PPS timestamps (the `/api/stability` layer), resolved to about 0.24 µs. They show what changed while the web SDR ran, not why.
+
 ## GET /api/sky-obstruction
 
 The learned sky-obstruction map (addendum §10–11; `architecture/sky-obstruction-map.md`). No token. Code: `gps_time_pi/skymap.py`; type `SkyObstructionResult`. Everything in it is `inferred` from observed C/N₀; it never names a cause.
@@ -610,9 +640,11 @@ Runs a management action. JSON body `{"action": "<name>"}`; admin token (outside
 | `restart_chrony` | `systemctl restart chrony.service` | stderr/stdout |
 | `restart_web` | `systemctl restart gps-time-pi.service`, detached, after 1 s | `restarting in 1 s` |
 | `reboot` | `systemctl reboot`, detached, after 2 s | `rebooting in 2 s` |
+| `websdr_start` | `systemctl start gps-time-websdr.service` (the optional web SDR; stops readsb while it runs) | stderr/stdout |
+| `websdr_stop` | `systemctl stop gps-time-websdr.service` (readsb starts again) | stderr/stdout |
 | other | nothing | `unknown action` (`ok: false`) |
 
-Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The web UI has these actions on Administration → Station actions (`/app/`).
+Response: `{"ok": bool, "action": "<action>", "detail": "..."}`. In demo mode the response is `{"ok": true, "action": "...", "simulated": true, "detail": "demo mode: <action> was not executed"}` and nothing runs. The web UI has these actions on Administration → Station actions (`/app/`); `websdr_start` and `websdr_stop` are on Radio & SDR → Devices → Web SDR. Without the web SDR installed they fail (`Unit gps-time-websdr.service not found`).
 
 ---
 

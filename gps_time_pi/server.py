@@ -12,6 +12,8 @@ Routes:
                      experimental switch, each module's setting and settings, the SDR modules'
                      readiness; changed by POST /api/setting
   /api/sdr           the optional SDR stack, read only: units, RTL-SDR dongles, decoder feeds
+  /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
+                     (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
   /api/capability    the station's capability record (no exact position; opt-in sky quality)
   /app/        the web UI: the built React app from web/dist (GTP_WEB_DIST to override)
@@ -38,7 +40,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import capability, sdr, skymap
+from . import capability, sdr, skymap, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -200,6 +202,13 @@ def sdr_payload():
     if DEMO_MODE:
         return demo.sdr_status()
     return memo(("sdr",), 5.0, sdr.status)
+
+
+def websdr_payload():
+    """/api/websdr: read only; at most one systemctl call every 5 s."""
+    if DEMO_MODE:
+        return demo.websdr_status()
+    return memo(("websdr",), 5.0, websdr.status)
 
 
 def memo(key, ttl_s, build):
@@ -746,6 +755,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(modsettings.listing(cfg, readiness=sdr.readiness(sdr_payload(), cfg)))
             elif p == "/api/sdr":
                 self._json(sdr_payload())
+            elif p == "/api/websdr":
+                self._json(websdr_payload())
             else:
                 self.send_error(404)
         except BrokenPipeError:
@@ -879,6 +890,9 @@ def main():
         gps.add_sky_listener(skymap.service().observe)   # the learned sky-obstruction map
         gps.start_collector()
         timing_chain.service().start()
+        # The web SDR's usage log: PPS phases from the poller, CPU and temperature every 10 s.
+        timing_chain.service().pps_listeners.append(websdr.service().add_pps)
+        websdr.service().start()
     ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()
 
 

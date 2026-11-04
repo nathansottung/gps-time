@@ -82,6 +82,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 - `deploy/upgrade-1.4-station.md` — checklist for upgrading a station that already runs a 1.4 release candidate (rc.8, rc.9 or rc.10 → rc.11): what changes, the deploy command, checks, the soak run before v1.4.0
 - `deploy/second-station.md` — a second station: shared-antenna, two-antenna or different-receiver setups and what each can show, what differs from the fresh install (own identity, never copy `config.json`), comparing over NTP, with second pulses, and later through the coordinator
 - `deploy/sdr-stack.md` — the optional SDR stack (`GTP_SDR=1`): rtl_tcp, readsb (1090 MHz), dump978-fa and skyaware978 (978 MHz), loopback only, one RTL-SDR per role by serial; the module supervisor enabled; turning the SDR modules on from Administration; removal; what isn't verified
+- `deploy/websdr.md` — the optional web SDR (`GTP_WEBSDR=1`): OpenWebRX+ on the loopback behind a password gate on the LAN port, the 1090 MHz dongle shared with readsb (stopped while it runs), Start/Stop and the link on Radio & SDR, the usage log (CPU, temperature, PPS jitter against the minutes before), removal; what isn't verified. Decision: `decisions/ADR-0009-web-sdr-on-station.md`
 - `deploy/first-pi-deploy.md` — checklist for the first Pi deploy of the 1.4 line (v1.3 → v1.4.0-rc.3): SSH key, backups, deploy command, checks, rollback
 - `development/raspberry-pi-deploy.md`
 - `development/new-machine.md` — setting up a new development machine (clone, identity, line endings, Python, pnpm, tests)
@@ -101,7 +102,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Licensing / decisions / provenance
 - `licensing/open-source-policy.md`
-- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service; ADR-0006: desktop app is a tray app running the Python backend, not Electron; ADR-0007: modules through one kit, off by default, outside the timing core; ADR-0008: coordinator skeleton, one container, signed HTTP messages, SQLite)
+- `decisions/` (ADR-0004: web UI served at `/app/`, legacy pages retired 2026-10-21; ADR-0005: admin token, POST-only state changes, Host/Origin checks, unprivileged service; ADR-0006: desktop app is a tray app running the Python backend, not Electron; ADR-0007: modules through one kit, off by default, outside the timing core; ADR-0008: coordinator skeleton, one container, signed HTTP messages, SQLite; ADR-0009: web SDR on the station, behind a password gate, sharing the 1090 MHz dongle)
 - `provenance/change-log.md`
 
 ## Source review

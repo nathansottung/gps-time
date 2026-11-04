@@ -6,6 +6,7 @@
 // actions and nothing else:
 //   restart chrony.service, gpsd.service, gps-time-pi.service
 //   start   gps-time-pi-logflush.service (root oneshot: copy the RAM log to SD)
+//   start, stop gps-time-websdr.service (the optional web SDR, GTP_WEBSDR=1)
 //   reboot
 polkit.addRule(function (action, subject) {
   if (subject.user !== "gps-time") {
@@ -19,6 +20,9 @@ polkit.addRule(function (action, subject) {
       return polkit.Result.YES;
     }
     if (verb === "start" && unit === "gps-time-pi-logflush.service") {
+      return polkit.Result.YES;
+    }
+    if ((verb === "start" || verb === "stop") && unit === "gps-time-websdr.service") {
       return polkit.Result.YES;
     }
     return polkit.Result.NOT_HANDLED;

@@ -658,6 +658,34 @@ def sdr_status() -> dict:
     }
 
 
+
+def websdr_status() -> dict:
+    """/api/websdr in demo mode: synthetic, in the station's shapes (gps_time_pi/websdr.py)."""
+    import time as _t
+    from . import websdr as w
+    from .labels import q
+    now = _t.time()
+    t0 = int(now // 60) * 60 - 25 * 60
+
+    def b(i, active, cpu, wcpu, temp, jit, mx):
+        return {"t": t0 + 60 * i, "active": active, "cpu_pct": cpu, "cpu_max_pct": round(cpu * 1.4, 1),
+                "websdr_cpu_pct": wcpu, "temp_c": temp, "temp_max_c": round(temp + 0.8, 1), "pps_pulses": 60,
+                "pps_jitter_ns": jit, "pps_max_abs_ns": mx}
+    before = [b(i, False, 9.0 + i % 3, None, 51.2 + 0.1 * i, 410.0 + 7 * (i % 4), 1350.0) for i in range(10)]
+    bins = [b(10 + i, True, 34.0 + (i * 7) % 9, 118.0 + (i * 13) % 20, 55.0 + 0.25 * i, 520.0 + 23 * (i % 5), 2100.0)
+            for i in range(15)]
+    session = {"start_utc": w._iso(t0 + 600), "partial": False, "truncated": False, "bins": bins,
+               "before": w.labelled(w.summarize(before)), "during": w.labelled(w.summarize(bins))}
+    past = {"format": "gps-time.websdr-session/1", "start_utc": w._iso(now - 86400), "end_utc": w._iso(now - 86400 + 2700),
+            "duration_s": 2700, "partial": False, "truncated": False,
+            "before": w.labelled(w.summarize(before)), "during": w.labelled(w.summarize(bins[:12]))}
+    return {"installed": True, "active": q("active", None, "observed", "demo"), "port": 8073, "serial": "00001090",
+            "max_hours": 4.0,
+            "usage": {"session": session, "baseline": w.labelled(w.summarize(before)), "recent": [past],
+                      "file": {"name": "websdr-sessions.jsonl", "error": None}, "note": w.LAYER_NOTE},
+            "note": "Demo: synthetic values, not a station's."}
+
+
 _DEMO_SKY = {}
 
 

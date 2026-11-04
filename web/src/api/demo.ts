@@ -18,7 +18,7 @@ import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -154,6 +154,7 @@ export function demoApi(): StationApi {
       return delay({ ok: true as const, module: name, config });
     },
     sdr: () => delay(demoSdr()),
+    websdr: () => delay(demoWebSdr()),
     // Mirrors the server: satellite directions over time reveal the position, so hidden mode has no map.
     skyObstruction: () => delay(locationMode === 'hidden'
       ? { available: false as const, reason: "Location privacy is hidden: satellite directions over time would reveal the station's position, so the sky-obstruction map is neither collected nor shown.", location_display: 'hidden' as const }
@@ -242,6 +243,34 @@ function demoSdr(): SdrStatus {
               dongle('1-1.3', '00000978', '978 MHz')],
     feeds: [{ band: '1090', path: '/run/readsb/aircraft.json', present: true, age_s: m(0.6, 's'), aircraft: m(23, 'count'), fresh: true },
             { band: '978', path: '/run/skyaware978/aircraft.json', present: true, age_s: m(1.4, 's'), aircraft: m(3, 'count'), fresh: true }],
+    note: "Demo: synthetic values, not a station's.",
+  };
+}
+
+/** /api/websdr in the station's shapes (gps_time_pi/demo.py websdr_status): synthetic. */
+function demoWebSdr(): WebSdrStatus {
+  const sum = (cpu: number, cpuMax: number, web: number | null, temp: number, tempMax: number,
+               jit: number, jitMax: number, mx: number, minutes: number): WebSdrSummary => ({
+    minutes,
+    cpu_mean_pct: m(cpu, '% of all cores', 'calculated'), cpu_max_pct: m(cpuMax, '% of all cores', 'observed'),
+    websdr_cpu_mean_pct: m(web, '% of one core', 'calculated'),
+    temp_mean_c: m(temp, '°C', 'calculated'), temp_max_c: m(tempMax, '°C', 'observed'),
+    pps_jitter_median_ns: m(jit, 'ns', 'calculated'), pps_jitter_max_ns: m(jitMax, 'ns', 'calculated'),
+    pps_max_abs_ns: m(mx, 'ns', 'observed'), pps_pulses: m(60 * minutes, 'count', 'observed', `of ${60 * minutes} seconds`),
+  });
+  const before = sum(10.0, 15.4, null, 51.6, 52.3, 420.5, 431.0, 1350.0, 10);
+  const now = Date.now();
+  return {
+    installed: true, active: m('active', null, 'observed', 'demo'), port: 8073, serial: '00001090', max_hours: 4,
+    usage: {
+      session: { start_utc: iso(now - 15 * 60_000), partial: false, truncated: false, bins: [],
+                 before, during: sum(38.0, 58.8, 127.7, 56.8, 59.3, 566.0, 612.0, 2100.0, 15) },
+      baseline: before,
+      recent: [{ format: 'gps-time.websdr-session/1', start_utc: iso(now - 86_400_000), end_utc: iso(now - 86_400_000 + 2_700_000),
+                 duration_s: 2700, partial: false, truncated: false, before, during: sum(37.5, 57.2, 126.0, 56.2, 58.5, 554.0, 612.0, 2100.0, 12) }],
+      file: { name: 'websdr-sessions.jsonl', error: null },
+      note: 'PPS jitter: the standard deviation, over each minute, of where the system clock read at the kernel PPS edges. It shows what changed while the web SDR ran, not why.',
+    },
     note: "Demo: synthetic values, not a station's.",
   };
 }
