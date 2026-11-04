@@ -12,6 +12,12 @@ the TLE cache is refreshed by hand.
     (config.privacy_site: exact, or rounded to 0.1°). In hidden mode nothing is fetched: nearby
     airports would show where the station is.
 
+The bookmarks follow the privacy mode after a refresh too (security review, 2026-11-04, H2): their
+distances were computed from the site at refresh time, and the facilities around it place the
+station. When the mode becomes stricter, privacy_changed() withdraws them: in hidden mode the NASR
+set is deleted (OpenWebRX+ keeps the built-ins only); in rounded mode after an exact refresh the
+distances are dropped. status() applies the same rule, so an old file can't leak either.
+
 Only `python -m gps_time_pi.airband refresh` downloads, run by gps-time-airband-fetch.service (the
 admin action refresh_airband starts it); the web service never fetches. The result is one small
 JSON file beside config.json (written atomically, once per refresh) and an OpenWebRX+ bookmarks file
@@ -188,6 +194,41 @@ def _read(path):
         return None
 
 
+_STRICTNESS = {"exact": 0, "rounded": 1, "hidden": 2}
+
+
+def _withheld(doc, mode):
+    """The document as the current mode allows: None in hidden mode, distances dropped when the
+    refresh used a more precise site than the mode now allows."""
+    if mode == "hidden":
+        return None
+    stored = doc.get("site_precision") if doc.get("site_precision") in _STRICTNESS else "exact"
+    if _STRICTNESS.get(mode, 2) > _STRICTNESS[stored]:
+        doc = {**doc, "site_precision": mode,
+               "bookmarks": [{**b, "distance_km": None} for b in doc.get("bookmarks") or []]}
+    return doc
+
+
+def privacy_changed(mode):
+    """Called when the owner sets the privacy mode: the stored bookmarks no more precise than it."""
+    doc = _read(PATH)
+    if mode == "hidden":
+        for path in (PATH,):
+            try:
+                Path(path).unlink()
+            except OSError:
+                pass
+        if OWRX_PATH.exists() or OWRX_PATH.is_symlink():
+            _write_json(OWRX_PATH, owrx_bookmarks(BUILT_IN))
+        return True
+    if isinstance(doc, dict) and doc.get("format") == FORMAT:
+        new = _withheld(doc, mode)
+        if new is not doc:
+            _write_json(PATH, new)
+            return True
+    return False
+
+
 def status(cfg, today=None):
     """The /api/airband answer: the built-ins, the NASR bookmarks with their cycle, and staleness."""
     today = today or datetime.now(timezone.utc).date()
@@ -196,6 +237,8 @@ def status(cfg, today=None):
         doc = None
     last = _read(STATUS_PATH)
     hidden = (cfg or {}).get("location_display") == "hidden"
+    if doc:
+        doc = _withheld(doc, (cfg or {}).get("location_display", "exact"))
     current, _next = cycle(today)
     nasr = None
     if doc:

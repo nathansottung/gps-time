@@ -22,7 +22,10 @@ card; listed and downloadable on the Radio page; timestamps carry the station's 
 The web service only validates a request, writes it as <dir>/.pending.json and starts
 gps-time-clip.service; that unit records (python -m gps_time_pi.clips record). One clip at a time.
 Every clip is signed with the station key when it can be read, and carries the position at the
-station's privacy mode.
+station's privacy mode. A download goes out at the current mode too (redacted_meta): a clip
+recorded in exact mode and fetched after the switch to rounded or hidden has its position
+reduced on the way out, and loses its signature, which no longer matches (security review,
+2026-11-04, H1).
 """
 import argparse
 import json
@@ -294,6 +297,36 @@ def _position(cfg):
     return {"privacy": mode, "lat": site.get("lat"), "lon": site.get("lon"), "alt_m": site.get("alt_msl")}
 
 
+_STRICTNESS = {"exact": 0, "rounded": 1, "hidden": 2}
+
+
+def redacted_meta(meta, cfg):
+    """(meta, changed): the metadata with its position no more precise than the current privacy mode."""
+    mode = (cfg or {}).get("location_display", "exact")
+    g = meta.get("global") or {}
+    pos = g.get("gpstime:position")
+    if not isinstance(pos, dict):
+        return meta, False
+    stored = pos.get("privacy") if pos.get("privacy") in _STRICTNESS else "exact"
+    if _STRICTNESS.get(mode, 2) <= _STRICTNESS[stored]:
+        return meta, False
+    if mode == "rounded":
+        alt = pos.get("alt_m")
+        new = {"privacy": "rounded",
+               "lat": None if pos.get("lat") is None else round(pos["lat"], 1),
+               "lon": None if pos.get("lon") is None else round(pos["lon"], 1),
+               "alt_m": None if alt is None else round(alt, -1)}
+    else:
+        new = {"privacy": "hidden", "lat": None, "lon": None, "alt_m": None}
+    meta = json.loads(json.dumps(meta))
+    meta["global"]["gpstime:position"] = new
+    meta["global"]["gpstime:signature"] = None
+    meta["global"]["gpstime:position_note"] = (
+        f"Recorded in {stored} mode; the position was reduced to the station's current mode ({mode}) when "
+        "downloaded, so the station's signature, which covered the original, was removed.")
+    return meta, True
+
+
 def record(req, d, cfg=None, tq=None, cap=capture, signer_info=None, max_bytes=None):
     """Record one clip into d. Returns (base path, meta)."""
     cfg = config.load() if cfg is None else cfg
@@ -429,8 +462,16 @@ def file_for(name, ext):
     p = d / f"{name}.{ext}"
     if not p.is_file():
         raise ClipError("no such file", 404)
-    ctype = "application/json" if ext == "sigmf-meta" else "application/octet-stream"
-    return p.name, ctype, p.read_bytes()
+    if ext == "sigmf-meta":
+        body = p.read_bytes()
+        try:
+            meta, changed = redacted_meta(json.loads(body.decode("utf-8")), config.load())
+        except (UnicodeDecodeError, ValueError):
+            raise ClipError("unreadable metadata", 404) from None
+        if changed:
+            body = (json.dumps(meta, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        return p.name, "application/json", body
+    return p.name, "application/octet-stream", p.read_bytes()
 
 
 def main(argv=None):

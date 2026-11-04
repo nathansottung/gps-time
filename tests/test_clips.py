@@ -217,6 +217,36 @@ class TestApi(Tree):
                          (base.name, "iq", 100_000_000.0, 1.0, "pps"))
         self.assertEqual(row["files"], ["sigmf-meta", "sigmf-data"])
 
+    def test_a_download_follows_the_current_privacy_mode(self):
+        """Security review H1: a clip recorded in exact mode must not give the position away after
+        the switch to rounded or hidden."""
+        fake = FakeRtlTcp(bytes(2_700_000))
+        req = clips.validate({"kind": "iq", "freq_hz": 100_000_000, "seconds": 1, "rate": 1_024_000}, 4 << 20)
+        exact = {"location_display": "exact", "site": {"lat": 38.92170123, "lon": -77.06690456, "alt_msl": 92.0}}
+        base, meta = clips.record(req, self.dir, cfg=exact, tq=TQ_STATION,
+                                  cap=lambda f, r, s, g: clips.capture(f, r, s, g, addr=fake.addr), signer_info=("t", None))
+        self.assertEqual(meta["global"]["gpstime:position"]["lat"], 38.92170123)
+        on_disk = (self.dir / f"{base.name}.sigmf-meta").read_bytes()
+
+        def fetched(mode):
+            with mock.patch.object(clips.config, "load", lambda: {**exact, "location_display": mode}):
+                return json.loads(clips.file_for(base.name, "sigmf-meta")[2])
+
+        g = fetched("exact")["global"]
+        self.assertEqual(g["gpstime:position"]["lat"], 38.92170123)
+        self.assertNotIn("gpstime:position_note", g)
+        g = fetched("rounded")["global"]
+        self.assertEqual(g["gpstime:position"], {"privacy": "rounded", "lat": 38.9, "lon": -77.1, "alt_m": 90.0})
+        self.assertIsNone(g["gpstime:signature"])
+        self.assertIn("reduced", g["gpstime:position_note"])
+        g = fetched("hidden")["global"]
+        self.assertEqual(g["gpstime:position"], {"privacy": "hidden", "lat": None, "lon": None, "alt_m": None})
+        with mock.patch.object(clips.config, "load", lambda: {**exact, "location_display": "hidden"}):
+            raw = clips.file_for(base.name, "sigmf-meta")[2]
+        self.assertNotIn(b"38.92", raw)
+        self.assertNotIn(b"77.06", raw)
+        self.assertEqual((self.dir / f"{base.name}.sigmf-meta").read_bytes(), on_disk)   # the file itself is kept
+
     def test_downloads_refuse_anything_but_a_clip(self):
         for name, ext in (("../config", "sigmf-meta"), ("x", "exe"), ("nope", "sigmf-meta"), ("", "wav"), (None, "wav")):
             with self.subTest(name=name, ext=ext):

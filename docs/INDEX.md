@@ -116,6 +116,7 @@ Start with [`README.md`](README.md). It defines the repo documentation contract 
 
 ## Releases
 - `releases/README.md` — how a candidate becomes a release: rc tags on the notes PR's merge commit; the soak rule (72 h unchanged run, the read-only check and its criteria, tag the same commit only if clean, otherwise report); the record of soak runs
+- `review/security-review-2026-11-04.md` — the rc.6 security review: no Critical; two High location leaks (clip metadata, airband distances) fixed; Medium and Low findings open with proposed fixes
 - `releases/v1.6.0-rc.5.md` — rc.4 with the owner's rc.5 list (#171): the web SDR's login optional (off by default; sign-in page, remembered browsers, sign out all), decoders and band bookmarks, HF limits and opt-in HF profiles (pre-release)
 - `releases/v1.6.0-rc.4.md` — rc.3 with the owner's rc.4 list (#166–#169): amber location warnings on every feeder card, the PiAware claim note, holdover validation (the scorecard), the priced bench kit; the deploy command with the web SDR flags, what the upgrade changes, rollback (pre-release)
 - `releases/v1.6.0-rc.3.md` — rc.2 with nine opt-in additions (#156–#164): deploy flags, DVB-T blacklist, web SDR WebSocket check, dongle roles and the Pi 4 limit, migration, feeders and location sharing, airband bookmarks, SDR node mode, clip recording; the deploy command, what the upgrade changes, rollback (pre-release)

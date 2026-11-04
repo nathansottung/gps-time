@@ -2291,3 +2291,13 @@ The owner's rc.6 list, item 3: "Admin login page (token, remembered per browser)
 - **Several feeders at once:** they always had a unit and a switch each. Now `GTP_FEEDERS_CUSTOM` takes up to 4 `host:port` entries (`custom`, `custom2`, …), and a shorter list removes the extras. A test turns four feeders on together and one off again. The cards say any number can run at once.
 - **Docs:** `api/README.md` (sign-in cookie), `api/endpoints.md`, `deploy/feeders.md`, ADR-0005 amended.
 - **Tests:** `tests/test_admin_auth.py` covers the cookie's attributes and lifetimes, the guarded routes, tampering and expiry, a new token, sign-out and sign-out-all, cross-origin and form posts, the backoff, and the key file's mode. `tests/test_feeders.py` covers several feeders and several custom aggregators. Vitest covers the sign-in card's lines.
+
+## 2026-11-04 — Security review; two High location leaks fixed (#175)
+
+The owner's rc.6 list, item 4: "A fresh security review of everything else; fix High/Critical." The record is `review/security-review-2026-11-04.md`.
+
+- **No Critical.** No unauthenticated state change was found.
+- **H1 fixed:** a clip's `.sigmf-meta` download now goes out at the current privacy mode (`clips.redacted_meta`). An exact position recorded earlier is rounded or nulled, and the signature that covered it is removed with a note. The file on the drive is unchanged.
+- **H2 fixed:** the airband bookmarks follow the mode after a refresh (`airband.privacy_changed`, called on `POST /api/setting {"location_display"}`). Hidden mode deletes the NASR set, and OpenWebRX+ keeps the built-ins only. Rounded mode drops the distances computed from the exact site. `GET /api/airband` applies the same rule.
+- **M1** was partly fixed in #171 (the root sign-out unit runs no Python). The rest of M1, M2 and L1–L6 are listed as open, with proposed fixes.
+- **Tests:** `tests/test_clips.py`, `tests/test_airband.py`.
