@@ -163,6 +163,21 @@ The owner's deploy reported `cp: cannot stat 'modules'`. Read over SSH and HTTP,
 - **At 16:45:05 UTC:** GPS selected, stratum 1, system time 213 ns slow of NTP time, PPS edge 356 ns before the second. The station recorded the restart as the installer's event (16:43:40, PPS NOT USED BY CHRONY, closed).
 - **What it needs:** deploy v1.6.0-rc.2. `install.sh` runs from the start and is safe to repeat.
 
+## Install flags from the deploy scripts
+
+`scripts/deploy-to-pi.ps1` and `scripts/deploy-to-pi.sh` pass `install.sh`'s optional flags from the local environment to the Pi (#156). They run `sudo env <flags> bash install.sh` instead of `sudo bash install.sh`:
+
+```powershell
+$env:GTP_WEBSDR = '1'
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiHost -PiUser $PiUser
+Remove-Item env:GTP_WEBSDR          # so the next deploy doesn't pass it again
+```
+
+- **Passed:** `GTP_SDR`, `GTP_SDR_PPS_SERIAL`, `GTP_SDR_1090_SERIAL`, `GTP_SDR_978_SERIAL`, `GTP_WEBSDR`, `GTP_WEBSDR_SERIAL`, `GTP_WEBSDR_PORT`, `GTP_WEBSDR_MAX_HOURS`, `GTP_INDEPENDENT_REFS`, `GTP_KEEP_DHCP_NTP`. These are exactly the flags `install.sh` and its scripts read; `tests/test_deploy_scripts.py` fails if the lists drift apart.
+- **Not passed:** any other `GTP_*` name. The script lists them, so a typo shows.
+- **Checked first:** a value may have letters, digits, space and `. _ : , / -` only, since it reaches a shell on the Pi. Anything else stops the deploy before anything is built or uploaded.
+- **The script prints what it passes.** A flag set in the shell stays set until it's removed, so the next deploy passes it again.
+
 ## Build archives
 
 From Windows/VS Code:

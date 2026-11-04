@@ -26,7 +26,45 @@ def _code(path):
     return "\n".join(l for l in path.read_text(encoding="utf-8").splitlines() if not l.lstrip().startswith("#"))
 
 
+# GTP_* names install.sh and the scripts it runs read that are not install flags for the owner:
+# test hooks and the client-list helper's own settings.
+NOT_INSTALL_FLAGS = {"GTP_SDR_", "GTP_SDR_TEST_ROOT", "GTP_WEBSDR_TEST_ROOT", "GTP_WEBSDR_OS_RELEASE",
+                     "GTP_WEBSDR_PYTHON", "GTP_CLIENTS_INTERVAL_S", "GTP_CLIENTS_ONCE"}
+INSTALL_SCRIPTS = ["install.sh", "scripts/sdr-stack.sh", "scripts/websdr.sh", "scripts/chrony-no-dhcp-sources.sh",
+                   "scripts/chrony-independent-refs.sh"]
+
+
+def install_flags_read():
+    names = set()
+    for rel in INSTALL_SCRIPTS:
+        names |= set(re.findall(r"\bGTP_[A-Z0-9_]+", (ROOT / rel).read_text(encoding="utf-8")))
+    return names - NOT_INSTALL_FLAGS
+
+
+def script_flags(path):
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".ps1":
+        block = re.search(r"\$InstallFlags = @\((.*?)\)", text, re.S).group(1)
+        return set(re.findall(r"'(GTP_[A-Z0-9_]+)'", block))
+    return set(re.search(r"^INSTALL_FLAGS=\(([^)]*)\)", text, re.M).group(1).split())
+
+
 class TestStatic(unittest.TestCase):
+    def test_both_scripts_pass_exactly_the_flags_install_sh_reads(self):
+        want = install_flags_read()
+        self.assertIn("GTP_WEBSDR", want)
+        for p in (SH, PS1):
+            with self.subTest(script=p.name):
+                self.assertEqual(script_flags(p), want)
+
+    def test_flag_values_are_checked_before_anything_is_built(self):
+        for p in (SH, PS1):
+            with self.subTest(script=p.name):
+                code = _code(p)
+                check = "FLAG_VALUE" if p.suffix == ".sh" else "$FlagValue"
+                self.assertLess(code.rindex(check), code.index("build_bundles.py"))
+                self.assertIn("^[A-Za-z0-9 ._:,/-]{1,200}$", code)
+
     def test_no_fixed_tmp_upload(self):
         for p in (SH, PS1):
             with self.subTest(script=p.name):
@@ -36,7 +74,11 @@ class TestStatic(unittest.TestCase):
         for p in (SH, PS1):
             with self.subTest(script=p.name):
                 code = _code(p)
-                self.assertLess(code.index("sha256sum -c -"), code.index("sudo bash install.sh"))
+                # In the remote command, the checksum check comes before the install
+                # (sudo bash install.sh, or sudo env <flags> bash install.sh).
+                install = "&& $Install" if p.suffix == ".ps1" else "&& $INSTALL"
+                self.assertLess(code.index("sha256sum -c -"), code.index(install))
+                self.assertIn("'sudo bash install.sh'" if p.suffix == ".ps1" else 'INSTALL="sudo bash install.sh"', code)
 
     def test_powershell_checks_every_native_exit_code(self):
         code = _code(PS1)
@@ -59,6 +101,11 @@ class TestStatic(unittest.TestCase):
             with self.subTest(script=p.name):
                 code = _code(p)
                 self.assertLess(code.index(rm), code.index("build_bundles.py"))
+
+
+def _clean_env():
+    """This process's environment without GTP_* names: other test modules set some (tests/_env.py)."""
+    return {k: v for k, v in os.environ.items() if not k.upper().startswith("GTP_")}
 
 
 def _install_command(sha):
@@ -131,7 +178,7 @@ class TestBashScript(unittest.TestCase):
             f.chmod(0o755)
 
     def run_script(self, **env):
-        e = dict(os.environ, PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}",
+        e = dict(_clean_env(), PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}",
                  FAKE_LOG=str(self.t.log), FAKE_HOME=str(self.t.home), **env)
         return subprocess.run(["bash", str(self.t.repo / "scripts" / SH.name), "pi.example", "pi"],
                               env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
@@ -193,6 +240,24 @@ class TestBashScript(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertFalse(any(c.startswith("sudo") for c in self.t.calls()))
 
+    def test_install_flags_are_passed_to_sudo(self):
+        r = self.run_script(GTP_WEBSDR="1", GTP_SDR_1090_SERIAL="00001090",
+                            GTP_INDEPENDENT_REFS="time.nist.gov tick.usno.navy.mil", GTP_SOMETHING="x")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.t.calls()[-1], "sudo env GTP_INDEPENDENT_REFS=time.nist.gov tick.usno.navy.mil "
+                                             "GTP_SDR_1090_SERIAL=00001090 GTP_WEBSDR=1 bash install.sh")
+        self.assertIn("Not passed to install.sh (not install flags): GTP_SOMETHING", r.stdout)
+        self.assertNotIn("GTP_DEPLOY_TTY", r.stdout)
+
+    def test_a_bad_flag_value_stops_before_anything(self):
+        for value in ("1; rm -rf /", "$(id)", "a'b", "x\ny"):
+            with self.subTest(value=value):
+                self.t.log.write_text("", encoding="utf-8")
+                r = self.run_script(GTP_WEBSDR_SERIAL=value)
+                self.assertEqual(r.returncode, 2)
+                self.assertIn("GTP_WEBSDR_SERIAL has characters", r.stderr)
+                self.assertEqual(self.t.calls(), [])
+
 
 @unittest.skipUnless(os.name == "nt" and shutil.which("powershell"), "Windows PowerShell needed")
 class TestPowerShellScript(unittest.TestCase):
@@ -230,7 +295,7 @@ class TestPowerShellScript(unittest.TestCase):
                                                    encoding="ascii")
 
     def run_script(self, **env):
-        e = dict(os.environ, PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.t.log), **env)
+        e = dict(_clean_env(), PATH=f"{self.t.bin}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.t.log), **env)
         return subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                                str(self.t.repo / "scripts" / PS1.name), "-PiHost", "pi.example"],
                               env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
@@ -277,6 +342,21 @@ class TestPowerShellScript(unittest.TestCase):
         r = self.run_script(FAKE_SCP_FAIL="1")
         self.assertNotEqual(r.returncode, 0)
         self.assertFalse(any("install.sh" in c for c in self.t.calls()), self.t.calls())
+
+    def test_install_flags_are_passed_to_sudo(self):
+        r = self.run_script(GTP_WEBSDR="1", GTP_SDR_1090_SERIAL="00001090", GTP_SOMETHING="x")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        sha = hashlib.sha256((self.t.repo / "dist" / "gps-time-pi-deploy.tar.gz").read_bytes()).hexdigest()
+        install = self.ssh_argv()[-1]
+        self.assertEqual(install[-1], _install_command(sha).replace(
+            "sudo bash install.sh", "sudo env GTP_SDR_1090_SERIAL='00001090' GTP_WEBSDR='1' bash install.sh"))
+        self.assertIn("Not passed to install.sh (not install flags): GTP_SOMETHING", r.stdout)
+
+    def test_a_bad_flag_value_stops_before_anything(self):
+        r = self.run_script(GTP_WEBSDR_SERIAL="1; rm -rf /")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("GTP_WEBSDR_SERIAL has characters", r.stdout + r.stderr)
+        self.assertEqual(self.t.calls(), [])
 
 
 if __name__ == "__main__":

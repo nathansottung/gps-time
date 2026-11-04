@@ -20,6 +20,13 @@ Each role needs its own RTL-SDR, picked by its USB serial. Give each dongle a di
 sudo GTP_SDR=1 GTP_SDR_PPS_SERIAL=00000pps GTP_SDR_1090_SERIAL=00001090 GTP_SDR_978_SERIAL=00000978 bash install.sh
 ```
 
+Or from your PC, in the same deploy (the deploy scripts pass `install.sh`'s `GTP_*` flags from the environment; `../development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"):
+
+```powershell
+$env:GTP_SDR = '1'; $env:GTP_SDR_1090_SERIAL = '00001090'
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiHost -PiUser $PiUser
+```
+
 - **A role with no serial** is installed but not enabled. One dongle for 1090 MHz alone is fine.
 - **Serials are kept** in `/etc/default/gps-time-sdr`, so a later `sudo bash install.sh` keeps the stack as it is. `GTP_SDR=1` with no serials keeps the saved ones. `GTP_SDR_978_SERIAL=none` clears one.
 - **Refused, with nothing changed:** a serial that isn't letters, digits, `-` and `_`, or the same serial for two roles.
