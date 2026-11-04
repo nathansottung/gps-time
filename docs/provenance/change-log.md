@@ -2142,3 +2142,20 @@ Owner's rc.3 list, with the owner's design:
   - `web/src/lib/feeders.test.ts`;
   - typecheck, unit tests, build and 145 Playwright tests pass locally.
 - **Not verified on a Pi** (`deploy/feeders.md` → "Not verified").
+
+## 2026-11-04 — v1.6.0-rc.3: release notes (#165)
+
+The owner's list of nine (2026-11-04, "go. No deploys."), one PR each, all merged after CI:
+- #156 deploy flags;
+- #157 the DVB-T blacklist;
+- #158 the WebSocket test and `websdr_gate check`;
+- #159 dongle roles and the Pi 4 limit;
+- #160 migration;
+- #161 the feeders and the location-sharing list;
+- #162 airband bookmarks;
+- #163 SDR node mode;
+- #164 clip recording.
+
+`releases/v1.6.0-rc.3.md` lists them with how each is turned on, what the upgrade changes without any new flag (the polkit rule and the clip recorder), the deploy command, what isn't verified, and rollback. Version lines are updated in README, START-HERE, ROADMAP and INDEX. The tag `v1.6.0-rc.3` goes on this PR's merge commit, with a GitHub pre-release.
+
+**Merge order:** the PRs overlapped in shared spots (STATUS, the change log, `server.py`, the demo and type files, the polkit rule, the deploy allowlists). Each overlap was merged by hand, block by block, and the full Python and web suites ran after each one before pushing. The change-log entries are in the order the PRs were opened.
