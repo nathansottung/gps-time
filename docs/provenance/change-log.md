@@ -2008,3 +2008,19 @@ Owner's rc.3 list. On 2026-11-04 the station's newly plugged-in dongle was held 
 - **Tests:**
   - `tests/test_dvb_blacklist.py`: the station's own `/proc/modules` as a fixture; the file's contents and mode; the unload order; nothing loaded means no `modprobe`; a busy module; idempotent; no shared module, `/boot` or timing word in the script; both installers call it and never remove it.
   - The SDR-stack and web-SDR script tests check the file is written.
+
+## 2026-11-04 — Dongle roles by serial, at most 3 on a Pi 4 (#159)
+
+Owner's rc.3 list. Roles were already given by serial (PPS, 1090, 978, and the web SDR's), but nothing counted them across the two installers, and Administration didn't show the web SDR's.
+
+- **`scripts/dongle-roles.sh`**, sourced by `sdr-stack.sh` and `websdr.sh` before they change anything:
+  - counts distinct serials across every installed role (a role of a stack that isn't installed doesn't count; the web SDR sharing the 1090 MHz dongle adds none);
+  - refuses more than 3 on a Raspberry Pi 4, 400 or Compute Module 4 (the owner's limit: one USB 2.0 bus, shared power and CPU), from `/proc/device-tree/model`;
+  - other boards have no limit; an unreadable model applies none and says so.
+- **`/api/sdr`:** each dongle's role includes the web SDR (`1090 MHz + web SDR` when shared, `web SDR` alone). A new `limit` object gives the model (`observed`), the max, roles assigned (`calculated`), dongles plugged (`observed`), `over`, and the rule.
+- **Administration → SDR receivers:** a line with the roles, the dongles on USB, and the limit; a warning when over it.
+- **Tests:**
+  - `tests/test_dongle_roles.py`: the helper with a temp device tree (3 on a Pi 4 fine, 4 refused, shared counted once, no limit on a Pi 5 or an unknown model); both installers refuse a fourth dongle before any `apt-get` and accept a shared one;
+  - `tests/test_sdr_status.py`: roles and the limit;
+  - `web/src/lib/sdr.test.ts`: the limit line.
+- **Docs:** `deploy/sdr-stack.md` → "Roles and the limit", the web SDR guide, `/api/sdr`.

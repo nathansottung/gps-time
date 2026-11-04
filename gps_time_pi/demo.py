@@ -648,8 +648,12 @@ def sdr_status() -> dict:
                   unit("gps-time-dump978.service", "dump978-fa (978 MHz)", 4120.7, 31.9, 18.2),
                   unit("gps-time-skyaware978.service", "skyaware978 (978 MHz)", 61.0, 0.5, 4.1),
                   unit("gps-time-modules.service", "module supervisor", 140.2, 1.1, 58.0)],
-        "dongles": [dongle("1-1.1", "00000pps", "PPS markers"), dongle("1-1.2", "00001090", "1090 MHz"),
+        "dongles": [dongle("1-1.1", "00000pps", "PPS markers"), dongle("1-1.2", "00001090", "1090 MHz + web SDR"),
                     dongle("1-1.3", "00000978", "978 MHz")],
+        "limit": {"model": q("Raspberry Pi 4 Model B Rev 1.5", None, "observed", "demo"), "max": 3,
+                  "assigned": q(3, "count", "calculated"), "plugged": q(3, "count", "observed"), "over": False,
+                  "rule": ("at most 3 RTL-SDRs by serial on a Pi 4 (owner, 2026-11-04): one USB 2.0 bus, shared "
+                           "power and CPU with the timing core")},
         "feeds": [{"band": "1090", "path": "/run/readsb/aircraft.json", "present": True,
                    "age_s": q(0.6, "s", "observed"), "aircraft": q(23, "count", "observed"), "fresh": True},
                   {"band": "978", "path": "/run/skyaware978/aircraft.json", "present": True,

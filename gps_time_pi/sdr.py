@@ -35,6 +35,11 @@ ENVFILE = Path(os.environ.get("GTP_SDR_ENV", "/etc/default/gps-time-sdr"))
 # Realtek RTL2832U dongles (the generic and the original IDs).
 RTL_IDS = {("0bda", "2838"), ("0bda", "2832")}
 ROLES = {"GTP_SDR_PPS_SERIAL": "PPS markers", "GTP_SDR_1090_SERIAL": "1090 MHz", "GTP_SDR_978_SERIAL": "978 MHz"}
+WEB_ENVFILE = Path(os.environ.get("GTP_WEBSDR_ENV", "/etc/default/gps-time-websdr"))
+MODEL = Path(os.environ.get("GTP_BOARD_MODEL", "/proc/device-tree/model"))
+# The owner's limit (2026-11-04): at most 3 RTL-SDRs by serial on a Pi 4 (scripts/dongle-roles.sh).
+LIMITED_MODELS = ("Raspberry Pi 4", "Raspberry Pi 400", "Raspberry Pi Compute Module 4")
+MAX_PI4 = 3
 FEEDS = {"1090": Path(os.environ.get("GTP_FEED_1090", "/run/readsb/aircraft.json")),
          "978": Path(os.environ.get("GTP_FEED_978", "/run/skyaware978/aircraft.json"))}
 FEED_FRESH_S = 60.0
@@ -123,14 +128,42 @@ def units(run=subprocess.run, monotonic_us=None):
     return rows
 
 
-def roles():
-    """{serial: role} from the installer's /etc/default/gps-time-sdr."""
+def _env_values(path):
     out = {}
-    for line in (_read(ENVFILE) or "").splitlines():
+    for line in (_read(path) or "").splitlines():
         k, _, v = line.partition("=")
-        if k in ROLES and v.strip():
-            out[v.strip()] = ROLES[k]
+        if v.strip():
+            out[k.strip()] = v.strip()
     return out
+
+
+def roles():
+    """{serial: role} from the installers' /etc/default/gps-time-sdr and gps-time-websdr. The web SDR
+    may share the 1090 MHz dongle: then that serial's role names both."""
+    out = {}
+    for k, v in _env_values(ENVFILE).items():
+        if k in ROLES:
+            out[v] = ROLES[k]
+    web = _env_values(WEB_ENVFILE).get("GTP_WEBSDR_SERIAL")
+    if web:
+        out[web] = f"{out[web]} + web SDR" if web in out else "web SDR"
+    return out
+
+
+def limit(dongle_rows=None):
+    """The owner's dongle limit for this board, against the roles given and the dongles plugged in."""
+    model = (_read(MODEL) or "").replace("\x00", "").strip() or None
+    cap = MAX_PI4 if model and model.startswith(LIMITED_MODELS) else None
+    assigned = len(roles())
+    plugged = None if dongle_rows is None else len(dongle_rows)
+    over = cap is not None and (assigned > cap or (plugged or 0) > cap)
+    return {"model": q(model, None, "observed", "device tree"), "max": cap,
+            "assigned": q(assigned, "count", "calculated", "distinct serials given a role"),
+            "plugged": q(plugged, "count", "observed", "RTL-SDRs on USB"),
+            "over": over,
+            "rule": ("at most 3 RTL-SDRs by serial on a Pi 4 (owner, 2026-11-04): one USB 2.0 bus, shared "
+                     "power and CPU with the timing core") if cap else
+                    ("no limit for this board" if model else "the board model can't be read: no limit applied")}
 
 
 def dongles():
@@ -188,9 +221,10 @@ def feed(band, now=None):
 def status(run=subprocess.run, now=None, monotonic_us=None):
     """The whole /api/sdr answer."""
     rows = units(run, monotonic_us)
+    usb = dongles()
     return {
         "installed": None if rows is None else any(r["unit"] in SDR_UNITS for r in rows),
-        "units": rows, "dongles": dongles(), "feeds": [feed("1090", now), feed("978", now)],
+        "units": rows, "dongles": usb, "limit": limit(usb), "feeds": [feed("1090", now), feed("978", now)],
         "note": "Read only: the station starts, stops and configures none of this (docs/deploy/sdr-stack.md).",
     }
 
