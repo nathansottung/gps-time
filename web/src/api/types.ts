@@ -1085,6 +1085,20 @@ export interface WebSdrStatus {
   note: string;
 }
 
+// ─── GET /api/aircraft-map ───────────────────────────────────────────────────
+// The live aircraft map: tar1090 on readsb's 1090 MHz data, served at /tar1090/ (gps_time_pi/tar1090.py).
+
+export interface AircraftMapStatus {
+  installed: boolean;
+  url: string;                                 // '/tar1090/', on this station
+  state: 'live' | 'paused' | 'stale' | 'no_data';  // paused: the web SDR has the dongle
+  aircraft_json_age_s: number | null;          // observed: since readsb last wrote aircraft.json
+  aircraft: number | null;                     // observed: entries in aircraft.json
+  station_marker: boolean;                     // false in hidden mode or without a survey
+  location_display: LocationMode;
+  note: string;
+}
+
 // ─── GET /api/feeders ────────────────────────────────────────────────────────
 // Opt-in ADS-B feeders and everything that shares the station's location (gps_time_pi/feeders.py;
 // docs/deploy/feeders.md). Turned on with the admin token and a typed confirmation.

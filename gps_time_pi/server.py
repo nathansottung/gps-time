@@ -20,6 +20,8 @@ Routes:
   /api/airband       airband bookmarks for the web SDR: built-ins and the FAA NASR set with its cycle
                      and staleness; refreshed by the admin action refresh_airband
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
+  /api/aircraft-map  the live aircraft map (tar1090 on readsb): installed, live/paused, marker shown
+  /tar1090/          the map itself (static page, readsb's JSON, receiver.json by the privacy mode)
                      (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
   /api/capability    the station's capability record (no exact position; opt-in sky quality)
@@ -47,7 +49,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import airband, capability, clips, feeders, sdr, skymap, timequality, websdr
+from . import airband, capability, clips, feeders, sdr, skymap, tar1090, timequality, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -610,8 +612,8 @@ def auth_payload(authenticated, session=None):
 class Handler(BaseHTTPRequestHandler):
     def end_headers(self):
         # Security headers on every response, including send_error() pages. One strict CSP
-        # for everything: the legacy pages and their inline-style exception are gone.
-        self.send_header("Content-Security-Policy", security.CSP_STRICT)
+        # for everything but the tar1090 map page, which sets its own (tar1090.csp_for).
+        self.send_header("Content-Security-Policy", getattr(self, "_csp", None) or security.CSP_STRICT)
         for k, v in security.SECURITY_HEADERS.items():
             self.send_header(k, v)
         super().end_headers()
@@ -724,6 +726,42 @@ class Handler(BaseHTTPRequestHandler):
         with open(full, "rb") as f:
             self._send(f.read(), ctype, cache=cache)
 
+    def _tar1090(self, rel):
+        """The aircraft map: readsb's data (receiver.json by the privacy mode), else the static page."""
+        if rel.startswith("data/"):
+            body = tar1090.data(rel[len("data/"):], config.load())
+            if body is None:
+                self.send_error(404)
+            else:
+                self._send(body, "application/json")
+            return
+        if not tar1090.installed():
+            self._send("The aircraft map (tar1090) is not installed. It comes with the SDR stack's 1090 MHz role: "
+                       "sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=<serial> bash install.sh (docs/deploy/sdr-stack.md).\n",
+                       "text/plain", code=503)
+            return
+        hit = tar1090.static(rel)
+        if hit is None:
+            self.send_error(404)
+            return
+        full, ctype = hit
+        with open(full, "rb") as f:
+            body = f.read()
+        if ctype == "text/html":
+            self._csp = tar1090.csp_for(body)
+        if tar1090.gzipped(rel, body):
+            # The aircraft database files are stored gzipped; tar1090's own server config sends
+            # them as Content-Encoding: gzip, and its loader expects the browser to inflate them.
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=86400")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self._send(body, ctype, cache="no-cache")
+
     def _json(self, obj, code=200, headers=None):
         data = json.dumps(obj).encode()
         self.send_response(code)
@@ -742,6 +780,7 @@ class Handler(BaseHTTPRequestHandler):
         return False
 
     def do_GET(self):
+        self._csp = None                  # per request: a kept-alive connection serves several
         u = urlparse(self.path)
         qs = parse_qs(u.query)
         p = u.path
@@ -847,6 +886,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(demo.time_quality() if DEMO_MODE else memo(("timequality",), 5.0, timequality.current))
             elif p == "/api/airband":
                 self._json(demo.airband_status(config.load()) if DEMO_MODE else airband.status(config.load()))
+            elif p == "/api/aircraft-map":
+                active = None if DEMO_MODE else websdr.unit_active()
+                self._json(tar1090.status(config.load(), websdr_active=active))
+            elif p == tar1090.PREFIX.rstrip("/"):
+                self._redirect(tar1090.PREFIX, 301)
+            elif p.startswith(tar1090.PREFIX):
+                self._tar1090(unquote(p[len(tar1090.PREFIX):]))
             else:
                 self.send_error(404)
         except BrokenPipeError:
