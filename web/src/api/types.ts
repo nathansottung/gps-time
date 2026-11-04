@@ -893,6 +893,9 @@ export type SettingResult =
   | { ok: true; module: string; enabled: boolean; modules_enabled: string[] }
   | { ok: true; module: string; config: Record<string, unknown> }
   | { ok: true; sky_quality_share: boolean }
+  | { ok: true; clip: ClipRequest & { id: string } }
+  | { ok: true; deleted: string }
+  | { ok: true; simulated: true; detail?: string }
   | { ok: true; feeder: string; enabled: boolean; detail?: string; simulated?: boolean }
   | { ok: true; feeder: string; mlat: boolean; restarted?: string | null; simulated?: boolean }
   | { ok: false };
@@ -1078,6 +1081,24 @@ export interface TimeQuality {
   max_error_s: Measured<number>;
   label: string;
 }
+
+// ─── GET /api/clips ──────────────────────────────────────────────────────────
+// Capped clip recording (gps_time_pi/clips.py): audio and IQ as SigMF with the station's timing.
+export type ClipKind = 'iq' | 'am' | 'nfm' | 'wfm';
+export interface ClipRow {
+  name: string; kind: string | null; freq_hz: number | null; start_utc: string | null; seconds: number | null; bytes: number;
+  time_source: string | null; time_offset_bound_s: number | null; sample_time_uncertainty_s: number | null; signed: boolean;
+  files: ('sigmf-meta' | 'sigmf-data' | 'wav')[];
+}
+export interface ClipsStatus {
+  storage: { dir: string; kind: 'ram' | 'custom'; max_mb: number; used: Measured<number>; problem: string | null };
+  pending: null | { id: string; kind: ClipKind; freq_hz: number; seconds: number };
+  last: null | { ok: boolean; id?: string; clip?: string; error?: string; at: number };
+  clips: ClipRow[];
+  kinds: ClipKind[]; iq_rates: number[]; max_seconds: number; freq_range_hz: [number, number];
+  note: string;
+}
+export interface ClipRequest { kind: ClipKind; freq_hz: number; seconds: number; rate?: number; gain_db?: number | null }
 
 // ─── GET /api/airband ────────────────────────────────────────────────────────
 // Airband bookmarks for the web SDR (gps_time_pi/airband.py): built-ins, and the FAA NASR set with

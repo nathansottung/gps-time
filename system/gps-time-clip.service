@@ -1,0 +1,44 @@
+[Unit]
+Description=GPS Time: record one queued clip (audio or IQ) from rtl_tcp into the capped clip folder
+Documentation=file:///opt/gps-time-pi/docs/deploy/clips.md
+
+# Installed by install.sh; never enabled or timed. Started (start --no-block) by the web service
+# after the owner asked for a clip on the Radio page (admin token; polkit allows start of this unit
+# only). It records the request in <clip dir>/.pending.json, writes SigMF (signed with the station
+# key), drops the oldest clips past the cap, and exits. Reads rtl_tcp on 127.0.0.1 and nothing else.
+# Never touches chrony, gpsd or PPS; it only reads chronyc tracking for the time label.
+
+[Service]
+Type=oneshot
+User=gps-time
+WorkingDirectory=/opt/gps-time-pi
+Environment=GTP_CONFIG=/opt/gps-time-pi/config.json
+EnvironmentFile=-/etc/default/gps-time-clips
+ExecStart=/opt/gps-time-pi/venv/bin/python -m gps_time_pi.clips record
+TimeoutStartSec=180
+Nice=5
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ProtectSystem=strict
+# The RAM folder only; a folder the owner named is added by scripts/clips.sh in a drop-in
+# (gps-time-clip.service.d/gps-time-dir.conf). ProtectSystem keeps everything else read-only.
+ReadWritePaths=-/run/gps-time-clips
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+MemoryMax=512M
+CPUQuota=100%

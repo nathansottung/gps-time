@@ -15,6 +15,8 @@ Routes:
   /api/feeders       the opt-in ADS-B feeders (what each shares) and every location-sharing item;
                      turned on and off by POST /api/setting {feeder, enabled|mlat, confirm}
   /api/time-quality  where this Pi's clock gets its time (refclock, or ntp on an SDR node) and chrony's bound
+  /api/clips         recorded clips (audio, IQ) and their storage; /api/clips/file?name=&ext= downloads one;
+                     recorded and deleted by POST /api/setting {clip} / {clip_delete}
   /api/airband       airband bookmarks for the web SDR: built-ins and the FAA NASR set with its cycle
                      and staleness; refreshed by the admin action refresh_airband
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
@@ -45,7 +47,7 @@ import platform
 
 from . import (__version__, astro, catalog, chrony, config, demo, gps, localtime, satellites, security,
                shadow, system, timescales, timing_chain)
-from . import airband, capability, feeders, sdr, skymap, timequality, websdr
+from . import airband, capability, clips, feeders, sdr, skymap, timequality, websdr
 from .modkit import settings as modsettings
 
 _HERE = os.path.dirname(__file__)
@@ -771,6 +773,24 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(sdr_payload())
             elif p == "/api/websdr":
                 self._json(websdr_payload())
+            elif p == "/api/clips":
+                self._json(demo.clips_status() if DEMO_MODE else clips.status())
+            elif p == "/api/clips/file":
+                if DEMO_MODE:
+                    self.send_error(404)
+                else:
+                    try:
+                        fname, ctype, body = clips.file_for(qs.get("name", [""])[0], qs.get("ext", [""])[0])
+                    except clips.ClipError:
+                        self.send_error(404)
+                    else:
+                        self.send_response(200)
+                        self.send_header("Content-Type", ctype)
+                        self.send_header("Content-Length", str(len(body)))
+                        self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+                        self.send_header("Cache-Control", "no-store")
+                        self.end_headers()
+                        self.wfile.write(body)
             elif p == "/api/feeders":
                 self._json(feeders_payload())
             elif p == "/api/time-quality":
@@ -876,6 +896,17 @@ class Handler(BaseHTTPRequestHandler):
                         cfg["sky_quality_share"] = share
                         config.save(cfg)
                         self._json({"ok": True, "sky_quality_share": share})
+                elif "clip" in body or "clip_delete" in body:
+                    # Clip recording: the recorder unit does the work (polkit: start of that unit only).
+                    if DEMO_MODE:
+                        self._json({"ok": True, "simulated": True, "detail": "demo: nothing was recorded"})
+                    else:
+                        try:
+                            res = clips.request(body["clip"]) if "clip" in body else clips.delete(body["clip_delete"])
+                        except clips.ClipError as e:
+                            self._json({"ok": False, "error": str(e)}, code=e.code)
+                        else:
+                            self._json(res)
                 elif "feeder" in body:
                     # Opt-in feeders: admin token (checked above) and a typed confirmation to turn one on.
                     cfg = config.load()
@@ -904,7 +935,7 @@ class Handler(BaseHTTPRequestHandler):
                         self._json(result)
                 else:
                     self._json({"ok": False, "error": "expected location_display, timezone, sky_quality_share, "
-                                                      "reset_site, feeder, modules_experimental or module"}, code=400)
+                                                      "reset_site, feeder, clip, clip_delete, modules_experimental or module"}, code=400)
             else:
                 self.send_error(404)
         except Exception as e:  # noqa: BLE001

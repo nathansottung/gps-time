@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, FeedersStatus, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus, TimeQuality,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, TimeQuality, ClipsStatus, ClipRequest, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus, FeedersStatus,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -72,6 +72,14 @@ export interface StationApi {
   setFeederMlat(name: string, on: boolean, confirm?: string): Promise<SettingResult>;
   /** Where this Pi's clock gets its time: its reference clock, or ntp on an SDR node. */
   timeQuality(): Promise<TimeQuality>;
+  /** Recorded clips and where they're kept. */
+  clips(): Promise<ClipsStatus>;
+  /** Record one clip (the station's recorder unit does it). Admin token. */
+  recordClip(req: ClipRequest): Promise<SettingResult>;
+  /** Delete one clip. Admin token. */
+  deleteClip(name: string): Promise<SettingResult>;
+  /** The download link for one file of a clip. */
+  clipUrl(name: string, ext: 'sigmf-meta' | 'sigmf-data' | 'wav'): string;
   /** Airband bookmarks: built-ins and the FAA NASR set with its cycle; refreshed by admin('refresh_airband'). */
   airband(): Promise<AirbandStatus>;
   /** The learned sky-obstruction map (inferred); unavailable in hidden mode. */
@@ -191,11 +199,15 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     setModuleConfig: (name, config) => json('/api/setting', post({ module: name, config })),
     sdr: () => json('/api/sdr'),
     websdr: () => json('/api/websdr'),
+    timeQuality: () => json('/api/time-quality'),
+    airband: () => json('/api/airband'),
+    clips: () => json('/api/clips'),
+    recordClip: (req) => json('/api/setting', post({ clip: req })),
+    deleteClip: (name) => json('/api/setting', post({ clip_delete: name })),
+    clipUrl: (name, ext) => base + '/api/clips/file' + query({ name, ext }),
     feeders: () => json('/api/feeders'),
     setFeeder: (name, enabled, confirm) => json('/api/setting', post({ feeder: name, enabled, confirm })),
     setFeederMlat: (name, on, confirm) => json('/api/setting', post({ feeder: name, mlat: on, confirm })),
-    airband: () => json('/api/airband'),
-    timeQuality: () => json('/api/time-quality'),
     skyObstruction: () => json('/api/sky-obstruction'),
     capability: () => json('/api/capability'),
     setSkyQualityShare: (on) => json('/api/setting', post({ sky_quality_share: on })),
