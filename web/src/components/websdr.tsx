@@ -8,6 +8,7 @@ import { useStation, usePoll } from '../api/station';
 import { ApiError } from '../api/client';
 import type { AdminAction } from '../api/types';
 import { compareRows, sessionLine, websdrOutcome, websdrState, websdrUrl, type Variant } from '../lib/websdr';
+import { cycleLine, mhz, refreshLine, rows as airbandRows } from '../lib/airband';
 
 const COLOR: Record<Variant, string> = { good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)' };
 const btn = { border: '1px solid var(--border)', color: 'var(--t2)' };
@@ -149,6 +150,76 @@ export function WebSdrCard() {
               </div>}
             </div>
           </>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
+/** Airband bookmarks for the web SDR: the built-ins and the FAA NASR set, with its cycle date. */
+export function AirbandCard() {
+  const { api } = useStation();
+  const ab = usePoll(() => api.airband(), 30_000, [api]);
+  const auth = usePoll(() => api.auth(), 0, [api]);
+  const canWrite = !!auth.data && (auth.data.authenticated || !auth.data.auth_required);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; variant: Variant } | null>(null);
+  const [open, setOpen] = useState(false);
+  const st = ab.data;
+  const refresh = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await api.admin('refresh_airband');
+      setMsg(r.simulated ? { text: 'Refresh: demo, nothing fetched.', variant: 'muted' }
+        : r.ok ? { text: 'Refresh started on the station; the result shows here in a minute or two.', variant: 'good' }
+        : { text: `Refresh failed${r.detail ? ` (${r.detail})` : ''}.`, variant: 'error' });
+    } catch (e) {
+      const status = e instanceof ApiError ? e.status : null;
+      setMsg({ text: `Refresh: ${status === null ? 'no answer' : 'refused'}. ${(e as Error).message}`, variant: status === null ? 'warn' : 'error' });
+      if (status === 401) auth.refresh();
+    } finally { setBusy(false); ab.refresh(); }
+  };
+  const line = st ? cycleLine(st) : null;
+  const last = st ? refreshLine(st) : null;
+  return (
+    <Card pending={!st && !ab.error}>
+      <CardHeader title="Airband bookmarks" />
+      <CardBody>
+        <ApiErrorNote error={ab.error} />
+        <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>
+          The web SDR's airband channels (AM): a few that are the same everywhere, and nearby ones from the FAA's 28-day NASR data,
+          fetched only when you press Refresh now.
+        </div>
+        {line && <div className="text-[11px] mb-1" style={{ color: COLOR[line.variant] }}>{line.text}</div>}
+        {last && <div className="text-[10px] mb-1" style={{ color: COLOR[last.variant] }}>{last.text}</div>}
+        {st && <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>{st.refresh_note}</div>}
+        <div className="flex flex-wrap gap-1.5">
+          <button onClick={refresh} disabled={!canWrite || busy || !st?.refresh_allowed} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>
+            {busy ? 'Refresh now…' : 'Refresh now'}</button>
+          <button onClick={() => setOpen(!open)} aria-expanded={open} className="px-3 py-[5px] text-[10px] mono rounded-[2px]" style={btn}>
+            {open ? 'Hide channels' : 'Show channels'}</button>
+        </div>
+        {msg && <div className="text-[10px] mono mt-2" role="status" style={{ color: COLOR[msg.variant] }}>{msg.text}</div>}
+        {!canWrite && auth.data && <div className="text-[10px] mt-2" style={{ color: 'var(--t3)' }}>Refresh needs the admin token (Administration → Admin access).</div>}
+        {open && st && (
+          <div className="table-scroll mt-2"><table className="w-full text-[11px]" aria-label="Airband channels">
+            <thead><tr>
+              {['MHz', 'Name', 'Use', 'km', 'From'].map((h, i) => (
+                <th key={h} className={`py-1 pr-2 font-normal ${i === 0 || i === 3 ? 'text-right' : 'text-left'}`} style={{ color: 'var(--t3)', fontSize: 10 }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {airbandRows(st).map(r => (
+                <tr key={`${r.source}-${r.name}-${r.frequency_hz}`} className="row-sep">
+                  <td className="py-1 pr-2 text-right mono tabular" style={{ color: 'var(--t1)' }}>{mhz(r.frequency_hz)}</td>
+                  <td className="py-1 pr-2" style={{ color: 'var(--t1)' }}>{r.name}</td>
+                  <td className="py-1 pr-2 mono" style={{ color: 'var(--t2)' }}>{r.use ?? '—'}</td>
+                  <td className="py-1 pr-2 text-right mono tabular" style={{ color: 'var(--t2)' }}>{r.distance_km ?? '—'}</td>
+                  <td className="py-1 mono text-[10px]" style={{ color: 'var(--t3)' }}>{r.source === 'nasr' ? `NASR ${st.nasr?.cycle}` : 'built-in'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
         )}
       </CardBody>
     </Card>

@@ -2048,6 +2048,48 @@ Owner's rc.3 list: migration export/import (config, keys, survey, oscillator). N
 - **Tests:** `tests/test_migrate.py` (13): the parts moved and not moved; no plaintext secret, position or file name in the file; a round trip into a new station with backups and modes; idempotent; dry run; a running service; a wrong passphrase, a flipped byte and a changed header refused; an unknown or path-like entry refused; the passphrase never an argument. CI runs them in the station venv and fails if they're skipped.
 - **Docs:** `deploy/migrate.md`; INDEX; CLAUDE.md.
 
+## 2026-11-04 — The web SDR's WebSockets through the gate: a test, and `websdr_gate check` (#158)
+
+Owner's rc.3 list: a web SDR WebSocket test. OpenWebRX+ streams audio and the waterfall over a WebSocket (`/ws/`). The gate checks the first request of each connection and then pipes bytes both ways. Until now only a plain HTTP request was tested through it.
+
+- **`gps_time_pi/websdr_gate.py`:** a small stdlib WebSocket client (RFC 6455 handshake and framing). It backs `python -m gps_time_pi.websdr_gate check <url>`, the owner's check from a LAN machine:
+  - no credentials are refused;
+  - with them, the upgrade passes, with the right `Sec-WebSocket-Accept`;
+  - OpenWebRX+ answers `SERVER DE CLIENT` with `CLIENT DE SERVER`;
+  - then a clean close (it waits for the server's close frame).
+  - The password is asked, never taken from the command line. A gate with no password says so.
+- **`tests/test_websdr_websocket.py`:** the real gate in front of a fake OpenWebRX+ on the loopback.
+  - Framing at every length size, masked and not; the RFC's own accept-key example.
+  - `check` passes, and OpenWebRX+ never sees the `Authorization` header.
+  - A wrong password never reaches it.
+  - Frames pass both ways unchanged: 76,800 bytes from the server, a client frame split across writes, the close.
+  - With no password, `check` says so.
+- **Caught on the way:** the first draft named the new client `check`, which replaced the gate's password check of the same name, and every login crashed. The new test failed on it; the client is `check_station`.
+- **Docs:** `deploy/websdr.md` → "Check it from your PC".
+
+## 2026-11-04 — FAA airband bookmarks for the web SDR, offline, with the NASR cycle date (#162)
+
+Owner's rc.3 list and design: NASR data; the cycle date shown on the bookmarks, flagged past 28 days; a "refresh now" admin button like the TLE cache.
+
+- **`gps_time_pi/airband.py`:**
+  - **Built-ins:** 121.5 guard, 122.75, 123.025, 122.9.
+  - **The NASR set,** from the FAA's 28-day FRQ CSV of the current cycle. The cycles come from the anchor 2026-10-29, checked against the FAA's page today. URLs use fixed month names, not the locale's.
+  - **Filter:** VHF airband, 118.000–136.975 MHz AM, within 80 km of `config.privacy_site` (exact or rounded); deduplicated.
+  - **Columns** are read by header; a missing `FREQ`, `LAT_DECIMAL` or `LONG_DECIMAL` is refused.
+  - **Writes:** `airband-bookmarks.json` and OpenWebRX+'s `airband-openwebrx.json`, atomically, once per refresh. The station's position isn't in either.
+  - **Hidden mode:** nothing is fetched. A failed refresh keeps the previous bookmarks and is recorded in `airband-refresh.json`.
+- **Refresh now:**
+  - the admin action `refresh_airband` runs `systemctl start --no-block gps-time-airband-fetch.service`, a one-shot unit as `gps-time` (`ProtectSystem=strict`, writes only `/opt/gps-time-pi`), never enabled or timed;
+  - polkit allows starting that unit only;
+  - `websdr.sh` installs it, and links `/etc/openwebrx/bookmarks.d/gps-time-airband.json` to the file it writes;
+  - the web service never fetches.
+- **`GET /api/airband`** and the **Airband bookmarks** card on Radio & SDR → Devices: the cycle line (good, or a warning past 28 days with the current cycle), the last refresh, Refresh now, and the channels with their source.
+- **Tests:**
+  - `tests/test_airband.py`: the cycles, URLs, parsing (the radius, VHF only, duplicates), an unknown layout, a refresh with an injected download, rounded and hidden modes, bad downloads keeping the old set, staleness, the wiring;
+  - the admin and polkit tests;
+  - `web/src/lib/airband.test.ts`.
+- **Not verified:** the FAA's file server answered this machine with 503, so the FRQ column names are the expected ones, not confirmed; a mismatch shows as a failed refresh. Not run on a Pi.
+
 ## 2026-11-04 — Opt-in ADS-B feeders with the location warning, and one Location sharing list (#161)
 
 Owner's rc.3 list, with the owner's design:

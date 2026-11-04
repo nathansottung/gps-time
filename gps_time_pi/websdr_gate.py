@@ -13,6 +13,9 @@ The password is kept as a salted PBKDF2-SHA256 hash, never in clear.
 
   sudo python3 -m gps_time_pi.websdr_gate passwd [--user radio]   set the password (asks twice)
   python3 -m gps_time_pi.websdr_gate serve                        run the gate (the systemd unit)
+  python3 -m gps_time_pi.websdr_gate check http://<station>:8073/ [--user radio]
+      from any LAN machine: the gate refuses no credentials, takes the password (asked), and
+      OpenWebRX+ answers its WebSocket handshake through it; then it disconnects
 
 Basic credentials are only base64 on the wire: the gate is for the LAN, which the unit
 enforces (IPAddressAllow= private ranges only). Stdlib only, no compiler needed.
@@ -26,8 +29,11 @@ import hmac
 import logging
 import os
 import secrets
+import socket
+import struct
 import sys
 import time
+from urllib.parse import urlparse
 
 log = logging.getLogger("gps_time_pi.websdr_gate")
 
@@ -255,6 +261,139 @@ async def serve(port, password_file, upstream):
         await server.serve_forever()
 
 
+# ── a minimal WebSocket client (RFC 6455), for `check` and the tests ───────
+
+WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+OWRX_HELLO = "SERVER DE CLIENT client=openwebrx.js type=receiver"
+OWRX_REPLY = "CLIENT DE SERVER"
+
+
+def ws_accept(key):
+    return base64.b64encode(hashlib.sha1((key + WS_GUID).encode()).digest()).decode()
+
+
+def ws_request(host, path, key, authorization=None):
+    lines = [f"GET {path} HTTP/1.1", f"Host: {host}", "Upgrade: websocket", "Connection: Upgrade",
+             f"Sec-WebSocket-Key: {key}", "Sec-WebSocket-Version: 13"]
+    if authorization:
+        lines.append(f"Authorization: {authorization}")
+    return ("\r\n".join(lines) + "\r\n\r\n").encode()
+
+
+def ws_frame(payload, opcode=0x1, mask=True):
+    """One final frame; a client's frames are masked (RFC 6455 5.3)."""
+    data = payload.encode() if isinstance(payload, str) else payload
+    head = bytes([0x80 | opcode])
+    n = len(data)
+    bit = 0x80 if mask else 0
+    if n < 126:
+        head += bytes([bit | n])
+    elif n < 65536:
+        head += bytes([bit | 126]) + struct.pack("!H", n)
+    else:
+        head += bytes([bit | 127]) + struct.pack("!Q", n)
+    if not mask:
+        return head + data
+    key = secrets.token_bytes(4)
+    return head + key + bytes(b ^ key[i % 4] for i, b in enumerate(data))
+
+
+def ws_read_frame(read):
+    """(opcode, payload) from read(n), which returns exactly n bytes."""
+    b0, b1 = read(2)
+    n = b1 & 0x7F
+    if n == 126:
+        n = struct.unpack("!H", read(2))[0]
+    elif n == 127:
+        n = struct.unpack("!Q", read(8))[0]
+    key = read(4) if b1 & 0x80 else None
+    data = read(n)
+    if key:
+        data = bytes(b ^ key[i % 4] for i, b in enumerate(data))
+    return b0 & 0x0F, data
+
+
+def check_station(url, user, password, timeout=10.0):
+    """[(step, ok, detail)] for the web SDR at url, through the gate. It changes nothing: it
+    connects as one listener, says hello and disconnects (OpenWebRX+ may open the dongle briefly)."""
+    u = urlparse(url if "://" in url else "http://" + url)
+    host, port = u.hostname, u.port or LISTEN_PORT
+    hostport = f"{host}:{port}"
+    steps = []
+
+    def connect():
+        sock = socket.create_connection((host, port), timeout=timeout)
+        sock.settimeout(timeout)
+        return sock
+
+    def read_head(sock):
+        buf = b""
+        while b"\r\n\r\n" not in buf and len(buf) <= MAX_HEAD:
+            chunk = sock.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+        head, _, rest = buf.partition(b"\r\n\r\n")
+        return head.decode("latin-1").split("\r\n"), rest
+
+    key = base64.b64encode(secrets.token_bytes(16)).decode()
+    try:
+        with connect() as sock:
+            sock.sendall(ws_request(hostport, "/ws/", key))
+            lines, _ = read_head(sock)
+    except OSError as e:
+        return [("reach the gate", False, f"{hostport}: {e}")]
+    status = lines[0] if lines else ""
+    if " 503 " in status + " ":
+        return [("password set on the station", False, "the gate has no password yet (websdr_gate passwd)")]
+    steps.append(("no credentials refused", " 401 " in status + " ", status or "no answer"))
+    auth = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+    try:
+        with connect() as sock:
+            sock.sendall(ws_request(hostport, "/ws/", key, auth))
+            lines, rest = read_head(sock)
+            status = lines[0] if lines else ""
+            accept = next((ln.split(":", 1)[1].strip() for ln in lines[1:]
+                           if ln.lower().startswith("sec-websocket-accept:")), None)
+            upgraded = " 101 " in status + " " and accept == ws_accept(key)
+            steps.append(("WebSocket upgrade through the gate", upgraded,
+                          status if upgraded or not accept else f"{status}; wrong Sec-WebSocket-Accept"))
+            if not upgraded:
+                return steps
+            buf = bytearray(rest)
+
+            def read(n):
+                while len(buf) < n:
+                    chunk = sock.recv(65536)
+                    if not chunk:
+                        raise ConnectionError("closed by the server")
+                    buf.extend(chunk)
+                out = bytes(buf[:n])
+                del buf[:n]
+                return out
+            sock.sendall(ws_frame(OWRX_HELLO))
+            reply = None
+            for _ in range(20):                       # binary frames may come before the reply
+                op, data = ws_read_frame(read)
+                if op == 0x1:
+                    reply = data.decode("utf-8", "replace")
+                    break
+                if op == 0x8:
+                    break
+            ok = bool(reply and reply.startswith(OWRX_REPLY))
+            steps.append(("OpenWebRX+ handshake", ok, reply[:120] if reply else "no text reply"))
+            try:                                      # a clean close: send ours, wait for theirs
+                sock.sendall(ws_frame(struct.pack("!H", 1000), opcode=0x8))
+                for _ in range(50):
+                    if ws_read_frame(read)[0] == 0x8:
+                        break
+            except (OSError, ConnectionError, ValueError):
+                pass
+    except (OSError, ConnectionError, ValueError) as e:
+        steps.append(("WebSocket session", False, str(e)))
+    return steps
+
+
 def set_password(path, user):
     if not user or ":" in user or len(user) > 64:
         print("The user name must be 1 to 64 characters, without ':'.", file=sys.stderr)
@@ -290,9 +429,17 @@ def main(argv=None):
     s.add_argument("--port", type=int, default=int(os.environ.get("GTP_WEBSDR_PORT", LISTEN_PORT)))
     s.add_argument("--file", default=os.environ.get("GTP_WEBSDR_PASSWORD_FILE", PASSWORD_FILE))
     s.add_argument("--upstream-port", type=int, default=UPSTREAM[1])
+    c = sub.add_parser("check", help="check the web SDR through the gate from a LAN machine (asks the password)")
+    c.add_argument("url", help="e.g. http://192.0.2.10:8073/")
+    c.add_argument("--user", default="radio")
     a = ap.parse_args(argv)
     if a.cmd == "passwd":
         return set_password(a.file, a.user)
+    if a.cmd == "check":
+        steps = check_station(a.url, a.user, getpass.getpass(f"Web SDR password for {a.user}: "))
+        for step, ok, detail in steps:
+            print(f"[{'OK' if ok else 'NO'}] {step}: {detail}")
+        return 0 if steps and all(ok for _, ok, _ in steps) else 1
     asyncio.run(serve(a.port, a.file, ("127.0.0.1", a.upstream_port)))
     return 0
 

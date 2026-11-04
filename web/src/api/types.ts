@@ -1065,6 +1065,26 @@ export interface FeedersStatus {
   sharing: { rows: SharingRow[]; exact_location_shared: boolean; location_display: LocationMode | null };
 }
 
+// ─── GET /api/airband ────────────────────────────────────────────────────────
+// Airband bookmarks for the web SDR (gps_time_pi/airband.py): built-ins, and the FAA NASR set with
+// the cycle it came from, flagged past 28 days. Refreshed by the admin action refresh_airband.
+
+export interface AirbandBookmark {
+  name: string; frequency_hz: number; use: string | null; facility?: string | null; distance_km?: number; source: 'built-in' | 'nasr';
+}
+
+export interface AirbandStatus {
+  built_in: AirbandBookmark[];
+  nasr: null | {
+    cycle: string; fetched_utc: string | null; radius_km: number; site_precision: string; count: number;
+    age_days: Measured<number>; stale: boolean; bookmarks: AirbandBookmark[];
+  };
+  current_cycle: string;
+  refresh_allowed: boolean;
+  refresh_note: string;
+  last_refresh: null | { ok: boolean; at_utc: string; error?: string; cycle?: string; count?: number };
+}
+
 // ─── GET /api/sky-obstruction ────────────────────────────────────────────────
 // The learned sky-obstruction map (gps_time_pi/skymap.py): cells of 10° azimuth × 5° elevation,
 // each against the rest of its elevation band. Inferred; off in hidden mode.
@@ -1126,7 +1146,7 @@ export interface Capability {
 // ─── GET /api/admin ──────────────────────────────────────────────────────────
 
 export type AdminAction = 'flush_logs' | 'restart_gpsd' | 'restart_chrony' | 'restart_web' | 'reboot'
-  | 'websdr_start' | 'websdr_stop';
+  | 'websdr_start' | 'websdr_stop' | 'refresh_airband';
 export interface AdminResult { ok: boolean; action: string; detail: string; simulated?: true }
 
 // ─── GET /api/auth ───────────────────────────────────────────────────────────

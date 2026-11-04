@@ -18,7 +18,7 @@ import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
 import type {
-  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, FeedersStatus, FeederRow, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite,
+  Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, FeedersStatus, FeederRow, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus,
   SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState,
   Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage,
 } from './types';
@@ -170,6 +170,7 @@ export function demoApi(): StationApi {
       feederMlat = on;
       return delay({ ok: true as const, feeder: name, mlat: on, simulated: true });
     },
+    airband: () => delay(demoAirband()),
     // Mirrors the server: satellite directions over time reveal the position, so hidden mode has no map.
     skyObstruction: () => delay(locationMode === 'hidden'
       ? { available: false as const, reason: "Location privacy is hidden: satellite directions over time would reveal the station's position, so the sky-obstruction map is neither collected nor shown.", location_display: 'hidden' as const }
@@ -298,6 +299,23 @@ function demoFeeders(mode: LocationMode): FeedersStatus {
   ];
   return { installed: true, feeders, location_display: mode, note: "Demo: synthetic, nothing is sent.",
            sharing: { rows, exact_location_shared: rows.some(r => r.active && r.location === 'exact'), location_display: mode } };
+}
+
+/** /api/airband in the station's shapes (gps_time_pi/demo.py airband_status): synthetic facility names. */
+function demoAirband(): AirbandStatus {
+  const cycle = '2026-10-29';
+  const age = Math.floor((Date.now() - Date.parse(cycle + 'T00:00:00Z')) / 86_400_000);
+  const nasr = (name: string, hz: number, use: string, d: number) => ({ name, frequency_hz: hz, use, facility: name.split(' ')[0], distance_km: d, source: 'nasr' as const });
+  return {
+    built_in: [{ name: 'Guard (emergency)', frequency_hz: 121_500_000, use: 'emergency', source: 'built-in' },
+               { name: 'Air-to-air', frequency_hz: 122_750_000, use: 'air-to-air', source: 'built-in' },
+               { name: 'Helicopter air-to-air', frequency_hz: 123_025_000, use: 'air-to-air', source: 'built-in' },
+               { name: 'MULTICOM', frequency_hz: 122_900_000, use: 'MULTICOM', source: 'built-in' }],
+    nasr: { cycle, fetched_utc: null, radius_km: 80, site_precision: 'demo', count: 3,
+            age_days: { value: age, unit: 'days', provenance: 'calculated' }, stale: age > 28,
+            bookmarks: [nasr('DEMO TWR', 119_100_000, 'LCL/P', 9), nasr('DEMO ATIS', 127_250_000, 'D-ATIS', 9), nasr('SAMPLE APCH', 124_650_000, 'APCH/P', 31)] },
+    current_cycle: cycle, refresh_allowed: true, refresh_note: 'Demo: synthetic bookmarks; Refresh does nothing here.', last_refresh: null,
+  };
 }
 
 /** /api/websdr in the station's shapes (gps_time_pi/demo.py websdr_status): synthetic. */

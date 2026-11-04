@@ -10,7 +10,7 @@
 import { authHeader, tokenStore, type TokenStore } from './auth';
 import type {
   AdminAction, AdminResult, Almanac, AuthState, AlmanacQuery, CoreStatus,
-  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, FeedersStatus, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics,
+  EvidenceIndex, History, LocationMode, ModulesState, NtpService, ObjectResult, Oscillator, OscillatorProfileExport, Ping, ProfileImportResult, References, Satellites, SdrStatus, SettingResult, WebSdrStatus, FeedersStatus, SkyObstructionResult, Capability, Shadow, Stability, Survey, SystemDiagnostics, AirbandStatus,
   TimeScales, TimingChain, Unavailable,
 } from './types';
 
@@ -70,6 +70,8 @@ export interface StationApi {
   setFeeder(name: string, enabled: boolean, confirm?: string): Promise<SettingResult>;
   /** PiAware MLAT on (typed confirmation; refused in hidden mode) or off. Admin token. */
   setFeederMlat(name: string, on: boolean, confirm?: string): Promise<SettingResult>;
+  /** Airband bookmarks: built-ins and the FAA NASR set with its cycle; refreshed by admin('refresh_airband'). */
+  airband(): Promise<AirbandStatus>;
   /** The learned sky-obstruction map (inferred); unavailable in hidden mode. */
   skyObstruction(): Promise<SkyObstructionResult>;
   /** The station's capability record (no exact position). */
@@ -190,6 +192,7 @@ export function httpApi(base = '', timeoutMs = 8000, token: TokenStore = tokenSt
     feeders: () => json('/api/feeders'),
     setFeeder: (name, enabled, confirm) => json('/api/setting', post({ feeder: name, enabled, confirm })),
     setFeederMlat: (name, on, confirm) => json('/api/setting', post({ feeder: name, mlat: on, confirm })),
+    airband: () => json('/api/airband'),
     skyObstruction: () => json('/api/sky-obstruction'),
     capability: () => json('/api/capability'),
     setSkyQualityShare: (on) => json('/api/setting', post({ sky_quality_share: on })),
