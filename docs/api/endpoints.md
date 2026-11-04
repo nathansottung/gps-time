@@ -595,6 +595,27 @@ Where this Pi's clock gets its time, for labelling timestamps (`docs/deploy/sdr-
 
 `GET /api/websdr` gains `node_host`: the SDR node's address when the station reads a node and has no web SDR of its own. The Radio page then links there.
 
+## GET /api/clips
+
+Recorded clips and where they're kept (`docs/deploy/clips.md`). Read only, no token. Code: `gps_time_pi/clips.py`; type `ClipsStatus`.
+
+- `storage`: `{dir, kind (ram | custom), max_mb, used, problem}`. `problem` says why clips can't be kept (a drive not mounted, or a folder on the SD card's file system).
+- `pending`: the request being recorded, or `null`. `last` is the last result, `{ok, clip}` or `{ok: false, error}`.
+- `clips`, newest first, each with:
+  - `name`, `kind`, `freq_hz`, `start_utc`, `seconds`, `bytes`;
+  - `time_source`, `time_offset_bound_s`, `sample_time_uncertainty_s`;
+  - `signed`, and `files` (`sigmf-meta`, `sigmf-data`, and `wav` for audio).
+- `kinds`, `iq_rates`, `max_seconds`, `freq_range_hz`: what a request may ask for.
+
+`GET /api/clips/file?name=<clip>&ext=sigmf-meta|sigmf-data|wav` downloads one file. A WAV is built from an audio clip's PCM; any other name or extension is 404.
+
+`POST /api/setting {"clip": {"kind": "am", "freq_hz": 121500000, "seconds": 10}}` (admin token):
+- Checks the request, queues it, and starts `gps-time-clip.service` (`start --no-block`).
+- Optional fields: `rate` for IQ (1024000, 2048000 or 2400000) and `gain_db` (0–50, or null for automatic).
+- **Errors:** 400 for a bad request or one too large for the cap; 409 while another clip records or when the storage has a problem; 502 if the unit doesn't start.
+
+`POST /api/setting {"clip_delete": "<clip>"}` deletes one.
+
 ## GET /api/sky-obstruction
 
 The learned sky-obstruction map (addendum §10–11; `architecture/sky-obstruction-map.md`). No token. Code: `gps_time_pi/skymap.py`; type `SkyObstructionResult`. Everything in it is `inferred` from observed C/N₀; it never names a cause.

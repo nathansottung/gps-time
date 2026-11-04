@@ -2088,3 +2088,29 @@ Owner's rc.3 list and design: an SDR-only node; its chrony a client of the stati
   - no station timing in the script;
   - the script under stubs on both Pis: chrony source and drop-ins filled, the station's chrony never touched, refusals, a node can't read a node, undo.
 - **Not run on two Pis** (`deploy/sdr-node.md` → "Not verified").
+
+## 2026-11-04 — Capped clip recording: audio and IQ as SigMF with the station's timing (#164)
+
+Owner's rc.3 list and design:
+- audio and IQ (SigMF with timing);
+- a capped RAM folder by default, oldest dropped;
+- optionally a USB drive or NAS mount the owner names, capped, never the SD card;
+- listed and downloadable on the Radio page;
+- the timestamps carry the station's timing quality.
+
+- **`gps_time_pi/clips.py`:**
+  - **Source:** a small rtl_tcp client (the 12-byte header, then the sample-rate, frequency and gain commands).
+  - **Kinds:** IQ as `cu8` at 1.024, 2.048 or 2.4 MS/s; AM, NFM and wide FM demodulated with numpy from 240 kS/s to 48 kHz `ri16_le`.
+  - **Files:** written with `obsformat` and signed with the station key.
+  - **Timing:** `time_source` from `timequality` (`pps` on the station, `ntp` on a node, `free_running`), `time_offset_bound_s` from chrony, and `sample_time_uncertainty_s` from the USB buffer (256 KiB at the byte rate, at least 50 ms; modeled). The position is at the privacy mode.
+  - **Storage:** `/run/gps-time-clips` (RAM) or `GTP_CLIPS_DIR`, refused on the root file system's device. The cap drops the oldest clips; a clip too large for the cap is refused before recording.
+- **Recording runs in `gps-time-clip.service`:** a one-shot as `gps-time`, localhost only, writing the RAM folder (or the owner's one folder, via a drop-in). The web service only validates and queues; polkit allows starting that unit only.
+- **`scripts/clips.sh`** (run by `install.sh`): installs the unit and the tmpfiles entry. `GTP_CLIPS_DIR` (under /mnt, /media or /srv, not on the SD card's device) and `GTP_CLIPS_MAX_MB` are kept in `/etc/default/gps-time-clips`. The deploy scripts pass both.
+- **API and UI:**
+  - `GET /api/clips`, `GET /api/clips/file` (meta, data, and a WAV built on the fly; anything else is 404), `POST /api/setting {clip}` and `{clip_delete}`;
+  - Radio & SDR → Devices → **Clips** (record, list with timing labels, download, delete).
+- **Tests:**
+  - `tests/test_clips.py`: validation, queueing one at a time, a unit that won't start, never the SD card, the cap, an IQ clip from a fake rtl_tcp that validates as SigMF with the commands sent, a node's clip labelled `ntp` with no position in hidden mode, a busy rtl_tcp, AM audio carrying a 1 kHz tone (numpy; CI runs it in the station venv), the listing, downloads refusing anything but a clip, delete, the unit and script;
+  - `web/src/lib/clips.test.ts`;
+  - the bundle-install test points `clips.sh` and `node.sh` at its root, and checks the clip unit is installed.
+- **Not verified on a Pi** (`deploy/clips.md` → "Not verified").
