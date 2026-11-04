@@ -49,6 +49,11 @@ jobs:
           set -o pipefail
           "$RUNNER_TEMP/station-venv/bin/python" -m unittest tests.test_station_key -v 2>&1 | tee "$RUNNER_TEMP/key-tests.txt"
           if grep -q "skipped" "$RUNNER_TEMP/key-tests.txt"; then echo "::error::station key tests were skipped in the station venv"; exit 1; fi
+      - name: Station migration with the real cryptography (the plain run above skips these tests)
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/station-venv/bin/python" -m unittest tests.test_migrate -v 2>&1 | tee "$RUNNER_TEMP/migrate-tests.txt"
+          if grep -q "skipped" "$RUNNER_TEMP/migrate-tests.txt"; then echo "::error::migration tests were skipped in the station venv"; exit 1; fi
       - name: Coordinator skeleton with the real cryptography (the plain run above skips its signature tests)
         run: |
           set -o pipefail
