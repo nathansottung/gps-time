@@ -6,7 +6,7 @@ GPS Time turns a Raspberry Pi and a GNSS receiver with a PPS output into a Strat
 
 *The Overview page in the desktop demo (synthetic data), taken in screenshot mode with location privacy set to rounded.*
 
-**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Latest pre-release: **v1.6.0-rc.8** (2026-11-04: rc.7, which fixed the web SDR's dongle, now with the aircraft stack fixed: readsb's serial required and checked, the tar1090 and skyaware978 maps, two dongles by serial; not yet run on a Pi; notes: [`docs/releases/v1.6.0-rc.8.md`](docs/releases/v1.6.0-rc.8.md)). v1.5.0 was skipped: v1.5.0-rc.1's soak run had outages on this development unit, and v1.6.0 carries all of it. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
+**Status: v1.4.0, stable** (2026-10-26; notes: [`docs/releases/v1.4.0.md`](docs/releases/v1.4.0.md)). It passed a 6-day soak run on one development Pi. Latest pre-release: **v1.6.0-rc.9** (2026-11-04: rc.8, which fixed the aircraft stack's serials and maps, now with readsb built with RTL-SDR support, since Debian 13's package has none; not yet run on a Pi; notes: [`docs/releases/v1.6.0-rc.9.md`](docs/releases/v1.6.0-rc.9.md)). v1.5.0 was skipped: v1.5.0-rc.1's soak run had outages on this development unit, and v1.6.0 carries all of it. Open issues: [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Quick start
 

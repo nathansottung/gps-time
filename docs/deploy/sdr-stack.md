@@ -5,7 +5,7 @@ The receivers that the SDR modules read, installed by `install.sh` only when ask
 | Role | What runs | Unit | Network | Output |
 |---|---|---|---|---|
 | PPS markers (`sdr-pps-marker`) | `rtl_tcp` (Debian `rtl-sdr`) | `gps-time-rtl-tcp.service` | listens on 127.0.0.1:1234 | samples to the module |
-| 1090 MHz ADS-B (`reference-adsb`) | `readsb` (Debian `readsb`) | `gps-time-readsb.service` | none: no `--net`, `IPAddressDeny=any` | `/run/readsb/aircraft.json` (RAM) |
+| 1090 MHz ADS-B (`reference-adsb`) | `readsb`, built from wiedehopf's source at v3.16.21 (commit `3219318`) with RTL-SDR support, as `/usr/local/bin/readsb` | `gps-time-readsb.service` | none: no `--net`, `IPAddressDeny=any` | `/run/readsb/aircraft.json` (RAM) |
 | 978 MHz UAT (`reference-adsb`) | `dump978-fa` and `skyaware978`, built from FlightAware's source at v11.1 (commit `f40aa9a`) | `gps-time-dump978.service`, `gps-time-skyaware978.service` | 127.0.0.1:30978 (raw) and :30979 (JSON) | `/run/skyaware978/aircraft.json` (RAM) |
 | Maps | tar1090 (1090 MHz) and skyaware978's page (978 MHz) | none: static pages | served by the web service at `/tar1090/` and `/skyaware978/` | read from `/run/readsb` and `/run/skyaware978` |
 
@@ -18,13 +18,13 @@ Script: `scripts/sdr-stack.sh`. Units: `system/gps-time-*.service`, `system/gps-
 Each role needs its own RTL-SDR, picked by its USB serial (see "Two dongles" below to give each one its own). With one dongle:
 
 ```sh
-sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=00000001 bash install.sh
+sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=00001090 bash install.sh
 ```
 
-With a 1090 MHz and a 978 MHz dongle, after giving them the serials 1090 and 978:
+With a 1090 MHz and a 978 MHz dongle, after giving them the serials 00001090 and 00000978 (the owner's):
 
 ```sh
-sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=1090 GTP_SDR_978_SERIAL=978 bash install.sh
+sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=00001090 GTP_SDR_978_SERIAL=00000978 bash install.sh
 ```
 
 Or from your PC, in the same deploy (the deploy scripts pass `install.sh`'s `GTP_*` flags from the environment; `../development/raspberry-pi-deploy.md` → "Install flags from the deploy scripts"):
@@ -40,14 +40,26 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-to-pi.ps1 -PiHost $PiH
 - **Refused, with nothing changed:** a serial that isn't letters, digits, `-` and `_`, or the same serial for two roles.
 - **Warnings, not refusals:** a serial no plugged-in dongle has (it may be unplugged while installing), two dongles with one serial, and a serial like `00000001` that rtl-sdr's device search can read as a device index once two dongles are plugged in.
 - **The units refuse an empty serial too:** each has an `ExecCondition=` that skips the start ("condition failed", no restart loop) when its serial is empty or `none`. readsb and dump978 stop restarting after 5 tries in 5 minutes (`StartLimitBurst=5`).
-- **A failure never stops the install.** If dump978 can't be fetched, verified or built, 978 MHz stays off and the rest is installed.
+- **A failure never stops the install.** If dump978 can't be fetched, verified or built, 978 MHz stays off and the rest is installed. The same goes for readsb and 1090 MHz, but that one is a `CHECK FAILED` (below).
+
+### readsb with RTL-SDR support (rc.9)
+
+Debian 13's `readsb` package is built without RTL-SDR support: its device types are only `ifile` and `none`. `gps-time-readsb` then failed with `ERROR: Unknown device type:rtlsdr` and restarted for ever, so tar1090 had no data (observed on the owner's Pi on rc.8). The stack now builds readsb itself:
+
+- **From wiedehopf's source, pinned:** a shallow clone of tag v3.16.21, which must be commit `321931802d89f1695a38f6dfb0a64ba5c1211be4`, built as `nobody` with `make RTLSDR=yes readsb` (packages: `git`, `build-essential`, `pkg-config`, `libncurses-dev`, `zlib1g-dev`, `libzstd-dev`, `librtlsdr-dev`, `libusb-1.0-0-dev`). Only the binary is installed, as `/usr/local/bin/readsb`; the commit goes to `/usr/local/lib/gps-time-sdr/readsb.commit`. A later run with the same commit and a passing check doesn't rebuild.
+- **Every readsb unit uses it:** `gps-time-readsb`, the feeders' drop-in and `gps-time-feed@`, and node mode's drop-in and `gps-time-readsb-node`. It is built whenever `GTP_SDR=1`, with or without a 1090 MHz serial, since the feeders and node mode run it too.
+- **Debian's package isn't installed any more.** One already there (rc.8 and earlier) is left alone, `/usr/bin/readsb` included, and its `readsb.service` stays masked. `sudo apt-get remove readsb` removes it if you like; nothing of ours uses it.
+- **Checked before it's installed or enabled:** the check runs `readsb --device-type rtlsdr --gtp-check-only`. The made-up option makes readsb stop at its argument parser either way, so the check never opens a dongle (`readsb --device-type rtlsdr --help` would: readsb only stops for `--help` as the first argument). A build without RTL-SDR support says `Unknown device type` first. Then readsb isn't installed, `gps-time-readsb` isn't enabled, and the installer prints `CHECK FAILED: no readsb with RTL-SDR support` and exits 3, which `install.sh` repeats at the end. Code: `scripts/sdr-decoders.sh`.
+- **dump978-fa the same way:** it opens its dongle through SoapySDR (`--sdr driver=rtlsdr,serial=…`), which needs SoapySDR's RTL-SDR driver, `librtlsdrSupport.so` from `soapysdr-module-rtlsdr`. Without it, with a 978 MHz serial set, dump978-fa isn't enabled and the installer prints `CHECK FAILED: SoapySDR's RTL-SDR driver …`. It's a file check: `SoapySDRUtil --probe` would open the dongle.
+- **In the preflight** (`sdr-stack.sh check`), these are reported, not refused: on a first install neither is there yet, and the install adds both.
+- **Why readsb and not dump1090-fa:** tar1090 is written for readsb's output (history files, `receiver.json`), and the units, the feeders' Beast output and node mode already use readsb's options. dump1090-fa would also be a source build (it's not in Debian), and it would change every one of those. Building readsb changes only the binary's path.
 
 ### Check it
 
 The installer waits 10 s after starting the decoders. Then, for each one with a dongle, it reports whether its units are active and its `aircraft.json` exists:
 
 ```
-SDR stack: check: gps-time-readsb.service is active (dongle 00000001).
+SDR stack: check: gps-time-readsb.service is active (dongle 00001090).
 SDR stack: check: /run/readsb/aircraft.json exists.
 ```
 
@@ -64,22 +76,22 @@ Radio & SDR → **Aircraft decoders** shows the same: each decoder's units, the 
 
 ### Two dongles
 
-Both of the owner's dongles are NESDR SMArt v5. Their order on USB (the device index) is not stable, so every decoder opens its dongle by serial. A factory serial like `00000001` is fine with one dongle. With two, give each its own:
+Both of the owner's dongles are NESDR SMArt v5. Their order on USB (the device index) is not stable, so every decoder opens its dongle by serial. A factory serial like `00000001` is fine with one dongle. With two, give each its own. The owner's: **`00001090`** for 1090 MHz and **`00000978`** for 978 MHz.
 
 1. Stop everything that uses a dongle: `sudo systemctl stop gps-time-readsb gps-time-dump978 gps-time-websdr`.
 2. Plug in **one** dongle only, the one for 1090 MHz.
-3. `rtl_eeprom -s 1090`. It shows the current EEPROM and asks to confirm; answer `y`. Unplug and replug it.
-4. Plug in the other one alone: `rtl_eeprom -s 978`, then replug.
-5. With both plugged in, `rtl_test -t` lists `SN: 1090` and `SN: 978`.
-6. Deploy with `GTP_SDR_1090_SERIAL=1090 GTP_SDR_978_SERIAL=978`. If the web SDR was pinned to the old serial, set `GTP_WEBSDR_SERIAL` too (its default is the 1090 MHz dongle).
+3. `rtl_eeprom -s 00001090`. It shows the current EEPROM and asks to confirm; answer `y`. Unplug and replug it.
+4. Plug in the other one alone: `rtl_eeprom -s 00000978`, then replug.
+5. With both plugged in, `rtl_test -t` lists `SN: 00001090` and `SN: 00000978`.
+6. Deploy with `GTP_SDR_1090_SERIAL=00001090 GTP_SDR_978_SERIAL=00000978`. If the web SDR was pinned to the old serial, set `GTP_WEBSDR_SERIAL` too (its default is the 1090 MHz dongle).
 
-`rtl_eeprom` writes the dongle's EEPROM; the installer never runs it. `1090` and `978` can't be mistaken for a device index, since they are larger than the number of dongles.
+`rtl_eeprom` writes the dongle's EEPROM; the installer never runs it. Why not keep `00000001`: rtl-sdr's device search (rtl_tcp, rtl_test, OpenWebRX+) tries a number as a device index first, so with two dongles `00000001` means index 1, whichever dongle that is. `00001090` and `00000978` are far larger than the number of dongles, so they're always read as serials. The installer still warns about a serial that could be read as an index. (readsb's own search never reads a serial with a leading 0 as an index, and dump978-fa matches `serial=` exactly.)
 
 The 978 MHz role brings skyaware978's map at `/skyaware978/`. PiAware, when installed and turned on (`feeders.md`), feeds the 978 MHz UAT data too.
 
 **What it changes on the station:**
-- **Packages:** `rtl-sdr`, `readsb` and `soapysdr-module-rtlsdr`. For the dump978 build: `git`, `build-essential` and the Boost and SoapySDR development packages. For the aircraft map: `git`.
-- **readsb's own `readsb.service` is masked** before the package is installed, so it can't take the first dongle it finds, which could be the PPS one. Exception: if `readsb` was already installed and enabled, it's left alone, `gps-time-readsb` stays off, and the module reads that instance's `/run/readsb`.
+- **Packages:** `rtl-sdr` and `soapysdr-module-rtlsdr` (not Debian's `readsb` since rc.9). For the readsb build: see "readsb with RTL-SDR support" above. For the dump978 build: `git`, `build-essential` and the Boost and SoapySDR development packages. For the aircraft map: `git`.
+- **readsb's own `readsb.service` is masked** (from a Debian `readsb` package installed by rc.8 or earlier, or later by hand), so it can't take the first dongle it finds, which could be the PPS one. Exception: if `readsb` was already installed and enabled, it's left alone, `gps-time-readsb` stays off, and the module reads that instance's `/run/readsb`.
 - **The DVB-T driver** (`dvb_usb_rtl28xxu`, with `rtl2832` and `rtl2832_sdr`) would claim every RTL-SDR as it's plugged in. `scripts/rtl-dvb-blacklist.sh` writes `/etc/modprobe.d/gps-time-rtl-sdr.conf` (those three and `rtl2830`), so it stays off from the next boot, and unloads it now if it's loaded. If a dongle is busy and it can't be unloaded, the script says to reboot. It never names a shared module (`dvb_core`, `videodev`, `regmap_i2c`), and changes nothing in `/boot` or the initramfs (#157).
 - **dump978 is built as `nobody`** from a shallow clone of tag v11.1. The build stops unless the clone is commit `f40aa9a0d2d0a0067c0c628b44ba316f7049b8ce`. The two binaries go to `/usr/local/lib/gps-time-sdr/`, and skyaware978's page (`skyaware/` in the same commit) to `/usr/local/share/gps-time-skyaware978/html`. `-Werror` is dropped, so a newer compiler's new warnings don't stop the build. A station upgraded from rc.7 clones once more to get the page.
 - **USB access:** `/etc/udev/rules.d/61-gps-time-rtl-sdr.rules` gives RTL2832U dongles to `plugdev` (mode 0660), and is applied to the dongles plugged in now (`scripts/rtl-access.sh`). Every decoder unit has `SupplementaryGroups=plugdev`. Before rc.8 only the web SDR installed this rule.
@@ -96,7 +108,7 @@ The web SDR (`GTP_WEBSDR=1`, `websdr.md`) takes the dongle it's pinned to. Only 
 
 ## The live aircraft map (tar1090)
 
-On by default with the 1090 MHz role (owner, 2026-11-04, rc.6). [tar1090](https://github.com/wiedehopf/tar1090) is a static web page that draws readsb's aircraft on a map. Aviation → **Live aircraft map** links to it: `http://<station>/tar1090/`.
+On by default with the 1090 MHz role (owner, 2026-11-04, rc.6). [tar1090](https://github.com/wiedehopf/tar1090) is a static web page that draws readsb's aircraft on a map. Aviation → **1090 MHz ADS-B map** links to it (and **978 MHz UAT map** to `/skyaware978/`, since rc.9): `http://<station>/tar1090/`.
 
 - **Fetched by commit:** tar1090 `5d59b1b` (3.14.1825) and its aircraft database `tar1090-db` `2ab834a`. Both are fetched as `nobody` with `git fetch --depth 1 <repo> <commit>`, and each is checked against its pinned commit. Only the page's files are kept, in `/usr/local/share/gps-time-tar1090/html` (the database as `db-2ab834a/`). If either can't be fetched or verified, the map isn't installed and the rest of the stack is.
 - **No listener of its own:** the station's web service serves it at `/tar1090/`. It has the same port, the same Host checks and the same LAN as the rest of the station, and no lighttpd or nginx. tar1090's own `tar1090.service` (history chunks) isn't installed. The page falls back to readsb's own history files, so a few minutes of trails show when it opens.

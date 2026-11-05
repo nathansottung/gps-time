@@ -15,11 +15,11 @@ import { RESET_WORD, resetConfirmed, resetOutcome, surveyLoss, type ResetOutcome
 import { throttleRows, underVoltage } from '../lib/throttle';
 import { canToggle, outputHeading, outputLines, permissionText, rowStatus, settingOutcome, switchConfirm, type Outcome as ModOutcome } from '../lib/modules';
 import type { Polled } from '../api/station';
-import { adsbStats, dataPacks } from '../api/previews';
+import { dataPacks } from '../api/previews';
 import { ModuleReadiness, ModuleSettings, SdrReceivers } from '../components/sdr';
 import { CapabilityCard } from '../components/skymap';
 import { FeedersCard } from '../components/feeders';
-import { AircraftMapCard } from '../components/aircraftmap';
+import { AircraftMapCards } from '../components/aircraftmap';
 import { SunDays, MoonPhaseIcon } from './Overview';
 import { DateNav, DayBarCard, NightCard } from '../components/almanac';
 import { timeOnDay, todayIn } from '../lib/almanac';
@@ -388,58 +388,16 @@ export function Network() {
   );
 }
 
-// ─── Aviation: the live map (tar1090), then what is still planned ─────────────
+// ─── Aviation: the live maps (tar1090 at 1090 MHz, skyaware978 at 978 MHz) ────
 export function Aviation() {
   return (
     <div className="space-y-4 page-enter">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Aviation — ADS-B / Mode-S</h1>
+        <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Aviation — ADS-B (1090 MHz) and UAT (978 MHz)</h1>
         <MaturityBadge level="experimental" />
       </div>
 
-      <AircraftMapCard />
-
-      <Planned title="ADS-B / UAT" needs="dump1090 / dump978 integration">
-      <div className="grid grid-cols-1 @2xl:grid-cols-2 @5xl:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader title="1090 MHz ADS-B" badge={<StatusBadge variant="good" label="ACTIVE" />} />
-          <CardBody>
-            <MetricRow label="Messages/sec" value={adsbStats.msgsPerSec} />
-            <MetricRow label="Aircraft in view" value={adsbStats.aircraftCount} />
-            <MetricRow label="Max range" value={`${adsbStats.maxRangeKm} km`} provenance="observed" />
-            <MetricRow label="MLAT status" value="ACTIVE" />
-            <MetricRow label="MLAT peers" value={adsbStats.mlatPeers} />
-            <MetricRow label="MLAT-derived positions" value={adsbStats.mlatPositions} />
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="978 MHz UAT" badge={<StatusBadge variant="good" label="ACTIVE" />} />
-          <CardBody>
-            <MetricRow label="Messages/sec" value="8" />
-            <MetricRow label="Aircraft (UAT)" value="3" />
-            <MetricRow label="Uplink messages" value="14" />
-            <MetricRow label="FIS-B data" value="YES" />
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Position Source" />
-          <CardBody>
-            <div className="space-y-2 text-[11px]">
-              {[
-                { label:'ADS-B Direct', color:'var(--live)', note:'Position broadcast by aircraft' },
-                { label:'MLAT-derived', color:'var(--warn-text)', note:'Multi-lateration with peers' },
-              ].map(s => (
-                <div key={s.label} className="p-2 rounded-[2px]" style={{ background:'var(--bg)', border:'1px solid var(--border)' }}>
-                  <div className="mono" style={{ color: s.color }}>{s.label}</div>
-                  <div className="text-[10px]" style={{ color:'var(--t3)' }}>{s.note}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 text-[10px]" style={{ color:'var(--t3)' }}>Local station does not depend on any external proprietary service for position.</div>
-          </CardBody>
-        </Card>
-      </div>
-      </Planned>
+      <AircraftMapCards />
     </div>
   );
 }

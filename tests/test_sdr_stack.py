@@ -19,6 +19,21 @@ SYSTEM = ROOT / "system"
 UNITS = ["gps-time-rtl-tcp.service", "gps-time-readsb.service", "gps-time-dump978.service",
          "gps-time-skyaware978.service"]
 COMMIT = "f40aa9a0d2d0a0067c0c628b44ba316f7049b8ce"
+READSB_COMMIT = "321931802d89f1695a38f6dfb0a64ba5c1211be4"
+HELPER = ROOT / "scripts" / "sdr-decoders.sh"
+
+# What readsb prints for "--device-type rtlsdr --gtp-check-only": Debian 13's package (no RTL-SDR),
+# and a build with RTL-SDR support (the device type is accepted, the made-up option is not).
+READSB_NO_RTLSDR = """#!/bin/sh
+echo "ERROR: Unknown device type:rtlsdr" >&2
+echo "Error parsing the given command line parameters, check readsb --usage and readsb --help for valid parameters." >&2
+exit 1
+"""
+READSB_RTLSDR = """#!/bin/sh
+echo "readsb: unrecognized option '--gtp-check-only'" >&2
+echo "Try 'readsb --help' or 'readsb --usage' for more information." >&2
+exit 1
+"""
 
 
 def unit(name):
@@ -124,6 +139,20 @@ class TestUnits(unittest.TestCase):
                                    capture_output=True, text=True)
                 self.assertEqual(r.returncode, rc, r.stderr)
 
+    def test_readsb_is_built_from_a_pinned_tag_with_rtlsdr(self):
+        # rc.8: Debian 13's readsb has no RTL-SDR support ("Unknown device type:rtlsdr").
+        text = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn(f'READSB_COMMIT="{READSB_COMMIT}"', text)
+        self.assertIn('READSB_TAG="v3.16.21"', text)
+        self.assertIn('rev-parse HEAD)" = "$READSB_COMMIT"', text)
+        self.assertIn("make -C \"$RB/readsb\" -j2 RTLSDR=yes readsb", text)
+        self.assertNotRegex(text, r"apt-get install[^\n]* readsb")
+        for name in ("gps-time-readsb.service", "gps-time-readsb-feed.conf", "gps-time-readsb-node.conf",
+                     "gps-time-readsb-node.service", "gps-time-feed@.service"):
+            with self.subTest(name):
+                self.assertIn("ExecStart=/usr/local/bin/readsb ", unit(name))
+                self.assertNotIn("/usr/bin/readsb", unit(name))
+
     def test_dump978_is_pinned_to_a_commit(self):
         text = SCRIPT.read_text(encoding="utf-8")
         self.assertIn(f'DUMP978_COMMIT="{COMMIT}"', text)
@@ -155,11 +184,18 @@ case "$(basename "$0")" in
       case "$2" in
         */tar1090) echo "${STUB_TAR_COMMIT:-$STUB_COMMIT}" ;;
         */db) echo "${STUB_DB_COMMIT:-$STUB_COMMIT}" ;;
+        */readsb) echo "${STUB_READSB_COMMIT}" ;;
         *) echo "${STUB_COMMIT}" ;;
       esac
       exit 0
     fi ;;
-  make) d="$2"; touch "$d/dump978-fa" "$d/skyaware978"; chmod +x "$d/dump978-fa" "$d/skyaware978"; exit 0 ;;
+  make)
+    d="$2"
+    case "$d" in
+      */readsb) cp "$STUB_READSB" "$d/readsb"; chmod +x "$d/readsb" ;;
+      *) touch "$d/dump978-fa" "$d/skyaware978"; chmod +x "$d/dump978-fa" "$d/skyaware978" ;;
+    esac
+    exit 0 ;;
 esac
 exit 0
 """
@@ -179,6 +215,13 @@ class TestScript(unittest.TestCase):
             p.chmod(p.stat().st_mode | stat.S_IXUSR)
         self.root = self.tmp / "root"
         self.log = self.tmp / "calls.log"
+        self.readsb_good = self.tmp / "readsb-rtlsdr"
+        self.readsb_good.write_text(READSB_RTLSDR)
+        self.readsb_debian = self.tmp / "readsb-debian"
+        self.readsb_debian.write_text(READSB_NO_RTLSDR)
+        self.soapy = self.root / "usr/lib/aarch64-linux-gnu/SoapySDR/modules0.8/librtlsdrSupport.so"
+        self.soapy.parent.mkdir(parents=True)
+        self.soapy.write_text("")
 
     def run_script(self, *args, decoders_write=True, **env):
         """decoders_write: the decoders' aircraft.json files are there, as after a good start."""
@@ -188,7 +231,8 @@ class TestScript(unittest.TestCase):
                 (self.root / d / "aircraft.json").write_text('{"now": 1, "aircraft": []}')
         base = {k: v for k, v in os.environ.items() if not k.startswith("GTP_SDR")}
         base.update(PATH=f"{self.bin}:{os.environ['PATH']}", GTP_SDR_TEST_ROOT=str(self.root),
-                    STUB_LOG=str(self.log), STUB_COMMIT=COMMIT, GTP_SDR_WAIT_S="0")
+                    STUB_LOG=str(self.log), STUB_COMMIT=COMMIT, GTP_SDR_WAIT_S="0",
+                    STUB_READSB=str(self.readsb_good), STUB_READSB_COMMIT=READSB_COMMIT)
         base.update(env)
         return subprocess.run(["bash", str(SCRIPT), *args], env=base, capture_output=True, text=True, timeout=60)
 
@@ -211,7 +255,7 @@ class TestScript(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("not installed", r.stdout)
         self.assertEqual(self.calls(), [])
-        self.assertFalse(self.root.exists())
+        self.assertFalse((self.root / "etc").exists())
 
     def test_install_enables_only_roles_with_a_serial(self):
         r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090")
@@ -409,10 +453,10 @@ class TestScript(unittest.TestCase):
         page = self.root / "usr/local/share/gps-time-skyaware978/html"
         shutil.rmtree(page)                                             # as built by rc.7: binaries only
         r = self.run_script(GTP_SDR="1")
-        self.assertNotIn("already built", r.stdout)
+        self.assertNotIn("dump978 v11.1 already built", r.stdout)
         self.assertTrue((page / "index.html").is_file())
         r = self.run_script(GTP_SDR="1")
-        self.assertIn("already built", r.stdout)
+        self.assertIn("dump978 v11.1 already built", r.stdout)
 
     def test_serial_warnings(self):
         self.fake_dongle("1-1.2", "00000001")
@@ -422,6 +466,123 @@ class TestScript(unittest.TestCase):
         self.assertIn("serial 00000001 (1090 MHz) could be read as device index 1 with 2 RTL-SDRs", r.stdout)
         self.assertIn("no RTL-SDR on USB has serial 00005555 (978 MHz)", r.stdout)
         self.assertNotIn("00000978 (", r.stdout)
+
+    # ── rc.9: readsb with RTL-SDR support, SoapySDR's driver for dump978-fa ──
+
+    def test_readsb_is_built_with_rtlsdr_and_installed_in_usr_local(self):
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        rb = self.root / "usr/local/bin/readsb"
+        self.assertEqual(rb.read_text(), READSB_RTLSDR)
+        self.assertEqual((self.root / "usr/local/lib/gps-time-sdr/readsb.commit").read_text().strip(), READSB_COMMIT)
+        calls = self.calls()
+        self.assertTrue([c for c in calls if c.startswith("git clone") and "--branch v3.16.21 https://github.com/wiedehopf/readsb.git" in c])
+        self.assertTrue([c for c in calls if c.startswith("make -C") and c.endswith("RTLSDR=yes readsb")])
+        self.assertFalse([c for c in calls if c.startswith("apt-get install") and " readsb " in c + " "])
+        self.assertIn("systemctl enable gps-time-readsb.service", calls)
+        self.assertIn("built with RTL-SDR support", r.stdout)
+        r = self.run_script(GTP_SDR="1")
+        self.assertIn("readsb v3.16.21 already built", r.stdout)
+
+    def test_a_readsb_without_rtlsdr_is_never_installed_or_enabled(self):
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", STUB_READSB=str(self.readsb_debian))
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)          # install.sh reports it at the end
+        self.assertIn("refuses --device-type rtlsdr", r.stderr)
+        self.assertIn("CHECK FAILED: no readsb with RTL-SDR support, so 1090 MHz stays off", r.stderr)
+        self.assertFalse((self.root / "usr/local/bin/readsb").exists())
+        self.assertNotIn("systemctl enable gps-time-readsb.service", self.calls())
+        self.assertIn("systemctl disable --now gps-time-readsb.service", self.calls())
+
+    def test_an_rc8_readsb_is_rebuilt(self):
+        # An install with a readsb in /usr/local/bin that lacks RTL-SDR support, or no commit file.
+        rb = self.root / "usr/local/bin/readsb"
+        rb.parent.mkdir(parents=True)
+        rb.write_text(READSB_NO_RTLSDR)
+        rb.chmod(0o755)
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("readsb v3.16.21 already built", r.stdout)
+        self.assertEqual(rb.read_text(), READSB_RTLSDR)
+
+    def test_a_readsb_commit_mismatch_keeps_1090_off(self):
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", STUB_READSB_COMMIT="0" * 40)
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
+        self.assertIn("could not be fetched, verified", r.stderr)
+        self.assertFalse((self.root / "usr/local/bin/readsb").exists())
+
+    def test_978_needs_soapysdrs_rtlsdr_driver(self):
+        self.soapy.unlink()
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", GTP_SDR_978_SERIAL="00000978")
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
+        self.assertIn("CHECK FAILED: SoapySDR's RTL-SDR driver (librtlsdrSupport.so", r.stderr)
+        calls = self.calls()
+        self.assertNotIn("systemctl enable gps-time-dump978.service gps-time-skyaware978.service", calls)
+        self.assertIn("systemctl enable gps-time-readsb.service", calls)     # 1090 MHz is unaffected
+        # Without a 978 MHz role the driver isn't needed.
+        r = self.run_script(GTP_SDR="1", GTP_SDR_978_SERIAL="none")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("needed only for 978 MHz", r.stdout)
+
+    def test_check_mode_reports_the_decoders_and_changes_nothing(self):
+        self.soapy.unlink()
+        r = self.run_script("check", GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", GTP_SDR_978_SERIAL="00000978",
+                            decoders_write=False)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("the install builds readsb v3.16.21 (make RTLSDR=yes)", r.stdout)
+        self.assertIn("the install adds soapysdr-module-rtlsdr", r.stdout)
+        self.assertEqual(self.calls(), [])
+
+    def test_the_owners_new_serials_give_no_index_warning(self):
+        self.fake_dongle("1-1.2", "00001090")
+        self.fake_dongle("1-1.3", "00000978")
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", GTP_SDR_978_SERIAL="00000978")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("warning", r.stdout)
+        self.assertIn("check: gps-time-readsb.service is active (dongle 00001090).", r.stdout)
+        self.assertIn("check: gps-time-dump978.service is active (dongle 00000978).", r.stdout)
+
+
+@unittest.skipIf(os.name == "nt" or not shutil.which("bash") or not shutil.which("timeout"), "POSIX bash needed")
+class TestDecoderChecks(unittest.TestCase):
+    """scripts/sdr-decoders.sh on its own: the check never runs the decoder."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def check(self, func, arg):
+        r = subprocess.run(["bash", "-c", f'. "$1"; {func} "$2"', "x", str(HELPER), str(arg)],
+                           capture_output=True, text=True, timeout=30)
+        return r.returncode
+
+    def fake_readsb(self, text):
+        p = self.tmp / "readsb"
+        p.write_text(text)
+        p.chmod(0o755)
+        return p
+
+    def test_debians_readsb_fails_and_a_rtlsdr_build_passes(self):
+        self.assertEqual(self.check("decoder_readsb_rtlsdr", self.fake_readsb(READSB_NO_RTLSDR)), 1)
+        self.assertEqual(self.check("decoder_readsb_rtlsdr", self.fake_readsb(READSB_RTLSDR)), 0)
+
+    def test_a_missing_or_silent_readsb_fails(self):
+        self.assertEqual(self.check("decoder_readsb_rtlsdr", self.tmp / "nothing"), 1)
+        self.assertEqual(self.check("decoder_readsb_rtlsdr", self.fake_readsb("#!/bin/sh\nexit 0\n")), 1)
+
+    def test_the_check_asks_with_an_option_that_stops_readsb(self):
+        # readsb --help runs readsb unless --help is the first argument, so the check passes a
+        # made-up option after --device-type instead; the argument list is checked here.
+        args = self.tmp / "readsb.args"
+        self.fake_readsb('#!/bin/sh\necho "$*" > "$0.args"\necho "unrecognized option" >&2\nexit 1\n')
+        self.check("decoder_readsb_rtlsdr", self.tmp / "readsb")
+        self.assertEqual(args.read_text().strip(), "--device-type rtlsdr --gtp-check-only")
+
+    def test_soapysdr_driver_is_found_by_file(self):
+        self.assertEqual(self.check("decoder_soapy_rtlsdr", self.tmp), 1)
+        mod = self.tmp / "usr/lib/aarch64-linux-gnu/SoapySDR/modules0.8/librtlsdrSupport.so"
+        mod.parent.mkdir(parents=True)
+        mod.write_text("")
+        self.assertEqual(self.check("decoder_soapy_rtlsdr", self.tmp), 0)
 
 
 if __name__ == "__main__":

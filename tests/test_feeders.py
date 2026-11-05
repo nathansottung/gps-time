@@ -181,7 +181,7 @@ class TestUnits(unittest.TestCase):
     def test_readsb_keeps_no_outside_network_and_no_position(self):
         drop = (SYSTEM / "gps-time-readsb-feed.conf").read_text(encoding="utf-8")
         base = (SYSTEM / "gps-time-readsb.service").read_text(encoding="utf-8")
-        start = re.search(r"^ExecStart=(/usr/bin/readsb.*)$", drop, re.M).group(1)
+        start = re.search(r"^ExecStart=(/usr/local/bin/readsb.*)$", drop, re.M).group(1)
         base_start = re.search(r"^ExecStart=(.*)$", base, re.M).group(1)
         self.assertTrue(start.startswith(base_start))                # the same decoder, one output added
         self.assertIn("--net-bind-address 127.0.0.1 --net-bo-port 30005", start)
