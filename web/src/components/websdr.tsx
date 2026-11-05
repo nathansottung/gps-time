@@ -13,7 +13,9 @@ import { cycleLine, mhz, refreshLine, rows as airbandRows } from '../lib/airband
 
 const COLOR: Record<Variant, string> = { good: 'var(--good-text)', warn: 'var(--warn-text)', error: 'var(--err-text)', muted: 'var(--t3)' };
 const btn = { border: '1px solid var(--border)', color: 'var(--t2)' };
-const START_CONFIRM = 'Start the web SDR? readsb (1090 MHz ADS-B) stops while it runs, so the ADS-B references pause. '
+const startConfirm = (pauses: string | null | undefined) => 'Start the web SDR? '
+  + (pauses === null ? 'No other service uses its dongle. '
+    : `${pauses ?? 'The service on its dongle'} stops while it runs, so the aircraft on that band pause. `)
   + 'It stops by itself after the session limit.';
 const SIGNOUT_CONFIRM = 'Sign out every browser of the web SDR? Remembered browsers have to sign in again, '
   + 'and anyone listening now is disconnected. The password stays the same.';
@@ -34,7 +36,7 @@ export function WebSdrCard() {
 
   const run = async (a: AdminAction) => {
     setConfirming(null); setBusy(a); setOutcome(null);
-    try { setOutcome(websdrOutcome(a, await api.admin(a))); }
+    try { setOutcome(websdrOutcome(a, await api.admin(a), undefined, st?.pauses)); }
     catch (e) {
       const status = e instanceof ApiError ? e.status : null;
       setOutcome(websdrOutcome(a, null, { message: (e as Error).message, status }));
@@ -60,8 +62,8 @@ export function WebSdrCard() {
         <ApiErrorNote error={ws.error} />
         <div className="text-[10px] mb-2" style={{ color: 'var(--t3)' }}>
           A browser radio for the station's RTL-SDR, open to anyone on the LAN (never beyond it), with decoders (FT8, FT4, WSPR, APRS, packet, SSTV, CW,
-          RTTY, fax) and band bookmarks. While it runs it has the dongle to itself: readsb is stopped and starts again when the
-          web SDR stops.
+          RTTY, fax) and band bookmarks. While it runs it has its dongle to itself: {st?.pauses === null ? 'no other service uses that dongle'
+          : `${st?.pauses ?? 'the service on that dongle'} is stopped and starts again when the web SDR stops`}; the other decoders keep running.
         </div>
         {st && st.installed === false && st.node_host && (
           <div className="text-[11px]" style={{ color: 'var(--t2)' }}>
@@ -125,7 +127,7 @@ export function WebSdrCard() {
             {confirming === 'start' && (
               <div role="alertdialog" aria-label="Confirm: Start web SDR" className="mt-3 rounded-[2px] p-3"
                 style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-border)' }}>
-                <div className="text-[11px] mb-2" style={{ color: 'var(--t1)' }}>{START_CONFIRM}</div>
+                <div className="text-[11px] mb-2" style={{ color: 'var(--t1)' }}>{startConfirm(st?.pauses)}</div>
                 <div className="flex gap-1.5">
                   <button onClick={() => run('websdr_start')} className="px-3 py-[5px] text-[10px] mono rounded-[2px]"
                     style={{ border: '1px solid var(--warn-border)', color: 'var(--warn-text)' }}>Confirm: Start web SDR</button>

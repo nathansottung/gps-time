@@ -1,7 +1,8 @@
 #!/bin/sh
 # ExecStartPre of piaware.service (installed by scripts/feeders.sh): the station's PiAware settings,
 # applied before every start, so a change in Administration takes effect at the next (re)start.
-#   - data from readsb's Beast output on 127.0.0.1:30005, not from a dongle of PiAware's own;
+#   - data from readsb's Beast output on 127.0.0.1:30005, not from a dongle of PiAware's own, and
+#     978 MHz UAT from dump978-fa on 127.0.0.1:30978 when the 978 MHz role is on;
 #   - never gpsd: PiAware would read the station's exact position from it and send it;
 #   - no automatic or remote updates of the station's packages;
 #   - MLAT (which needs, and shares, the station's exact position) only with the owner's separate
@@ -15,6 +16,17 @@ piaware-config receiver-port 30005
 piaware-config use-gpsd no
 piaware-config allow-auto-updates no
 piaware-config allow-manual-updates no
+# 978 MHz UAT: from the SDR stack's dump978-fa raw output on 127.0.0.1:30978, when the 978 MHz role
+# has a dongle (GTP_SDR_978_SERIAL) and its unit is enabled; otherwise none. PiAware is the feeder
+# here that takes UAT; the Beast feeders (gps-time-feed@) send readsb's 1090 MHz messages only.
+S978="$(sed -n 's/^GTP_SDR_978_SERIAL=\([A-Za-z0-9_-]*\)$/\1/p' /etc/default/gps-time-sdr 2>/dev/null | tail -n 1)"
+if [ -n "$S978" ] && [ "$S978" != none ] && systemctl is-enabled --quiet gps-time-dump978.service 2>/dev/null; then
+  piaware-config uat-receiver-type other
+  piaware-config uat-receiver-host 127.0.0.1
+  piaware-config uat-receiver-port 30978
+else
+  piaware-config uat-receiver-type none
+fi
 # Belt and braces: in hidden privacy mode MLAT stays off whatever flag is there.
 if grep -Eq '"location_display"[[:space:]]*:[[:space:]]*"hidden"' /opt/gps-time-pi/config.json 2>/dev/null; then
   rm -f "$FLAGS/piaware.mlat"

@@ -11,6 +11,8 @@ After=network.target
 
 [Service]
 EnvironmentFile=/etc/default/gps-time-sdr
+# No serial, no start (the unit shows "condition failed"; no restart loop).
+ExecCondition=/bin/sh -c 'case "$$GTP_SDR_PPS_SERIAL" in ""|none) echo "gps-time-rtl-tcp: GTP_SDR_PPS_SERIAL is empty in /etc/default/gps-time-sdr; not started" >&2; exit 1 ;; esac'
 ExecStart=/usr/bin/rtl_tcp -a 127.0.0.1 -p 1234 -s 2400000 -d ${GTP_SDR_PPS_SERIAL}
 Restart=on-failure
 RestartSec=10

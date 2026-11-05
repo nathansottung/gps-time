@@ -11,14 +11,22 @@ Script: `scripts/websdr.sh`. Units and files: `system/61-gps-time-rtl-sdr.rules`
 
 ## One dongle, one owner
 
-The web SDR uses one RTL-SDR, picked by serial. By default that is the 1090 MHz dongle (`GTP_SDR_1090_SERIAL` from the SDR stack, `sdr-stack.md`), so:
+The web SDR uses one RTL-SDR, picked by serial (`GTP_WEBSDR_SERIAL`). By default that is the 1090 MHz dongle (`GTP_SDR_1090_SERIAL` from the SDR stack, `sdr-stack.md`). It takes whichever dongle it's pinned to, and **only the service on that dongle pauses** (rc.8):
 
-- **Starting the web SDR stops readsb** (`Conflicts=gps-time-readsb.service readsb.service`, and `After=` waits for it to let go of the dongle). The ADS-B references in `reference-adsb` pause; its readiness shows the 1090 MHz feed as stale.
-- **Stopping it starts readsb again** (`ExecStopPost=` runs `websdr-handoff`, which starts readsb if it is enabled; not during a shutdown).
-- **Never the PPS or the 978 MHz dongle:** the installer refuses those serials.
-- **On a Pi 4, a dongle of its own counts toward the limit of 3** (`sdr-stack.md` → "Roles and the limit"). Sharing the 1090 MHz dongle doesn't.
-- **A session ends by itself** after `GTP_WEBSDR_MAX_HOURS` (default 4; `RuntimeMaxSec=`), so a forgotten web SDR doesn't keep readsb off. The unit then shows as failed (result `timeout`), and readsb comes back. There is no automatic restart.
-- **Not enabled at boot.** Start and stop it from the Radio page or with `sudo systemctl start|stop gps-time-websdr`. On the Radio page anyone on the LAN can start and stop it, with no admin token (owner, 2026-11-04, rc.6). Use start and stop, not restart: a restart briefly starts readsb between the two halves.
+| Pinned to | Stops while it runs | Keeps running |
+|---|---|---|
+| the 1090 MHz dongle (the default) | readsb (`gps-time-readsb`, or the package's `readsb.service`) | dump978-fa, skyaware978 |
+| the 978 MHz dongle | dump978-fa and skyaware978 | readsb |
+| a dongle with no other role | nothing | everything |
+
+- **How:** the installer writes `gps-time-websdr.service.d/gps-time-dongle.conf` with `Conflicts=` and `After=` for that dongle's units (none for a free dongle), and `GTP_WEBSDR_SHARES` in `/etc/default/gps-time-websdr`. The base unit has no `Conflicts=` of its own since rc.8.
+- **Stopping it starts the same units again** (`ExecStopPost=` runs `websdr-handoff`, which resets a failed start limit and starts each one that is enabled; never another unit, and not during a shutdown).
+- **The pause shows** on Radio & SDR → Aircraft decoders and on the maps as PAUSED; the Start confirmation names the service that will stop. The references in `reference-adsb` from that band pause too.
+- **Never the PPS dongle:** it carries the injected PPS. The installer refuses its serial.
+- **The roles are read at install time:** after changing the SDR stack's serials, deploy with `GTP_WEBSDR=1` too, so the drop-in follows them.
+- **On a Pi 4, a dongle of its own counts toward the limit of 3** (`sdr-stack.md` → "Roles and the limit"). Sharing the 1090 MHz or 978 MHz dongle doesn't.
+- **A session ends by itself** after `GTP_WEBSDR_MAX_HOURS` (default 4; `RuntimeMaxSec=`), so a forgotten web SDR doesn't keep a decoder off. The unit then shows as failed (result `timeout`), and the decoder comes back. There is no automatic restart.
+- **Not enabled at boot.** Start and stop it from the Radio page or with `sudo systemctl start|stop gps-time-websdr`. On the Radio page anyone on the LAN can start and stop it, with no admin token (owner, 2026-11-04, rc.6). Use start and stop, not restart: a restart briefly starts the paused decoder between the two halves.
 
 ## Install
 
@@ -194,7 +202,7 @@ The owner's first start on the Pi (rc.6, 2026-11-04) failed. OpenWebRX+ logged `
 
 - **The serial is pinned as `serial=<serial>`.** OpenWebRX+'s `rtl_connector` then matches it exactly. A bare `00000001` (a common factory serial) is first tried as a serial, and is then read as a device index when the serials can't be read. That opens some other dongle, or none.
 - **A device is added when `settings.json` has none.** An existing file without an RTL-SDR device (no `sdrs` key, or only other kinds of radio) left OpenWebRX+ on its built-in device, which names no serial. That was the "0 devices". Now the installer adds `rtlsdr` with the base profiles, keeps the owner's other devices and settings, and says so.
-- **The dongles go to the `plugdev` group.** `-3` is libusb's access error: the dongle's node under `/dev/bus/usb` wasn't open to the `openwebrx` user. The unit runs with `SupplementaryGroups=plugdev`, like readsb. Debian's rule (`60-librtlsdr0.rules`) gives RTL2832U dongles to `plugdev`, but udev applies it only when a dongle is plugged in. A dongle that was plugged in before the package arrived can keep root-only access until it's replugged. The installer adds `/etc/udev/rules.d/61-gps-time-rtl-sdr.rules` (0bda:2832 and 0bda:2838, `0660`, `plugdev`) and applies it to the plugged-in dongles at once (`udevadm trigger`, access only, no driver change). It's kept when the web SDR is removed, because readsb uses it too.
+- **The dongles go to the `plugdev` group.** `-3` is libusb's access error: the dongle's node under `/dev/bus/usb` wasn't open to the `openwebrx` user. The unit runs with `SupplementaryGroups=plugdev`, like readsb. Debian's rule (`60-librtlsdr0.rules`) gives RTL2832U dongles to `plugdev`, but udev applies it only when a dongle is plugged in. A dongle that was plugged in before the package arrived can keep root-only access until it's replugged. The installer adds `/etc/udev/rules.d/61-gps-time-rtl-sdr.rules` (0bda:2832 and 0bda:2838, `0660`, `plugdev`) and applies it to the plugged-in dongles at once (`udevadm trigger`, access only, no driver change). It's kept when the web SDR is removed, because readsb uses it too. Since rc.8 the SDR stack installs the same rule (`scripts/rtl-access.sh`).
 - **It reports each dongle**: its USB port, serial, group and mode. It also warns when no dongle has the web SDR's serial, or when two have the same one. Two dongles reporting `00000001` can't be told apart. Give each its own serial with `rtl_eeprom -d <index> -s <serial>`, with nothing using the dongles, then replug. The installer never writes a dongle's EEPROM.
 
 Check it on the Pi after the deploy:
@@ -225,7 +233,7 @@ The script is tested with stub commands only (`apt-get`, `systemctl`, `curl`, `g
 - OpenWebRX+ under this unit's hardening (it may need a path or address family the unit doesn't allow);
 - the serial pin in `settings.json` (`device: serial=…`), the udev rule and its trigger, and the dongle report, on the Pi (rc.7; the tests use a temporary sysfs tree);
 - the online lists staying off with a later OpenWebRX+ version;
-- the readsb handoff under systemd, and `RuntimeMaxSec=` ending a session;
+- the handoff under systemd (readsb, or dump978-fa and skyaware978 with the 978 MHz dongle), and `RuntimeMaxSec=` ending a session;
 - OpenWebRX+'s CPU on the station, and its effect on PPS timing, which is what the usage log is for;
 - the sign-in page and its cookie in a real browser against the real OpenWebRX+ (the tests use a stand-in upstream);
 - the decoders' packages on trixie arm64, the decoders on air, and the HF profiles (see HF).

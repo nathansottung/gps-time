@@ -17,7 +17,7 @@ import { scaleValues } from '../lib/timescales';
 import { applySetting, configProblem } from '../lib/modules';
 import { demoImport, holdoverTimes } from '../lib/oscillator';
 import { demoCapability, demoSkyLines, demoSkyObstruction } from './demoSky';
-import type { Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrStatus, WebSdrStatus, WebSdrSummary, ClipsStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus, FeedersStatus, FeederRow, SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState, Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage, HoldoverCheckEntry, HoldoverScorecard } from './types';
+import type { Almanac, CoreStatus, ObjectReport, SkySnapshot, DisplayZone, EvidenceIndex, History, LocationMode, Measured, ModuleLatest, ModuleRow, Provenance, ReadinessCheck, SdrFeed, SdrStatus, WebSdrStatus, WebSdrSummary, ClipsStatus, NtpService, Oscillator, OscillatorBin, OscillatorHoldover, OscillatorProfileExport, HoldoverProjection, References, ReferenceServer, Satellite, AirbandStatus, FeedersStatus, FeederRow, SatelliteNow, SatelliteReport, ShadowReport, ShadowShell, ShadowState, Stability, StabilityPoint, Survey, SystemDiagnostics, TimeScales, TimingChain, TimingEvent, TimingStage, HoldoverCheckEntry, HoldoverScorecard } from './types';
 
 const SITE = { lat: 38.9217, lon: -77.0669, alt_msl: 92.0, alt_hae: 59.0 };
 
@@ -153,6 +153,7 @@ export function demoApi(): StationApi {
     websdr: () => delay(demoWebSdr()),
     aircraftMap: () => delay({ installed: true, url: '/tar1090/', state: 'live' as const, aircraft_json_age_s: 0.7, aircraft: 14,
                                station_marker: true, location_display: 'exact' as const,
+                               uat: { installed: true, url: '/skyaware978/', state: 'live' as const, aircraft_json_age_s: 1.4, aircraft: 3 },
                                note: "Demo: synthetic values, not a station's." }),
     clips: () => delay(demoClips()),
     recordClip: () => delay({ ok: true as const, simulated: true as const, detail: 'demo adapter: nothing was recorded' }),
@@ -255,6 +256,11 @@ function demoSdr(): SdrStatus {
     cpu_s: m(cpu, 's'), cpu_avg_pct: m(avg, '% of one core', 'calculated'), memory_mib: m(mem, 'MiB') });
   const dongle = (port: string, serial: string, role: string) => ({
     port, serial, product: 'RTL2838UHIDIR', role, speed_mbps: m(480, 'Mb/s'), dvb_driver: m(false, null) });
+  const feeds: SdrFeed[] = [
+    { band: '1090', path: '/run/readsb/aircraft.json', present: true, age_s: m(0.6, 's'), aircraft: m(23, 'count'),
+      messages_per_s: m(412.3, 'msg/s', 'calculated'), fresh: true },
+    { band: '978', path: '/run/skyaware978/aircraft.json', present: true, age_s: m(1.4, 's'), aircraft: m(3, 'count'),
+      messages_per_s: m(6.8, 'msg/s', 'calculated'), fresh: true }];
   return {
     installed: true,
     units: [unit('gps-time-rtl-tcp.service', 'rtl_tcp (PPS markers)', 812.4, 6.3, 9.8),
@@ -267,8 +273,16 @@ function demoSdr(): SdrStatus {
     limit: { model: m('Raspberry Pi 4 Model B Rev 1.5', null), max: 3, assigned: m(3, 'count', 'calculated'),
              plugged: m(3, 'count'), over: false,
              rule: 'at most 3 RTL-SDRs by serial on a Pi 4 (owner, 2026-11-04): one USB 2.0 bus, shared power and CPU with the timing core' },
-    feeds: [{ band: '1090', path: '/run/readsb/aircraft.json', present: true, age_s: m(0.6, 's'), aircraft: m(23, 'count'), fresh: true },
-            { band: '978', path: '/run/skyaware978/aircraft.json', present: true, age_s: m(1.4, 's'), aircraft: m(3, 'count'), fresh: true }],
+    feeds,
+    aircraft: {
+      decoders: [
+        { band: '1090', decoder: 'readsb', units: [{ unit: 'gps-time-readsb.service', state: 'active' }], serial: '00001090',
+          serial_plugged: m(true, null), paused_by_websdr: false, map: { name: 'tar1090', url: '/tar1090/', installed: true }, feed: feeds[0] },
+        { band: '978', decoder: 'dump978-fa + skyaware978',
+          units: [{ unit: 'gps-time-dump978.service', state: 'active' }, { unit: 'gps-time-skyaware978.service', state: 'active' }],
+          serial: '00000978', serial_plugged: m(true, null), paused_by_websdr: false,
+          map: { name: 'skyaware978', url: '/skyaware978/', installed: true }, feed: feeds[1] }],
+      websdr_serial: '00001090', websdr_band: '1090', websdr_running: false },
     note: "Demo: synthetic values, not a station's.",
   };
 }
@@ -355,7 +369,7 @@ function demoWebSdr(): WebSdrStatus {
   const now = Date.now();
   return {
     node_host: null, installed: true, active: m('active', null, 'observed', 'demo'), port: 8073, serial: '00001090', max_hours: 4,
-    auth: { enabled: true, remember_days: 30 }, hf: 'off',
+    auth: { enabled: true, remember_days: 30 }, hf: 'off', pauses: 'readsb (1090 MHz)',
     usage: {
       session: { start_utc: iso(now - 15 * 60_000), partial: false, truncated: false, bins: [],
                  before, during: sum(38.0, 58.8, 127.7, 56.8, 59.3, 566.0, 612.0, 2100.0, 15) },

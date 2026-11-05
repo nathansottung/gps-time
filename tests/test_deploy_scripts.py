@@ -31,7 +31,8 @@ def _code(path):
 NOT_INSTALL_FLAGS = {"GTP_SDR_", "GTP_SDR_TEST_ROOT", "GTP_WEBSDR_TEST_ROOT", "GTP_WEBSDR_OS_RELEASE",
                      "GTP_FEEDERS_TEST_ROOT", "GTP_FEEDERS_OS_RELEASE",
                      "GTP_WEBSDR_PYTHON", "GTP_CLIENTS_INTERVAL_S", "GTP_CLIENTS_ONCE",
-                     "GTP_NODE_TEST_ROOT", "GTP_CLIPS_TEST_ROOT"}
+                     "GTP_NODE_TEST_ROOT", "GTP_CLIPS_TEST_ROOT", "GTP_SDR_WAIT_S",
+                     "GTP_WEBSDR_SHARES"}   # written by websdr.sh for websdr-handoff, not read from the environment
 INSTALL_SCRIPTS = ["install.sh", "scripts/sdr-stack.sh", "scripts/websdr.sh", "scripts/feeders.sh", "scripts/node.sh",
                    "scripts/clips.sh", "scripts/chrony-no-dhcp-sources.sh",
                    "scripts/chrony-independent-refs.sh"]

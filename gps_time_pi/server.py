@@ -20,9 +20,11 @@ Routes:
   /api/airband       airband bookmarks for the web SDR: built-ins and the FAA NASR set with its cycle
                      and staleness; refreshed by the admin action refresh_airband
   /api/websdr        the optional web SDR (OpenWebRX+): installed, running, port; its usage log
-  /api/aircraft-map  the live aircraft map (tar1090 on readsb): installed, live/paused, marker shown
-  /tar1090/          the map itself (static page, readsb's JSON, receiver.json by the privacy mode)
                      (CPU, temperature, PPS jitter while it runs); started/stopped by /api/admin
+  /api/aircraft-map  the live aircraft maps (tar1090 on readsb, skyaware978): installed, live/paused, marker
+  /tar1090/          the 1090 MHz map (static page, readsb's JSON, receiver.json by the privacy mode)
+  /skyaware978/      the 978 MHz map the same way (skyaware978's page and its JSON)
+  Every GET route answers HEAD too (the same headers, no body).
   /api/sky-obstruction  the learned sky-obstruction map (skymap.py; off in hidden mode)
   /api/capability    the station's capability record (no exact position; opt-in sky quality)
   /app/        the web UI: the built React app from web/dist (GTP_WEB_DIST to override)
@@ -609,14 +611,41 @@ def auth_payload(authenticated, session=None):
     return out
 
 
+class _HeadWriter:
+    """wfile for a HEAD request: the status line and headers go out, the body doesn't."""
+
+    def __init__(self, raw):
+        self.raw = raw
+        self.body = False
+
+    def write(self, b):
+        if self.body:
+            return len(b)
+        return self.raw.write(b)
+
+    def flush(self):
+        self.raw.flush()
+
+
 class Handler(BaseHTTPRequestHandler):
     def end_headers(self):
         # Security headers on every response, including send_error() pages. One strict CSP
-        # for everything but the tar1090 map page, which sets its own (tar1090.csp_for).
+        # for everything but the map pages (tar1090, skyaware978), which set their own (tar1090.csp_for).
         self.send_header("Content-Security-Policy", getattr(self, "_csp", None) or security.CSP_STRICT)
         for k, v in security.SECURITY_HEADERS.items():
             self.send_header(k, v)
         super().end_headers()
+        if isinstance(self.wfile, _HeadWriter):
+            self.wfile.body = True
+
+    def do_HEAD(self):
+        """HEAD: what GET would answer, headers only (Content-Length as for GET). GET routes change nothing."""
+        raw = self.wfile
+        self.wfile = _HeadWriter(raw)
+        try:
+            self.do_GET()
+        finally:
+            self.wfile = raw
 
     def _redirect(self, location, code=302):
         self.send_response(code)
@@ -726,21 +755,25 @@ class Handler(BaseHTTPRequestHandler):
         with open(full, "rb") as f:
             self._send(f.read(), ctype, cache=cache)
 
-    def _tar1090(self, rel):
-        """The aircraft map: readsb's data (receiver.json by the privacy mode), else the static page."""
+    def _map(self, rel, site="tar1090"):
+        """An aircraft map: the decoder's data (receiver.json by the privacy mode), else the static page."""
         if rel.startswith("data/"):
-            body = tar1090.data(rel[len("data/"):], config.load())
+            body = tar1090.data(rel[len("data/"):], config.load(), site=site)
             if body is None:
                 self.send_error(404)
             else:
                 self._send(body, "application/json")
             return
-        if not tar1090.installed():
-            self._send("The aircraft map (tar1090) is not installed. It comes with the SDR stack's 1090 MHz role: "
-                       "sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=<serial> bash install.sh (docs/deploy/sdr-stack.md).\n",
-                       "text/plain", code=503)
+        if not tar1090.installed(site):
+            if site == "tar1090":
+                msg = ("The aircraft map (tar1090) is not installed. It comes with the SDR stack's 1090 MHz role: "
+                       "sudo GTP_SDR=1 GTP_SDR_1090_SERIAL=<serial> bash install.sh (docs/deploy/sdr-stack.md).\n")
+            else:
+                msg = ("The 978 MHz map (skyaware978) is not installed. It comes with the SDR stack's 978 MHz role: "
+                       "sudo GTP_SDR=1 GTP_SDR_978_SERIAL=<serial> bash install.sh (docs/deploy/sdr-stack.md).\n")
+            self._send(msg, "text/plain", code=503)
             return
-        hit = tar1090.static(rel)
+        hit = tar1090.static(rel, site)
         if hit is None:
             self.send_error(404)
             return
@@ -887,12 +920,17 @@ class Handler(BaseHTTPRequestHandler):
             elif p == "/api/airband":
                 self._json(demo.airband_status(config.load()) if DEMO_MODE else airband.status(config.load()))
             elif p == "/api/aircraft-map":
+                # Paused only for the map whose dongle the web SDR is running on.
                 active = None if DEMO_MODE else websdr.unit_active()
-                self._json(tar1090.status(config.load(), websdr_active=active))
-            elif p == tar1090.PREFIX.rstrip("/"):
-                self._redirect(tar1090.PREFIX, 301)
+                band = sdr.websdr_band()
+                self._json(tar1090.status(config.load(), websdr_active=active and band == "1090",
+                                          websdr_978=active and band == "978"))
+            elif p in (tar1090.PREFIX.rstrip("/"), tar1090.SKY_PREFIX.rstrip("/")):
+                self._redirect(p + "/", 301)
             elif p.startswith(tar1090.PREFIX):
-                self._tar1090(unquote(p[len(tar1090.PREFIX):]))
+                self._map(unquote(p[len(tar1090.PREFIX):]), "tar1090")
+            elif p.startswith(tar1090.SKY_PREFIX):
+                self._map(unquote(p[len(tar1090.SKY_PREFIX):]), "skyaware978")
             else:
                 self.send_error(404)
         except BrokenPipeError:

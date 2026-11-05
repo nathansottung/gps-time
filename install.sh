@@ -20,6 +20,11 @@ command -v chronyc >/dev/null 2>&1 || problems="$problems\n  - chrony is not ins
 for g in _chrony video; do
   getent group "$g" >/dev/null 2>&1 || problems="$problems\n  - group $g does not exist (the service unit needs it)"
 done
+# The SDR stack's settings (GTP_SDR=1): an empty 1090 MHz serial or a bad one stops here, before
+# anything changes, instead of leaving readsb in a restart loop (rc.7).
+if [ -n "${GTP_SDR-}" ] && ! bash scripts/sdr-stack.sh check; then
+  problems="$problems\n  - the SDR stack's settings (the message above): set GTP_SDR_1090_SERIAL, or GTP_SDR_1090_SERIAL=none"
+fi
 if [ -n "$problems" ]; then
   printf "Cannot install:$problems\nNothing was changed.\n" >&2
   exit 1
@@ -152,8 +157,13 @@ echo "== SDR stack (optional, off unless asked for) =="
 #   sudo GTP_SDR=1 GTP_SDR_PPS_SERIAL=... GTP_SDR_1090_SERIAL=... GTP_SDR_978_SERIAL=... bash install.sh
 #   sudo GTP_SDR=0 bash install.sh        remove the units again (packages are kept)
 # A failure here leaves the station as it was; it never stops the install (docs/deploy/sdr-stack.md).
-bash scripts/sdr-stack.sh \
-  || echo "Warning: the SDR stack was not changed (see the message above)."
+SDR_RC=0
+bash scripts/sdr-stack.sh || SDR_RC=$?
+case "$SDR_RC" in
+  0) ;;
+  3) echo "Warning: the SDR stack is installed, but its check failed: a decoder isn't running (CHECK FAILED above)." ;;
+  *) echo "Warning: the SDR stack was not changed (see the message above)." ;;
+esac
 
 echo "== Web SDR (optional, off unless asked for) =="
 # OpenWebRX+ behind a password gate, LAN only; readsb stops while it runs. Nothing is installed
@@ -241,5 +251,9 @@ from gps_time_pi import astro
 s = astro.STATUS
 print("Astronomy: available" if s["available"] else "Astronomy: UNAVAILABLE - " + str(s["reason"]))') \
     || echo "Astronomy: self-check could not run as gps-time (see the error above)."
+fi
+if [ "$SDR_RC" = 3 ]; then
+  echo "SDR stack: CHECK FAILED (see above): the station is installed, but an aircraft decoder isn't running."
+  echo "  journalctl -u gps-time-readsb -u gps-time-dump978 -n 50; docs/deploy/sdr-stack.md -> Check it"
 fi
 echo "Done. Open http://$(hostname -I | awk '{print $1}')/"

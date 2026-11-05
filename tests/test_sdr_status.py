@@ -197,6 +197,78 @@ class TestFeeds(Tree):
         self.assertEqual((f["present"], f["fresh"], f["aircraft"]["value"]), (True, False, None))
 
 
+class TestDongleMapping(Tree):
+    def test_each_role_by_serial_and_none_is_no_dongle(self):
+        a = sdr.assignments()
+        self.assertEqual((a["1090"], a["978"], a["pps"], a["websdr"], a["websdr_band"]),
+                         ("00001090", "00000978", None, None, None))
+        self.env.write_text("GTP_SDR_1090_SERIAL=none\nGTP_SDR_978_SERIAL=00000978\n")
+        self.assertIsNone(sdr.assignments()["1090"])
+        self.assertNotIn("none", sdr.roles())
+
+    def test_the_web_sdr_band_is_the_role_its_dongle_has(self):
+        for web, band in (("00001090", "1090"), ("00000978", "978"), ("00000777", None)):
+            with self.subTest(web):
+                self.web_env.write_text(f'GTP_WEBSDR_SERIAL={web}\nGTP_WEBSDR_SHARES="x"\n')
+                self.assertEqual(sdr.websdr_band(), band)
+
+    def test_aircraft_decoders_with_serial_state_pause_and_map(self):
+        self.web_env.write_text("GTP_WEBSDR_SERIAL=00000978\n")
+        rows = sdr.units(fake_run(), monotonic_us=1_060_000_000)
+        ac = sdr.aircraft(rows, [sdr.feed("1090"), sdr.feed("978")], websdr_on=True)
+        d1090, d978 = ac["decoders"]
+        self.assertEqual((d1090["serial"], d1090["units"][0]["state"], d1090["paused_by_websdr"]),
+                         ("00001090", "active", False))
+        self.assertTrue(d1090["serial_plugged"]["value"])
+        self.assertEqual(d1090["map"]["url"], "/tar1090/")
+        self.assertEqual((d978["serial"], d978["paused_by_websdr"]), ("00000978", True))   # only its dongle
+        self.assertEqual(d978["units"][0]["state"], "not installed")
+        self.assertEqual(d978["map"]["url"], "/skyaware978/")
+        self.assertEqual(ac["websdr_band"], "978")
+        unknown = sdr.aircraft(None, [sdr.feed("1090"), sdr.feed("978")], websdr_on=None)["decoders"][0]
+        self.assertIsNone(unknown["units"][0]["state"])                 # systemctl unreadable: UNKNOWN
+        self.assertIsNone(unknown["paused_by_websdr"])
+        self.env.write_text("GTP_SDR_1090_SERIAL=00009999\n")
+        gone = sdr.aircraft(rows, [], websdr_on=False)["decoders"][0]
+        self.assertFalse(gone["serial_plugged"]["value"])               # no dongle has that serial
+
+    def test_status_carries_the_aircraft_section(self):
+        st = sdr.status(fake_run(), monotonic_us=1_060_000_000)
+        self.assertEqual([d["band"] for d in st["aircraft"]["decoders"]], ["1090", "978"])
+
+
+class TestMessageRate(Tree):
+    def setUp(self):
+        super().setUp()
+        sdr._LAST_COUNT.clear()
+        self.addCleanup(sdr._LAST_COUNT.clear)
+
+    def write(self, now, messages):
+        self.feed1090.write_text(json.dumps({"now": now, "messages": messages, "aircraft": [{}]}))
+
+    def test_from_the_counter_between_two_reads(self):
+        self.write(100.0, 5000)
+        f = sdr.feed("1090", time.time())
+        self.assertIsNone(f["messages_per_s"]["value"])                 # one read: no rate yet
+        self.assertEqual(f["messages_per_s"]["provenance"], "calculated")
+        self.write(110.0, 9000)
+        self.assertEqual(sdr.feed("1090", time.time())["messages_per_s"]["value"], 400.0)
+        self.write(111.0, 10)                                           # the decoder restarted
+        self.assertIsNone(sdr.feed("1090", time.time())["messages_per_s"]["value"])
+
+    def test_readsb_stats_json_first(self):
+        self.write(100.0, 5000)
+        (self.feed1090.parent / "stats.json").write_text(json.dumps(
+            {"last1min": {"start": 1000.0, "end": 1060.0, "messages": 1800}}))
+        self.assertEqual(sdr.feed("1090", time.time())["messages_per_s"]["value"], 30.0)
+
+    def test_stale_file_has_no_rate(self):
+        self.write(100.0, 5000)
+        sdr.feed("1090", time.time())
+        self.write(110.0, 9000)
+        self.assertIsNone(sdr.feed("1090", time.time() + 600)["messages_per_s"]["value"])
+
+
 class TestReadiness(Tree):
     def test_checks_follow_what_is_observed(self):
         st = sdr.status(fake_run(), now=self.feed1090.stat().st_mtime + 1)

@@ -570,15 +570,43 @@ class TestUnits(unittest.TestCase):
         self.assertEqual(keys(u, "ReadWritePaths"), ["/etc/gps-time-websdr"])
         self.assertIn("PrivateNetwork=yes", u)
 
-    def test_readsb_stops_while_it_runs_and_comes_back(self):
+    def test_the_service_on_its_dongle_stops_while_it_runs_and_comes_back(self):
         u = unit("gps-time-websdr.service")
-        self.assertIn("Conflicts=gps-time-readsb.service readsb.service", u)
-        self.assertIn("After=network.target gps-time-readsb.service readsb.service", u)
+        # No fixed Conflicts=: which decoder pauses depends on the dongle (gps-time-dongle.conf).
+        self.assertEqual(keys(u, "Conflicts"), [])
+        self.assertEqual(keys(u, "After"), ["network.target"])
         self.assertIn("ExecStopPost=+/usr/local/lib/gps-time-sdr/websdr-handoff", u)
         self.assertEqual(keys(u, "Restart"), ["no"])
         h = (SYSTEM / "websdr-handoff").read_text(encoding="utf-8")
         self.assertIn("systemctl --no-block start", h)
         self.assertIn("stopping) exit 0", h)
+        self.assertIn("GTP_WEBSDR_SHARES", h)
+
+    @unittest.skipIf(os.name == "nt" or not shutil.which("sh"), "POSIX sh needed")
+    def test_the_handoff_starts_only_the_units_that_share_the_dongle(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "bin").mkdir()
+        log = tmp / "log"
+        stub = tmp / "bin" / "systemctl"
+        stub.write_text('#!/bin/sh\necho "systemctl $*" >> "$STUB_LOG"\n'
+                        '[ "$1" = is-system-running ] && { echo running; exit 0; }\nexit 0\n')
+        stub.chmod(0o755)
+        env_file = tmp / "gps-time-websdr"
+        for shares, want in (('"gps-time-dump978.service gps-time-skyaware978.service"',
+                              ["gps-time-dump978.service", "gps-time-skyaware978.service"]),
+                             ('"gps-time-readsb.service readsb.service"', ["gps-time-readsb.service", "readsb.service"]),
+                             ('""', []), ('"gps-time-pi.service; reboot"', [])):
+            with self.subTest(shares):
+                log.unlink(missing_ok=True)
+                env_file.write_text(f"GTP_WEBSDR_SERIAL=978\nGTP_WEBSDR_SHARES={shares}\n")
+                subprocess.run(["sh", str(SYSTEM / "websdr-handoff")], check=True, timeout=10,
+                               env={"PATH": f"{tmp / 'bin'}:{os.environ['PATH']}", "STUB_LOG": str(log),
+                                    "GTP_WEBSDR_ENV": str(env_file)})
+                calls = log.read_text().splitlines() if log.exists() else []
+                started = [c.split()[-1] for c in calls if c.startswith("systemctl --no-block start")]
+                self.assertEqual(started, want)
+                self.assertFalse([c for c in calls if "gps-time-pi" in c or "reboot" in c])
 
     def test_never_enabled_at_boot(self):
         for name in ("gps-time-websdr.service", "gps-time-websdr-gate.service", "gps-time-websdr-signout.service"):
@@ -796,12 +824,35 @@ class TestScript(unittest.TestCase):
             self.assertLess(time.time() - f.stat().st_mtime, period)
             self.assertLess(2145830400, 2 ** 31)                   # a 32-bit time_t holds it
 
+    def dongle_dropin(self):
+        return (self.root / "etc/systemd/system/gps-time-websdr.service.d/gps-time-dongle.conf").read_text()
+
+    def test_only_the_service_on_its_dongle_pauses(self):
+        sdr_env = "GTP_SDR_1090_SERIAL=1090\nGTP_SDR_978_SERIAL=978\n"
+        for serial, conflicts in (("1090", "gps-time-readsb.service readsb.service"),
+                                  ("978", "gps-time-dump978.service gps-time-skyaware978.service"),
+                                  ("free1", None)):
+            with self.subTest(serial):
+                r = self.run_script(sdr_env, GTP_WEBSDR="1", GTP_WEBSDR_SERIAL=serial)
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+                d = self.dongle_dropin()
+                env = (self.root / "etc/default/gps-time-websdr").read_text()
+                if conflicts:
+                    self.assertIn(f"\nConflicts={conflicts}\n", d)
+                    self.assertIn(f"\nAfter={conflicts}\n", d)
+                    self.assertIn(f'GTP_WEBSDR_SHARES="{conflicts}"\n', env)
+                else:
+                    self.assertNotIn("Conflicts=", d)
+                    self.assertIn('GTP_WEBSDR_SHARES=""\n', env)
+                    self.assertIn("nothing pauses", r.stdout)
+        self.run_script(GTP_WEBSDR="0")
+        self.assertFalse((self.root / "etc/systemd/system/gps-time-websdr.service.d").exists())
+
     def test_refusals_change_nothing(self):
         cases = [
             ({}, None),                                                                      # no serial at all
             ({"GTP_WEBSDR_SERIAL": "a b; rm -rf /"}, None),
             ({}, "GTP_SDR_PPS_SERIAL=00000pps\nGTP_SDR_1090_SERIAL=00000pps\n"),             # the PPS dongle
-            ({"GTP_WEBSDR_SERIAL": "00000978"}, "GTP_SDR_978_SERIAL=00000978\n"),
             ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_PORT": "80"}, None),
             ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_PORT": "8074"}, None),
             ({"GTP_WEBSDR_SERIAL": "x1", "GTP_WEBSDR_MAX_HOURS": "0"}, None),

@@ -638,6 +638,13 @@ def sdr_status() -> dict:
                 "cpu_s": q(cpu_s, "s", "observed"), "cpu_avg_pct": q(avg, "% of one core", "calculated"),
                 "memory_mib": q(mem, "MiB", "observed")}
 
+    feeds = [{"band": "1090", "path": "/run/readsb/aircraft.json", "present": True,
+              "age_s": q(0.6, "s", "observed"), "aircraft": q(23, "count", "observed"),
+              "messages_per_s": q(412.3, "msg/s", "calculated", "demo"), "fresh": True},
+             {"band": "978", "path": "/run/skyaware978/aircraft.json", "present": True,
+              "age_s": q(1.4, "s", "observed"), "aircraft": q(3, "count", "observed"),
+              "messages_per_s": q(6.8, "msg/s", "calculated", "demo"), "fresh": True}]
+
     def dongle(port, serial, role):
         return {"port": port, "serial": serial, "product": "RTL2838UHIDIR", "role": role,
                 "speed_mbps": q(480, "Mb/s", "observed"), "dvb_driver": q(False, None, "observed")}
@@ -654,10 +661,17 @@ def sdr_status() -> dict:
                   "assigned": q(3, "count", "calculated"), "plugged": q(3, "count", "observed"), "over": False,
                   "rule": ("at most 3 RTL-SDRs by serial on a Pi 4 (owner, 2026-11-04): one USB 2.0 bus, shared "
                            "power and CPU with the timing core")},
-        "feeds": [{"band": "1090", "path": "/run/readsb/aircraft.json", "present": True,
-                   "age_s": q(0.6, "s", "observed"), "aircraft": q(23, "count", "observed"), "fresh": True},
-                  {"band": "978", "path": "/run/skyaware978/aircraft.json", "present": True,
-                   "age_s": q(1.4, "s", "observed"), "aircraft": q(3, "count", "observed"), "fresh": True}],
+        "feeds": feeds,
+        "aircraft": {"decoders": [
+            {"band": "1090", "decoder": "readsb", "units": [{"unit": "gps-time-readsb.service", "state": "active"}],
+             "serial": "00001090", "serial_plugged": q(True, None, "observed", "demo"), "paused_by_websdr": False,
+             "map": {"name": "tar1090", "url": "/tar1090/", "installed": True}, "feed": feeds[0]},
+            {"band": "978", "decoder": "dump978-fa + skyaware978",
+             "units": [{"unit": "gps-time-dump978.service", "state": "active"},
+                       {"unit": "gps-time-skyaware978.service", "state": "active"}],
+             "serial": "00000978", "serial_plugged": q(True, None, "observed", "demo"), "paused_by_websdr": False,
+             "map": {"name": "skyaware978", "url": "/skyaware978/", "installed": True}, "feed": feeds[1]}],
+            "websdr_serial": "00001090", "websdr_band": "1090", "websdr_running": False},
         "note": "Demo: synthetic values, not a station's.",
     }
 

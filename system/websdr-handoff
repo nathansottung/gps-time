@@ -1,11 +1,21 @@
 #!/bin/sh
 # Run as ExecStopPost= of gps-time-websdr.service (installed by scripts/websdr.sh): the web SDR
-# has let go of the dongle, so readsb starts again, if it is enabled. Not during a shutdown.
+# has let go of its dongle, so the service it paused starts again, if it is enabled. Only the units
+# that share that dongle (GTP_WEBSDR_SHARES in /etc/default/gps-time-websdr: readsb, or dump978-fa
+# and skyaware978), never another. Not during a shutdown.
 case "$(systemctl is-system-running 2>/dev/null)" in
   stopping) exit 0 ;;
 esac
-for u in gps-time-readsb.service readsb.service; do
+ENVFILE="${GTP_WEBSDR_ENV:-/etc/default/gps-time-websdr}"
+SHARES="$(sed -n 's/^GTP_WEBSDR_SHARES="\{0,1\}\([A-Za-z0-9@. _-]*\)"\{0,1\}$/\1/p' "$ENVFILE" 2>/dev/null | tail -n 1)"
+for u in $SHARES; do
+  case "$u" in
+    gps-time-readsb.service|readsb.service|gps-time-dump978.service|gps-time-skyaware978.service) ;;
+    *) continue ;;
+  esac
   if systemctl is-enabled --quiet "$u" 2>/dev/null; then
+    # A restart loop while the dongle was busy may have hit the start limit.
+    systemctl reset-failed "$u" 2>/dev/null
     systemctl --no-block start "$u"
   fi
 done

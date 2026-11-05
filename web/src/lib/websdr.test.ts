@@ -65,7 +65,8 @@ describe('websdr', () => {
   });
 
   it('reports the station answer, never a guess', () => {
-    expect(websdrOutcome('websdr_start', { ok: true, action: 'websdr_start', detail: '' }).text).toContain('readsb is stopped');
+    expect(websdrOutcome('websdr_start', { ok: true, action: 'websdr_start', detail: '' }, undefined, 'readsb (1090 MHz)').text).toContain('readsb (1090 MHz) is stopped');
+    expect(websdrOutcome('websdr_start', { ok: true, action: 'websdr_start', detail: '' }, undefined, null).text).toContain('No other service');
     expect(websdrOutcome('websdr_stop', { ok: false, action: 'websdr_stop', detail: 'Unit not found' }).variant).toBe('error');
     expect(websdrOutcome('websdr_start', null, { message: 'timed out', status: null }).variant).toBe('warn');
     expect(websdrOutcome('websdr_start', { ok: true, action: 'websdr_start', detail: 'd', simulated: true }).text).toContain('demo');
