@@ -1019,7 +1019,27 @@ export interface SdrFeed {
   present: boolean;
   age_s: Measured<number>;
   aircraft: Measured<number>;
+  messages_per_s?: Measured<number>;   // calculated; absent before v1.6.0-rc.8, null until two reads
   fresh: boolean;
+}
+
+/** One aircraft decoder for Radio & SDR (sdr.py aircraft()): its units, its dongle by serial, its map. */
+export interface SdrAircraftDecoder {
+  band: '1090' | '978';
+  decoder: string;                                     // 'readsb', 'dump978-fa + skyaware978'
+  units: { unit: string; state: string | null }[];     // null: systemctl couldn't be read (UNKNOWN)
+  serial: string | null;                               // configured (/etc/default/gps-time-sdr); null: no dongle
+  serial_plugged: Measured<boolean>;                   // an RTL-SDR with that serial on USB now
+  paused_by_websdr: boolean | null;                    // the web SDR is running on this dongle
+  map: { name: 'tar1090' | 'skyaware978'; url: string; installed: boolean };
+  feed?: SdrFeed;
+}
+
+export interface SdrAircraft {
+  decoders: SdrAircraftDecoder[];
+  websdr_serial: string | null;
+  websdr_band: '1090' | '978' | null;
+  websdr_running: boolean | null;
 }
 
 /** The owner's dongle limit (at most 3 RTL-SDRs by serial on a Pi 4; scripts/dongle-roles.sh). */
@@ -1038,6 +1058,7 @@ export interface SdrStatus {
   dongles: SdrDongle[] | null;
   limit?: SdrLimit;             // absent on a station before v1.6.0-rc.3
   feeds: SdrFeed[];
+  aircraft?: SdrAircraft;      // absent on a station before v1.6.0-rc.8
   note: string;
 }
 
@@ -1078,6 +1099,8 @@ export interface WebSdrStatus {
   /** The installer's settings (configured): the gate's login (GTP_WEBSDR_AUTH) and HF profiles (GTP_WEBSDR_HF). */
   auth?: { enabled: boolean | null; remember_days: number | null };
   hf?: 'off' | 'direct' | 'native' | null;
+  /** The one service on the web SDR's dongle, stopped while it runs; null: none. Absent before rc.8. */
+  pauses?: string | null;
   usage: {
     session: WebSdrSession | null; baseline: WebSdrSummary | null; recent: WebSdrPastSession[];
     file: { name: string; error: string | null }; note: string;
@@ -1096,6 +1119,9 @@ export interface AircraftMapStatus {
   aircraft: number | null;                     // observed: entries in aircraft.json
   station_marker: boolean;                     // false in hidden mode or without a survey
   location_display: LocationMode;
+  /** The 978 MHz map (skyaware978 at /skyaware978/); absent before v1.6.0-rc.8. */
+  uat?: { installed: boolean; url: string; state: 'live' | 'paused' | 'stale' | 'no_data';
+          aircraft_json_age_s: number | null; aircraft: number | null };
   note: string;
 }
 

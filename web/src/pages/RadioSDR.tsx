@@ -1,102 +1,16 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardBody, MetricRow, StatusBadge, MaturityBadge, ELI5, Tabs, ProvenanceTag } from '../components/ui';
+import { Card, CardHeader, CardBody, MaturityBadge, Tabs } from '../components/ui';
 import { sdrDevices } from '../api/previews';
-import { Planned } from '../components/planned';
 import { useStation } from '../api/station';
-import { fmtSci } from '../lib/units';
 import { AirbandCard, WebSdrCard } from '../components/websdr';
 import { ClipsCard } from '../components/clips';
-
-const TIER_LABELS = [
-  '', // 0
-  'USB receive-only',
-  'Frequency-calibrated',
-  'PPS/epoch-aligned',
-  'PPS + reference clock',
-  'Hardware timestamped',
-];
-
-// Simulated waterfall data
-function WaterfallDisplay({ freqMHz }: { freqMHz: number }) {
-  const rows = 24, cols = 80;
-  return (
-    <div className="w-full overflow-hidden rounded-[2px]" style={{ border:'1px solid var(--border)' }}>
-      <div className="flex items-center justify-between px-3 py-1" style={{ background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
-        <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>Waterfall — {freqMHz} MHz ± 1.024 MHz</span>
-        <span className="mono text-[10px]" style={{ color:'var(--t3)' }}>2.048 MS/s</span>
-      </div>
-      <svg width="100%" height={rows*3} viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
-        {Array.from({ length: rows }, (_, r) =>
-          Array.from({ length: cols }, (_, c) => {
-            const noise = Math.random() * 0.3;
-            // Simulate a center signal spike and some interference
-            const sig = freqMHz === 1090 && Math.abs(c - cols/2) < 3 ? 0.9 : 0;
-            const v = Math.min(1, noise + sig * Math.random());
-            // Color: dark blue → cyan → yellow
-            const hue = v < 0.5 ? `rgba(34,211,238,${v*0.5})` : `rgba(251,191,36,${(v-0.5)*1.5})`;
-            return <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={hue}/>;
-          })
-        )}
-      </svg>
-    </div>
-  );
-}
-
-// SDR device card
-function SDRCard({ dev }: { dev: typeof sdrDevices[0] }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <Card>
-      <CardHeader
-        title={dev.service}
-        badge={<StatusBadge variant={dev.state==='active'?'good':'muted'} label={dev.state.toUpperCase()} />}
-        action={
-          <button onClick={() => setExpanded(!expanded)}
-            className="text-[10px] mono transition-colors" style={{ color:'var(--t3)' }}>
-            {expanded ? 'collapse' : 'details'}
-          </button>
-        }
-      />
-      <CardBody>
-        <div className="grid grid-cols-1 @md:grid-cols-2 gap-x-6">
-          <div>
-            <MetricRow label="Device" value={dev.name} />
-            <MetricRow label="Tuner" value={dev.tuner} />
-            <MetricRow label="Serial" value={dev.serial} />
-          </div>
-          <div>
-            <MetricRow label="Center freq." value={`${dev.freqMHz} MHz`} />
-            <MetricRow label="Sample rate" value={`${dev.sampleRateMsps} MS/s`} />
-            <MetricRow label="Gain" value={typeof dev.gain === 'number' ? `${dev.gain} dB` : dev.gain} />
-          </div>
-        </div>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="text-[10px]" style={{ color:'var(--t3)' }}>Timestamp tier:</span>
-          <span className="mono text-[10px]" style={{ color:'var(--t2)' }}>
-            {dev.tier} — {TIER_LABELS[dev.tier]}
-          </span>
-        </div>
-        {dev.calibPpm !== undefined && (
-          <MetricRow label="Freq. calibration Δf/f" value={fmtSci(dev.calibPpm * 1e-6)} unit={`(${dev.calibPpm} ppm)`} provenance="observed" />
-        )}
-        {expanded && (
-          <div className="mt-3">
-            <WaterfallDisplay freqMHz={dev.freqMHz} />
-          </div>
-        )}
-        <div className="mt-3 p-2 rounded-[2px] text-[10px]" style={{ background:'var(--warn-bg)', border:'1px solid var(--warn-border)', color:'var(--warn-text)' }}>
-          Clock discipline accuracy ≠ SDR sample-timestamp accuracy. Tier {dev.tier} device.
-        </div>
-      </CardBody>
-    </Card>
-  );
-}
+import { AircraftStackCard } from '../components/aircraftstack';
 
 // RF modules table
 const modules = [
   { name:'Spectrum / RFI monitoring',  maturity:'supported',    sdr:'Any',        notes:'Continuous FFT, power logging' },
-  { name:'ADS-B 1090 MHz',             maturity:'supported',    sdr:'RTL-SDR #1', notes:'dump1090-fa' },
-  { name:'UAT 978 MHz',                maturity:'supported',    sdr:'RTL-SDR #2', notes:'dump978-fa' },
+  { name:'ADS-B 1090 MHz',             maturity:'supported',    sdr:'by serial',  notes:'readsb, tar1090 map' },
+  { name:'UAT 978 MHz',                maturity:'supported',    sdr:'by serial',  notes:'dump978-fa, skyaware978 map' },
   { name:'WWV/CHU Doppler analysis',   maturity:'experimental', sdr:'RTL-SDR #3', notes:'10/5/2.5/15/20 MHz' },
   { name:'WSPR / FST4W',               maturity:'experimental', sdr:'RTL-SDR #3', notes:'Weak signal propagation' },
   { name:'Radiosonde reception',        maturity:'experimental', sdr:'Any',        notes:'RS41, RS92, iMet' },
@@ -117,32 +31,15 @@ export default function RadioSDR() {
     <div className="space-y-4 page-enter">
       <div className="flex items-baseline justify-between">
         <h1 className="text-sm font-semibold" style={{ color:'var(--t1)' }}>Radio & SDR</h1>
-        {isDemo ? <StatusBadge variant="info" label={`${sdrDevices.length} DEVICES ACTIVE`} /> : <MaturityBadge level="planned" />}
+        <MaturityBadge level="experimental" />
       </div>
 
       <Tabs tabs={['Devices','RF Modules','Timing Tiers']} active={tab} onChange={setTab} />
 
+      {tab === 'Devices' && <AircraftStackCard />}
       {tab === 'Devices' && <WebSdrCard />}
       {tab === 'Devices' && <AirbandCard />}
       {tab === 'Devices' && <ClipsCard />}
-
-      {tab === 'Devices' && (
-        <Planned title="SDR Devices" needs="the SDR layer (device discovery and capture services)">
-        <div className="grid grid-cols-1 gap-4">
-          {sdrDevices.map(dev => <SDRCard key={dev.id} dev={dev}/>)}
-
-          {/* Airspy placeholder */}
-          <Card>
-            <CardHeader title="Experimental Capture" badge={<StatusBadge variant="muted" label="NOT CONNECTED" />} action={<MaturityBadge level="research" />} />
-            <CardBody>
-              <div className="text-[11px]" style={{ color:'var(--t3)' }}>Airspy HF+ Discovery — configured for experimental IQ capture. Device not currently connected.</div>
-              <MetricRow label="Assigned service" value="Experimental" muted />
-              <MetricRow label="Planned tier" value="4 — PPS + reference clock" muted />
-            </CardBody>
-          </Card>
-        </div>
-        </Planned>
-      )}
 
       {tab === 'RF Modules' && (
         <Card>

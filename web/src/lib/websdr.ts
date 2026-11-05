@@ -79,7 +79,8 @@ const LABEL: Partial<Record<AdminAction, string>> = {
 };
 
 /** The line shown after Start, Stop or Sign out all: the station's own answer, never a guess. */
-export function websdrOutcome(a: AdminAction, r: AdminResult | null, err?: { message: string; status: number | null }): { variant: Variant; text: string } {
+export function websdrOutcome(a: AdminAction, r: AdminResult | null, err?: { message: string; status: number | null },
+  pauses?: string | null): { variant: Variant; text: string } {
   const label = LABEL[a] ?? a;
   if (err) {
     if (err.status === null) return { variant: 'warn', text: `${label}: no answer from the station (${err.message}). It may still have run.` };
@@ -89,7 +90,9 @@ export function websdrOutcome(a: AdminAction, r: AdminResult | null, err?: { mes
   if (r.simulated) return { variant: 'muted', text: `${label}: demo, not executed.` };
   if (!r.ok) return { variant: 'error', text: `${label}: failed${r.detail ? ` (${r.detail})` : ''}.` };
   if (a === 'websdr_signout_all') return { variant: 'good', text: `${label}: done. Every browser has to sign in again.` };
+  if (pauses === null) return { variant: 'good', text: `${label}: done. No other service uses its dongle.` };
+  const who = pauses ?? 'The service on its dongle';
   return { variant: 'good', text: a === 'websdr_start'
-    ? `${label}: done. readsb is stopped until the web SDR stops.`
-    : `${label}: done. readsb starts again.` };
+    ? `${label}: done. ${who} is stopped until the web SDR stops.`
+    : `${label}: done. ${who} starts again.` };
 }
