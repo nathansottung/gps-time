@@ -559,18 +559,33 @@ The optional SDR stack (`docs/deploy/sdr-stack.md`), read only, no token. The we
   - `null` (UNKNOWN) when not running or not readable. `units` is `null` when `systemctl` can't be run, and then `installed` is `null` too.
 - `dongles`: RTL2832U devices (USB IDs `0bda:2838`, `0bda:2832`) from `/sys/bus/usb/devices`. `role` is the role whose serial matches `/etc/default/gps-time-sdr`. `dvb_driver` is true when the DVB-T driver holds the device. `null` when sysfs can't be read.
 - `limit` (from v1.6.0-rc.3): the owner's dongle limit. `model` is the board (device tree, `observed`); `max` is 3 on the Pi 4 family, else `null`. `assigned` counts distinct serials with a role, the web SDR's included (`calculated`); `plugged` counts RTL-SDRs on USB (`observed`, `null` without sysfs). `over` is true when either exceeds `max`. `rule` says which applies. A role's name shows a shared dongle: `1090 MHz + web SDR`.
-- `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s.
+- `feeds`: each decoder's `aircraft.json`: age since it was last written, and how many aircraft are in it. **No position is read out**. `fresh`: written within 60 s. `messages_per_s` (from v1.6.0-rc.8, calculated): readsb's `stats.json` (messages in its last minute / its length) when there is one, else the change in the file's own `messages` counter between two reads of the web service; `null` on the first read, after a decoder restart, or when the file isn't fresh.
+- `aircraft` (from v1.6.0-rc.8): the aircraft decoders for Radio & SDR (`SdrAircraft`):
+  ```json
+  {"decoders": [{"band": "1090", "decoder": "readsb",
+                 "units": [{"unit": "gps-time-readsb.service", "state": "active"}],
+                 "serial": "1090", "serial_plugged": {"value": true, "unit": null, "provenance": "observed"},
+                 "paused_by_websdr": false,
+                 "map": {"name": "tar1090", "url": "/tar1090/", "installed": true},
+                 "feed": {"band": "1090", "...": "as in feeds"}},
+                {"band": "978", "decoder": "dump978-fa + skyaware978", "...": "..."}],
+   "websdr_serial": "1090", "websdr_band": "1090", "websdr_running": false}
+  ```
+  `serial` is the dongle the installer gave that role (`/etc/default/gps-time-sdr`; `null` for none or `none`). `serial_plugged` is whether an RTL-SDR with that serial is on USB now. `state` is `systemctl`'s ActiveState, `"not installed"`, or `null` (UNKNOWN). `websdr_band` is the role whose dongle the web SDR is pinned to (`null`: a dongle with no other role); `paused_by_websdr` is true only for that decoder while the web SDR runs.
 
 ## GET /api/aircraft-map
 
-The live aircraft map (tar1090 on readsb, `docs/deploy/sdr-stack.md` → "The live aircraft map"), read only, no token. Code: `gps_time_pi/tar1090.py`; type `AircraftMapStatus`.
+The live aircraft maps (tar1090 on readsb, and skyaware978's page; `docs/deploy/sdr-stack.md` → "The live aircraft map"), read only, no token. Code: `gps_time_pi/tar1090.py`; type `AircraftMapStatus`.
 
 ```json
 {"installed": true, "url": "/tar1090/", "state": "live", "aircraft_json_age_s": 0.7, "aircraft": 14,
- "station_marker": true, "location_display": "exact", "note": "tar1090 on readsb's 1090 MHz data, ..."}
+ "station_marker": true, "location_display": "exact",
+ "uat": {"installed": true, "url": "/skyaware978/", "state": "live", "aircraft_json_age_s": 1.4, "aircraft": 3},
+ "note": "tar1090 on readsb's 1090 MHz data, ..."}
 ```
 
-- `state`: `live` (aircraft.json written in the last 30 s), `stale`, `no_data`, or `paused` while the web SDR runs (it has the dongle).
+- `state`: `live` (aircraft.json written in the last 30 s), `stale`, `no_data`, or `paused` while the web SDR runs on the 1090 MHz dongle.
+- `uat` (from v1.6.0-rc.8): the same for the 978 MHz map, from `/run/skyaware978`; `paused` only while the web SDR runs on the 978 MHz dongle.
 - `aircraft_json_age_s`, `aircraft`: observed from `/run/readsb/aircraft.json`; `null` when unread.
 - `station_marker`: false in hidden mode or without a survey.
 
@@ -581,6 +596,14 @@ The map itself, on the station's own port:
 - `/tar1090/data/aircraft.json`, `/tar1090/data/history_<n>.json`: readsb's files as they are.
 - `/tar1090/data/receiver.json`: readsb's, with `lat`/`lon` set by the privacy mode (exact, rounded to 0.1°, or absent in hidden mode).
 - Anything else under `/tar1090/data/`, or outside the page, is 404.
+
+## GET /skyaware978/…
+
+From v1.6.0-rc.8, the 978 MHz map in the same way: the page from `/usr/local/share/gps-time-skyaware978/html` (its own CSP), `data/aircraft.json` and `data/history_<n>.json` from `/run/skyaware978`, `data/receiver.json` with the position set by the privacy mode. 503 when not installed (no 978 MHz role).
+
+## HEAD
+
+From v1.6.0-rc.8 every GET route answers HEAD: the same status and headers (the CSP included, and `Content-Length` as for GET), no body. Before, HEAD got 501.
 
 ## GET /api/websdr
 
@@ -602,6 +625,7 @@ The optional web SDR (`docs/deploy/websdr.md`) and its usage log, read only, no 
                "partial": false, "truncated": false, "before": {"...": "..."}, "during": {"...": "..."}}],
    "file": {"name": "websdr-sessions.jsonl", "error": null},
    "note": "PPS jitter: ..."},
+ "pauses": "readsb (1090 MHz)",
  "note": "OpenWebRX+ behind the station's LAN gate (login optional). ..."}
 ```
 

@@ -9,7 +9,7 @@ Send the aircraft the station receives to services you choose: aggregators that 
 | Feeder | Sends | The station's location |
 |---|---|---|
 | adsb.fi, airplanes.live, ADSBExchange, a custom aggregator | the aircraft messages readsb decodes (Beast, reduced), with a random feeder UUID | **not sent**: no feeder is given the position, and MLAT isn't offered for these. From the aircraft it hears, a service can tell roughly where the station is. |
-| FlightAware (PiAware) | the same | **not sent** while MLAT is off. PiAware is set never to read gpsd, which would otherwise give it the exact position. |
+| FlightAware (PiAware) | the same, and the 978 MHz UAT messages from dump978-fa (127.0.0.1:30978) when the 978 MHz role is on | **not sent** while MLAT is off. PiAware is set never to read gpsd, which would otherwise give it the exact position. |
 | FlightAware MLAT | timing for multilateration | **exact location**: MLAT needs it. A separate opt-in (type `share my exact location`), refused in hidden privacy mode. |
 
 Each card on Administration says this in plain words. When MLAT is on, the card reads **"Shares your exact location with FlightAware."** Every Beast feeder card carries the warning in amber too: **"Shares your location with <service>: the aircraft it receives show roughly where the station is. Never your exact location: the feed carries no position."** The Location sharing card lists these feeds as `rough (from the aircraft)`. With MLAT off, the PiAware card also carries the warning, in amber: **"Shares your location with FlightAware: the aircraft it receives show roughly where the station is. Your exact location only with MLAT, which is off."**
@@ -22,6 +22,8 @@ Each card on Administration says this in plain words. When MLAT is on, the card 
 When the exact location is being shared, it says so first.
 
 **Hidden privacy mode:** MLAT can't be turned on. Switching to hidden turns it off and restarts PiAware without it. PiAware's start-up helper also refuses MLAT whenever `config.json` says hidden.
+
+**978 MHz UAT:** PiAware is the feeder here that takes UAT. Before each start, its helper sets `uat-receiver-type other` with `uat-receiver-host 127.0.0.1` and `uat-receiver-port 30978` (dump978-fa's raw output) when `GTP_SDR_978_SERIAL` has a dongle and `gps-time-dump978` is enabled, and `uat-receiver-type none` otherwise. The Beast feeders send readsb's 1090 MHz messages only. Not verified on a Pi: PiAware reading dump978-fa this way.
 
 ## Install
 
