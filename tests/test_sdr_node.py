@@ -80,7 +80,7 @@ class TestTemplates(unittest.TestCase):
         self.assertEqual(re.findall(r"^IPAddressAllow=(.*)$", rtl, re.M), ["@ADDR@"])
         rb = (SYSTEM / "gps-time-readsb-node.conf").read_text(encoding="utf-8")
         self.assertEqual(re.findall(r"^IPAddressAllow=(.*)$", rb, re.M), ["localhost @ADDR@"])
-        start = re.search(r"^ExecStart=(/usr/bin/readsb.*)$", rb, re.M).group(1)
+        start = re.search(r"^ExecStart=(/usr/local/bin/readsb.*)$", rb, re.M).group(1)
         self.assertNotRegex(start, r"--(lat|lon)\b")
         for port in ("ri", "ro", "sbs", "bi"):
             self.assertIn(f"--net-{port}-port 0", start)

@@ -11,7 +11,7 @@ Conflicts=gps-time-readsb.service
 # reach the node's address and nothing else. No position.
 
 [Service]
-ExecStart=/usr/bin/readsb --quiet --net-only --net-ri-port 0 --net-ro-port 0 --net-sbs-port 0 --net-bi-port 0 --net-bo-port 0 --net-connector @ADDR@,30005,beast_in --write-json /run/readsb --write-json-every 1 --json-location-accuracy 0
+ExecStart=/usr/local/bin/readsb --quiet --net-only --net-ri-port 0 --net-ro-port 0 --net-sbs-port 0 --net-bi-port 0 --net-bo-port 0 --net-connector @ADDR@,30005,beast_in --write-json /run/readsb --write-json-every 1 --json-location-accuracy 0
 Restart=on-failure
 RestartSec=10
 RuntimeDirectory=readsb

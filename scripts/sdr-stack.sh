@@ -10,8 +10,10 @@
 #
 # What GTP_SDR=1 installs, each on the loopback address only or with no network at all:
 #   rtl-sdr (Debian)      rtl_tcp for sdr-pps-marker: gps-time-rtl-tcp.service, 127.0.0.1:1234
-#   readsb (Debian)       1090 MHz ADS-B: gps-time-readsb.service, no network listeners;
-#                         aircraft.json in /run/readsb (RAM) for reference-adsb
+#   readsb (wiedehopf)    1090 MHz ADS-B, built from source at a pinned tag with RTL-SDR support
+#                         (make RTLSDR=yes) into /usr/local/bin/readsb: Debian 13's readsb package has
+#                         none (rc.8). gps-time-readsb.service, no network listeners; aircraft.json in
+#                         /run/readsb (RAM) for reference-adsb
 #   dump978-fa and        978 MHz UAT, built from FlightAware's source at a pinned commit:
 #   skyaware978           gps-time-dump978.service (127.0.0.1:30978, :30979) and
 #                         gps-time-skyaware978.service, aircraft.json in /run/skyaware978 (RAM)
@@ -49,6 +51,11 @@ TAR1090_DB_REPO="https://github.com/wiedehopf/tar1090-db.git"
 TAR1090_DB_COMMIT="2ab834a65f2fbde9457823e88682cd46954b8bc1"  # 2026-11-02
 TAR1090_HTML="$ROOT/usr/local/share/gps-time-tar1090/html"
 SKY_HTML="$ROOT/usr/local/share/gps-time-skyaware978/html"
+# readsb v3.16.21 (github.com/wiedehopf/readsb), 2026-11-01; the commit is checked after the clone.
+READSB_REPO="https://github.com/wiedehopf/readsb.git"
+READSB_TAG="v3.16.21"
+READSB_COMMIT="321931802d89f1695a38f6dfb0a64ba5c1211be4"
+READSB_BIN="$ROOT/usr/local/bin/readsb"
 # dump978 v11.1 (github.com/flightaware/dump978); the commit is checked after the clone.
 DUMP978_REPO="https://github.com/flightaware/dump978.git"
 DUMP978_TAG="v11.1"
@@ -108,6 +115,7 @@ PPS_SERIAL="$(pick GTP_SDR_PPS_SERIAL)" || exit 1
 S1090="$(pick GTP_SDR_1090_SERIAL)" || exit 1
 S978="$(pick GTP_SDR_978_SERIAL)" || exit 1
 . "$(dirname "$0")/dongle-roles.sh"
+. "$(dirname "$0")/sdr-decoders.sh"
 ON_USB="$(dongle_serials "$ROOT" | tr '\n' ' ' | sed 's/ $//')"
 NUSB="$(dongle_serials "$ROOT" | wc -l | tr -d ' ')"
 # The 1090 MHz serial is required: readsb started with an empty one has "--device" and nothing
@@ -154,26 +162,88 @@ for pair in "1090 MHz:$S1090" "978 MHz:$S978" "PPS markers:$PPS_SERIAL"; do
     say "warning: serial $s ($what) could be read as device index $((10#$s)) with $NUSB RTL-SDRs plugged in (rtl_tcp, rtl_test -d). Unique serials such as 1090 and 978 avoid it (rtl_eeprom -s)."
   fi
 done
+# The decoders as they are now: a report only, since the install below builds readsb and adds the driver.
+if [ "$CHECK_ONLY" = 1 ]; then
+  if decoder_readsb_rtlsdr "$READSB_BIN"; then
+    say "readsb in /usr/local/bin has RTL-SDR support."
+  elif [ -n "$S1090" ]; then
+    say "readsb with RTL-SDR support isn't installed yet; the install builds readsb $READSB_TAG (make RTLSDR=yes)."
+  fi
+  if [ -n "$S978" ] && ! decoder_soapy_rtlsdr "$ROOT"; then
+    say "SoapySDR's RTL-SDR driver isn't installed yet; the install adds soapysdr-module-rtlsdr for dump978-fa."
+  fi
+fi
 [ "$CHECK_ONLY" = 1 ] && { say "settings checked: 1090 MHz ${S1090:-none}, 978 MHz ${S978:-none}, PPS markers ${PPS_SERIAL:-none}."; exit 0; }
 
 echo "== SDR stack: packages =="
-# readsb's own service would start on install and take the first RTL-SDR it finds, which
-# could be the PPS dongle. Mask it first, unless it was already installed and running for
-# the owner: then it is left alone and its /run/readsb is used.
+# Debian's readsb package isn't installed any more (Debian 13 builds it without RTL-SDR support);
+# one installed by rc.8 or earlier is left in place. Its readsb.service is masked so it can't take
+# the first RTL-SDR it finds, which could be the PPS dongle, unless it was already enabled for the
+# owner before this script: then it is left alone and its /run/readsb is used.
 OWN_READSB=0
-if dpkg -s readsb >/dev/null 2>&1; then
-  if systemctl is-enabled --quiet readsb.service 2>/dev/null; then OWN_READSB=1; fi
+if dpkg -s readsb >/dev/null 2>&1 && systemctl is-enabled --quiet readsb.service 2>/dev/null; then
+  OWN_READSB=1
 else
   systemctl mask readsb.service >/dev/null 2>&1 || true
 fi
-apt-get install -y --no-install-recommends rtl-sdr readsb soapysdr-module-rtlsdr >/dev/null \
-  || { say "apt-get could not install rtl-sdr, readsb and soapysdr-module-rtlsdr; nothing else changed." >&2; exit 1; }
+apt-get install -y --no-install-recommends rtl-sdr soapysdr-module-rtlsdr >/dev/null \
+  || { say "apt-get could not install rtl-sdr and soapysdr-module-rtlsdr; nothing else changed." >&2; exit 1; }
 # The DVB-T driver claims RTL-SDRs: our own blacklist file (kept when the stack is removed),
 # and unloaded now if it's loaded.
 bash "$(dirname "$0")/rtl-dvb-blacklist.sh" "$ROOT" || say "the DVB-T driver blacklist could not be written (see above)."
 # The dongles to plugdev: readsb, dump978-fa and rtl_tcp run with SupplementaryGroups=plugdev.
 # Before rc.8 only the web SDR installed this rule.
 bash "$(dirname "$0")/rtl-access.sh" "$ROOT" "$SRC" || say "the RTL-SDR access rule could not be applied (see above)."
+
+as_nobody() { if [ "$(id -u)" = 0 ]; then runuser -u nobody -- "$@"; else "$@"; fi; }
+CHECK_FAILED=0
+
+echo "== SDR stack: readsb $READSB_TAG with RTL-SDR support =="
+# Built whenever the stack is installed: the 1090 MHz role, the feeders and node mode all run it.
+HAVE1090=0
+if [ -x "$READSB_BIN" ] && [ "$(cat "$LIB/readsb.commit" 2>/dev/null)" = "$READSB_COMMIT" ] && decoder_readsb_rtlsdr "$READSB_BIN"; then
+  say "readsb $READSB_TAG already built (RTL-SDR support checked)."
+  HAVE1090=1
+elif apt-get install -y --no-install-recommends git build-essential pkg-config libncurses-dev zlib1g-dev \
+       libzstd-dev librtlsdr-dev libusb-1.0-0-dev >/dev/null; then
+  RB="$(mktemp -d)"
+  chown nobody "$RB" 2>/dev/null || true
+  # Fetched and built as nobody, not root; only the readsb binary is installed.
+  if as_nobody git clone --quiet --depth 1 --branch "$READSB_TAG" "$READSB_REPO" "$RB/readsb" \
+     && [ "$(as_nobody git -C "$RB/readsb" rev-parse HEAD)" = "$READSB_COMMIT" ] \
+     && as_nobody make -C "$RB/readsb" -j2 RTLSDR=yes readsb >/dev/null; then
+    if decoder_readsb_rtlsdr "$RB/readsb/readsb"; then
+      install -d -m 0755 "$(dirname "$READSB_BIN")" "$LIB"
+      install -m 0755 "$RB/readsb/readsb" "$READSB_BIN.new" && mv -f "$READSB_BIN.new" "$READSB_BIN"
+      echo "$READSB_COMMIT" > "$LIB/readsb.commit"
+      HAVE1090=1
+      say "readsb $READSB_TAG built with RTL-SDR support and installed as /usr/local/bin/readsb."
+    else
+      say "readsb $READSB_TAG was built, but it refuses --device-type rtlsdr (no RTL-SDR support); not installed." >&2
+    fi
+  else
+    say "readsb $READSB_TAG could not be fetched, verified ($READSB_COMMIT) or built." >&2
+  fi
+  rm -rf "$RB"
+else
+  say "the build tools for readsb could not be installed." >&2
+fi
+if [ "$HAVE1090" = 0 ] && [ -n "$S1090" ] && [ "$OWN_READSB" = 0 ]; then
+  CHECK_FAILED=1
+  say "CHECK FAILED: no readsb with RTL-SDR support, so 1090 MHz stays off. Debian's /usr/bin/readsb has none (\"Unknown device type:rtlsdr\"). See above; docs/deploy/sdr-stack.md -> Check it." >&2
+fi
+
+echo "== SDR stack: SoapySDR's RTL-SDR driver (dump978-fa) =="
+SOAPY_OK=0
+if decoder_soapy_rtlsdr "$ROOT"; then
+  SOAPY_OK=1
+  say "SoapySDR's RTL-SDR driver is installed (librtlsdrSupport.so)."
+elif [ -n "$S978" ]; then
+  CHECK_FAILED=1
+  say "CHECK FAILED: SoapySDR's RTL-SDR driver (librtlsdrSupport.so, package soapysdr-module-rtlsdr) isn't installed; dump978-fa can't open a dongle, so 978 MHz stays off." >&2
+else
+  say "SoapySDR's RTL-SDR driver isn't installed (needed only for 978 MHz)."
+fi
 
 echo "== SDR stack: dump978-fa and skyaware978 ($DUMP978_TAG) =="
 HAVE978=0
@@ -186,7 +256,6 @@ elif apt-get install -y --no-install-recommends git build-essential libboost-pro
   BUILD="$(mktemp -d)"
   chown nobody "$BUILD" 2>/dev/null || true
   # Fetched and built as nobody, not root; only the two binaries are installed.
-  as_nobody() { if [ "$(id -u)" = 0 ]; then runuser -u nobody -- "$@"; else "$@"; fi; }
   if as_nobody git clone --quiet --depth 1 --branch "$DUMP978_TAG" "$DUMP978_REPO" "$BUILD/dump978" \
      && [ "$(as_nobody git -C "$BUILD/dump978" rev-parse HEAD)" = "$DUMP978_COMMIT" ] \
      && as_nobody make -C "$BUILD/dump978" -j2 VERSION="$DUMP978_TAG" dump978-fa skyaware978 \
@@ -227,7 +296,6 @@ elif [ -f "$TAR1090_HTML/index.html" ] && [ "$(cat "$(dirname "$TAR1090_HTML")/c
 elif apt-get install -y --no-install-recommends git >/dev/null; then
   TB="$(mktemp -d)"
   chown nobody "$TB" 2>/dev/null || true
-  as_nobody() { if [ "$(id -u)" = 0 ]; then runuser -u nobody -- "$@"; else "$@"; fi; }
   # Fetched as nobody, by commit (not a branch), each checked; only the page's files are kept.
   fetch_commit() {   # fetch_commit <repo> <commit> <dir>
     as_nobody git init --quiet "$3" && as_nobody git -C "$3" fetch --quiet --depth 1 "$1" "$2" \
@@ -290,9 +358,12 @@ role gps-time-rtl-tcp.service -- "$PPS_SERIAL" "rtl_tcp (sdr-pps-marker)"
 if [ "$OWN_READSB" = 1 ]; then
   systemctl disable --now gps-time-readsb.service >/dev/null 2>&1 || true
   say "1090 MHz: readsb.service was already enabled before this script; it is left as it is (its /run/readsb is used)."
-else
+elif [ "$HAVE1090" = 1 ]; then
   role gps-time-readsb.service -- "$S1090" "1090 MHz (readsb)"
+else
+  systemctl disable --now gps-time-readsb.service >/dev/null 2>&1 || true
 fi
+[ "$SOAPY_OK" = 1 ] || HAVE978=0
 if [ "$HAVE978" = 1 ]; then
   role gps-time-dump978.service gps-time-skyaware978.service -- "$S978" "978 MHz (dump978-fa, skyaware978)"
 else
@@ -304,9 +375,8 @@ web_has() {   # web_has <serial>: the web SDR is running on that dongle (so its 
   [ -n "$1" ] && [ "$WEB_SERIAL" = "$1" ] && systemctl is-active --quiet gps-time-websdr.service 2>/dev/null
 }
 CHECKS=""
-[ "$OWN_READSB" = 0 ] && [ -n "$S1090" ] && CHECKS="$CHECKS gps-time-readsb.service:/run/readsb/aircraft.json:$S1090"
+[ "$OWN_READSB" = 0 ] && [ "$HAVE1090" = 1 ] && [ -n "$S1090" ] && CHECKS="$CHECKS gps-time-readsb.service:/run/readsb/aircraft.json:$S1090"
 [ "$HAVE978" = 1 ] && [ -n "$S978" ] && CHECKS="$CHECKS gps-time-skyaware978.service:/run/skyaware978/aircraft.json:$S978"
-CHECK_FAILED=0
 if [ -n "$CHECKS" ]; then
   echo "== SDR stack: check after ${WAIT_S} s =="
   sleep "$WAIT_S"

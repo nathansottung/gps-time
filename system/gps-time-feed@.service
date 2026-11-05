@@ -14,7 +14,7 @@ ConditionPathExists=/opt/gps-time-pi/feeders/%i.on
 
 [Service]
 EnvironmentFile=/etc/gps-time-feeders/%i.conf
-ExecStart=/usr/bin/readsb --quiet --net-only --net-bind-address 127.0.0.1 --net-ri-port 0 --net-ro-port 0 --net-sbs-port 0 --net-bi-port 0 --net-bo-port 0 --net-connector 127.0.0.1,30005,beast_in --net-connector ${FEED_HOST},${FEED_PORT},beast_reduce_plus_out --uuid-file /etc/gps-time-feeders/%i.uuid
+ExecStart=/usr/local/bin/readsb --quiet --net-only --net-bind-address 127.0.0.1 --net-ri-port 0 --net-ro-port 0 --net-sbs-port 0 --net-bi-port 0 --net-bo-port 0 --net-connector 127.0.0.1,30005,beast_in --net-connector ${FEED_HOST},${FEED_PORT},beast_reduce_plus_out --uuid-file /etc/gps-time-feeders/%i.uuid
 Restart=on-failure
 RestartSec=30
 DynamicUser=yes
