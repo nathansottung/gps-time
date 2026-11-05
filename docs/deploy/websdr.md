@@ -7,7 +7,7 @@ A browser radio on the station: [OpenWebRX+](https://luarvique.github.io/ppa/) b
 | OpenWebRX+ (Debian package `openwebrx` from the OpenWebRX+ repository) | `gps-time-websdr.service`, user `openwebrx` | 127.0.0.1:8074 (`/etc/openwebrx/openwebrx.conf.d/gps-time.conf`) | the loopback only (`IPAddressAllow=localhost`, `IPAddressDeny=any`) |
 | The LAN gate (`gps_time_pi/websdr_gate.py`; a login if `GTP_WEBSDR_AUTH=1`) | `gps-time-websdr-gate.service`, a dynamic user | `GTP_WEBSDR_PORT` (8073), all addresses | private ranges only: 10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7, fe80::/10 and the loopback |
 
-Script: `scripts/websdr.sh`. Units and files: `system/gps-time-websdr.service`, `system/gps-time-websdr-gate.service`, `system/gps-time-websdr-signout.service`, `system/websdr-handoff`, `system/openwebrx-gps-time.conf`, `system/openwebrx-gps-time-profiles.json`, `system/openwebrx-gps-time-decoders.json`. Tests: `tests/test_websdr.py`, `web/src/lib/websdr.test.ts`.
+Script: `scripts/websdr.sh`. Units and files: `system/61-gps-time-rtl-sdr.rules`, `system/gps-time-websdr.service`, `system/gps-time-websdr-gate.service`, `system/gps-time-websdr-signout.service`, `system/websdr-handoff`, `system/openwebrx-gps-time.conf`, `system/openwebrx-gps-time-profiles.json`, `system/openwebrx-gps-time-decoders.json`. Tests: `tests/test_websdr.py`, `web/src/lib/websdr.test.ts`.
 
 ## One dongle, one owner
 
@@ -188,20 +188,43 @@ What it can and can't say:
 - A session that was already running when the web service started is marked partial: its first part wasn't recorded.
 - The soak record (`tools/soak_check.py`) doesn't include the web SDR's units; a soak run should be done with the web SDR stopped.
 
+## The dongle: serial and USB access
+
+The owner's first start on the Pi (rc.6, 2026-11-04) failed. OpenWebRX+ logged `usb_open error -3`, and the installer had printed `0 RTL-SDR device(s) in OpenWebRX+ set to serial 00000001`. Since rc.7 the installer does four things about it:
+
+- **The serial is pinned as `serial=<serial>`.** OpenWebRX+'s `rtl_connector` then matches it exactly. A bare `00000001` (a common factory serial) is first tried as a serial, and is then read as a device index when the serials can't be read. That opens some other dongle, or none.
+- **A device is added when `settings.json` has none.** An existing file without an RTL-SDR device (no `sdrs` key, or only other kinds of radio) left OpenWebRX+ on its built-in device, which names no serial. That was the "0 devices". Now the installer adds `rtlsdr` with the base profiles, keeps the owner's other devices and settings, and says so.
+- **The dongles go to the `plugdev` group.** `-3` is libusb's access error: the dongle's node under `/dev/bus/usb` wasn't open to the `openwebrx` user. The unit runs with `SupplementaryGroups=plugdev`, like readsb. Debian's rule (`60-librtlsdr0.rules`) gives RTL2832U dongles to `plugdev`, but udev applies it only when a dongle is plugged in. A dongle that was plugged in before the package arrived can keep root-only access until it's replugged. The installer adds `/etc/udev/rules.d/61-gps-time-rtl-sdr.rules` (0bda:2832 and 0bda:2838, `0660`, `plugdev`) and applies it to the plugged-in dongles at once (`udevadm trigger`, access only, no driver change). It's kept when the web SDR is removed, because readsb uses it too.
+- **It reports each dongle**: its USB port, serial, group and mode. It also warns when no dongle has the web SDR's serial, or when two have the same one. Two dongles reporting `00000001` can't be told apart. Give each its own serial with `rtl_eeprom -d <index> -s <serial>`, with nothing using the dongles, then replug. The installer never writes a dongle's EEPROM.
+
+Check it on the Pi after the deploy:
+
+```sh
+sudo bash -c 'for d in /sys/bus/usb/devices/*; do [ "$(cat $d/idVendor 2>/dev/null)" = 0bda ] && ls -l /dev/bus/usb/$(printf %03d $(cat $d/busnum))/$(printf %03d $(cat $d/devnum)) && cat $d/serial; done'
+sudo systemctl start gps-time-websdr && journalctl -u gps-time-websdr -n 40 --no-pager | grep -i "device\|usb"
+```
+
+Each node should show `crw-rw---- root plugdev`, and the log should say `Using device <n>` for the right serial.
+
+## Online receiver lists off
+
+OpenWebRX+ has no setting for its online lists. It scrapes other receivers from receiverbook.de, kiwisdr.com and websdr.org. It also downloads repeaters from RepeaterBook, sending the receiver's position, and the EIBI broadcast schedule. Each is fetched when its cache file in `/var/lib/openwebrx` is empty or older than a day (a week for repeaters). The installer writes `receivers.json`, `repeaters.json` and `eibi.json` as empty lists dated 2037-12-31, so they're never stale and never fetched. This was checked against OpenWebRX+ 1.2.128 (`owrx/web/__init__.py`, `WebAgent.refresh`). The map shows no other receivers, repeaters or EIBI transmitters. `IPAddressDeny=any` in the unit blocks any of them that a later version fetches some other way.
+
 ## Remove
 
 ```sh
 sudo GTP_WEBSDR=0 bash install.sh
 ```
 
-This stops and removes the three units, the session-limit drop-in, `websdr-handoff`, the OpenWebRX+ port setting and the decoders' bookmarks. It keeps the packages and the repository, the mask on `openwebrx.service`, the DVB-T blacklist, `/etc/default/gps-time-websdr`, the password and cookie key, and `/var/lib/openwebrx` (with the station's profiles in it). To remove the rest: `sudo apt-get purge openwebrx`, `sudo rm /etc/apt/sources.list.d/gps-time-openwebrx-plus.list /usr/share/keyrings/gps-time-openwebrx-plus.gpg`, `sudo systemctl unmask openwebrx`.
+This stops and removes the three units, the session-limit drop-in, `websdr-handoff`, the OpenWebRX+ port setting and the decoders' bookmarks. It keeps the packages and the repository, the mask on `openwebrx.service`, the DVB-T blacklist, the RTL-SDR udev rule, `/etc/default/gps-time-websdr`, the password and cookie key, and `/var/lib/openwebrx` (with the station's profiles in it). To remove the rest: `sudo apt-get purge openwebrx`, `sudo rm /etc/apt/sources.list.d/gps-time-openwebrx-plus.list /usr/share/keyrings/gps-time-openwebrx-plus.gpg`, `sudo systemctl unmask openwebrx`.
 
 ## Not verified
 
 The script is tested with stub commands only (`apt-get`, `systemctl`, `curl`, `gpg` and `dpkg` are stubbed; every path is under a temporary root). The gate is tested end to end on the loopback, and the usage log with a manual clock. None of this has run on a Pi yet:
 - the `openwebrx` package install on trixie arm64, and its postinst with the unit masked;
 - OpenWebRX+ under this unit's hardening (it may need a path or address family the unit doesn't allow);
-- the serial pin in `settings.json` (key `device`) with this OpenWebRX+ version;
+- the serial pin in `settings.json` (`device: serial=…`), the udev rule and its trigger, and the dongle report, on the Pi (rc.7; the tests use a temporary sysfs tree);
+- the online lists staying off with a later OpenWebRX+ version;
 - the readsb handoff under systemd, and `RuntimeMaxSec=` ending a session;
 - OpenWebRX+'s CPU on the station, and its effect on PPS timing, which is what the usage log is for;
 - the sign-in page and its cookie in a real browser against the real OpenWebRX+ (the tests use a stand-in upstream);

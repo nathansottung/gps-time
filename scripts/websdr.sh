@@ -25,8 +25,13 @@
 #   - installs the decoders' helpers (direwolf, wsjtx, aprs-symbols, csdr-skimmer: APRS, packet,
 #     FT8, FT4, WSPR, CW and RTTY skimmers; SSTV, fax, CW and RTTY decoders are built in) and the
 #     band bookmarks (/etc/openwebrx/bookmarks.d/gps-time-decoders.json);
-#   - points OpenWebRX+ at 127.0.0.1:8074 (conf.d), pins its RTL-SDR to the serial, and sets the
-#     station's band profiles (system/openwebrx-gps-time-profiles.json);
+#   - points OpenWebRX+ at 127.0.0.1:8074 (conf.d), pins its RTL-SDR to the serial ("serial=…",
+#     an exact match, never read as a device index; a device is added when its settings have none),
+#     and sets the station's band profiles (system/openwebrx-gps-time-profiles.json);
+#   - gives RTL2832U dongles to the plugdev group (/etc/udev/rules.d/61-gps-time-rtl-sdr.rules),
+#     applies it to the dongles already plugged in, and reports each dongle's serial and access;
+#   - turns off OpenWebRX+'s downloads of online receiver, repeater and EIBI lists (it would scrape
+#     receiverbook.de, kiwisdr.com and websdr.org): their cache files are pinned as fresh and empty;
 #   - installs gps-time-websdr.service (OpenWebRX+, loopback only, no outside host),
 #     gps-time-websdr-gate.service (the gate on the LAN port, private ranges only, a login if
 #     GTP_WEBSDR_AUTH=1), and gps-time-websdr-signout.service (signs out every browser).
@@ -44,6 +49,7 @@ SDR_ENV="$ROOT/etc/default/gps-time-sdr"
 PWDIR="$ROOT/etc/gps-time-websdr"
 OWRX_CONF="$ROOT/etc/openwebrx/openwebrx.conf.d/gps-time.conf"
 OWRX_DATA="$ROOT/var/lib/openwebrx"
+UDEV_RULE="$ROOT/etc/udev/rules.d/61-gps-time-rtl-sdr.rules"
 LIB="$ROOT/usr/local/lib/gps-time-sdr"
 KEYRING="$ROOT/usr/share/keyrings/gps-time-openwebrx-plus.gpg"
 SOURCES="$ROOT/etc/apt/sources.list.d/gps-time-openwebrx-plus.list"
@@ -175,6 +181,67 @@ fi
 # The DVB-T driver claims RTL-SDRs: our own blacklist file (kept when the web SDR is removed),
 # and unloaded now if it's loaded. openwebrx may not pull in rtl-sdr's own blacklist.
 bash "$(dirname "$0")/rtl-dvb-blacklist.sh" "$ROOT" || say "the DVB-T driver blacklist could not be written (see above)."
+# RTL-SDRs to plugdev, read/write: every SDR unit of the station has SupplementaryGroups=plugdev.
+# rtl_connector's "usb_open error -3" is libusb's ACCESS error: the dongle's node in /dev/bus/usb
+# isn't open to the openwebrx user. Debian's own rule (60-librtlsdr0.rules) is applied only when a
+# dongle is plugged in, so one plugged in before the package was installed keeps root-only access;
+# the trigger applies the rule to those now. Kept when the web SDR is removed (readsb uses it too).
+install -d -m 0755 "$(dirname "$UDEV_RULE")"
+install -m 0644 "$SRC/61-gps-time-rtl-sdr.rules" "$UDEV_RULE"
+getent group plugdev >/dev/null 2>&1 || groupadd --system plugdev 2>/dev/null \
+  || say "there is no plugdev group and it could not be made; OpenWebRX+ won't open the dongle." >&2
+if udevadm control --reload-rules >/dev/null 2>&1 \
+  && udevadm trigger --subsystem-match=usb --attr-match=idVendor=0bda >/dev/null 2>&1; then
+  udevadm settle --timeout=10 >/dev/null 2>&1 || true
+else
+  say "udev could not apply the RTL-SDR rule now; unplug and replug the dongle, or reboot." >&2
+fi
+# Which dongles are there, and can plugdev open them? A report only, never a failure: the dongle
+# may be unplugged while installing.
+"$PY" -I - "$ROOT" "$SERIAL" <<'PYEOF' || true
+import os, stat, sys
+try:
+    import grp
+except ImportError:  # not on Linux: only the tests
+    grp = None
+root, want = sys.argv[1:3]
+base = os.path.join(root, "sys/bus/usb/devices")
+def attr(d, name):
+    try:
+        with open(os.path.join(d, name), encoding="ascii", errors="replace") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+seen = []
+for name in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+    d = os.path.join(base, name)
+    if attr(d, "idVendor") != "0bda" or attr(d, "idProduct") not in ("2832", "2838"):
+        continue
+    serial = attr(d, "serial")
+    try:
+        node = os.path.join(root, "dev/bus/usb", "%03d" % int(attr(d, "busnum")), "%03d" % int(attr(d, "devnum")))
+        st = os.stat(node)
+        try:
+            group = grp.getgrgid(st.st_gid).gr_name
+        except (KeyError, AttributeError):
+            group = str(st.st_gid)
+        ok = group == "plugdev" and (st.st_mode & 0o060) == 0o060
+        access = f"{group} {stat.filemode(st.st_mode)}"
+    except (OSError, ValueError):
+        ok, access = False, "no device node"
+    seen.append((serial, ok))
+    print(f"Web SDR: RTL-SDR at USB {name}: serial {serial or '(none)'}, {access}"
+          + ("" if ok else " (plugdev can't open it: unplug and replug it, or reboot)"))
+mine = [ok for s, ok in seen if s == want]
+if not seen:
+    print("Web SDR: no RTL-SDR is plugged in now; nothing to check.")
+elif not mine:
+    print(f"Web SDR: no plugged-in RTL-SDR has serial {want}; OpenWebRX+ will find no device. "
+          "Set GTP_WEBSDR_SERIAL to one of the serials above.")
+elif len(mine) > 1:
+    print(f"Web SDR: {len(mine)} RTL-SDRs have serial {want}; OpenWebRX+ takes the first. Give each "
+          "dongle its own serial (rtl_eeprom -d <index> -s <serial>, with nothing using it; docs/deploy/sdr-stack.md).")
+PYEOF
 
 echo "== Web SDR: OpenWebRX+ settings =="
 install -d -m 0755 "$(dirname "$OWRX_CONF")"
@@ -185,9 +252,20 @@ install -d -m 0755 "$OWRX_DATA"
 # the base VHF/UHF profiles; an existing one is kept (a copy is left beside it). On every RTL-SDR
 # the station's own profiles (keys gtp-*) are replaced: 10 m, 6 m and 2 m digital always, the HF
 # ones only with GTP_WEBSDR_HF=direct or native. The owner's own profiles are never touched.
+#
+# The device is "serial=<serial>": rtl_connector then matches the serial exactly. A bare serial
+# that looks like a number (00000001, a common factory serial) falls back to a device index when
+# the serials can't be read, and opens some other dongle.
+#
+# OpenWebRX+ has no setting for its online lists: it downloads receivers (receiverbook.de,
+# kiwisdr.com, websdr.org), repeaters (RepeaterBook, sent the receiver's position) and the EIBI
+# schedule when its cache file in the data folder is a day (a week) old. Each is written here as
+# an empty list dated 2037-12-31, so it is never stale and never fetched (checked against
+# OpenWebRX+ 1.2.128, owrx/web/__init__.py WebAgent.refresh). IPAddressDeny=any blocks them too.
 "$PY" -I - "$OWRX_DATA/settings.json" "$SERIAL" "$SRC/openwebrx-gps-time-profiles.json" "$HF" <<'PYEOF'   || { say "OpenWebRX+'s settings.json could not be read or updated; the package is installed, the units are not." >&2; exit 1; }
 import copy, json, os, shutil, sys
 path, serial, profiles_path, hf = sys.argv[1:5]
+NEVER_STALE = 2145830400  # 2037-12-31 00:00 UTC, inside a 32-bit time_t
 with open(profiles_path, encoding="utf-8") as f:
     prof = json.load(f)
 if os.path.exists(path):
@@ -195,18 +273,24 @@ if os.path.exists(path):
         doc = json.load(f)
     shutil.copy2(path, path + ".gps-time-prev")
 else:
-    doc = {"version": 8, "sdrs": {"rtlsdr": {
-        "name": "RTL-SDR", "type": "rtl_sdr", "rf_gain": 29, "direct_sampling": 0,
-        "profiles": copy.deepcopy(prof["base"])}}}
+    doc = {"version": 8, "sdrs": {}}
+if not isinstance(doc.get("sdrs"), dict):
+    # No devices of its own: OpenWebRX+'s built-in list applies, which names no serial.
+    doc["sdrs"] = {}
+if not any(isinstance(d, dict) and d.get("type") == "rtl_sdr" for d in doc["sdrs"].values()):
+    key = "rtlsdr" if "rtlsdr" not in doc["sdrs"] else "gtp-rtlsdr"
+    doc["sdrs"][key] = {"name": "RTL-SDR", "type": "rtl_sdr", "rf_gain": 29, "direct_sampling": 0,
+                        "profiles": copy.deepcopy(prof["base"])}
+    if os.path.exists(path):
+        print(f"Web SDR: OpenWebRX+ had no RTL-SDR device in settings.json; added '{key}'.")
 ours = dict(prof["managed"])
 if hf in ("direct", "native"):
     for key, p in prof["hf"].items():
         ours[key] = {**p, "direct_sampling": 2 if hf == "direct" else 0}
-sdrs = doc.get("sdrs") if isinstance(doc.get("sdrs"), dict) else {}
 n = 0
-for dev in sdrs.values():
+for dev in doc["sdrs"].values():
     if isinstance(dev, dict) and dev.get("type") == "rtl_sdr":
-        dev["device"] = serial
+        dev["device"] = "serial=" + serial
         profiles = dev.get("profiles") if isinstance(dev.get("profiles"), dict) else {}
         profiles = {k: v for k, v in profiles.items() if not k.startswith("gtp-")}
         profiles.update(copy.deepcopy(ours))
@@ -216,8 +300,18 @@ tmp = path + ".tmp"
 with open(tmp, "w", encoding="utf-8") as f:
     json.dump(doc, f, indent=4)
 os.replace(tmp, path)
+if n < 1:
+    sys.exit("no RTL-SDR device could be set")
 print(f"Web SDR: {n} RTL-SDR device(s) in OpenWebRX+ set to serial {serial}; "
       f"{len(ours)} station band profiles (HF: {hf}).")
+data = os.path.dirname(path)
+for name in ("receivers.json", "repeaters.json", "eibi.json"):
+    f = os.path.join(data, name)
+    with open(f + ".tmp", "w", encoding="utf-8") as out:
+        out.write("[]\n")
+    os.replace(f + ".tmp", f)
+    os.utime(f, (NEVER_STALE, NEVER_STALE))
+print("Web SDR: OpenWebRX+'s online receiver, repeater and EIBI lists are off (never downloaded).")
 PYEOF
 chown -R openwebrx:openwebrx "$OWRX_DATA" 2>/dev/null || true
 
