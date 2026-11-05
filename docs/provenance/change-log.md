@@ -2340,7 +2340,7 @@ The owner's evidence from the Pi on rc.7: `gps-time-readsb` exits 1 and restarts
 - **Tests:** `tests/test_sdr_stack.py` (empty serial and check mode change nothing, the check after the install, a crash loop caught, paused, two dongles and the 978 page, an rc.7 upgrade, the warnings, the units' conditions), `tests/test_websdr.py` (the drop-in per dongle, the handoff starting only its units), `tests/test_tar1090.py` (the 978 routes, HEAD, paused per dongle), `tests/test_sdr_status.py` (the dongle mapping, message rates), `web/src/lib/aircraftstack.test.ts`.
 - **Docs:** `deploy/sdr-stack.md`, `deploy/websdr.md`, `deploy/feeders.md`, `api/endpoints.md`, `releases/v1.6.0-rc.8.md`, and the version lines. The tag `v1.6.0-rc.8` goes on this PR's merge commit. Not deployed.
 
-## 2026-11-04 — readsb with RTL-SDR support; v1.6.0-rc.9
+## 2026-11-04 — readsb with RTL-SDR support; v1.6.0-rc.9 (#179)
 
 The owner's evidence from the Pi on rc.8: `readsb: ERROR: Unknown device type:rtlsdr`, invoked as `/usr/bin/readsb --quiet --device-type rtlsdr --device 00000001 ...`. Debian 13's `readsb` package is built without RTL-SDR support (device types `ifile` and `none` only), so readsb restarted for ever and tar1090's data answered 404; the map page itself loaded.
 
