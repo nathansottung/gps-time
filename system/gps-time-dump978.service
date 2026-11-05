@@ -2,6 +2,10 @@
 Description=dump978-fa for GPS Time's reference-adsb module (978 MHz UAT on 127.0.0.1:30978 and :30979)
 Documentation=file:///opt/gps-time-pi/docs/deploy/sdr-stack.md
 After=network.target
+# A dongle that can't be opened (unplugged, or held by something else) stops the restarts after
+# five tries in five minutes instead of looping; websdr-handoff and the installer reset it.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 # Installed by scripts/sdr-stack.sh (sudo GTP_SDR=1 ... bash install.sh) and enabled only when
 # GTP_SDR_978_SERIAL names an RTL-SDR serial in /etc/default/gps-time-sdr (docs/deploy/sdr-stack.md).
@@ -10,6 +14,8 @@ After=network.target
 
 [Service]
 EnvironmentFile=/etc/default/gps-time-sdr
+# No serial, no start (the unit shows "condition failed"; no restart loop).
+ExecCondition=/bin/sh -c 'case "$$GTP_SDR_978_SERIAL" in ""|none) echo "gps-time-dump978: GTP_SDR_978_SERIAL is empty in /etc/default/gps-time-sdr; not started" >&2; exit 1 ;; esac'
 ExecStart=/usr/local/lib/gps-time-sdr/dump978-fa --sdr driver=rtlsdr,serial=${GTP_SDR_978_SERIAL} --sdr-auto-gain   --raw-port 127.0.0.1:30978 --json-port 127.0.0.1:30979
 Restart=on-failure
 RestartSec=10

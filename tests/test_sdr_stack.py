@@ -86,10 +86,43 @@ class TestUnits(unittest.TestCase):
         for word in ("chrony", "gpsd", "pps-gpio", "/boot/", "config.txt"):
             self.assertNotIn(word, code)
 
-    def test_installer_runs_it_without_failing_the_install(self):
+    def test_installer_checks_it_first_then_runs_it_without_failing_the_install(self):
         text = (ROOT / "install.sh").read_text(encoding="utf-8")
-        self.assertIn('bash scripts/sdr-stack.sh \\\n  || echo "Warning:', text)
-        self.assertLess(text.index("gps-time-modules.service /etc/systemd/system/"), text.index("bash scripts/sdr-stack.sh"))
+        # Preflight: a bad or empty serial stops the install before anything changes.
+        check = text.index("bash scripts/sdr-stack.sh check")
+        self.assertLess(check, text.index('printf "Cannot install:'))
+        self.assertLess(check, text.index("apt-get update"))
+        # The install itself: a failure is a warning; a failed check after it (exit 3) is said again at the end.
+        self.assertIn("bash scripts/sdr-stack.sh || SDR_RC=$?", text)
+        self.assertIn("CHECK FAILED", text[text.rindex('if [ "$SDR_RC" = 3 ]'):])
+        self.assertLess(text.index("gps-time-modules.service /etc/systemd/system/"), text.index("bash scripts/sdr-stack.sh ||"))
+
+    def test_an_empty_serial_never_starts_a_decoder(self):
+        # rc.7: readsb with an empty serial exited 1 and restarted for ever. ExecCondition skips the
+        # start instead ($$ so that the shell, not systemd, reads the variable), and a start limit
+        # ends any other loop.
+        for name, var in (("gps-time-readsb.service", "GTP_SDR_1090_SERIAL"),
+                          ("gps-time-dump978.service", "GTP_SDR_978_SERIAL"),
+                          ("gps-time-rtl-tcp.service", "GTP_SDR_PPS_SERIAL")):
+            text = unit(name)
+            with self.subTest(name):
+                cond = re.search(r"^ExecCondition=(.*)$", text, re.M).group(1)
+                self.assertIn(f'"$${var}" in ""|none) ', cond)
+                self.assertIn("exit 1", cond)
+                self.assertLess(text.index("ExecCondition="), text.index("ExecStart="))
+        for name in ("gps-time-readsb.service", "gps-time-dump978.service"):
+            self.assertRegex(unit(name), r"\[Unit\][^\[]*\nStartLimitBurst=5\n")
+
+    def test_the_condition_refuses_empty_and_none_and_passes_a_serial(self):
+        if not shutil.which("sh") or os.name == "nt":
+            self.skipTest("POSIX sh needed")
+        cond = re.search(r"^ExecCondition=/bin/sh -c '(.*)'$", unit("gps-time-readsb.service"), re.M).group(1)
+        cond = cond.replace("$$", "$")                     # what systemd hands the shell
+        for value, rc in (("", 1), ("none", 1), ("00000001", 0), ("1090", 0)):
+            with self.subTest(value):
+                r = subprocess.run(["sh", "-c", cond], env={"GTP_SDR_1090_SERIAL": value, "PATH": os.environ["PATH"]},
+                                   capture_output=True, text=True)
+                self.assertEqual(r.returncode, rc, r.stderr)
 
     def test_dump978_is_pinned_to_a_commit(self):
         text = SCRIPT.read_text(encoding="utf-8")
@@ -101,9 +134,18 @@ STUB = """#!/bin/bash
 echo "$(basename "$0") $*" >> "$STUB_LOG"
 case "$(basename "$0")" in
   dpkg) exit "${STUB_DPKG_RC:-1}" ;;
-  systemctl) [ "$1" = is-enabled ] && exit "${STUB_ENABLED_RC:-1}"; exit 0 ;;
+  systemctl)
+    [ "$1" = is-enabled ] && exit "${STUB_ENABLED_RC:-1}"
+    if [ "$1" = is-active ]; then
+      [ "$2" = --quiet ] && { [ "$3" = gps-time-websdr.service ] && exit "${STUB_WEBSDR_RC:-3}"; exit 0; }
+      echo "${STUB_ACTIVE:-active}"; [ "${STUB_ACTIVE:-active}" = active ]; exit $?
+    fi
+    exit 0 ;;
   git)
-    if [ "$1" = clone ] || [ "$1" = init ]; then mkdir -p "${@: -1}"; exit 0; fi
+    if [ "$1" = clone ]; then
+      d="${@: -1}"; mkdir -p "$d/skyaware"; echo "<html>skyaware</html>" > "$d/skyaware/index.html"; exit 0
+    fi
+    if [ "$1" = init ]; then mkdir -p "${@: -1}"; exit 0; fi
     if [ "$3" = fetch ]; then
       d="$2"; mkdir -p "$d/html" "$d/db"
       printf '<html><script>let databaseFolder = "db2";</script><span id="webinterface_version"></span></html>\n' > "$d/html/index.html"
@@ -130,25 +172,42 @@ class TestScript(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, True)
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
-        for cmd in ("apt-get", "systemctl", "dpkg", "modprobe", "git", "make", "runuser"):
+        for cmd in ("apt-get", "systemctl", "dpkg", "modprobe", "git", "make", "runuser", "journalctl",
+                    "udevadm", "getent", "groupadd"):
             p = self.bin / cmd
             p.write_text(STUB)
             p.chmod(p.stat().st_mode | stat.S_IXUSR)
         self.root = self.tmp / "root"
         self.log = self.tmp / "calls.log"
 
-    def run_script(self, **env):
+    def run_script(self, *args, decoders_write=True, **env):
+        """decoders_write: the decoders' aircraft.json files are there, as after a good start."""
+        if decoders_write:
+            for d in ("run/readsb", "run/skyaware978"):
+                (self.root / d).mkdir(parents=True, exist_ok=True)
+                (self.root / d / "aircraft.json").write_text('{"now": 1, "aircraft": []}')
         base = {k: v for k, v in os.environ.items() if not k.startswith("GTP_SDR")}
         base.update(PATH=f"{self.bin}:{os.environ['PATH']}", GTP_SDR_TEST_ROOT=str(self.root),
-                    STUB_LOG=str(self.log), STUB_COMMIT=COMMIT)
+                    STUB_LOG=str(self.log), STUB_COMMIT=COMMIT, GTP_SDR_WAIT_S="0")
         base.update(env)
-        return subprocess.run(["bash", str(SCRIPT)], env=base, capture_output=True, text=True, timeout=60)
+        return subprocess.run(["bash", str(SCRIPT), *args], env=base, capture_output=True, text=True, timeout=60)
+
+    def fake_dongle(self, name, serial):
+        d = self.root / "sys/bus/usb/devices" / name
+        d.mkdir(parents=True)
+        for k, v in {"idVendor": "0bda", "idProduct": "2838", "serial": serial}.items():
+            (d / k).write_text(v + "\n")
+
+    def saved(self, text):
+        p = self.root / "etc/default/gps-time-sdr"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
 
     def calls(self):
         return self.log.read_text().splitlines() if self.log.exists() else []
 
     def test_unset_changes_nothing(self):
-        r = self.run_script()
+        r = self.run_script(decoders_write=False)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("not installed", r.stdout)
         self.assertEqual(self.calls(), [])
@@ -175,12 +234,14 @@ class TestScript(unittest.TestCase):
         self.assertIn("blacklist dvb_usb_rtl28xxu", (self.root / "etc/modprobe.d/gps-time-rtl-sdr.conf").read_text())
 
     def test_serials_are_kept_between_runs_and_none_clears_one(self):
-        self.run_script(GTP_SDR="1", GTP_SDR_PPS_SERIAL="00000pps", GTP_SDR_978_SERIAL="00000978")
+        self.run_script(GTP_SDR="1", GTP_SDR_PPS_SERIAL="00000pps", GTP_SDR_978_SERIAL="00000978",
+                        GTP_SDR_1090_SERIAL="none")
         r = self.run_script(GTP_SDR="1", GTP_SDR_978_SERIAL="none")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         env = (self.root / "etc/default/gps-time-sdr").read_text()
         self.assertIn("GTP_SDR_PPS_SERIAL=00000pps\n", env)
         self.assertIn("GTP_SDR_978_SERIAL=\n", env)
+        self.assertIn("GTP_SDR_1090_SERIAL=none\n", env)               # kept as "none", not empty
         self.assertIn("dump978 v11.1 already built", r.stdout)
 
     def test_bad_or_shared_serials_change_nothing(self):
@@ -192,7 +253,7 @@ class TestScript(unittest.TestCase):
                 self.assertFalse([c for c in self.calls() if c.startswith("apt-get")])
 
     def test_a_commit_mismatch_keeps_978_off(self):
-        r = self.run_script(GTP_SDR="1", GTP_SDR_978_SERIAL="00000978", STUB_COMMIT="0" * 40)
+        r = self.run_script(GTP_SDR="1", GTP_SDR_978_SERIAL="00000978", GTP_SDR_1090_SERIAL="none", STUB_COMMIT="0" * 40)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("978 MHz stays off", r.stderr)
         self.assertFalse((self.root / "usr/local/lib/gps-time-sdr/dump978-fa").exists())
@@ -239,14 +300,14 @@ class TestScript(unittest.TestCase):
     def test_the_aircraft_map_needs_1090_and_a_verified_commit(self):
         env, t, d = self.tar_env()
         html = self.root / "usr/local/share/gps-time-tar1090/html"
-        r = self.run_script(GTP_SDR="1", **env)
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="none", **env)
         self.assertIn("needs the 1090 MHz role", r.stdout)
         self.assertFalse(html.exists())
         r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", STUB_TAR_COMMIT="0" * 40, STUB_DB_COMMIT=d)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)        # the rest of the stack installs
         self.assertIn("could not be fetched or verified", r.stderr)
         self.assertFalse(html.exists())
-        r = self.run_script(GTP_SDR="1", GTP_TAR1090="maybe")
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00001090", GTP_TAR1090="maybe")
         self.assertEqual(r.returncode, 1)
 
     def test_off_removes_the_aircraft_map_too(self):
@@ -257,7 +318,7 @@ class TestScript(unittest.TestCase):
         self.assertFalse((self.root / "usr/local/share/gps-time-tar1090").exists())
 
     def test_off_removes_our_units_only(self):
-        self.run_script(GTP_SDR="1")
+        self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="none")
         r = self.run_script(GTP_SDR="0")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         units = self.root / "etc/systemd/system"
@@ -265,6 +326,102 @@ class TestScript(unittest.TestCase):
             self.assertFalse((units / u).exists(), u)
         self.assertFalse((units / "gps-time-modules.service.d").exists())
         self.assertTrue((self.root / "etc/default/gps-time-sdr").exists())
+
+    # ── rc.8: the 1090 MHz serial, the check after the install, two dongles ──
+
+    def test_an_empty_1090_serial_stops_before_anything_changes(self):
+        # The owner's Pi on rc.7: the env file had an empty 1090 MHz serial.
+        self.saved("GTP_SDR_PPS_SERIAL=\nGTP_SDR_1090_SERIAL=\nGTP_SDR_978_SERIAL=\nGTP_TAR1090=1\n")
+        self.fake_dongle("1-1.2", "00000001")
+        self.fake_dongle("1-1.3", "00000978")
+        for args in ((), ("check",)):
+            with self.subTest(args):
+                self.log.unlink(missing_ok=True)
+                r = self.run_script(*args, GTP_SDR="1", decoders_write=False)
+                self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+                self.assertIn("GTP_SDR_1090_SERIAL is empty", r.stderr)
+                self.assertIn("RTL-SDRs on USB now: 00000001 00000978", r.stderr)
+                self.assertIn("GTP_SDR_1090_SERIAL=none", r.stderr)
+                self.assertEqual(self.calls(), [])
+                self.assertFalse((self.root / "etc/systemd").exists())
+
+    def test_check_mode_changes_nothing(self):
+        self.fake_dongle("1-1.2", "1090")
+        r = self.run_script("check", GTP_SDR="1", GTP_SDR_1090_SERIAL="1090", decoders_write=False)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("settings checked: 1090 MHz 1090, 978 MHz none", r.stdout)
+        self.assertEqual(self.calls(), [])
+        self.assertFalse((self.root / "etc").exists())
+        r = self.run_script("check", GTP_SDR="1", GTP_SDR_1090_SERIAL="a;b", decoders_write=False)
+        self.assertEqual(r.returncode, 1)
+        self.assertEqual(self.run_script("check", decoders_write=False).returncode, 0)   # GTP_SDR unset
+
+    def test_the_check_after_the_install_finds_a_running_readsb(self):
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00000001")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("check: gps-time-readsb.service is active (dongle 00000001).", r.stdout)
+        self.assertIn("check: /run/readsb/aircraft.json exists.", r.stdout)
+        self.assertIn("systemctl reset-failed gps-time-readsb.service", self.calls())
+
+    def test_the_check_after_the_install_catches_a_crash_loop(self):
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00000001", STUB_ACTIVE="activating",
+                            decoders_write=False)
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)          # install.sh: installed, check failed
+        self.assertIn("CHECK FAILED: gps-time-readsb.service is activating", r.stderr)
+        self.assertIn("CHECK FAILED: /run/readsb/aircraft.json does not exist", r.stderr)
+        self.assertIn("journalctl -u gps-time-readsb.service -n 12 --no-pager", self.calls())
+
+    def test_the_check_says_paused_when_the_web_sdr_has_the_dongle(self):
+        (self.root / "etc/systemd/system").mkdir(parents=True)
+        (self.root / "etc/systemd/system/gps-time-websdr.service").write_text("[Unit]\n")
+        (self.root / "etc/default").mkdir(parents=True)
+        (self.root / "etc/default/gps-time-websdr").write_text("GTP_WEBSDR_SERIAL=00000001\n")
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00000001", STUB_WEBSDR_RC="0",
+                            STUB_ACTIVE="inactive", decoders_write=False)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("paused: the web SDR has dongle 00000001", r.stdout)
+
+    def test_two_dongles_by_serial_and_the_978_map(self):
+        self.fake_dongle("1-1.2", "1090")
+        self.fake_dongle("1-1.3", "978")
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="1090", GTP_SDR_978_SERIAL="978")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        env = (self.root / "etc/default/gps-time-sdr").read_text()
+        self.assertIn("GTP_SDR_1090_SERIAL=1090\n", env)
+        self.assertIn("GTP_SDR_978_SERIAL=978\n", env)
+        calls = self.calls()
+        self.assertIn("systemctl enable gps-time-readsb.service", calls)
+        self.assertIn("systemctl enable gps-time-dump978.service gps-time-skyaware978.service", calls)
+        self.assertIn("check: gps-time-dump978.service is active (dongle 978).", r.stdout)
+        self.assertIn("check: gps-time-skyaware978.service is active (dongle 978).", r.stdout)
+        self.assertEqual((self.root / "usr/local/share/gps-time-skyaware978/html/index.html").read_text(),
+                         "<html>skyaware</html>\n")
+        self.assertNotIn("warning", r.stdout)
+        # The dongles go to plugdev here too, not only with the web SDR.
+        self.assertTrue((self.root / "etc/udev/rules.d/61-gps-time-rtl-sdr.rules").is_file())
+        self.assertIn("udevadm trigger --subsystem-match=usb --attr-match=idVendor=0bda", calls)
+        # Off removes the 978 map with the rest.
+        self.run_script(GTP_SDR="0")
+        self.assertFalse((self.root / "usr/local/share/gps-time-skyaware978").exists())
+
+    def test_an_upgrade_from_rc7_fetches_the_978_page_once(self):
+        self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="1090", GTP_SDR_978_SERIAL="978")
+        page = self.root / "usr/local/share/gps-time-skyaware978/html"
+        shutil.rmtree(page)                                             # as built by rc.7: binaries only
+        r = self.run_script(GTP_SDR="1")
+        self.assertNotIn("already built", r.stdout)
+        self.assertTrue((page / "index.html").is_file())
+        r = self.run_script(GTP_SDR="1")
+        self.assertIn("already built", r.stdout)
+
+    def test_serial_warnings(self):
+        self.fake_dongle("1-1.2", "00000001")
+        self.fake_dongle("1-1.3", "00000978")
+        r = self.run_script(GTP_SDR="1", GTP_SDR_1090_SERIAL="00000001", GTP_SDR_978_SERIAL="00005555")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("serial 00000001 (1090 MHz) could be read as device index 1 with 2 RTL-SDRs", r.stdout)
+        self.assertIn("no RTL-SDR on USB has serial 00005555 (978 MHz)", r.stdout)
+        self.assertNotIn("00000978 (", r.stdout)
 
 
 if __name__ == "__main__":

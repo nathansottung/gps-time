@@ -9,7 +9,7 @@
 #
 # Settings, kept in /etc/default/gps-time-websdr between runs:
 #   GTP_WEBSDR_SERIAL     the RTL-SDR it uses; default: the 1090 MHz dongle (GTP_SDR_1090_SERIAL).
-#                         Never the PPS or the 978 MHz dongle.
+#                         It may be the 978 MHz dongle or one with no role; never the PPS dongle.
 #   GTP_WEBSDR_PORT       the LAN port of the password gate (default 8073)
 #   GTP_WEBSDR_MAX_HOURS  a session ends by itself after this many hours (default 4, 1 to 24)
 #   GTP_WEBSDR_AUTH       1: the gate asks for a login; 0 (the default): LAN only, no login
@@ -37,19 +37,20 @@
 #     GTP_WEBSDR_AUTH=1), and gps-time-websdr-signout.service (signs out every browser).
 #     Neither is enabled at boot: the web SDR is started from the Radio page (anyone on the LAN,
 #     no admin token) or with systemctl.
-#     While it runs, readsb is stopped (Conflicts=); websdr-handoff starts it again afterwards.
+#     While it runs, only the service on its dongle stops (Conflicts= in the drop-in
+#     gps-time-dongle.conf): readsb, or dump978-fa and skyaware978; websdr-handoff starts it again.
 #
 # Never touched: gpsd, chrony, the PPS line and its overlay. No receiver position is given.
 set -u
 ROOT="${GTP_WEBSDR_TEST_ROOT-}"            # tests only: a prefix for every path written
 UNITS="$ROOT/etc/systemd/system"
 DROPIN="$UNITS/gps-time-websdr.service.d/gps-time-max.conf"
+DONGLE_DROPIN="$UNITS/gps-time-websdr.service.d/gps-time-dongle.conf"
 ENVFILE="$ROOT/etc/default/gps-time-websdr"
 SDR_ENV="$ROOT/etc/default/gps-time-sdr"
 PWDIR="$ROOT/etc/gps-time-websdr"
 OWRX_CONF="$ROOT/etc/openwebrx/openwebrx.conf.d/gps-time.conf"
 OWRX_DATA="$ROOT/var/lib/openwebrx"
-UDEV_RULE="$ROOT/etc/udev/rules.d/61-gps-time-rtl-sdr.rules"
 LIB="$ROOT/usr/local/lib/gps-time-sdr"
 KEYRING="$ROOT/usr/share/keyrings/gps-time-openwebrx-plus.gpg"
 SOURCES="$ROOT/etc/apt/sources.list.d/gps-time-openwebrx-plus.list"
@@ -81,7 +82,7 @@ case "$WANT" in
         rm -f "$UNITS/$u"
       fi
     done
-    rm -f "$DROPIN" "$OWRX_CONF" "$LIB/websdr-handoff" "$UNITS/gps-time-airband-fetch.service" \
+    rm -f "$DROPIN" "$DONGLE_DROPIN" "$OWRX_CONF" "$LIB/websdr-handoff" "$UNITS/gps-time-airband-fetch.service" \
       "$ROOT/etc/openwebrx/bookmarks.d/gps-time-airband.json" "$ROOT/etc/openwebrx/bookmarks.d/gps-time-decoders.json"
     rmdir "$(dirname "$DROPIN")" 2>/dev/null || true
     systemctl daemon-reload
@@ -105,11 +106,21 @@ HF="${GTP_WEBSDR_HF-}"; [ -z "$HF" ] && HF="$(kv "$ENVFILE" GTP_WEBSDR_HF)"; [ -
 
 [ -n "$SERIAL" ] || fail "no RTL-SDR serial: set GTP_WEBSDR_SERIAL, or GTP_SDR_1090_SERIAL with GTP_SDR=1"
 [[ "$SERIAL" =~ ^[A-Za-z0-9_-]{1,32}$ ]] || fail "GTP_WEBSDR_SERIAL='$SERIAL' is not a serial (letters, digits, - and _, at most 32)"
-for role in GTP_SDR_PPS_SERIAL GTP_SDR_978_SERIAL; do
-  if [ "$(kv "$SDR_ENV" "$role")" = "$SERIAL" ]; then
-    fail "$SERIAL is the dongle for $role; the web SDR may share only the 1090 MHz dongle (or one with no role)"
-  fi
-done
+if [ "$(kv "$SDR_ENV" GTP_SDR_PPS_SERIAL)" = "$SERIAL" ]; then
+  fail "$SERIAL is the PPS-marker dongle (GTP_SDR_PPS_SERIAL), which carries the injected PPS; the web SDR may take the 1090 MHz or the 978 MHz dongle, or one with no role"
+fi
+# The web SDR takes the dongle it's pinned to, and only the service on that dongle pauses while it
+# runs: readsb for the 1090 MHz dongle, dump978-fa (and skyaware978 with it) for the 978 MHz one,
+# nothing for a dongle with no role. The drop-in gps-time-dongle.conf holds the Conflicts=;
+# websdr-handoff starts the same units again afterwards (GTP_WEBSDR_SHARES).
+SHARES=""
+if [ "$(kv "$SDR_ENV" GTP_SDR_1090_SERIAL)" = "$SERIAL" ]; then
+  SHARES="gps-time-readsb.service readsb.service"; SHARED_ROLE="the 1090 MHz dongle: readsb pauses while it runs"
+elif [ "$(kv "$SDR_ENV" GTP_SDR_978_SERIAL)" = "$SERIAL" ]; then
+  SHARES="gps-time-dump978.service gps-time-skyaware978.service"; SHARED_ROLE="the 978 MHz dongle: dump978-fa and skyaware978 pause while it runs"
+else
+  SHARED_ROLE="a dongle with no other role: nothing pauses"
+fi
 # The owner's limit: at most 3 RTL-SDRs by serial on a Pi 4, counting the SDR stack's roles when
 # it's installed. Sharing the 1090 MHz dongle adds none.
 . "$(dirname "$0")/dongle-roles.sh"
@@ -183,19 +194,8 @@ fi
 bash "$(dirname "$0")/rtl-dvb-blacklist.sh" "$ROOT" || say "the DVB-T driver blacklist could not be written (see above)."
 # RTL-SDRs to plugdev, read/write: every SDR unit of the station has SupplementaryGroups=plugdev.
 # rtl_connector's "usb_open error -3" is libusb's ACCESS error: the dongle's node in /dev/bus/usb
-# isn't open to the openwebrx user. Debian's own rule (60-librtlsdr0.rules) is applied only when a
-# dongle is plugged in, so one plugged in before the package was installed keeps root-only access;
-# the trigger applies the rule to those now. Kept when the web SDR is removed (readsb uses it too).
-install -d -m 0755 "$(dirname "$UDEV_RULE")"
-install -m 0644 "$SRC/61-gps-time-rtl-sdr.rules" "$UDEV_RULE"
-getent group plugdev >/dev/null 2>&1 || groupadd --system plugdev 2>/dev/null \
-  || say "there is no plugdev group and it could not be made; OpenWebRX+ won't open the dongle." >&2
-if udevadm control --reload-rules >/dev/null 2>&1 \
-  && udevadm trigger --subsystem-match=usb --attr-match=idVendor=0bda >/dev/null 2>&1; then
-  udevadm settle --timeout=10 >/dev/null 2>&1 || true
-else
-  say "udev could not apply the RTL-SDR rule now; unplug and replug the dongle, or reboot." >&2
-fi
+# isn't open to the openwebrx user (scripts/rtl-access.sh; readsb and dump978 use the same rule).
+bash "$(dirname "$0")/rtl-access.sh" "$ROOT" "$SRC" || say "the RTL-SDR access rule could not be applied (see above)."
 # Which dongles are there, and can plugdev open them? A report only, never a failure: the dongle
 # may be unplugged while installing.
 "$PY" -I - "$ROOT" "$SERIAL" <<'PYEOF' || true
@@ -325,6 +325,7 @@ install -d -m 0755 "$(dirname "$ENVFILE")" "$LIB"
   echo "GTP_WEBSDR_AUTH=$AUTH"
   echo "GTP_WEBSDR_REMEMBER_DAYS=$DAYS"
   echo "GTP_WEBSDR_HF=$HF"
+  echo "GTP_WEBSDR_SHARES=\"$SHARES\""
 } > "$ENVFILE.tmp" && mv -f "$ENVFILE.tmp" "$ENVFILE"
 chmod 0644 "$ENVFILE"
 install -d -m 0700 "$PWDIR"
@@ -348,10 +349,19 @@ ln -sfn /opt/gps-time-pi/airband-openwebrx.json "$ROOT/etc/openwebrx/bookmarks.d
 # The decoders' band bookmarks: fixed, published frequencies; nothing about the station's location.
 install -m 0644 "$SRC/openwebrx-gps-time-decoders.json" "$ROOT/etc/openwebrx/bookmarks.d/gps-time-decoders.json"
 printf '[Service]\n# Written by scripts/websdr.sh: a session ends by itself after GTP_WEBSDR_MAX_HOURS.\nRuntimeMaxSec=%sh\n' "$HOURS" > "$DROPIN"
+# The dongle's one other user stops first (After= waits for it to let go); none for a free dongle.
+{
+  echo "# Written by scripts/websdr.sh: the web SDR's dongle ($SERIAL) is $SHARED_ROLE."
+  echo "[Unit]"
+  if [ -n "$SHARES" ]; then
+    echo "Conflicts=$SHARES"
+    echo "After=$SHARES"
+  fi
+} > "$DONGLE_DROPIN"
 systemctl daemon-reload
 # Never enabled at boot; a running web SDR picks up the new settings at its next start.
 systemctl disable gps-time-websdr.service gps-time-websdr-gate.service >/dev/null 2>&1 || true
-say "installed, not running. RTL-SDR $SERIAL, LAN port $PORT, sessions end after $HOURS h, HF profiles: $HF."
+say "installed, not running. RTL-SDR $SERIAL ($SHARED_ROLE), LAN port $PORT, sessions end after $HOURS h, HF profiles: $HF."
 if [ "$AUTH" = 0 ]; then
   say "login off: anyone on the LAN can listen (GTP_WEBSDR_AUTH=1 turns the login on)."
 elif grep -q '^[^#]' "$PWDIR/password" 2>/dev/null; then

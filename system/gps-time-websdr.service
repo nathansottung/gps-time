@@ -1,10 +1,12 @@
 [Unit]
-Description=OpenWebRX+ web SDR for GPS Time (127.0.0.1:8074, reached through gps-time-websdr-gate; readsb stops while it runs)
+Description=OpenWebRX+ web SDR for GPS Time (127.0.0.1:8074, reached through gps-time-websdr-gate; the service on its dongle pauses)
 Documentation=file:///opt/gps-time-pi/docs/deploy/websdr.md
-After=network.target gps-time-readsb.service readsb.service
-# One dongle, one owner: starting the web SDR stops readsb first (After= waits for it to let go of
-# the dongle). websdr-handoff starts readsb again when the web SDR stops.
-Conflicts=gps-time-readsb.service readsb.service
+After=network.target
+# One dongle, one owner: starting the web SDR stops the one service on its dongle first, and
+# After= waits for it to let go. Which one depends on the serial it's pinned to, so scripts/websdr.sh
+# writes Conflicts= and After= in gps-time-websdr.service.d/gps-time-dongle.conf: readsb for the
+# 1090 MHz dongle, dump978-fa and skyaware978 for the 978 MHz one, nothing for a free dongle.
+# websdr-handoff starts the same units again when the web SDR stops.
 Wants=gps-time-websdr-gate.service
 
 # Installed by scripts/websdr.sh (sudo GTP_WEBSDR=1 bash install.sh), never enabled at boot: it is

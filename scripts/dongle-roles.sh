@@ -13,7 +13,7 @@
 DONGLE_MAX_PI4=3
 
 dongle_model() {   # dongle_model <root> -> the model string, or nothing
-  tr -d '\0' < "$1/proc/device-tree/model" 2>/dev/null
+  [ -r "$1/proc/device-tree/model" ] && tr -d '\0' < "$1/proc/device-tree/model"
 }
 
 dongle_limit() {   # dongle_limit <root> -> the limit for this model, or nothing for none
@@ -46,4 +46,25 @@ dongle_check() {
     echo "Dongle roles: $n RTL-SDR(s) by serial; the board model can't be read, so no limit is applied."
   fi
   return 0
+}
+
+# dongle_serials <root> : the serial of each RTL2832U dongle on USB now (sysfs), one per line;
+# "(none)" for a dongle that reports none. Nothing for no dongles.
+dongle_serials() {
+  local d id
+  for d in "$1"/sys/bus/usb/devices/*; do
+    [ -f "$d/idVendor" ] || continue
+    [ "$(cat "$d/idVendor" 2>/dev/null)" = 0bda ] || continue
+    id="$(cat "$d/idProduct" 2>/dev/null)"
+    [ "$id" = 2832 ] || [ "$id" = 2838 ] || continue
+    if [ -s "$d/serial" ]; then cat "$d/serial"; else echo "(none)"; fi
+  done
+}
+
+# dongle_index_like <serial> <count> : true when rtl-sdr's device search could read the serial as a
+# device index instead (all digits, a value below the number of dongles). librtlsdr's
+# verbose_device_search() tries the index first, so with two dongles plugged in "00000001" is
+# index 1, whichever dongle that is. Serials like 1090 and 978 are never below the count.
+dongle_index_like() {
+  [[ "$1" =~ ^[0-9]{1,9}$ ]] && [ "$((10#$1))" -lt "$2" ]
 }
