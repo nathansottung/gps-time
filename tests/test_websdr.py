@@ -14,6 +14,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -623,7 +624,8 @@ class TestScript(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, True)
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
-        for cmd in ("apt-get", "systemctl", "dpkg", "modprobe", "curl", "gpg", "chown"):
+        for cmd in ("apt-get", "systemctl", "dpkg", "modprobe", "curl", "gpg", "chown", "udevadm",
+                    "getent", "groupadd"):
             p = self.bin / cmd
             p.write_text(STUB)
             p.chmod(p.stat().st_mode | stat.S_IXUSR)
@@ -672,7 +674,7 @@ class TestScript(unittest.TestCase):
         self.assertIn("RuntimeMaxSec=4h", (self.root / "etc/systemd/system/gps-time-websdr.service.d/gps-time-max.conf").read_text())
         settings = json.loads((self.root / "var/lib/openwebrx/settings.json").read_text())
         self.assertEqual(settings["version"], 8)
-        self.assertEqual(settings["sdrs"]["rtlsdr"]["device"], "00001090")
+        self.assertEqual(settings["sdrs"]["rtlsdr"]["device"], "serial=00001090")
         profiles = settings["sdrs"]["rtlsdr"]["profiles"]
         self.assertTrue({"2m", "70cm", "fm", "air", "noaa", "gtp-10m", "gtp-6m", "gtp-2m-digital"} <= set(profiles))
         self.assertFalse([k for k in profiles if k.startswith("gtp-hf-")])      # no HF unless asked
@@ -699,12 +701,100 @@ class TestScript(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         doc = json.loads((data / "settings.json").read_text())
         self.assertEqual(doc["receiver_name"], "mine")
-        self.assertEqual(doc["sdrs"]["a"]["device"], "websdr1")
+        self.assertEqual(doc["sdrs"]["a"]["device"], "serial=websdr1")
         self.assertIn("x", doc["sdrs"]["a"]["profiles"])                       # the owner's own profile stays
         self.assertIn("gtp-10m", doc["sdrs"]["a"]["profiles"])
         self.assertNotIn("profiles", doc["sdrs"]["b"])
         self.assertNotIn("device", doc["sdrs"]["b"])
         self.assertTrue((data / "settings.json.gps-time-prev").is_file())
+
+    def test_settings_without_an_rtl_sdr_get_one_pinned_to_an_exact_serial(self):
+        # The owner's Pi: settings.json had no RTL-SDR device ("0 RTL-SDR device(s) ... set"), so
+        # OpenWebRX+ used its built-in device with no serial. 00000001 is a common factory serial,
+        # and a bare one is read as device index 1 when the serials can't be read.
+        data = self.root / "var/lib/openwebrx"
+        data.mkdir(parents=True)
+        for before in ({"version": 8, "receiver_name": "mine"},
+                       {"version": 8, "sdrs": {"b": {"type": "airspy", "name": "theirs"}}},
+                       {"version": 8, "sdrs": {}}):
+            (data / "settings.json").write_text(json.dumps(before))
+            r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="00000001")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            doc = json.loads((data / "settings.json").read_text())
+            rtl = [d for d in doc["sdrs"].values() if d.get("type") == "rtl_sdr"]
+            self.assertEqual(len(rtl), 1, doc)
+            self.assertEqual(rtl[0]["device"], "serial=00000001")
+            self.assertTrue({"2m", "gtp-10m"} <= set(rtl[0]["profiles"]))
+            self.assertIn("no RTL-SDR device in settings.json; added", r.stdout)
+            self.assertIn("1 RTL-SDR device(s) in OpenWebRX+ set to serial 00000001", r.stdout)
+            self.assertNotIn("0 RTL-SDR device(s)", r.stdout)
+            if "receiver_name" in before:
+                self.assertEqual(doc["receiver_name"], "mine")
+            if "b" in before.get("sdrs", {}):
+                self.assertEqual(doc["sdrs"]["b"], {"type": "airspy", "name": "theirs"})
+        # A second run finds the device it added and doesn't add another.
+        r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="00000001")
+        self.assertNotIn("added", r.stdout)
+        doc = json.loads((data / "settings.json").read_text())
+        self.assertEqual(len([d for d in doc["sdrs"].values() if d.get("type") == "rtl_sdr"]), 1)
+
+    def test_the_dongles_are_given_to_plugdev_and_the_rule_applied_now(self):
+        # rtl_connector's "usb_open error -3" is libusb's ACCESS error.
+        r = self.run_script("GTP_SDR_1090_SERIAL=00001090\n", GTP_WEBSDR="1")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        rule = (self.root / "etc/udev/rules.d/61-gps-time-rtl-sdr.rules").read_text()
+        for product in ("2832", "2838"):
+            self.assertIn(f'ATTR{{idVendor}}=="0bda", ATTR{{idProduct}}=="{product}", MODE="0660", GROUP="plugdev"', rule)
+        self.assertNotIn("0666", rule)
+        calls = self.calls()
+        self.assertIn("udevadm control --reload-rules", calls)
+        self.assertIn("udevadm trigger --subsystem-match=usb --attr-match=idVendor=0bda", calls)
+        self.assertLess(calls.index("udevadm control --reload-rules"),
+                        calls.index("udevadm trigger --subsystem-match=usb --attr-match=idVendor=0bda"))
+        self.assertIn("no RTL-SDR is plugged in now", r.stdout)
+        unit = (SYSTEM / "gps-time-websdr.service").read_text()
+        self.assertIn("SupplementaryGroups=plugdev", unit)
+        self.assertIn("DeviceAllow=char-usb_device rw", unit)
+
+    def fake_dongle(self, name, serial, mode=0o600, devnum=4):
+        d = self.root / "sys/bus/usb/devices" / name
+        d.mkdir(parents=True)
+        for k, v in {"idVendor": "0bda", "idProduct": "2838", "serial": serial,
+                     "busnum": "1", "devnum": str(devnum)}.items():
+            (d / k).write_text(v + "\n")
+        node = self.root / "dev/bus/usb/001" / ("%03d" % devnum)
+        node.parent.mkdir(parents=True, exist_ok=True)
+        node.write_text("")
+        node.chmod(mode)
+
+    def test_the_dongle_report_names_access_missing_and_shared_serials(self):
+        self.fake_dongle("1-1.2", "00000001", devnum=4)
+        r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="00000001")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("RTL-SDR at USB 1-1.2: serial 00000001", r.stdout)
+        self.assertIn("plugdev can't open it", r.stdout)              # a root-only node: the -3 case
+        r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="00001090")
+        self.assertIn("no plugged-in RTL-SDR has serial 00001090", r.stdout)
+        self.fake_dongle("1-1.3", "00000001", devnum=5)
+        r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="00000001")
+        self.assertIn("2 RTL-SDRs have serial 00000001", r.stdout)
+        self.assertIn("rtl_eeprom", r.stdout)
+        self.assertFalse([c for c in self.calls() if c.startswith("rtl_eeprom")])  # never run by us
+
+    def test_online_receiver_lists_are_never_downloaded(self):
+        r = self.run_script(GTP_WEBSDR="1", GTP_WEBSDR_SERIAL="websdr1")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("online receiver, repeater and EIBI lists are off", r.stdout)
+        data = self.root / "var/lib/openwebrx"
+        for name, period in (("receivers.json", 86400), ("repeaters.json", 7 * 86400), ("eibi.json", 86400)):
+            f = data / name
+            self.assertEqual(json.loads(f.read_text()), [])
+            # OpenWebRX+'s WebAgent.refresh(): fetches only when the file is empty or
+            # time.time() - mtime >= its refresh period. Never true before 2037.
+            self.assertGreater(f.stat().st_size, 0)
+            self.assertEqual(int(f.stat().st_mtime), 2145830400)
+            self.assertLess(time.time() - f.stat().st_mtime, period)
+            self.assertLess(2145830400, 2 ** 31)                   # a 32-bit time_t holds it
 
     def test_refusals_change_nothing(self):
         cases = [

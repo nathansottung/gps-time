@@ -1,0 +1,7 @@
+# Installed by scripts/websdr.sh as /etc/udev/rules.d/61-gps-time-rtl-sdr.rules.
+# RTL2832U dongles (0bda:2832, 0bda:2838: the NESDR SMArt v5 and RTL-SDR Blog dongles) to the
+# plugdev group, read and write. The station's SDR units (OpenWebRX+, readsb, dump978, rtl_tcp)
+# each run with SupplementaryGroups=plugdev. Debian's 60-librtlsdr0.rules says the same; this file
+# makes it hold whatever that package ships. It changes access only, never the kernel driver.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0bda", ATTR{idProduct}=="2832", MODE="0660", GROUP="plugdev"
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0bda", ATTR{idProduct}=="2838", MODE="0660", GROUP="plugdev"
