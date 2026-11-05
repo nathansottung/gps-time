@@ -61,8 +61,6 @@ export const sdrDevices = [
     sampleRateMsps: 0.25, gain: 29.5, antenna: 'HF Long Wire', tier: 3, tierLabel: 'PPS/epoch-aligned', calibPpm: -1.2, state: 'active' },
 ];
 
-// ADS-B (needs: dump1090 integration)
-export const adsbStats = { msgsPerSec: 142, aircraftCount: 23, maxRangeKm: 412, mlatPeers: 4, mlatPositions: 6 };
 
 // Offline data packs (needs: data-pack manifest)
 export const dataPacks = [

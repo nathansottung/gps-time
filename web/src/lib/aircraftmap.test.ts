@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageLine, mapState, markerLine } from './aircraftmap';
+import { ageLine, mapState, markerLine, uatState } from './aircraftmap';
 import type { AircraftMapStatus } from '../api/types';
 
 const st = (over: Partial<AircraftMapStatus> = {}): AircraftMapStatus => ({
@@ -28,5 +28,15 @@ describe('aircraft map', () => {
     expect(ageLine(null)).toBeNull();
     expect(ageLine(0.64)).toBe('0.6 s');
     expect(ageLine(42.4)).toBe('42 s');
+  });
+
+  it('says what the 978 MHz map is doing, and UNKNOWN for a station that does not say', () => {
+    const u = { installed: true, url: '/skyaware978/', state: 'live' as const, aircraft_json_age_s: 1.4, aircraft: 3 };
+    expect(uatState(u)).toMatchObject({ label: 'LIVE', variant: 'good' });
+    expect(uatState({ ...u, state: 'paused' }).text).toContain('web SDR');
+    expect(uatState({ ...u, state: 'stale' }).label).toBe('STALE');
+    expect(uatState({ ...u, state: 'no_data' }).label).toBe('NO DATA');
+    expect(uatState({ ...u, installed: false }).label).toBe('NOT INSTALLED');
+    expect(uatState(undefined).label).toBe('UNKNOWN');
   });
 });
