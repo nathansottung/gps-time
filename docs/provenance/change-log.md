@@ -2311,3 +2311,15 @@ The owner's rc.6 list (2026-11-04, "go."), one PR each, all merged after CI:
 - #175: the security review, with its two High location leaks fixed.
 
 `releases/v1.6.0-rc.6.md` lists them, what the upgrade changes, the deploy command with every install flag, what isn't verified, and rollback. The version lines in README, START-HERE, ROADMAP and INDEX are updated. The tag `v1.6.0-rc.6` goes on this PR's merge commit. Not deployed.
+
+## 2026-11-04 — Web SDR: the dongle opens; online lists off; v1.6.0-rc.7 (#177)
+
+The owner's report from the first start on the Pi: OpenWebRX+ logged `usb_open error -3` (no USB permission), and the installer printed `0 RTL-SDR device(s) in OpenWebRX+ set to serial 00000001`. "Fix both, turn off its internet receiver-list scraping, add a test, tag rc.7."
+
+- **USB access:** `system/61-gps-time-rtl-sdr.rules` (0bda:2832 and 0bda:2838 to `plugdev`, `0660`), installed by `scripts/websdr.sh`, with `udevadm control --reload-rules` and a `udevadm trigger` for vendor 0bda. Debian's own rule only applies when a dongle is plugged in, so one plugged in before the package was installed could stay root-only. The `-3` cause on the owner's Pi is inferred from libusb's error code, not observed: the dongle report shows the node's group and mode.
+- **0 devices:** a `settings.json` with no RTL-SDR device now gets one, with the base profiles. The owner's other devices and settings are kept, and the step fails if no device could be set.
+- **Exact serial:** `device` is `serial=<serial>`. `rtl_connector` (owrx_connector 0.6.5) matches that exactly, where a bare `00000001` can fall back to device index 1.
+- **Dongle report:** each RTL-SDR's port, serial, group and mode, plus warnings when the web SDR's serial is missing or shared. It points to `rtl_eeprom`, which the installer never runs.
+- **Online lists off:** OpenWebRX+ has no setting for them, so `receivers.json`, `repeaters.json` and `eibi.json` in its data folder are written as empty lists dated 2037-12-31. `WebAgent.refresh` then never finds them stale.
+- **Tests:** `tests/test_websdr.py`: a settings file with no `sdrs`, with only other radios, or with an empty `sdrs`; a second run adds no second device; the udev rule and its calls; the report against a temporary sysfs tree (root-only node, missing serial, shared serial); the list files' content and dates.
+- **Docs:** `deploy/websdr.md` ("The dongle: serial and USB access", "Online receiver lists off"), `releases/v1.6.0-rc.7.md`, and the version lines. The tag `v1.6.0-rc.7` goes on this PR's merge commit. Not deployed.
