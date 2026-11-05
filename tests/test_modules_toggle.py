@@ -320,7 +320,7 @@ class TestHttp(AuthBase):
     def test_sdr_status_is_read_only_and_needs_no_token(self):
         status, _, body = self.req("GET", "/api/sdr")
         self.assertEqual(status, 200)
-        self.assertEqual(set(body), {"installed", "units", "dongles", "limit", "feeds", "note"})
+        self.assertEqual(set(body), {"installed", "units", "dongles", "limit", "feeds", "aircraft", "note"})
 
     def test_get_on_setting_still_405(self):
         self.assertEqual(self.req("GET", "/api/setting?modules_experimental=true")[0], 405)

@@ -1,4 +1,5 @@
-"""The live aircraft map: tar1090 on readsb's 1090 MHz data, served by the web service (docs/deploy/sdr-stack.md).
+"""The live aircraft maps: tar1090 on readsb's 1090 MHz data, and skyaware978's page on the 978 MHz
+data, both served by the web service (docs/deploy/sdr-stack.md).
 
 tar1090 is a static web page (wiedehopf/tar1090, pinned by commit in scripts/sdr-stack.sh) that
 reads readsb's JSON files. The installer puts the page in HTML_DIR; this module serves it at
@@ -12,8 +13,13 @@ the rest of the station (Host checks; no outside host is ever fetched by the sta
                                    exact, rounded to 0.1 degree, or none in hidden mode (no marker,
                                    no range rings). readsb itself is never given a position.
 
-While the web SDR runs, readsb is stopped (it shares the dongle), so aircraft.json goes stale:
-status() reports tracking as paused, and readsb comes back when the web SDR stops.
+  /skyaware978/...                 the same for skyaware978's page (from the pinned dump978 commit)
+                                   and its files in /run/skyaware978; receiver.json the same way.
+
+Both read files on this machine only (the decoders write them to RAM); the station fetches nothing.
+While the web SDR runs on a map's dongle, that decoder is stopped, so its aircraft.json goes stale:
+status() reports that map as paused, and the decoder comes back when the web SDR stops. Only the
+decoder on the web SDR's dongle pauses (scripts/websdr.sh, gps-time-dongle.conf).
 
 The browser loads map tiles from the tile servers the page names (OpenStreetMap by default):
 that is the viewer's browser, not the station, and is said on the Aviation page.
@@ -30,6 +36,10 @@ from . import config
 HTML_DIR = os.environ.get("GTP_TAR1090_HTML", "/usr/local/share/gps-time-tar1090/html")
 DATA_DIR = os.environ.get("GTP_READSB_JSON", "/run/readsb")
 PREFIX = "/tar1090/"
+SKY_HTML_DIR = os.environ.get("GTP_SKYAWARE_HTML", "/usr/local/share/gps-time-skyaware978/html")
+SKY_DATA_DIR = os.environ.get("GTP_SKYAWARE_JSON", "/run/skyaware978")
+SKY_PREFIX = "/skyaware978/"
+SITES = ("tar1090", "skyaware978")
 DATA_RE = re.compile(r"^(aircraft|history_\d{1,3})\.json$")
 STALE_S = 30.0
 TYPES = {
@@ -46,15 +56,24 @@ CSP_BASE = ("default-src 'self'; object-src 'none'; base-uri 'none'; form-action
             "worker-src 'self' blob:; font-src 'self' data:")
 
 
-def installed():
-    return os.path.isfile(os.path.join(HTML_DIR, "index.html"))
+def dirs(site="tar1090"):
+    """(page folder, data folder) of a map, read at call time (the tests point them elsewhere)."""
+    if site == "skyaware978":
+        return SKY_HTML_DIR, SKY_DATA_DIR
+    if site == "tar1090":
+        return HTML_DIR, DATA_DIR
+    raise ValueError(site)
 
 
-def static(rel):
-    """(path, content type) for rel inside HTML_DIR, or None (missing, not a file, outside it)."""
+def installed(site="tar1090"):
+    return os.path.isfile(os.path.join(dirs(site)[0], "index.html"))
+
+
+def static(rel, site="tar1090"):
+    """(path, content type) for rel inside the map's page folder, or None (missing, not a file, outside it)."""
     if "\x00" in rel:
         return None
-    root = os.path.realpath(HTML_DIR)
+    root = os.path.realpath(dirs(site)[0])
     full = os.path.realpath(os.path.join(root, rel or "index.html"))
     try:
         inside = os.path.commonpath([root, full]) == root
@@ -86,7 +105,7 @@ def site_for_map(cfg):
 
 
 def receiver(cfg, data_dir=None):
-    """readsb's receiver.json with the position replaced by what the privacy mode allows."""
+    """The decoder's receiver.json with the position replaced by what the privacy mode allows."""
     try:
         with open(os.path.join(data_dir or DATA_DIR, "receiver.json"), encoding="utf-8") as f:
             doc = json.load(f)
@@ -102,23 +121,23 @@ def receiver(cfg, data_dir=None):
     return json.dumps(doc).encode()
 
 
-def data(name, cfg, data_dir=None):
+def data(name, cfg, data_dir=None, site="tar1090"):
     """Bytes of a data file the page asks for, or None."""
+    data_dir = data_dir or dirs(site)[1]
     if name == "receiver.json":
         return receiver(cfg, data_dir)
     if not DATA_RE.match(name):
         return None
     try:
-        with open(os.path.join(data_dir or DATA_DIR, name), "rb") as f:
+        with open(os.path.join(data_dir, name), "rb") as f:
             return f.read()
     except OSError:
         return None
 
 
-def status(cfg, websdr_active=None, data_dir=None, now=None):
-    """/api/aircraft-map: is the map installed, is readsb's data fresh, is tracking paused."""
-    now = time.time() if now is None else now
-    path = os.path.join(data_dir or DATA_DIR, "aircraft.json")
+def _state(data_dir, paused, now):
+    """(state, age, aircraft count) of a decoder's aircraft.json."""
+    path = os.path.join(data_dir, "aircraft.json")
     age, count = None, None
     try:
         age = round(max(0.0, now - os.path.getmtime(path)), 1)
@@ -127,8 +146,7 @@ def status(cfg, websdr_active=None, data_dir=None, now=None):
         count = len(doc.get("aircraft") or []) if isinstance(doc, dict) else None
     except (OSError, ValueError):
         pass
-    mode = (cfg or {}).get("location_display", "exact")
-    if websdr_active:
+    if paused:
         state = "paused"
     elif age is None:
         state = "no_data"
@@ -136,11 +154,23 @@ def status(cfg, websdr_active=None, data_dir=None, now=None):
         state = "stale"
     else:
         state = "live"
+    return state, age, count
+
+
+def status(cfg, websdr_active=None, data_dir=None, now=None, websdr_978=None, sky_data_dir=None):
+    """/api/aircraft-map: is each map installed, is its decoder's data fresh, is it paused.
+    websdr_active / websdr_978: the web SDR is running on the 1090 MHz / the 978 MHz dongle."""
+    now = time.time() if now is None else now
+    state, age, count = _state(data_dir or DATA_DIR, websdr_active, now)
+    s978, age978, count978 = _state(sky_data_dir or SKY_DATA_DIR, websdr_978, now)
+    mode = (cfg or {}).get("location_display", "exact")
     return {
         "installed": installed(), "url": PREFIX, "state": state,
         "aircraft_json_age_s": age, "aircraft": count,
         "station_marker": mode != "hidden" and site_for_map(cfg) is not None,
         "location_display": mode,
+        "uat": {"installed": installed("skyaware978"), "url": SKY_PREFIX, "state": s978,
+                "aircraft_json_age_s": age978, "aircraft": count978},
         "note": ("tar1090 on readsb's 1090 MHz data, served by the station on the LAN. While the web SDR runs it has the "
                  "dongle, so tracking pauses and resumes when it stops. The viewer's browser loads map tiles from the "
                  "chosen map layer's servers (OpenStreetMap by default)."),

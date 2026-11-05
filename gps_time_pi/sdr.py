@@ -5,7 +5,8 @@ Everything here is read from the running system; nothing is started, stopped or 
   their CPU time and memory from the cgroup files under /sys/fs/cgroup;
 - the RTL-SDR dongles on USB (sysfs): serial, speed, the role the installer gave the serial,
   and whether the DVB-T driver holds the device;
-- the decoders' aircraft.json files: age and how many aircraft, never a position.
+- the decoders' aircraft.json files: age, how many aircraft and messages per second, never a position;
+- which dongle (by serial) each decoder uses, and which one the web SDR is pinned to (aircraft()).
 
 A value that can't be read is None (UNKNOWN), never a guess. Each SDR module also gets its
 readiness checks for Administration: what it needs that the station can observe.
@@ -132,9 +133,33 @@ def _env_values(path):
     out = {}
     for line in (_read(path) or "").splitlines():
         k, _, v = line.partition("=")
-        if v.strip():
-            out[k.strip()] = v.strip()
+        v = v.strip().strip('"')
+        if v and v != "none":
+            out[k.strip()] = v
     return out
+
+
+def assignments():
+    """The dongle mapping, by serial, from the installers' files (None for a role with no dongle):
+    {"1090", "978", "pps", "websdr"} and "websdr_band": the role whose dongle the web SDR takes
+    ("1090", "978", or None for a dongle with no other role). Only that role's decoder pauses."""
+    env = _env_values(ENVFILE)
+    web = _env_values(WEB_ENVFILE).get("GTP_WEBSDR_SERIAL")
+    out = {"1090": env.get("GTP_SDR_1090_SERIAL"), "978": env.get("GTP_SDR_978_SERIAL"),
+           "pps": env.get("GTP_SDR_PPS_SERIAL"), "websdr": web}
+    out["websdr_band"] = next((b for b in ("1090", "978") if web and out[b] == web), None)
+    return out
+
+
+def websdr_band():
+    return assignments()["websdr_band"]
+
+
+def websdr_running():
+    """True while gps-time-websdr.service's cgroup exists; None when cgroups can't be read."""
+    if not (CGROUP / "system.slice").is_dir():
+        return None
+    return (CGROUP / "system.slice" / "gps-time-websdr.service").is_dir()
 
 
 def roles():
@@ -196,16 +221,50 @@ def dongles():
     return rows
 
 
+# The last (now, messages) each decoder wrote, for a rate between two reads (RAM only).
+_LAST_COUNT = {}
+
+
+def _stats_rate(path):
+    """readsb's stats.json beside aircraft.json: messages over its last full minute, per second."""
+    try:
+        if path.stat().st_size > MAX_FEED_BYTES:
+            return None
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        m = doc["last1min"]
+        span = float(m["end"]) - float(m["start"])
+        n = float(m["messages"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return round(n / span, 1) if span > 0 and n >= 0 else None
+
+
+def _counter_rate(band, doc):
+    """From aircraft.json's own counters ("now", "messages"): the change since the previous read."""
+    if not isinstance(doc, dict):
+        return None
+    try:
+        t, n = float(doc["now"]), float(doc["messages"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    prev = _LAST_COUNT.get(band)
+    _LAST_COUNT[band] = (t, n)
+    if not prev or t <= prev[0] or n < prev[1]:
+        return None                       # first read, the same file again, or the decoder restarted
+    return round((n - prev[1]) / (t - prev[0]), 1)
+
+
 def feed(band, now=None):
-    """A decoder's aircraft.json: age and aircraft count (positions are never read out)."""
+    """A decoder's aircraft.json: age, aircraft count and message rate (positions are never read out)."""
     now = time.time() if now is None else now
     path = FEEDS[band]
     try:
         st = path.stat()
     except OSError:
         return {"band": band, "path": path.as_posix(), "present": False, "age_s": q(None, "s", "observed"),
-                "aircraft": q(None, "count", "observed"), "fresh": False}
-    count = None
+                "aircraft": q(None, "count", "observed"), "messages_per_s": q(None, "msg/s", "calculated"),
+                "fresh": False}
+    count, doc = None, None
     if st.st_size <= MAX_FEED_BYTES:
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
@@ -213,18 +272,68 @@ def feed(band, now=None):
         except (OSError, ValueError):
             count = None
     age = round(max(0.0, now - st.st_mtime), 1)
+    rate, basis = _stats_rate(path.with_name("stats.json")), "readsb's stats.json: messages in its last minute / 60 s"
+    counted = _counter_rate(band, doc)
+    if rate is None:
+        rate, basis = counted, "the decoder's message counter in aircraft.json, between two reads"
+    fresh = age <= FEED_FRESH_S
     return {"band": band, "path": path.as_posix(), "present": True,
             "age_s": q(age, "s", "observed", "time since the decoder last wrote the file"),
-            "aircraft": q(count, "count", "observed"), "fresh": age <= FEED_FRESH_S}
+            "aircraft": q(count, "count", "observed"),
+            "messages_per_s": q(rate if fresh else None, "msg/s", "calculated", basis),
+            "fresh": fresh}
+
+
+def aircraft(rows, feeds, websdr_on=None):
+    """The aircraft decoders for Radio & SDR: each one's units and state, the dongle serial it uses,
+    whether that dongle is plugged in, whether the web SDR has paused it, its map, and its feed."""
+    from . import tar1090              # the map pages' folders; tar1090 imports nothing of ours
+    a = assignments()
+    plugged = None
+    try:
+        plugged = {(_read(d / "serial") or "") for d in USB.iterdir()
+                   if ":" not in d.name and (_read(d / "idVendor"), _read(d / "idProduct")) in RTL_IDS}
+    except OSError:
+        pass
+    by_unit = {r["unit"]: r for r in rows or []}
+    feed_of = {f["band"]: f for f in feeds}
+
+    def unit_state(name):
+        if rows is None:
+            return None                                  # systemctl couldn't be read: UNKNOWN
+        r = by_unit.get(name)
+        return r["active"]["value"] if r else "not installed"
+
+    out = []
+    for band, decoder, units_, site, url in (
+            ("1090", "readsb", ["gps-time-readsb.service"], "tar1090", tar1090.PREFIX),
+            ("978", "dump978-fa + skyaware978", ["gps-time-dump978.service", "gps-time-skyaware978.service"],
+             "skyaware978", tar1090.SKY_PREFIX)):
+        serial = a[band]
+        paused = None if websdr_on is None else bool(websdr_on and a["websdr_band"] == band)
+        out.append({
+            "band": band, "decoder": decoder,
+            "units": [{"unit": u, "state": unit_state(u)} for u in units_],
+            "serial": serial,
+            "serial_plugged": q(None if plugged is None or not serial else serial in plugged, None, "observed",
+                                "an RTL-SDR with this serial on USB (sysfs)"),
+            "paused_by_websdr": paused,
+            "map": {"name": site, "url": url, "installed": tar1090.installed(site)},
+            "feed": feed_of.get(band),
+        })
+    return {"decoders": out, "websdr_serial": a["websdr"], "websdr_band": a["websdr_band"],
+            "websdr_running": websdr_on}
 
 
 def status(run=subprocess.run, now=None, monotonic_us=None):
     """The whole /api/sdr answer."""
     rows = units(run, monotonic_us)
     usb = dongles()
+    feeds = [feed("1090", now), feed("978", now)]
     return {
         "installed": None if rows is None else any(r["unit"] in SDR_UNITS for r in rows),
-        "units": rows, "dongles": usb, "limit": limit(usb), "feeds": [feed("1090", now), feed("978", now)],
+        "units": rows, "dongles": usb, "limit": limit(usb), "feeds": feeds,
+        "aircraft": aircraft(rows, feeds, websdr_running()),
         "note": "Read only: the station starts, stops and configures none of this (docs/deploy/sdr-stack.md).",
     }
 

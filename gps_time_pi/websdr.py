@@ -116,6 +116,9 @@ def unit_cgroup(name):
     return sdr.CGROUP / "system.slice" / name
 
 
+PAUSES = {"1090": "readsb (1090 MHz)", "978": "dump978-fa and skyaware978 (978 MHz)"}
+
+
 def unit_active(name=UNIT):
     """True while the unit's cgroup exists (systemd removes it when the unit stops); None if
     cgroups can't be read at all."""
@@ -407,6 +410,8 @@ def status(usage=None, run=None):
         "auth": {"enabled": st["auth"], "remember_days": st["remember_days"]},
         "hf": st["hf"],
         "usage": (usage or service()).view(),
-        "note": ("OpenWebRX+ behind the station's LAN gate (login optional). While it runs, readsb (1090 MHz) "
-                 "is stopped; it comes back when the web SDR stops (docs/deploy/websdr.md)."),
+        # The one service on the web SDR's dongle, stopped while it runs (None: a dongle with no other role).
+        "pauses": PAUSES.get(sdr.websdr_band()),
+        "note": ("OpenWebRX+ behind the station's LAN gate (login optional). While it runs, the service on its "
+                 "dongle is stopped and comes back when the web SDR stops (docs/deploy/websdr.md)."),
     }

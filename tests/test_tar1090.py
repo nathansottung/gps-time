@@ -34,6 +34,13 @@ class MapBase(unittest.TestCase):
         self.data = self.tmp / "readsb"
         self.html.mkdir()
         self.data.mkdir()
+        self.sky_html = self.tmp / "sky-html"
+        self.sky_data = self.tmp / "skyaware978"
+        self.sky_html.mkdir()
+        self.sky_data.mkdir()
+        (self.sky_html / "index.html").write_bytes(b"<!DOCTYPE html><html><script>var a = 1;</script></html>")
+        (self.sky_data / "aircraft.json").write_text(json.dumps({"now": 1, "aircraft": [{"hex": "~a00001"}]}))
+        (self.sky_data / "receiver.json").write_text(json.dumps({"version": "skyaware978", "lat": 5.0, "lon": 6.0}))
         (self.html / "index.html").write_bytes(INDEX)
         (self.html / "script.js").write_text("console.log(1)")
         (self.tmp / "secret.txt").write_text("outside")
@@ -45,6 +52,8 @@ class MapBase(unittest.TestCase):
         cfg_path.write_text(json.dumps({"location_display": self.mode, "site": USNO}))
         for p in (mock.patch.object(tar1090, "HTML_DIR", str(self.html)),
                   mock.patch.object(tar1090, "DATA_DIR", str(self.data)),
+                  mock.patch.object(tar1090, "SKY_HTML_DIR", str(self.sky_html)),
+                  mock.patch.object(tar1090, "SKY_DATA_DIR", str(self.sky_data)),
                   mock.patch.object(server, "DEMO_MODE", False),
                   mock.patch.object(config, "_PATH", str(cfg_path)),
                   mock.patch.object(config, "_CACHE", None),
@@ -58,10 +67,73 @@ class MapBase(unittest.TestCase):
         self.conn = http.client.HTTPConnection("127.0.0.1", self.httpd.server_address[1], timeout=10)
         self.addCleanup(self.conn.close)
 
-    def get(self, path, host=None):
-        self.conn.request("GET", path, headers={"Host": host or f"127.0.0.1:{self.httpd.server_address[1]}"})
+    def get(self, path, host=None, method="GET"):
+        self.conn.request(method, path, headers={"Host": host or f"127.0.0.1:{self.httpd.server_address[1]}"})
         r = self.conn.getresponse()            # one kept-alive connection for every request
         return r.status, dict(r.getheaders()), r.read()
+
+
+class TestSkyaware978(MapBase):
+    def test_the_978_page_and_its_data(self):
+        status, h, body = self.get("/skyaware978/")
+        self.assertEqual(status, 200)
+        self.assertIn(b"var a = 1;", body)
+        self.assertIn("script-src 'self' 'sha256-", h["Content-Security-Policy"])
+        status, _, body = self.get("/skyaware978/data/aircraft.json")
+        self.assertEqual((status, json.loads(body)["aircraft"][0]["hex"]), (200, "~a00001"))
+        self.assertEqual(self.get("/skyaware978")[0], 301)
+        self.assertEqual(self.get("/skyaware978/../readsb/aircraft.json")[0], 404)
+        self.assertEqual(self.get("/skyaware978/", host="evil.example")[0], 403)
+
+    def test_its_receiver_json_follows_the_privacy_mode(self):
+        r = json.loads(self.get("/skyaware978/data/receiver.json")[2])
+        self.assertEqual((r["lat"], r["lon"]), (USNO["lat"], USNO["lon"]))        # not skyaware978's own
+        config.save({**config.load(), "location_display": "hidden"})
+        r = json.loads(self.get("/skyaware978/data/receiver.json")[2])
+        self.assertNotIn("lat", r)
+
+    def test_not_installed_says_how(self):
+        (self.sky_html / "index.html").unlink()
+        status, _, body = self.get("/skyaware978/")
+        self.assertEqual(status, 503)
+        self.assertIn(b"GTP_SDR_978_SERIAL", body)
+
+    def test_the_app_keeps_the_strict_csp(self):
+        self.get("/skyaware978/")
+        _, h, _ = self.get("/api/aircraft-map")
+        self.assertEqual(h["Content-Security-Policy"], security.CSP_STRICT)
+
+
+class TestHead(MapBase):
+    def test_head_answers_like_get_without_a_body(self):
+        for path in ("/tar1090/", "/tar1090/script.js", "/skyaware978/", "/api/aircraft-map", "/nope"):
+            with self.subTest(path):
+                gs, gh, gbody = self.get(path)
+                hs, hh, hbody = self.get(path, method="HEAD")
+                self.assertEqual(hs, gs)
+                self.assertEqual(hbody, b"")
+                self.assertNotEqual(hs, 501)
+                if gs == 200 and "Content-Length" in gh and "json" not in gh.get("Content-Type", ""):
+                    self.assertEqual(hh["Content-Length"], gh["Content-Length"])
+                self.assertIn("Content-Security-Policy", hh)
+        # The connection still works after a HEAD (no body was left on it).
+        self.assertEqual(self.get("/tar1090/script.js")[2], b"console.log(1)")
+
+
+class TestPausedOnlyForItsDongle(MapBase):
+    def test_the_web_sdr_on_the_978_dongle_pauses_the_978_map_only(self):
+        from gps_time_pi import sdr, websdr
+        with mock.patch.object(websdr, "unit_active", return_value=True), mock.patch.object(sdr, "websdr_band", return_value="978"):
+            st = json.loads(self.get("/api/aircraft-map")[2])
+        self.assertNotEqual(st["state"], "paused")
+        self.assertEqual(st["uat"]["state"], "paused")
+        with mock.patch.object(websdr, "unit_active", return_value=True), mock.patch.object(sdr, "websdr_band", return_value="1090"):
+            st = json.loads(self.get("/api/aircraft-map")[2])
+        self.assertEqual(st["state"], "paused")
+        self.assertNotEqual(st["uat"]["state"], "paused")
+        with mock.patch.object(websdr, "unit_active", return_value=True), mock.patch.object(sdr, "websdr_band", return_value=None):
+            st = json.loads(self.get("/api/aircraft-map")[2])
+        self.assertNotIn("paused", (st["state"], st["uat"]["state"]))
 
 
 class TestPageAndData(MapBase):
@@ -187,9 +259,10 @@ class TestUnits(unittest.TestCase):
         self.assertNotIn("--lon", start)
         self.assertIn("--write-json /run/readsb", readsb)
         web = (root / "gps-time-websdr.service").read_text(encoding="utf-8")
-        self.assertIn("Conflicts=gps-time-readsb.service readsb.service", web)
+        # Which decoder pauses depends on the web SDR's dongle: the drop-in scripts/websdr.sh writes.
+        self.assertNotRegex(web, r"(?m)^Conflicts=")
         self.assertIn("websdr-handoff", web)
-        self.assertIn("gps-time-readsb", (root / "websdr-handoff").read_text(encoding="utf-8"))
+        self.assertIn("GTP_WEBSDR_SHARES", (root / "websdr-handoff").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
