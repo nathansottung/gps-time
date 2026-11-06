@@ -3,6 +3,6 @@ skyfield==1.55
 # skyfield 1.55 assigns ndarray.dtype, which NumPy 2.5 deprecates; stay below the release that removes it.
 numpy<2.7
 # Offline time-zone lookup from the station position, for local-time display only (gps_time_pi/localtime.py).
-tzfpy==2.1.1
+tzfpy==2.1.2
 # Ed25519 station key: signs observation files (gps_time_pi/station_key.py).
 cryptography==50.0.2
