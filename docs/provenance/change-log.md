@@ -2352,3 +2352,9 @@ The owner's evidence from the Pi on rc.8: `readsb: ERROR: Unknown device type:rt
 - **Aviation:** the stale "ADS-B / UAT — PLANNED" card and its preview values (`adsbStats`) are gone. A 978 MHz UAT map card (from `/api/aircraft-map` → `uat`: state, aircraft, data age, link to `/skyaware978/`) sits beside the 1090 MHz map card; one poll for both. `uatState()` in `web/src/lib/aircraftmap.ts`.
 - **Tests:** `tests/test_sdr_stack.py`: readsb built from the pinned tag with `RTLSDR=yes` and installed in `/usr/local/bin`; a build without RTL-SDR support never installed or enabled (exit 3); an rc.8-era binary rebuilt; a commit mismatch; 978 MHz without SoapySDR's driver; check mode reporting both and changing nothing; the owner's new serials without an index warning; `TestDecoderChecks` for the check itself (Debian's output fails, an RTL-SDR build passes, a missing or silent binary fails, the exact arguments). `web/src/lib/aircraftmap.test.ts`: `uatState`.
 - **Docs:** `deploy/sdr-stack.md` ("readsb with RTL-SDR support", "Two dongles"), `releases/v1.6.0-rc.9.md`, and the version lines. The tag `v1.6.0-rc.9` goes on this PR's merge commit. Not deployed.
+
+## 2026-11-19 — Pre-public re-check and code of conduct
+
+- **History:** gitleaks 8.21.2 over all 550 commits on every ref: 6 hits, all false positives (signing-key fingerprints, test token, fake key fixture). No real coordinates; only noreply identities. No rewrite needed.
+- **Added:** `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1, private reporting through GitHub).
+- **Docs:** `public-release-checklist.md` §1 and §8; `STATUS.md` row. No code or station behaviour changed.

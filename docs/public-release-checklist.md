@@ -18,6 +18,8 @@ Making the repository public publishes every commit, not only `main` as it is to
 - [x] **Decision:** **no history rewrite is needed.**
 - [x] **GitHub outside git:** all 98 PR bodies and comments, the release notes, issues (none) and Actions artifacts (none) scanned: only the product's default hostname `gpstime.local`.
 
+- [x] **Re-check 2026-11-19 (before the flip), 550 commits on every ref:** gitleaks 8.21.2 over the full history: 6 hits, all false positives (the FlightAware and OpenWebRX+ signing-key fingerprints, the `correct-horse-battery-staple-…` test token, a `not a real key` test fixture). Coordinates: only the USNO and Washington Monument examples, synthetic tower fixtures, star positions and a DEMO airport row. Authors: the owner's noreply address and Dependabot only. `192.168.10.x` appears only in history before #99/#100, as already accepted above. **Still no history rewrite needed.**
+
 ## 2. Current tree
 
 - [x] The pre-commit scan over the whole tree (part of the history scan above).
@@ -78,3 +80,4 @@ Nothing below has been done; each is the owner's step.
    - secret scanning and Dependabot alerts;
    - topics (`raspberry-pi`, `ntp`, `chrony`, `gps`, `pps`, `gnss`, `stratum-1`, `ham-radio`);
    - Discussions and Wiki off unless wanted.
+6. `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) added 2026-11-19.
